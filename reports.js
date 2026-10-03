@@ -41,10 +41,10 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    if(value!==undefined&&value!==null&&String(value)!==''){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(0,0,0);doc.text(doc.splitTextToSize(String(value),Math.max(5,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1)}
   }
   function backToDrawingButton(){
-   const bx=151,by=19.1,bw=45,bh=5.8;
+   const bx=188,by=19.1,bw=8,bh=5.8;
    doc.setFillColor(19,43,56);doc.setDrawColor(19,43,56);doc.setLineWidth(.18);doc.rect(bx,by,bw,bh,'FD');
-   doc.setDrawColor(255,255,255);doc.setLineWidth(.55);doc.setLineCap('round');doc.line(bx+4,by+bh/2,bx+8,by+bh/2);doc.line(bx+4,by+bh/2,bx+5.7,by+bh/2-1.25);doc.line(bx+4,by+bh/2,bx+5.7,by+bh/2+1.25);doc.setLineCap('butt');
-   doc.setFont('helvetica','bold');doc.setFontSize(6.8);doc.setTextColor(255,255,255);doc.text('TILL RITNING',bx+10,by+3.95);
+   const cy=by+bh/2;doc.setDrawColor(255,255,255);doc.setLineWidth(.6);doc.setLineCap('round');
+   doc.line(bx+2.1,cy,bx+5.9,cy);doc.line(bx+2.1,cy,bx+3.8,cy-1.35);doc.line(bx+2.1,cy,bx+3.8,cy+1.35);doc.setLineCap('butt');
    doc.__doorBackLinks=doc.__doorBackLinks||[];
    doc.__doorBackLinks.push({doorKey:d.uid||d.id,pageNo:doc.getNumberOfPages(),drawingPage:d.page,rect:[bx,by,bw,bh]});
   }
