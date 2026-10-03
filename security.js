@@ -325,15 +325,36 @@ function reportDoc(){
  const problemItems=items.filter(o=>issues(o).length||statusOf(o)!=='ok');
  if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
  problemItems.forEach(o=>{
-  const ins=issues(o),allLines=doc.splitTextToSize(ins.join(' | ')||(statusOf(o)==='untested'?'Ej färdigkontrollerad':'Status: '+statusOf(o)),width-14);let offset=0,first=true;
-  while(offset<Math.max(1,allLines.length)){
-   let available=Math.floor((bottom-y-11)/3.2);if(available<2){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;available=Math.floor((bottom-y-11)/3.2)}
-   const take=Math.max(1,Math.min(available,allLines.length-offset||1)),chunk=allLines.length?allLines.slice(offset,offset+take):[''],h=Math.max(12,7+chunk.length*3.2);
-   doc.setFillColor(...COLORS[statusOf(o)]);doc.rect(left,y,3,h,'F');doc.setDrawColor(204,215,223);doc.rect(left+3,y,width-3,h);
-   txt(o.id+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'')+(first?'':' · forts.'),left+6,y+5,8,true);
-   txt(chunk,left+6,y+9.2,6.6,false,[32,52,64],{lineHeightFactor:1.12});y+=h+2;offset+=take;first=false;
-   if(offset<allLines.length&&y>bottom-14){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32}
-  }
+  const st=statusOf(o),statusLabel=st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
+  const titleBase=o.id+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
+  const issueText=issues(o);
+  const bodySource=issueText.length?issueText.map(t=>'• '+t).join('\n'):(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel);
+  doc.setFont('helvetica','bold');doc.setFontSize(7.8);
+  const titleLines=doc.splitTextToSize(titleBase,width-38);
+  doc.setFont('helvetica','normal');doc.setFontSize(6.4);
+  const bodyLines=doc.splitTextToSize(bodySource,width-18);
+  let bodyOffset=0,first=true;
+  do{
+   const pageRoom=bottom-y;
+   const titleCount=first?Math.min(2,titleLines.length):1;
+   const titleH=titleCount*3.5;
+   const fixedH=7+titleH;
+   let maxBody=Math.max(1,Math.floor((pageRoom-fixedH-3)/3.15));
+   if(pageRoom<18||maxBody<1){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;maxBody=Math.max(1,Math.floor((bottom-y-fixedH-3)/3.15))}
+   const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
+   const cardH=Math.max(16,fixedH+chunk.length*3.15+3);
+   doc.setFillColor(250,251,252);doc.setDrawColor(204,215,223);doc.setLineWidth(.18);doc.roundedRect(left,y,width,cardH,2,2,'FD');
+   doc.setFillColor(...COLORS[st]);doc.rect(left,y,3.2,cardH,'F');
+   const badgeW=31;doc.setFillColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.5,1.5,'F');
+   txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,[255,255,255],{align:'center'});
+   doc.setFont('helvetica','bold');doc.setFontSize(7.8);doc.setTextColor(26,48,61);
+   const shownTitle=first?titleLines.slice(0,2):[o.id+' · forts.'];doc.text(shownTitle,left+7,y+5.4,{lineHeightFactor:1.05});
+   const bodyY=y+6.6+shownTitle.length*3.5;
+   doc.setFont('helvetica','normal');doc.setFontSize(6.4);doc.setTextColor(32,52,64);
+   doc.text(chunk,left+7,bodyY,{lineHeightFactor:1.12,maxWidth:width-14});
+   y+=cardH+3;bodyOffset+=take;first=false;
+   if(bodyOffset<bodyLines.length&&y>bottom-16){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32}
+  }while(bodyOffset<bodyLines.length);
  });
 
  function cell(label,value,x,yy,w,h=7,bold=false){
