@@ -1,5 +1,123 @@
 const MODELS=[['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],['15','Besam Powerswing'],['16','Besam SW100'],['17','Dorma ED 200'],['18','Tormax'],['19','Record standardarm'],['20','Powerswing pardörr'],['21','Geze TSA 160'],['22','Record glidarm'],['23','Gilgen FDC'],['24','Dorma ED 100'],['25','Besam SDE'],['26','Ditec hissmonterad'],['27','SR 2000'],['28','OVE'],['29','Dorma CD 80'],['30','Cibes hissöppnare'],['31','Geze TSA 160 dubbeldörr'],['32','Dorma ED 180'],['33','Geze EC Turn'],['34','Besam DHE'],['35','Entramatic PLS 100'],['36','Entramatic PLS 150'],['37','Dorma ED 250'],['38','Geze Powerdrive skjutdörr'],['39','Geze EC Drive skjutdörr'],['40','Geze SL skjutdörr'],['41','Faac 930 skjutdörr'],['42','Faac A140 skjutdörr'],['43','Dorma TS 93 + brandstängning'],['44','Dorma TS 93'],['45','Entramatic SW 300'],['46','Unislide dubbel flyglig'],['47','Unislide enkel flyglig'],['48','Entramatic SL500']];
 const GROUPS=[['Förberedelser och infästning',[0,1,2,3]],['Öppning, stängning och utrymning',[4,5,6,7,8]],['Impulsgivare, säkerhet och lås',[9,10,11,12]],['Drivning, rengöring och justering',[13,14,15,16,17]]];
+
+window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
+ let scan=null;
+ const cleanName=name=>String(name||'').split('#')[0].replace(/\(\d+\)$/,'').trim().toLocaleLowerCase('sv');
+ const cleanValue=value=>{
+  if(value===undefined||value===null)return '';
+  const text=(Array.isArray(value)?value.join(' '):String(value)).trim();
+  return /^(?:off|\.)$/i.test(text)?'':text
+ };
+ const getField=(fields,...names)=>{
+  for(const name of names){const value=fields.get(cleanName(name));if(value)return value}
+  return ''
+ };
+ const collectFields=annotations=>{
+  const fields=new Map();
+  for(const a of annotations||[]){
+   if(!a?.fieldName)continue;
+   const key=cleanName(a.fieldName),value=cleanValue(a.fieldValue);
+   if(key&&value&&!fields.has(key))fields.set(key,value)
+  }
+  return fields
+ };
+ const resolveDest=async dest=>{
+  try{
+   let explicit=dest;
+   if(typeof explicit==='string')explicit=await scan.getDestination(explicit);
+   if(!Array.isArray(explicit)||!explicit[0])return null;
+   const ref=explicit[0];
+   if(Number.isInteger(ref))return ref+1;
+   if(ref&&typeof ref==='object'&&Number.isInteger(ref.num))return (await scan.getPageIndex(ref))+1;
+  }catch(e){}
+  return null
+ };
+ const parseId=id=>{
+  const parts=String(id||'').trim().split('-').map(x=>x.trim()).filter(Boolean);
+  if(parts.length<3)return {prefix:'',modelCode:'',serial:''};
+  const modelCode=parts.at(-2),rawSerial=parts.at(-1),serialMatch=String(rawSerial).match(/\d+/);
+  return {prefix:parts.slice(0,-2).join('-'),modelCode,serial:serialMatch?serialMatch[0]:rawSerial}
+ };
+ const majority=values=>{
+  const counts=new Map();for(const value of values.filter(Boolean))counts.set(value,(counts.get(value)||0)+1);
+  return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||''
+ };
+ try{
+  scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+  const linkedPages=[],rawLinks=[];let seen=false,gap=0;
+  const scanLimit=Math.min(scan.numPages,30);
+  for(let pageNo=1;pageNo<=scanLimit;pageNo++){
+   onProgress('Söker äldre länkade automatiker… sida '+pageNo+' / '+scanLimit);
+   const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1});
+   const candidates=annotations.filter(a=>a?.fieldType==='Btn'&&!a.checkBox&&!a.radioButton&&a.dest&&Array.isArray(a.rect));
+   const resolved=[];
+   for(const a of candidates){const targetPage=await resolveDest(a.dest);if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})}
+   if(resolved.length){
+    seen=true;gap=0;linkedPages.push({originalPage:pageNo,viewport});
+    resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
+   }else if(seen&&++gap>=2)break;
+  }
+  if(rawLinks.length<2)return null;
+
+  const targets=[...new Set(rawLinks.map(x=>x.targetPage))].sort((a,b)=>a-b),protocols=new Map();
+  for(let start=0;start<targets.length;start+=6){
+   const batch=targets.slice(start,start+6);
+   onProgress('Läser gamla protokoll… '+Math.min(start+batch.length,targets.length)+' / '+targets.length);
+   await Promise.all(batch.map(async targetPage=>{
+    const pg=await scan.getPage(targetPage),annotations=await pg.getAnnotations({intent:'any'}),fields=collectFields(annotations);
+    const id=getField(fields,'Id nummermaskin');
+    if(id)protocols.set(targetPage,{id,fields})
+   }))
+  }
+  const validLinks=rawLinks.filter(link=>protocols.has(link.targetPage));
+  if(validLinks.length<2)return null;
+
+  const drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b),pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1])),viewportMap=new Map(linkedPages.map(x=>[x.originalPage,x.viewport]));
+  const used=new Set(),doors=[];
+  for(const link of validLinks){
+   const protocol=protocols.get(link.targetPage),id=protocol.id;if(!id||used.has(id))continue;used.add(id);
+   const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
+   const vr=viewport.convertToViewportRectangle(link.rect),x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height));
+   const parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
+   doors.push(normalize({
+    uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
+    serialNumber:String(parsed.serial||doors.length+1).padStart(3,'0'),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
+    location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''
+   }))
+  }
+  if(doors.length<2)return null;
+
+  doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+  const firstProtocol=protocols.get(validLinks[0].targetPage),first=firstProtocol?.fields||new Map(),prefixes=doors.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
+  const serials=doors.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,'');
+  const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+/i,'').trim();
+  const project={
+   projectName,facilityNo,customer:getField(first,'Företag'),agreementNo:'',contact:getField(first,'Kontaktperson'),projectOrder:oldOrder,
+   inspectionDate:'',projectNextDate:'',company:getField(first,'kontakt f','kontakt g'),companyContact:getField(first,'kontakt g','kontakt f'),
+   companyPhone:getField(first,'tel g'),companyAddress:getField(first,'adress g'),companyPostalCode:getField(first,'postnr g'),companyPostalCity:getField(first,'post g'),
+   phone:getField(first,'tel'),address:getField(first,'adress'),postalCode:getField(first,'postnr'),postalCity:getField(first,'postadress'),technician:'',serviceSignature:'',
+   nextDoorNumber:Math.max(0,...serials)+1
+  };
+
+  onProgress('Bygger ren ritning med '+doors.length+' automatiker…');
+  const {PDFDocument,PDFName}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
+  copied.forEach(pg=>{pg.node.delete(PDFName.of('Annots'));output.addPage(pg)});
+  try{output.catalog.delete(PDFName.of('AcroForm'))}catch(e){}
+  const drawingBytes=new Uint8Array(await output.save());
+
+  const modelCounts=new Map(),prefixCounts=new Map();
+  doors.forEach(d=>{const model=d.model||('Kod '+(d.modelCode||'?'));modelCounts.set(model,(modelCounts.get(model)||0)+1);const prefix=parseId(d.id).prefix;if(prefix)prefixCounts.set(prefix,(prefixCounts.get(prefix)||0)+1)});
+  const modelText=[...modelCounts.entries()].sort((a,b)=>b[1]-a[1]).map(([name,count])=>count+' '+name).join(', ');
+  const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
+  return {drawingBytes,work:{version:2,doors,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+' Kontroller och datum är nollställda för nytt servicebesök.'}
+ }catch(error){
+  console.warn('Äldre PDF kunde inte autoimporteras',error);return null
+ }finally{
+  if(scan){try{await scan.destroy()}catch(e){}}
+ }
+};
+
 function goView(view){
  if(view!=='doors'&&$('overviewDialog').open)$('overviewDialog').close();
  if(view==='doors'&&!$('overviewDialog').open)$('overviewDialog').show();
