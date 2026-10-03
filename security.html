@@ -8,20 +8,24 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.3-r29">
-<link rel="stylesheet" href="security.css?v=14">
+<link rel="stylesheet" href="style.css?v=2.4.3-r33">
+<link rel="stylesheet" href="security.css?v=15">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
 <body class="securityApp" data-view="drawing">
-<header>
-  <div class="brand"><strong>Säkerhetsservice</strong><span>TEST</span></div>
-  <a class="filebtn" href="./">Hem</a>
-  <label class="filebtn" for="securityFile">Öppna PDF</label>
-  <input id="securityFile" type="file" accept="application/pdf" hidden>
-  <button id="securityPreview">Kundmall</button>
-  <button id="securityExport" class="primary">Spara PDF</button>
+<header class="secAppHeader">
+  <div class="secHeaderTop">
+    <div class="brand"><strong>Säkerhetsservice</strong></div>
+    <a class="filebtn" href="./">Hem</a>
+  </div>
+  <div class="secHeaderActions">
+    <label class="filebtn" for="securityFile">Öppna PDF</label>
+    <input id="securityFile" type="file" accept="application/pdf" hidden>
+    <button id="securityPreview">Kundmall</button>
+    <button id="securityExport" class="primary">Spara PDF</button>
+  </div>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
 <div id="securityMessage" role="status">Öppna en PDF-ritning för att börja.</div>
@@ -31,7 +35,7 @@
   <div class="pagebar">
     <button id="secPrev" aria-label="Föregående sida">‹</button><span id="secPage">Ingen ritning</span><span class="mobileSwipeHint" aria-hidden="true">↔ Svep</span><button id="secNext" aria-label="Nästa sida">›</button>
     <button id="secZoomOut">−</button><span id="secZoom">100%</span><button id="secZoomIn">+</button>
-    <button id="secFit" hidden>Passa</button>
+    <button id="secFit" hidden style="display:none!important">Passa</button>
   </div>
   <div id="secHint" hidden>Tryck på ritningen där objektet finns.</div>
   <section id="secViewer">
@@ -43,7 +47,7 @@
     <button data-add="lock">＋ Lås & Dörrmiljö</button>
     <button data-add="access">＋ Passer</button>
     <button id="secAddText">＋ Text</button>
-    <button id="secFitMobile" hidden>Passa</button>
+    <button id="secFitMobile" hidden style="display:none!important">Passa</button>
   </div>
 </section>
 
