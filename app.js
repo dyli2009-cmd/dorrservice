@@ -18,8 +18,8 @@ const COMMON_FAULTS={
 '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
-let pdf,page=1,addMode=false,selected=null,doors=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1;
-const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),wrap=$('viewerWrap');
+let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1;
+const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
 function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');return d}doors.forEach(normalize);
@@ -27,7 +27,7 @@ let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){
  clearTimeout(saveTimer);if(!activeDrawingKey)return true;
- try{localStorage.setItem(DRAWING_PREFIX+activeDrawingKey,JSON.stringify({version:1,name:activeDrawingName,doors,project,logoData,updatedAt:new Date().toISOString()}));return true}
+ try{localStorage.setItem(DRAWING_PREFIX+activeDrawingKey,JSON.stringify({version:1,name:activeDrawingName,doors,textNotes,project,logoData,updatedAt:new Date().toISOString()}));return true}
  catch(e){notice('Kunde inte spara på enheten. Behåll appen öppen och exportera protokollet innan du byter ritning.',true);return false}
 }
 function legacyWork(){
@@ -94,13 +94,13 @@ $('file').onchange=async e=>{
   if(version!==loadVersion){await candidate.destroy();return}
   if(!persist()){await candidate.destroy();return}
   const record=savedDrawing(key)||imported?.work||legacyImported?.work;
-  const nextDoors=(record?.doors||[]).map(normalize);
+  const nextDoors=(record?.doors||[]).map(normalize),nextTextNotes=Array.isArray(record?.textNotes)?record.textNotes.filter(n=>n&&Number.isInteger(n.page)&&n.page>0&&Number.isFinite(n.x)&&Number.isFinite(n.y)&&typeof n.text==='string'):[];
   pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
-  doors=nextDoors;project=record?.project||{};logoData=record?.logoData||'';
+  doors=nextDoors;textNotes=nextTextNotes;project=record?.project||{};logoData=record?.logoData||'';
   page=1;zoom=1;selected=null;pinch=null;panTouch=null;
-  canvas.width=canvas.height=0;canvas.style.width=canvas.style.height='0px';markers.replaceChildren();$('stage').style.width=$('stage').style.height='0px';pageWidth=pageHeight=1;$('pageInfo').textContent='Laddar sida…';
+  canvas.width=canvas.height=0;canvas.style.width=canvas.style.height='0px';markers.replaceChildren();drawingNotes.replaceChildren();$('stage').style.width=$('stage').style.height='0px';pageWidth=pageHeight=1;$('pageInfo').textContent='Laddar sida…';
   $('overviewFilter').value='all';$('overviewSearch').value='';refreshDrawingUI();save();if($('overviewDialog').open)$('overviewDialog').close();$('projectPanel').hidden=true;
-  $('stage').style.transform='';addMode=false;document.body.classList.remove('placing','protocolOpen');$('hint').style.display='none';show();goView('drawing');
+  $('stage').style.transform='';addMode=false;textMode=false;document.body.classList.remove('placing','placingText','protocolOpen');$('hint').style.display='none';show();goView('drawing');
   if(previous)await previous.destroy();
   const rendered=await render(true);wrap.scrollLeft=0;wrap.scrollTop=0;
   if(version===loadVersion&&rendered){const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'))}
@@ -149,8 +149,28 @@ wrap.addEventListener('wheel',e=>{
   setZoom(target,finalFocus);
  },180);
 },{passive:false});
-$('zoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('zoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){if(!pdf)return alert('Ladda upp en PDF först');addMode=!addMode;document.body.classList.toggle('placing',addMode);$('hint').style.display=addMode?'block':'none'}
-markers.addEventListener('click',e=>{if(e.target!==markers||!addMode)return;const r=markers.getBoundingClientRect(),ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')});
+$('zoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('zoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){
+ if(!pdf)return alert('Ladda upp en PDF först');
+ addMode=!addMode;textMode=false;document.body.classList.toggle('placing',addMode);document.body.classList.remove('placingText');
+ $('hint').textContent='Tryck där dörren finns. Nyp för att zooma.';$('hint').style.display=addMode?'block':'none'
+}
+function toggleText(){
+ if(!pdf)return alert('Ladda upp en PDF först');
+ textMode=!textMode;addMode=false;document.body.classList.toggle('placingText',textMode);document.body.classList.remove('placing');
+ $('hint').textContent='Tryck där anteckningen ska peka.';$('hint').style.display=textMode?'block':'none'
+}
+markers.addEventListener('click',e=>{
+ if(e.target!==markers)return;
+ const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+ if(textMode){
+  const value=prompt('Skriv texten du vill lägga på ritningen:','');if(value===null||!value.trim())return;
+  textNotes.push({uid:'text:'+Date.now()+':'+Math.random().toString(36).slice(2),page,x,y,text:value.trim()});
+  textMode=false;document.body.classList.remove('placingText');$('hint').style.display='none';save();draw();return
+ }
+ if(!addMode)return;
+ const ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;
+ const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x,y,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')
+});
 function draw(){
  markers.replaceChildren();doors.filter(d=>d.page===page).forEach(d=>{
   const el=document.createElement('button');el.type='button';el.className='marker '+(d.status||'untested');el.textContent=d.id;el.setAttribute('aria-label','Öppna protokoll för '+d.id);
@@ -162,11 +182,24 @@ function draw(){
   el.addEventListener('click',ev=>{if(Date.now()<ignoreClickUntil){ev.preventDefault();ev.stopImmediatePropagation()}},true);
   el.onclick=ev=>{ev.stopPropagation();if(Date.now()<ignoreClickUntil){ev.preventDefault();return}selected=d.uid;show();if(innerWidth<=800)document.body.classList.add('protocolOpen')};markers.appendChild(el)
  })
+ drawingNotes.replaceChildren();
+ textNotes.filter(n=>n.page===page).forEach(n=>{
+  const el=document.createElement('button');el.type='button';el.className='drawingNote';el.setAttribute('aria-label','Anteckning: '+n.text);
+  el.style.left=n.x*100+'%';el.style.top=n.y*100+'%';
+  const dot=document.createElement('span');dot.className='drawingNoteDot';const label=document.createElement('span');label.className='drawingNoteLabel';label.textContent=n.text;el.append(dot,label);
+  let drag=null,ignoreClickUntil=0;
+  el.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;ev.stopPropagation();drag={pointer:ev.pointerId,x:ev.clientX,y:ev.clientY,moved:false,originalX:n.x,originalY:n.y};el.setPointerCapture(ev.pointerId)});
+  el.addEventListener('pointermove',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(!drag.moved&&Math.hypot(ev.clientX-drag.x,ev.clientY-drag.y)<6)return;drag.moved=true;const r=drawingNotes.getBoundingClientRect();n.x=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));n.y=Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height));el.style.left=n.x*100+'%';el.style.top=n.y*100+'%'});
+  el.addEventListener('pointerup',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(drag.moved){ignoreClickUntil=Date.now()+700;save()}drag=null});
+  el.addEventListener('pointercancel',()=>{if(drag){n.x=drag.originalX;n.y=drag.originalY;el.style.left=n.x*100+'%';el.style.top=n.y*100+'%'}drag=null});
+  el.onclick=ev=>{ev.stopPropagation();if(Date.now()<ignoreClickUntil)return;const value=prompt('Ändra text. Lämna tomt för att ta bort:',n.text);if(value===null)return;if(!value.trim()){if(confirm('Ta bort textmarkeringen?')){textNotes=textNotes.filter(x=>x.uid!==n.uid);save();draw()}return}n.text=value.trim();save();draw()};
+  drawingNotes.appendChild(el)
+ })
 }
 function cur(){return doors.find(d=>d.uid===selected)}
 function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);$('formTitle').textContent=d.id+' – Sida '+d.page;['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show()}};
 wrap.addEventListener('pointerdown',e=>{
- if(!pdf||addMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker'))return;
+ if(!pdf||addMode||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker,.drawingNote'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};
  wrap.classList.add('mousePanning');wrap.setPointerCapture(e.pointerId);e.preventDefault();
 });
@@ -185,18 +218,18 @@ wrap.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e
 
 wrap.addEventListener('touchstart',e=>{
  if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
- else if(e.touches.length===1&&!addMode&&!e.target.closest('.marker')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
+ else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.drawingNote')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
 },{passive:false});
 wrap.addEventListener('touchmove',e=>{
  if(e.touches.length===2&&pinch){e.preventDefault();const a=e.touches[0],b=e.touches[1];visualZoom=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist))/pinch.zoom;$('stage').style.transform='scale('+visualZoom+')';$('stage').style.transformOrigin=(wrap.scrollLeft+pinch.focus.x)+'px '+(wrap.scrollTop+pinch.focus.y)+'px';$('zoomInfo').textContent=Math.round(pinch.zoom*visualZoom*100)+'%'}
- else if(e.touches.length===1&&panTouch&&!addMode&&!pinch){e.preventDefault();const t=e.touches[0];wrap.scrollLeft=panTouch.left-(t.clientX-panTouch.x);wrap.scrollTop=panTouch.top-(t.clientY-panTouch.y)}
+ else if(e.touches.length===1&&panTouch&&!addMode&&!textMode&&!pinch){e.preventDefault();const t=e.touches[0];wrap.scrollLeft=panTouch.left-(t.clientX-panTouch.x);wrap.scrollTop=panTouch.top-(t.clientY-panTouch.y)}
 },{passive:false});
 function endTouch(e){
  if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus)}
  if(e.touches.length===0)panTouch=null;
 }
 wrap.addEventListener('touchend',endTouch,{passive:true});wrap.addEventListener('touchcancel',endTouch,{passive:true});
-$('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
+$('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileText')&&($('mobileText').onclick=toggleText);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
 
 const STATUS_LABELS={untested:'Ej provad',ok:'Godkänd',action:'Åtgärd krävs',fail:'Ej godkänd'};
 function doorProblems(d){return CHECKS.filter(([n])=>d.checks?.[n]?.result==='remark')}
