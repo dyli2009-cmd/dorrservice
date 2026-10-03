@@ -124,7 +124,7 @@ function goView(view){
  $('projectPanel').hidden=view!=='project';document.body.dataset.view=view;
  document.body.classList.toggle('protocolOpen',view==='protocol');
  const ids={drawing:'navDrawing',doors:'mobileOverview',protocol:'mobileProtocol',project:'settingsBtn'};
- Object.values(ids).forEach(id=>$(id).classList.toggle('active',ids[view]===id));
+ Object.entries(ids).forEach(([name,id])=>{const button=$(id),active=name===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
 }
 function completedChecks(d){return CHECKS.filter(([n])=>['ok','na','remark'].includes(d.checks?.[n]?.result)).length}
 function displayStatus(d){if(d.status==='fail')return 'fail';if(hasDoorProblem(d))return 'action';return d.status==='ok'?'ok':'untested'}
@@ -279,8 +279,53 @@ updateCompactUI();
 
 const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.children).forEach((element,index)=>{const d=items[index];element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)})};
 
-function sizeForKeyboard(){document.documentElement.style.setProperty('--app-height',(window.visualViewport?.height||window.innerHeight)+'px')}
-window.visualViewport?.addEventListener('resize',()=>{sizeForKeyboard();if(document.activeElement?.matches('input,textarea,select'))requestAnimationFrame(()=>document.activeElement.scrollIntoView({block:'nearest'}))});window.addEventListener('resize',sizeForKeyboard);sizeForKeyboard();
+let keyboardBaseline=Math.round(window.visualViewport?.height||window.innerHeight),keyboardTimer=null;
+function editableElement(){return document.activeElement?.matches?.('input,textarea,select,[contenteditable=true]')?document.activeElement:null}
+function syncMobileViewport(force=false){
+ const vv=window.visualViewport,current=Math.round(vv?.height||window.innerHeight),editing=!!editableElement();
+ if(!editing||force)keyboardBaseline=Math.max(current,Math.round(window.innerHeight||current));
+ const keyboardHeight=editing?Math.max(0,keyboardBaseline-current):0,open=editing&&keyboardHeight>110;
+ document.body.classList.toggle('keyboard-open',open);
+ document.documentElement.style.setProperty('--keyboard-height',keyboardHeight+'px');
+ if(!open||force)document.documentElement.style.setProperty('--app-height',current+'px');
+}
+function keepEditorVisible(el){
+ if(!el)return;const vv=window.visualViewport,rect=el.getBoundingClientRect(),top=(vv?.offsetTop||0)+12,bottom=(vv?.offsetTop||0)+(vv?.height||window.innerHeight)-18;
+ if(rect.bottom>bottom||rect.top<top)el.scrollIntoView({block:'center',behavior:'smooth'});
+}
+document.addEventListener('focusin',e=>{
+ if(!e.target.matches?.('input,textarea,select,[contenteditable=true]'))return;
+ keyboardBaseline=Math.round(window.visualViewport?.height||window.innerHeight);
+ clearTimeout(keyboardTimer);keyboardTimer=setTimeout(()=>{syncMobileViewport(false);keepEditorVisible(e.target)},320);
+});
+document.addEventListener('focusout',()=>{
+ clearTimeout(keyboardTimer);keyboardTimer=setTimeout(()=>{document.body.classList.remove('keyboard-open');syncMobileViewport(true)},220);
+});
+window.visualViewport?.addEventListener('resize',()=>syncMobileViewport(false));
+window.addEventListener('resize',()=>{if(!editableElement())syncMobileViewport(true)});
+window.addEventListener('orientationchange',()=>setTimeout(()=>syncMobileViewport(true),350));
+syncMobileViewport(true);
+
+let deferredInstallPrompt=null;
+const installPanel=$('installAppPanel'),installBtn=$('installAppBtn'),installText=$('installAppText');
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+const isiOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function refreshInstallUI(){
+ if(!installPanel)return;
+ if(isStandalone){installPanel.hidden=true;return}
+ const mobileLike=matchMedia('(max-width: 900px)').matches||navigator.maxTouchPoints>0;
+ installPanel.hidden=!mobileLike;
+ if(isiOS){installText.textContent='På iPhone: öppna i Safari, tryck Dela och välj Lägg till på hemskärmen.';installBtn.textContent='Visa hur';installBtn.hidden=false}
+ else if(deferredInstallPrompt){installText.textContent='Installera Dörrservice på hemskärmen för helskärmsläge och enklare användning.';installBtn.textContent='Installera app';installBtn.hidden=false}
+ else{installText.textContent='Öppna webbläsarens meny och välj Installera app eller Lägg till på hemskärmen.';installBtn.textContent='Installationshjälp';installBtn.hidden=false}
+}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;refreshInstallUI()});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;if(installPanel)installPanel.hidden=true});
+if(installBtn)installBtn.onclick=async()=>{
+ if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;refreshInstallUI();return}
+ alert(isiOS?'iPhone: öppna sidan i Safari → tryck Dela → Lägg till på hemskärmen → Lägg till.':'Öppna webbläsarens meny och välj Installera app eller Lägg till på hemskärmen.')
+};
+refreshInstallUI();
 
 let customerPreviewTimer=null,customerPreviewToken=0,customerPreviewPdf=null;
 function customerPreviewDoor(){
