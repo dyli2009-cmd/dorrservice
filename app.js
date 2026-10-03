@@ -82,7 +82,9 @@ $('file').onchange=async e=>{
   if(version!==loadVersion)return;
   const imported=await inspectWorkPdf(bytes);
   if(version!==loadVersion)return;
-  const drawingBytes=imported?.drawingBytes||await stripLegacyReportPages(bytes);
+  const legacyImported=!imported&&window.inspectLegacyLinkedPdf?await window.inspectLegacyLinkedPdf(bytes,f.name,message=>{if(version===loadVersion)notice(message)}):null;
+  if(version!==loadVersion)return;
+  const drawingBytes=imported?.drawingBytes||legacyImported?.drawingBytes||await stripLegacyReportPages(bytes);
   candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
   if(version!==loadVersion){await candidate.destroy();return}
   // Validate the first page before replacing the current drawing.
@@ -91,7 +93,7 @@ $('file').onchange=async e=>{
   const previous=pdf;++renderVersion;if(renderTask)renderTask.cancel();await renderQueue;
   if(version!==loadVersion){await candidate.destroy();return}
   if(!persist()){await candidate.destroy();return}
-  const record=savedDrawing(key)||imported?.work;
+  const record=savedDrawing(key)||imported?.work||legacyImported?.work;
   const nextDoors=(record?.doors||[]).map(normalize);
   pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
   doors=nextDoors;project=record?.project||{};logoData=record?.logoData||'';
@@ -101,7 +103,7 @@ $('file').onchange=async e=>{
   $('stage').style.transform='';addMode=false;document.body.classList.remove('placing','protocolOpen');$('hint').style.display='none';show();goView('drawing');
   if(previous)await previous.destroy();
   const rendered=await render(true);wrap.scrollLeft=0;wrap.scrollTop=0;
-  if(version===loadVersion&&rendered)notice((imported?'Arbets-PDF öppnad: ':record?'Sparad ritning: ':'Ny ritning: ')+f.name+' – '+doors.length+' dörrar. Välj ＋ Dörr för att lägga till.');
+  if(version===loadVersion&&rendered){const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'))}
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
  finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey;e.target.value=''}}
 };
