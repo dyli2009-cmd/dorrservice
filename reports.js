@@ -65,7 +65,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     x+=ws[i]
    });y+=9;
   }
-  doc.addPage();protocolTop();checkHeader();
+  doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();protocolTop();checkHeader();
   const ws=[10,99,15,25,27,10];
   CHECKS.forEach(([n,title])=>{
    const c=d.checks[n]||{},h=7.7;let x=left;
