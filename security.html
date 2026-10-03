@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#132b38">
 <title>Säkerhetsservice</title>
 <link rel="stylesheet" href="style.css?v=2.4.3-r8">
-<link rel="stylesheet" href="security.css?v=6">
+<link rel="stylesheet" href="security.css?v=7">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -102,7 +102,15 @@
     <section class="projectCard"><div class="projectCardHead"><span>4</span><div><h3>Tekniker & dokument</h3><p>Signatur och logotyp i kundrapporten</p></div></div><div class="grid2">
       <label>Servicetekniker<input id="secTechnician"></label>
       <label>Signatur<input id="secSignature" placeholder="Namn / initialer"></label>
-      <label class="wide">Företagslogotyp<input id="secLogoFile" type="file" accept="image/*"></label>
+      <div class="wide secLogoField">
+        <span class="secLogoLabel">Företagslogotyp</span>
+        <div class="secLogoActions">
+          <label class="filebtn primary" for="secLogoFile">Välj logga</label>
+          <input id="secLogoFile" type="file" accept="image/*,.png,.jpg,.jpeg,.webp" hidden>
+          <button id="secLogoRemove" type="button" class="secondary" hidden>Ta bort logga</button>
+        </div>
+        <p id="secLogoStatus" class="muted">Ingen logotyp vald.</p>
+      </div>
       <div id="secLogoPreview" class="wide"></div>
     </div></section>
   </div>
@@ -115,5 +123,5 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="security.js?v=6"></script>
+<script src="security.js?v=7"></script>
 </body></html>
