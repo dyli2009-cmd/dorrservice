@@ -29,7 +29,41 @@ window.pdfjsLib={GlobalWorkerOptions:{},getDocument({data}){
   assert.equal(await page.locator('.marker').count(),1);
   assert.equal(await page.locator('#formTitle').textContent(),'D1 – Sida 1');
   assert(await page.locator('#protocolPanel').isVisible());
+  // Send real browser touch gestures: scrollIntoView alone does not test swiping.
+  const cdp=await page.context().newCDPSession(page);
+  async function swipe(fromY,toY){
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:350,y:fromY}]});
+   for(let step=1;step<=10;step++){
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:350,y:fromY+(toY-fromY)*step/10}]});
+    await page.waitForTimeout(16);
+   }
+   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+   await page.waitForTimeout(150);
+  }
+  await swipe(650,250);
+  assert(await page.locator('#protocolPanel').evaluate(el=>el.scrollTop>100),'Finger swipe should scroll the protocol');
+  assert(await page.locator('#closeProtocol').isVisible());
+  for(let attempt=0;attempt<12;attempt++){
+   const bounds=await page.locator('#signature').boundingBox();
+   if(bounds&&bounds.y>100&&bounds.y+bounds.height<800)break;
+   await swipe(700,250);
+  }
+  const signatureBounds=await page.locator('#signature').boundingBox();
+  assert(signatureBounds.y>100&&signatureBounds.y+signatureBounds.height<800,'Swiping reaches the signature field');
+  await page.locator('#signature').fill('AB');
+  const beforeReverse=await page.locator('#protocolPanel').evaluate(el=>el.scrollTop);
+  await swipe(250,650);
+  const reversed=await page.locator('#protocolPanel').evaluate(el=>el.scrollTop);
+  assert(reversed<beforeReverse,'Reverse swipe should scroll toward the top');
+  // A smaller viewport approximates the space available above a keyboard.
+  await page.setViewportSize({width:390,height:500});
+  assert(await page.locator('#protocolPanel').evaluate(el=>el.clientHeight<=window.innerHeight));
+  await page.locator('#signature').fill('ABC');
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#signature').blur();
   const row=page.locator('.checkrow').first();
+  await row.evaluate(el=>el.scrollIntoView({block:'center'}));
+  await page.waitForTimeout(400);
   await row.locator('[data-v="remark"]').tap();
   await row.locator('.faultText').fill('Sensor behöver justeras');
   await page.waitForTimeout(300);
@@ -72,7 +106,7 @@ window.pdfjsLib={GlobalWorkerOptions:{},getDocument({data}){
   await page.evaluate(()=>{Storage.prototype.setItem=()=>{throw new Error('quota')};save();persist()});
   assert((await page.locator('#appMessage').textContent()).includes('Kunde inte spara'));
   assert.deepEqual(errors,[]);
-  console.log('PASS: mobile upload, markers, checklist, bounded raster, render cancellation, pinch, pages, invalid PDF, storage errors');
+  console.log('PASS: native protocol touch scrolling to signature, smaller viewport, mobile upload, markers, checklist, bounded raster, render cancellation, pinch, pages, invalid PDF, storage errors');
   await page.screenshot({path:require('node:path').join(__dirname,'..','mobile-preview.png'),fullPage:true});
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
