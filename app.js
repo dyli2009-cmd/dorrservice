@@ -136,12 +136,12 @@ markers.addEventListener('click',e=>{if(e.target!==markers||!addMode)return;cons
 function draw(){
  markers.replaceChildren();doors.filter(d=>d.page===page).forEach(d=>{
   const el=document.createElement('button');el.type='button';el.className='marker '+(d.status||'untested');el.textContent=d.id;el.setAttribute('aria-label','Öppna protokoll för '+d.id);
-  el.style.left=d.x*100+'%';el.style.top=d.y*100+'%';let drag=null;
+  el.style.left=d.x*100+'%';el.style.top=d.y*100+'%';let drag=null,suppressClick=false;
   el.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;ev.stopPropagation();drag={pointer:ev.pointerId,x:ev.clientX,y:ev.clientY,moved:false,originalX:d.x,originalY:d.y};el.setPointerCapture(ev.pointerId)});
   el.addEventListener('pointermove',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(!drag.moved&&Math.hypot(ev.clientX-drag.x,ev.clientY-drag.y)<10)return;drag.moved=true;const r=markers.getBoundingClientRect();d.x=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));d.y=Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height));el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'});
-  el.addEventListener('pointerup',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(drag.moved)save();drag=null});
-  el.addEventListener('pointercancel',()=>{if(drag){d.x=drag.originalX;d.y=drag.originalY;el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'}drag=null});
-  el.onclick=ev=>{ev.stopPropagation();selected=d.uid;show();if(innerWidth<=800)document.body.classList.add('protocolOpen')};markers.appendChild(el)
+  el.addEventListener('pointerup',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(drag.moved){suppressClick=true;save()}drag=null});
+  el.addEventListener('pointercancel',()=>{if(drag){d.x=drag.originalX;d.y=drag.originalY;el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'}drag=null;suppressClick=false});
+  el.onclick=ev=>{ev.stopPropagation();if(suppressClick){suppressClick=false;ev.preventDefault();return}selected=d.uid;show();if(innerWidth<=800)document.body.classList.add('protocolOpen')};markers.appendChild(el)
  })
 }
 function cur(){return doors.find(d=>d.uid===selected)}
