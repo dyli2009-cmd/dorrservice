@@ -34,7 +34,13 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  });
  if(includeProtocols)sorted.forEach(d=>{
   function cell(label,value,x,yy,w,h=7,bold=false){
-   doc.setDrawColor(55,55,55);doc.setLineWidth(.18);doc.rect(x,yy,w,h);doc.setFont('helvetica','bold');doc.setFontSize(5.8);doc.setTextColor(50,50,50);doc.text(String(label||''),x+1.5,yy+h/2+1);if(value){const lw=Math.min(w-5,doc.getTextWidth(String(label||''))+2);doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(25,25,25);doc.text(doc.splitTextToSize(String(value),Math.max(4,w-lw-3)).slice(0,1),x+1.5+lw,yy+h/2+1)}
+   const strong=/^(ANLÄGGNING|BESTÄLLARE|Företag):/.test(String(label||''));
+   doc.setDrawColor(55,55,55);doc.setLineWidth(.18);
+   if(strong){doc.setFillColor(242,242,242);doc.rect(x,yy,w,h,'FD')}else doc.rect(x,yy,w,h);
+   doc.setFont('helvetica','bold');doc.setFontSize(strong?6.3:5.8);doc.setTextColor(35,35,35);
+   const labelText=String(label||''),labelW=Math.min(w-5,doc.getTextWidth(labelText)+2);
+   doc.text(labelText,x+1.5,yy+h/2+1);
+   if(value){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(20,20,20);doc.text(doc.splitTextToSize(String(value),Math.max(4,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1)}
   }
   function protocolTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
@@ -58,8 +64,15 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   const ws=[10,99,15,25,27,10];
   CHECKS.forEach(([n,title])=>{
    const c=d.checks[n]||{},h=7
-   let x=left;const vals=[n,title,c.result==='na'?'X':'',c.result==='ok'?'X':'',c.result==='remark'?'X':c.result==='remark'?'X':'',p.serviceSignature||d.signature||''];
-   vals.forEach((v,i)=>{if(i===3&&c.result==='ok')doc.setFillColor(...REPORT_COLORS.ok.light);else if(i===4&&c.result==='remark')doc.setFillColor(...REPORT_COLORS.fail.light);else if(i===2&&c.result==='na')doc.setFillColor(238,238,238);else doc.setFillColor(255,255,255);doc.rect(x,y,ws[i],h,'FD');doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(i===1?6.2:6.5);doc.setTextColor(25,25,25);if(i===1)doc.text(doc.splitTextToSize(String(v||''),ws[i]-3).slice(0,2),x+1.5,y+2.8,{lineHeightFactor:.95});else doc.text(String(v||''),x+ws[i]/2,y+4.5,{align:'center'});x+=ws[i]});y+=h;
+   let x=left;const vals=[n,title,c.result==='na'?'–':'','',c.result==='remark'?'X':'',p.serviceSignature||d.signature||''];
+   vals.forEach((v,i)=>{
+    if(i===3&&c.result==='ok')doc.setFillColor(...REPORT_COLORS.ok.light);else if(i===4&&c.result==='remark')doc.setFillColor(...REPORT_COLORS.fail.light);else if(i===2&&c.result==='na')doc.setFillColor(238,238,238);else doc.setFillColor(255,255,255);
+    doc.rect(x,y,ws[i],h,'FD');doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(i===1?6.2:(i>=2&&i<=4?8:6.5));doc.setTextColor(25,25,25);
+    if(i===1)doc.text(doc.splitTextToSize(String(v||''),ws[i]-3).slice(0,2),x+1.5,y+2.8,{lineHeightFactor:.95});
+    else if(i===3&&c.result==='ok'){const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(25,110,70);doc.setLineWidth(.65);doc.line(cx-2.2,cy,cx-.5,cy+1.7);doc.line(cx-.5,cy+1.7,cx+2.7,cy-1.8)}
+    else doc.text(String(v||''),x+ws[i]/2,y+h/2+1.2,{align:'center'});
+    x+=ws[i]
+   });y+=h;
   });
   y+=4;doc.setFillColor(247,247,247);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[55,55,55]);y+=6;
   const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' – '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),d.notes].filter(Boolean).join('\n');
