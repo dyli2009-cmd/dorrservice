@@ -197,7 +197,7 @@ viewer.addEventListener('touchstart',e=>{
   e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect();
   pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}};
  }else if(e.touches.length===1&&!addType&&!e.target.closest('.secMarker,.secTarget')){
-  const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:viewer.scrollLeft,top:viewer.scrollTop};
+  const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:viewer.scrollLeft,top:viewer.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02};
  }
 },{passive:false});
 viewer.addEventListener('touchmove',e=>{
@@ -212,15 +212,28 @@ viewer.addEventListener('touchmove',e=>{
  }
 },{passive:false});
 function endTouch(e){
- if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus)}
- if(e.touches.length===0)panTouch=null;
+ if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus);return}
+ if(e.touches.length===0&&panTouch){
+  const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
+  if(t&&p.pageSwipe&&Date.now()-p.started<900){
+   const dx=t.clientX-p.startX,dy=t.clientY-p.startY;
+   if(Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
+    if(changeSecurityPage(dx<0?1:-1)){e.preventDefault?.();return}
+   }
+  }
+ }
 }
 viewer.addEventListener('touchend',endTouch,{passive:true});
 viewer.addEventListener('touchcancel',endTouch,{passive:true});
 
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),key=await fingerprint(bytes),candidate=await pdfjsLib.getDocument({data:bytes.slice()}).promise,saved=loadSaved(key);if(pdf)try{await pdf.destroy()}catch(_){}
 pdf=candidate;sourceBytes=bytes;activeKey=key;items=(saved?.items||[]).map(normalize);project={...emptyProject(),...(saved?.project||{})};logoData=saved?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;document.body.classList.remove('secAdding');$('secStage').style.transform='';syncProjectInputs();refreshTop();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg('Ritningen är klar. Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')}catch(err){msg('Kunde inte öppna PDF-filen.',true)}};
-$('secPrev').onclick=()=>{if(pdf&&page>1){clearTimeout(wheelZoomTimer);wheelZoomTarget=null;page--;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true)}};$('secNext').onclick=()=>{if(pdf&&page<pdf.numPages){clearTimeout(wheelZoomTimer);wheelZoomTarget=null;page++;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true)}};$('secZoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('secZoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('secFit').onclick=$('secFitMobile').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true)};
+function changeSecurityPage(delta){
+ if(!pdf)return false;
+ const next=Math.max(1,Math.min(pdf.numPages,page+delta));if(next===page)return false;
+ clearTimeout(wheelZoomTimer);wheelZoomTarget=null;wheelZoomFocus=null;page=next;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true);viewer.scrollLeft=0;viewer.scrollTop=0;return true
+}
+$('secPrev').onclick=()=>changeSecurityPage(-1);$('secNext').onclick=()=>changeSecurityPage(1);$('secZoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('secZoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('secFit').onclick=$('secFitMobile').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true)};
 function cur(){return items.find(o=>o.uid===selected)}
 function buildChecklist(o){const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o);checks.forEach(([n,title])=>{const c=o.checks[n]||{result:'',note:''},row=document.createElement('section');row.className='secCheck'+(c.result?' result-'+c.result:'');const head=document.createElement('div');head.className='secCheckHead';head.innerHTML='<strong>'+n+'</strong><span></span>';head.querySelector('span').textContent=title;if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge';badge.textContent='Egen';head.appendChild(badge);const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCustom';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;o.customChecks=o.customChecks.filter(x=>x.id!==n);delete o.checks[n];o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};head.appendChild(remove)}row.appendChild(head);const choices=document.createElement('div');choices.className='secChoices';[['na','Ingår ej'],['ok','Klart utan anm.'],['remark','Klart med anm.']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.classList.toggle('active',c.result===value);b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};choices.appendChild(b)});row.appendChild(choices);if(c.result==='remark'){const fault=document.createElement('div');fault.className='secFault';const select=document.createElement('select');select.innerHTML='<option value="">Välj vanligt fel…</option>';for(const f of SYSTEMS[o.type].faults[n]||[]){const op=document.createElement('option');op.value=f;op.textContent=f;if(c.note===f)op.selected=true;select.appendChild(op)}select.onchange=()=>{if(select.value){c.note=select.value;input.value=c.note;save();showOverview()}};const input=document.createElement('input');input.placeholder='Beskriv felet / annat fel';input.value=c.note||'';input.oninput=()=>{c.note=input.value;save();showOverview()};fault.append(select,input);row.appendChild(fault)}box.appendChild(row)});updateProgress(o)}
 function updateProgress(o){const checks=allChecks(o),done=checks.filter(([n])=>['na','ok','remark'].includes(o.checks[n]?.result)).length;$('secProgress').textContent=done+' / '+checks.length+' kontrollerade'}
