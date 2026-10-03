@@ -220,14 +220,14 @@ async function inspectWorkPdf(bytes){
  if(state.app!=='dorrservice'||state.version<2||!Array.isArray(state.doors)||!state.project||typeof state.project!=='object'||state.doors.some(d=>!d||typeof d.uid!=='string'||typeof d.id!=='string'||!Number.isInteger(d.page)||d.page<1||!Number.isFinite(d.x)||!Number.isFinite(d.y)||d.x<0||d.x>1||d.y<0||d.y>1))throw new Error('Arbets-PDF:en innehåller ogiltiga dörruppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.doors.some(d=>d.page>source.getPageCount()))throw new Error('Dörrarna hör inte till arbets-PDF:ens ritningssidor.');
- return {drawingBytes,work:{version:1,doors:state.doors,project:state.project,logoData:state.logoData||''}};
+ return {drawingBytes,work:{version:1,doors:state.doors,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],project:state.project,logoData:state.logoData||''}};
 }
 async function createWorkPdf(){
  if(!pdf||!sourcePdfBytes)throw new Error('Öppna en PDF-ritning först.');
  if(!window.PDFLib||!window.jspdf?.jsPDF)throw new Error('PDF-biblioteken kunde inte laddas.');
- const snapshot=structuredClone({doors,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
+ const snapshot=structuredClone({doors,textNotes,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
  const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib;
- const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold),markerLinks=[];
+ const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold),noteFont=await output.embedFont(StandardFonts.Helvetica),markerLinks=[];
  for(let index=0;index<copied.length;index++){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
@@ -240,6 +240,17 @@ async function createWorkPdf(){
    const cx=x+gap*Math.cos(rad),cy=y+gap*Math.sin(rad);
    page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.88,rotate:degrees(angle)});
    const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:cx+dx*Math.cos(rad)-dy*Math.sin(rad),y:cy+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
+  });
+  (snapshot.textNotes||[]).filter(n=>n.page===index+1&&n.text).forEach(n=>{
+   const [x,y]=viewport.convertToPdfPoint(n.x*viewport.width,n.y*viewport.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,120),size=7.2,maxWidth=Math.min(150,viewport.width*.28);
+   const lines=[];let line='';
+   safe.split(/\s+/).forEach(word=>{const trial=line?line+' '+word:word;if(noteFont.widthOfTextAtSize(trial,size)<=maxWidth)line=trial;else{if(line)lines.push(line);line=word}});if(line)lines.push(line);
+   const shown=lines.slice(0,3),padding=4,lineH=size+2,width=Math.max(34,...shown.map(t=>noteFont.widthOfTextAtSize(t,size)))+padding*2,height=shown.length*lineH+padding*2;
+   const bx=Math.min(viewport.width-width-3,x+10),by=Math.max(3,y-height-10);
+   page.drawLine({start:{x,y},end:{x:bx,y:by+height/2},thickness:1,color:rgb(.1,.25,.34)});
+   page.drawCircle({x,y,size:2.4,color:rgb(.1,.25,.34)});
+   page.drawRectangle({x:bx,y:by,width,height,color:rgb(1,1,.91),borderColor:rgb(.1,.25,.34),borderWidth:.8,opacity:.96});
+   shown.forEach((t,i)=>page.drawText(t,{x:bx+padding,y:by+height-padding-size-i*lineH,size,font:noteFont,color:rgb(.05,.12,.16)}));
   });
  }
  const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},backLinks=report.__doorBackLinks||[],reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
@@ -262,9 +273,9 @@ async function createWorkPdf(){
   const [mx,my,mw,mh]=rect,pdfRect=[mx*sx,size.height-(my+mh)*sy,(mx+mw)*sx,size.height-my*sy];
   addInternalPdfLink(sourcePage,targetPage,pdfRect);
  });
- const state={app:'dorrservice',version:2,exportedAt:new Date().toISOString(),...snapshot};
+ const state={app:'dorrservice',version:3,exportedAt:new Date().toISOString(),...snapshot};
  const dataRef=output.context.register(output.context.flateStream(new TextEncoder().encode(JSON.stringify(state))));const drawingRef=output.context.register(output.context.flateStream(originalBytes));
- output.catalog.set(PDFName.of('DorrserviceWork'),output.context.register(output.context.obj({Version:2,Data:dataRef,Drawing:drawingRef})));
+ output.catalog.set(PDFName.of('DorrserviceWork'),output.context.register(output.context.obj({Version:3,Data:dataRef,Drawing:drawingRef})));
  output.setTitle('Dörrservice – '+(snapshot.project.projectName||snapshot.project.facilityNo||'Service'));output.setSubject('Ritning, anmärkningsöversikt och provningsprotokoll. Arbets-PDF för Dörrservice 2.');output.setCreator('Dörrservice 2.0');
  return output.save();
 }
@@ -277,7 +288,7 @@ $('exportBtn').onclick=async()=>{
 createProblemPdf=function(){if(!doors.some(hasDoorProblem))throw new Error('Inga dörrar med registrerade problem.');return buildServiceReportDoc(structuredClone({doors,project,logoData}),false)};
 updateCompactUI();
 
-const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.children).forEach((element,index)=>{const d=items[index];element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)})};
+const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.querySelectorAll('.marker')).forEach((element,index)=>{const d=items[index];if(!d)return;element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)})};
 
 let keyboardBaseline=Math.round(window.visualViewport?.height||window.innerHeight),keyboardTimer=null;
 function editableElement(){return document.activeElement?.matches?.('input,textarea,select,[contenteditable=true]')?document.activeElement:null}
