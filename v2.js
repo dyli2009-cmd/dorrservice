@@ -257,7 +257,7 @@ async function createWorkPdf(){
  }
  const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},backLinks=report.__doorBackLinks||[],reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
  function addInternalPdfLink(sourcePage,targetPage,rect){
-  const linkRef=output.context.register(output.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:[targetPage.ref,'Fit']}));
+  const destination=output.context.obj([targetPage.ref,PDFName.of('Fit')]);const linkRef=output.context.register(output.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:destination}));
   const existing=sourcePage.node.get(PDFName.of('Annots'));
   if(existing){const annots=sourcePage.node.lookup(PDFName.of('Annots'),PDFArray);annots.push(linkRef)}
   else sourcePage.node.set(PDFName.of('Annots'),output.context.obj([linkRef]));
