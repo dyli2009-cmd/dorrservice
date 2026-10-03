@@ -6,3 +6,6 @@ body{height:var(--app-height,100dvh)}.marker{overflow:visible}.marker::before{co
 .marker{width:26px;height:26px;min-height:26px;font-size:8px;border-width:2px}.marker::before{inset:-9px}
 
 .approveAll{display:inline-flex!important;width:auto!important;min-height:36px!important;margin:4px 0 10px!important;padding:7px 12px!important;background:#238354!important;border:1px solid #17683f!important;color:#fff!important;font-size:13px!important;font-weight:700!important;border-radius:7px!important}
+
+.projectSections{display:grid;gap:12px;margin-top:12px}.projectCard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}.projectCardHead{display:flex;align-items:center;gap:10px;padding-bottom:8px;margin-bottom:2px;border-bottom:1px solid #e5ebef}.projectCardHead>span{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#132b38;color:#fff;font-weight:750;font-size:12px;flex:none}.projectCardHead h3{margin:0;font-size:14px;color:#203440}.projectCardHead p{margin:2px 0 0;font-size:11px;color:#6b7d88}.projectCard .grid2{margin-top:4px}.projectCard label{margin:7px 0}.projectCard input{margin-top:3px}
+@media(max-width:520px){.projectCard{padding:10px}.projectCard .grid2{grid-template-columns:1fr}.projectCard .wide{grid-column:auto}}
