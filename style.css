@@ -145,3 +145,30 @@ header button,header .filebtn,.objectBar,#appMessage{
  body{background:#f1f4f6}
  header{background-color:#132b38!important}
 }
+
+/* iOS standalone: extend app chrome behind the status bar */
+@media all and (display-mode:standalone){
+ html{background:#132b38!important}
+ body{background:#132b38!important}
+ header{
+  padding-top:max(10px,env(safe-area-inset-top))!important;
+  background:#132b38!important;
+ }
+ body::before{
+  content:"";
+  position:fixed;
+  z-index:49;
+  top:0;
+  left:0;
+  right:0;
+  height:max(env(safe-area-inset-top),1px);
+  background:#132b38;
+  pointer-events:none;
+ }
+}
+@supports (-webkit-touch-callout:none){
+ @media all and (display-mode:standalone){
+  html,body{background:#132b38!important}
+  header{background:#132b38!important}
+ }
+}
