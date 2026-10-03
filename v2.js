@@ -357,10 +357,10 @@ async function renderCustomerPreview(){
   if(token!==customerPreviewToken){await preview.destroy();return}
   if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
   const firstProtocolPage=preview.numPages>=2?2:1,first=await preview.getPage(firstProtocolPage),base=first.getViewport({scale:1});
-  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(window.devicePixelRatio||1,2),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
+  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
   const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-firstProtocolPage+1;
   canvas.width=renderW;canvas.height=renderH*pageCount+renderGap*Math.max(0,pageCount-1);canvas.style.width=cssW+'px';canvas.style.height=(cssH*pageCount+cssGap*Math.max(0,pageCount-1))+'px';
-  const out=canvas.getContext('2d');out.clearRect(0,0,canvas.width,canvas.height);
+  const out=canvas.getContext('2d');out.imageSmoothingEnabled=true;out.imageSmoothingQuality='high';out.clearRect(0,0,canvas.width,canvas.height);
   for(let pageNo=firstProtocolPage,i=0;pageNo<=preview.numPages;pageNo++,i++){
    if(token!==customerPreviewToken)return;
    const pg=pageNo===firstProtocolPage?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
