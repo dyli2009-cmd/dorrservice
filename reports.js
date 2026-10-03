@@ -87,9 +87,9 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     }else if(i===2&&c.result==='na'){
       const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-3.0,cy,cx+3.0,cy);doc.setLineCap('butt');
     }else if(i===3&&c.result==='ok'){
-      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-3.0,cy-.2,cx-1.0,cy+1.8);doc.line(cx-1.0,cy+1.8,cx+3.0,cy-2.2);doc.setLineCap('butt');
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.75);doc.line(cx-2.4,cy-.1,cx-.8,cy+1.45);doc.line(cx-.8,cy+1.45,cx+2.4,cy-1.75);doc.setLineCap('butt');
     }else if(i===4&&c.result==='remark'){
-      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-2.7,cy-2.7,cx+2.7,cy+2.7);doc.line(cx+2.7,cy-2.7,cx-2.7,cy+2.7);doc.setLineCap('butt');
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.75);doc.line(cx-2.15,cy-2.15,cx+2.15,cy+2.15);doc.line(cx+2.15,cy-2.15,cx-2.15,cy+2.15);doc.setLineCap('butt');
     }else{
       doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.6);doc.text(String(v||''),x+ws[i]/2,y+h/2+1.1,{align:'center'});
     }
