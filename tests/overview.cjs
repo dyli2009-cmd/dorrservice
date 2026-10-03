@@ -22,7 +22,7 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
   await page.goto('https://dorrservice.test/');
   await page.locator('#mobileOverview').tap();
   assert.equal(await page.locator('#overviewSummary').textContent(),'4 av 6 dörrar har problem');
-  assert.equal(await page.locator('.doorCard').count(),4);
+  assert.equal(await page.locator('.overviewRow').count(),4);
   assert((await page.locator('[data-uid="two"]').textContent()).includes('Fel markerat, beskrivning saknas'));
   assert((await page.locator('[data-uid="three"]').textContent()).includes('Justera dörrstängare'));
   assert.equal(await page.locator('#overviewList script,#overviewList img').count(),0);
@@ -35,14 +35,17 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
   assert(await page.locator('#overviewDialog').evaluate(el=>el.scrollTop>0));
   await page.locator('#closeOverview').tap();await page.locator('#mobileOverview').tap();
   await page.locator('#overviewSearch').fill('säkerhetssensor');
-  assert.equal(await page.locator('.doorCard').count(),1);
+  assert.equal(await page.locator('.overviewRow').count(),1);
   await page.locator('#overviewSearch').fill('finns inte');
   assert((await page.locator('#overviewList').textContent()).includes('Inga dörrar matchar'));
   await page.locator('#overviewSearch').fill('');
-  await page.locator('#overviewFilter').selectOption('all');assert.equal(await page.locator('.doorCard').count(),6);
-  await page.locator('#overviewFilter').selectOption('untested');assert.equal(await page.locator('.doorCard').count(),2);
-  await page.locator('#overviewFilter').selectOption('ok');assert.equal(await page.locator('.doorCard').count(),1);
+  await page.locator('#overviewFilter').selectOption('all');assert.equal(await page.locator('.overviewRow').count(),6);
+  await page.locator('#overviewFilter').selectOption('untested');assert.equal(await page.locator('.overviewRow').count(),2);
+  await page.locator('#overviewFilter').selectOption('ok');assert.equal(await page.locator('.overviewRow').count(),1);
   await page.locator('#overviewFilter').selectOption('problems');
+  await page.locator('[data-uid="two"] [data-field="remediationDate"]').fill('2026-10-03');
+  await page.locator('[data-uid="two"] [data-field="remediationSignature"]').fill('AB');
+  assert.equal(await page.locator('[data-uid="two"] [data-field="remediationSignature"]').inputValue(),'AB');
   await page.locator('[data-uid="two"] button').tap();
   assert.equal(await page.locator('#overviewDialog').evaluate(el=>el.open),false);
   assert.equal(await page.locator('#formTitle').textContent(),'D2 – Sida 2');
@@ -52,7 +55,7 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
    const row=page.locator('.checkrow').nth(index);await row.evaluate(el=>el.scrollIntoView({block:'center'}));await row.locator('[data-v="ok"]').tap();
   }
   await page.locator('#closeProtocol').tap();await page.locator('#mobileOverview').tap();
-  assert.equal(await page.locator('.doorCard').count(),3);
+  assert.equal(await page.locator('.overviewRow').count(),3);
   assert.equal(await page.locator('[data-uid="two"]').count(),0);
   // Navigation from an overview card switches the PDF page and opens its form.
   await page.locator('#closeOverview').tap();
@@ -66,9 +69,14 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
   await page.screenshot({path:path.join(__dirname,'..','overview-preview.png')});
   // Reopening after a reload reflects saved checklist changes, not a separate copy.
   await page.waitForTimeout(300);await page.reload();await page.locator('#mobileOverview').tap();
-  assert.equal(await page.locator('.doorCard').count(),3);
+  assert.equal(await page.locator('.overviewRow').count(),3);
+  await page.locator('#overviewFilter').selectOption('all');
+  assert.equal(await page.locator('[data-uid="two"] [data-field="remediationDate"]').inputValue(),'2026-10-03');
+  assert.equal(await page.locator('[data-uid="two"] [data-field="remediationSignature"]').inputValue(),'AB');
+  await page.locator('#overviewFilter').selectOption('problems');
   await page.evaluate(()=>{doors.forEach(d=>{d.status='ok';Object.values(d.checks).forEach(check=>check.result='ok')});save()});
   assert.equal(await page.locator('#overviewSummary').textContent(),'0 av 6 dörrar har problem');
+  assert(await page.locator('#overviewPdf').isDisabled());
   assert((await page.locator('#overviewList').textContent()).includes('Inga dörrar med registrerade problem'));
   assert.deepEqual(errors,[]);
   console.log('PASS: problem aggregation, missing notes, safe text, native list scrolling, search/filters, protocol navigation, fault resolution and persistence');

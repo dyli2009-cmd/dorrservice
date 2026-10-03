@@ -21,11 +21,11 @@ const COMMON_FAULTS={
 let pdf,page=1,addMode=false,selected=null,doors=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,project={},logoData='',visualZoom=1;
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),wrap=$('viewerWrap');
 try{doors=JSON.parse(localStorage.getItem('doors')||'[]');project=JSON.parse(localStorage.getItem('project')||'{}');logoData=localStorage.getItem('logoData')||''}catch(e){}
-function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature'].forEach(k=>d[k]=d[k]||'');return d}doors.forEach(normalize);
+function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');return d}doors.forEach(normalize);
 let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){clearTimeout(saveTimer);try{localStorage.setItem('doors',JSON.stringify(doors));localStorage.setItem('project',JSON.stringify(project))}catch(e){notice('Kunde inte spara på enheten. Behåll appen öppen och exportera protokollet.',true)}}
-function save(){$('doorCount').textContent=doors.length+' dörrar';if($('overviewDialog').open)renderOverview();clearTimeout(saveTimer);saveTimer=setTimeout(persist,250)}
+function save(skipOverview=false){$('doorCount').textContent=doors.length+' dörrar';if(!skipOverview&&$('overviewDialog').open)renderOverview();clearTimeout(saveTimer);saveTimer=setTimeout(persist,250)}
 window.addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
 save();
@@ -134,6 +134,9 @@ function renderOverview(){
  const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv');
  const problemCount=doors.filter(hasDoorProblem).length;
  $('overviewSummary').textContent=problemCount+' av '+doors.length+' dörrar har problem';
+ $('overviewPdf').disabled=problemCount===0;
+ const projectInfo=$('overviewProject');projectInfo.replaceChildren();
+ [['Objekt',project.projectName],['Datum',project.inspectionDate],['Order nr',project.projectOrder]].forEach(([label,value])=>{const item=document.createElement('p');item.textContent=label+': '+(value||'–');projectInfo.appendChild(item)});
  const list=$('overviewList');list.replaceChildren();
  const visible=doors.filter(d=>{
   if(filter==='problems'&&!hasDoorProblem(d))return false;
@@ -142,17 +145,25 @@ function renderOverview(){
   return !query||[d.id,d.machineId,d.location,d.model,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+(d.checks[n].note||''))].join(' ').toLocaleLowerCase('sv').includes(query);
  }).sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
  if(!visible.length){const empty=document.createElement('p');empty.className='overviewEmpty';empty.textContent=!doors.length?'Inga dörrar ännu. Ladda upp en ritning och lägg till dörrar.':query?'Inga dörrar matchar sökningen.':filter==='problems'?'Inga dörrar med registrerade problem.':'Inga dörrar i det här urvalet.';list.appendChild(empty);return}
- const fragment=document.createDocumentFragment();
+ const scroller=document.createElement('div');scroller.className='overviewTableWrap';
+ const table=document.createElement('table');table.className='overviewTable';
+ const caption=document.createElement('caption');caption.textContent='Anmärkningslista för dörrservice';table.appendChild(caption);
+ const head=document.createElement('thead'),headRow=document.createElement('tr');
+ ['Dörr nr','Anmärkning','Åtgärdat datum + signatur'].forEach(text=>{const th=document.createElement('th');th.scope='col';th.textContent=text;headRow.appendChild(th)});head.appendChild(headRow);table.appendChild(head);
+ const body=document.createElement('tbody');
  visible.forEach(d=>{
-  const card=document.createElement('article');card.className='doorCard';card.dataset.uid=d.uid;
-  const heading=document.createElement('h3');heading.textContent=d.id+(d.location?' – '+d.location:'');card.appendChild(heading);
-  const meta=document.createElement('p');meta.className='doorMeta';meta.textContent='Sida '+d.page+(d.machineId?' · Maskin-ID '+d.machineId:'')+(d.model?' · '+d.model:'');card.appendChild(meta);
-  const badge=document.createElement('span');badge.className='doorStatus '+(hasDoorProblem(d)?'problem':'');badge.textContent=(STATUS_LABELS[d.status]||'Ej provad')+(doorProblems(d).length?' · '+doorProblems(d).length+(doorProblems(d).length===1?' felmarkerad kontrollpunkt':' felmarkerade kontrollpunkter'):'');card.appendChild(badge);
-  const issues=document.createElement('ul');doorProblems(d).forEach(([n,title])=>{const li=document.createElement('li');li.textContent=n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.');issues.appendChild(li)});if(issues.childElementCount)card.appendChild(issues);
-  if(d.notes?.trim()){const note=document.createElement('p');note.textContent='Allmän anmärkning: '+d.notes;card.appendChild(note)}
-  const button=document.createElement('button');button.type='button';button.textContent='Öppna protokoll';button.setAttribute('aria-label','Öppna protokoll för '+d.id);button.onclick=()=>openOverviewDoor(d.uid);card.appendChild(button);fragment.appendChild(card);
- });list.appendChild(fragment);
+  const row=document.createElement('tr');row.className='overviewRow';row.dataset.uid=d.uid;
+  const doorCell=document.createElement('td'),doorButton=document.createElement('button');doorButton.type='button';doorButton.textContent=d.id;doorButton.setAttribute('aria-label','Öppna protokoll för '+d.id);doorButton.onclick=()=>openOverviewDoor(d.uid);doorCell.appendChild(doorButton);row.appendChild(doorCell);
+  const remarksCell=document.createElement('td');
+  const meta=document.createElement('p');meta.className='doorMeta';meta.textContent=(d.location?d.location+' · ':'')+'Sida '+d.page+(d.machineId?' · Maskin-ID '+d.machineId:'');remarksCell.appendChild(meta);
+  const badge=document.createElement('span');badge.className='doorStatus '+(hasDoorProblem(d)?'problem':'');badge.textContent=STATUS_LABELS[d.status]||'Ej provad';remarksCell.appendChild(badge);
+  const issues=document.createElement('ul');doorProblems(d).forEach(([n,title])=>{const li=document.createElement('li');li.textContent=n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.');issues.appendChild(li)});if(issues.childElementCount)remarksCell.appendChild(issues);
+  if(d.notes?.trim()){const note=document.createElement('p');note.textContent='Allmän anmärkning: '+d.notes;remarksCell.appendChild(note)}row.appendChild(remarksCell);
+  const actionCell=document.createElement('td');
+  [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Signatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.value=d[key]||'';input.dataset.field=key;input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true)};label.appendChild(input);actionCell.appendChild(label)});row.appendChild(actionCell);body.appendChild(row);
+ });table.appendChild(body);scroller.appendChild(table);list.appendChild(scroller);
 }
+
 function openOverview(){document.body.classList.remove('protocolOpen');renderOverview();$('overviewDialog').showModal();$('overviewDialog').scrollTop=0}
 async function openOverviewDoor(uid){
  const d=doors.find(item=>item.uid===uid);if(!d)return;
@@ -164,3 +175,48 @@ async function openOverviewDoor(uid){
 $('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;
 $('closeOverview').onclick=()=>$('overviewDialog').close();
 $('overviewFilter').onchange=renderOverview;$('overviewSearch').oninput=renderOverview;
+
+function problemRemarkText(d){
+ const lines=doorProblems(d).map(([n,title])=>n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.'));
+ if(!lines.length)lines.push(STATUS_LABELS[d.status]||'Anmärkning');
+ if(d.location)lines.unshift('Placering: '+d.location);
+ if(d.notes?.trim())lines.push('Allmän anmärkning: '+d.notes.trim());
+ return lines.join('\n');
+}
+function createProblemPdf(){
+ const problemDoors=doors.filter(hasDoorProblem).sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+ if(!problemDoors.length)throw new Error('Inga dörrar med registrerade problem.');
+ if(!window.jspdf?.jsPDF)throw new Error('PDF-biblioteket kunde inte laddas. Kontrollera internetanslutningen och ladda om appen.');
+ const doc=new window.jspdf.jsPDF('p','mm','a4'),left=12,widths=[18,128,40],bottom=275,lineHeight=3.8;
+ let y;
+ function startPage(){
+  doc.setDrawColor(120);doc.setLineWidth(.25);doc.rect(left,12,186,20);
+  if(logoData){try{doc.addImage(logoData,left+3,15,32,14)}catch(error){}}
+  else{doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(doc.splitTextToSize(project.company||'Dörrservice',45).slice(0,2),left+3,20)}
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('ANMÄRKNINGSLISTA',left+52,20);doc.setFontSize(9);doc.text('Egenkontroll av dörrautomatik',left+52,26);
+  [['OBJEKT',project.projectName],['DATUM',project.inspectionDate],['ORDER NR',project.projectOrder]].forEach(([label,value],i)=>{
+   const x=left+i*62;doc.rect(x,42,62,15);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(label,x+2,46);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(doc.splitTextToSize(String(value||'-'),58).slice(0,2),x+2,51);
+  });
+  y=65;doc.setFont('helvetica','bold');doc.setFontSize(8);let x=left;
+  ['Dörr nr','Anmärkning','Åtgärdat datum + sign.'].forEach((title,i)=>{doc.rect(x,y,widths[i],9);doc.text(title,x+2,y+5.5);x+=widths[i]});y+=9;doc.setFont('helvetica','normal');doc.setFontSize(8);
+ }
+ startPage();
+ problemDoors.forEach(d=>{
+  const values=[d.id,problemRemarkText(d),[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n')];
+  const columns=values.map((value,i)=>doc.splitTextToSize(String(value||''),widths[i]-4));
+  let offset=0,total=Math.max(1,...columns.map(lines=>lines.length));
+  while(offset<total){
+   const capacity=Math.floor((bottom-y-4)/lineHeight);
+   if(capacity<1||bottom-y<10){doc.addPage();startPage();continue}
+   const count=Math.min(capacity,total-offset),height=Math.max(10,4+count*lineHeight);let x=left;
+   columns.forEach((lines,i)=>{doc.rect(x,y,widths[i],height);const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length)doc.text(chunk,x+2,y+4);x+=widths[i]});
+   y+=height;offset+=count;
+   if(offset<total){doc.addPage();startPage()}
+  }
+ });
+ while(y+8<=bottom){let x=left;widths.forEach(w=>{doc.rect(x,y,w,8);x+=w});y+=8}
+ const pages=doc.getNumberOfPages();
+ for(let number=1;number<=pages;number++){doc.setPage(number);doc.setFontSize(7);doc.setTextColor(80);doc.line(left,282,198,282);doc.text('Anmärkningslista – dörrservice',left,286);doc.text('Sida '+number+' av '+pages,198,286,{align:'right'})}
+ return doc;
+}
+$('overviewPdf').onclick=()=>{try{persist();createProblemPdf().save('anmarkningslista-dorrservice.pdf')}catch(error){alert(error.message||'Kunde inte skapa PDF. Prova igen.')}};
