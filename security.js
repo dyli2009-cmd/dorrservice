@@ -147,9 +147,14 @@ function drawMarkers(){
   markers.appendChild(note)
  })
 }
-markers.onclick=e=>{if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(textMode){const value=prompt('Skriv anteckningen:','');if(value&&value.trim()){textNotes.push({uid:'txt-'+crypto.randomUUID(),page,x,y,labelX:Math.max(.03,Math.min(.97,x+(x>.72?-.12:.12))),labelY:Math.max(.03,Math.min(.97,y-.06)),text:value.trim()});textMode=false;document.body.classList.remove('secTextAdding');$('secHint').hidden=true;save();drawMarkers()}return}if(!addType)return;createItem(addType,x,y)}
+function placeSecurityText(clientX,clientY){if(!textMode||!pdf)return false;const r=markers.getBoundingClientRect(),x=Math.max(0,Math.min(1,(clientX-r.left)/r.width)),y=Math.max(0,Math.min(1,(clientY-r.top)/r.height)),value=prompt('Skriv anteckningen:','');if(value===null)return true;if(value.trim()){textNotes.push({uid:'txt-'+crypto.randomUUID(),page,x,y,labelX:Math.max(.03,Math.min(.97,x+(x>.72?-.12:.12))),labelY:Math.max(.03,Math.min(.97,y-.06)),text:value.trim()});textMode=false;document.body.classList.remove('secTextAdding');$('secAddText').classList.remove('primary');$('secHint').hidden=true;save();drawMarkers();msg('Textanteckningen är tillagd. Dra textrutan eller pilpunkten för att justera.')}return true}
+let textPointerStart=null;
+markers.addEventListener('pointerdown',e=>{if(!textMode||e.target!==markers)return;e.preventDefault();e.stopPropagation();textPointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};suppressPageSwipeUntil=Date.now()+1000;try{markers.setPointerCapture(e.pointerId)}catch(_){}});
+markers.addEventListener('pointerup',e=>{if(!textMode||!textPointerStart||textPointerStart.id!==e.pointerId)return;const p=textPointerStart;textPointerStart=null;e.preventDefault();e.stopPropagation();if(Math.hypot(e.clientX-p.x,e.clientY-p.y)<18)placeSecurityText(e.clientX,e.clientY)});
+markers.addEventListener('pointercancel',()=>{textPointerStart=null});
+markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(!addType)return;createItem(addType,x,y)}
 document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);textMode=false;document.body.classList.remove('secTextAdding');addType=b.dataset.add;document.body.classList.add('secAdding');$('secHint').textContent='Tryck där '+SYSTEMS[addType].label+' ska markeras. Nyp för att zooma.';$('secHint').hidden=false;go('drawing')});
-$('secAddText').onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);addType=null;textMode=!textMode;document.body.classList.remove('secAdding');document.body.classList.toggle('secTextAdding',textMode);$('secHint').textContent='Tryck där pilen ska peka. Skriv sedan din anteckning.';$('secHint').hidden=!textMode;go('drawing')};
+$('secAddText').onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);addType=null;textMode=!textMode;document.body.classList.remove('secAdding');document.body.classList.toggle('secTextAdding',textMode);$('secAddText').classList.toggle('primary',textMode);$('secHint').textContent=textMode?'TEXTLÄGE: Tryck en gång på ritningen där pilen ska peka.':'Textläget avstängt.';$('secHint').hidden=!textMode;go('drawing')};
 function render(fit=false,focus=null){
  if(!pdf)return Promise.resolve();const version=++renderVersion,documentPdf=pdf,pageNumber=page;
  if(renderTask)renderTask.cancel();
@@ -191,7 +196,7 @@ viewer.addEventListener('wheel',e=>{
 },{passive:false});
 
 viewer.addEventListener('pointerdown',e=>{
- if(!pdf||addType||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget'))return;
+ if(!pdf||addType||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:viewer.scrollLeft,top:viewer.scrollTop};
  viewer.classList.add('mousePanning');viewer.setPointerCapture(e.pointerId);e.preventDefault();
 });
@@ -245,7 +250,7 @@ viewer.addEventListener('touchend',endTouch,{passive:true});
 viewer.addEventListener('touchcancel',endTouch,{passive:true});
 
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),key=await fingerprint(bytes),candidate=await pdfjsLib.getDocument({data:bytes.slice()}).promise,saved=loadSaved(key);if(pdf)try{await pdf.destroy()}catch(_){}
-pdf=candidate;sourceBytes=bytes;activeKey=key;items=(saved?.items||[]).map(normalize);textNotes=Array.isArray(saved?.textNotes)?saved.textNotes:[];project={...emptyProject(),...(saved?.project||{})};logoData=saved?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secStage').style.transform='';syncProjectInputs();refreshTop();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg('Ritningen är klar. Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')}catch(err){msg('Kunde inte öppna PDF-filen.',true)}};
+pdf=candidate;sourceBytes=bytes;activeKey=key;items=(saved?.items||[]).map(normalize);textNotes=Array.isArray(saved?.textNotes)?saved.textNotes:[];project={...emptyProject(),...(saved?.project||{})};logoData=saved?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg('Ritningen är klar. Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')}catch(err){msg('Kunde inte öppna PDF-filen.',true)}};
 function changeSecurityPage(delta){
  if(!pdf)return false;
  const next=Math.max(1,Math.min(pdf.numPages,page+delta));if(next===page)return false;
