@@ -72,3 +72,14 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 @media(max-width:800px){
  #secViewer{overscroll-behavior:contain}
 }
+
+/* Security Service: prevent iOS translucent/frosted top chrome */
+.securityApp header{
+ background:#132b38!important;
+ opacity:1!important;
+ filter:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ isolation:isolate;
+ transform:translateZ(0);
+}
