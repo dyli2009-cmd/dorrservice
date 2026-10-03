@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#132b38">
+<title>Säkerhetsservice</title>
+<link rel="stylesheet" href="style.css?v=2.4.3-r8">
+<link rel="stylesheet" href="security.css?v=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body class="securityApp" data-view="drawing">
+<header>
+  <div class="brand"><strong>Säkerhetsservice</strong><span>TEST</span></div>
+  <a class="filebtn" href="./">Dörrautomatik</a>
+  <label class="filebtn" for="securityFile">Öppna PDF</label>
+  <input id="securityFile" type="file" accept="application/pdf" hidden>
+  <button id="securityExport" class="primary">Spara PDF</button>
+</header>
+<div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
+<div id="securityMessage" role="status">Öppna en PDF-ritning för att börja.</div>
+
+<main>
+<section id="securityDrawing" class="view">
+  <div class="pagebar">
+    <button id="secPrev">‹</button><span id="secPage">Ingen ritning</span><button id="secNext">›</button>
+    <button id="secZoomOut">−</button><span id="secZoom">100%</span><button id="secZoomIn">+</button>
+    <button id="secFit">Passa</button>
+  </div>
+  <div id="secHint" hidden>Tryck på ritningen där objektet finns.</div>
+  <section id="secViewer">
+    <div id="secStage"><canvas id="secCanvas"></canvas><div id="secMarkers"></div></div>
+    <div id="secEmpty"><h1>Säkerhetsservice</h1><p>En ritning för Inbrottslarm, Lås & Dörrmiljö och Passer.</p><label class="filebtn primary" for="securityFile">Öppna PDF</label></div>
+  </section>
+  <div class="securityTools">
+    <button data-add="alarm">＋ Inbrott</button>
+    <button data-add="lock">＋ Lås & Dörrmiljö</button>
+    <button data-add="access">＋ Passer</button>
+    <button id="secFitMobile">Passa</button>
+  </div>
+</section>
+
+<aside id="securityProtocol" class="view">
+  <div class="sheetHead"><div><span class="eyebrow" id="secProtocolType">PROTOKOLL</span><h2 id="secProtocolTitle">Välj ett objekt</h2></div><button id="secCloseProtocol">×</button></div>
+  <div id="secNoSelection"><p>Välj en markering på ritningen eller i översikten.</p></div>
+  <div id="secForm" hidden>
+    <div class="grid2">
+      <label>Nummer<input id="secNumber" readonly></label>
+      <label>Placering / Dörrlittra<input id="secLocation"></label>
+      <label class="wide">ID / märkning<input id="secId"></label>
+    </div>
+    <div class="progressLine"><strong id="secProgress"></strong><button id="secAddCheck">＋ Egen kontrollpunkt</button></div>
+    <div id="secChecklist"></div>
+    <label>Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
+    <label>Slutbedömning<select id="secStatus"><option value="untested">Ej kontrollerad / pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label>
+    <button id="secDelete" class="danger">Ta bort objekt</button>
+  </div>
+</aside>
+
+<dialog id="securityOverview">
+  <div class="overviewHead"><div><span class="eyebrow">SAMMANFATTNING</span><h2>Fel och anmärkningar</h2></div><button id="secCloseOverview">×</button></div>
+  <div class="securityLegend"><span class="s-ok">Godkänd</span><span class="s-action">Anmärkning</span><span class="s-fail">Ej godkänd</span><span class="s-untested">Ej klar</span></div>
+  <div id="secOverviewSummary"></div>
+  <div id="secOverviewList"></div>
+</dialog>
+
+<section id="securityProject" class="view">
+  <div class="sheetHead"><div><span class="eyebrow">GEMENSAMT FÖR PROJEKTET</span><h2>Projekt och service</h2></div><button id="secCloseProject">×</button></div>
+  <div class="projectSections">
+    <section class="projectCard"><div class="projectCardHead"><span>1</span><div><h3>Anläggning & jobb</h3></div></div><div class="grid2">
+      <label class="wide">Anläggning / objekt<input id="secProjectName"></label>
+      <label>Anläggningsnummer<input id="secFacilityNo"></label>
+      <label>Ordernummer / AO<input id="secOrder"></label>
+      <label>Bokat besök datum<input id="secDate" type="date"></label>
+      <label>Nästa provning datum<input id="secNextDate" type="date"></label>
+    </div></section>
+    <section class="projectCard"><div class="projectCardHead"><span>2</span><div><h3>Beställare</h3></div></div><div class="grid2">
+      <label>Beställare / företag<input id="secCustomer"></label><label>Avtalsnummer<input id="secAgreement"></label>
+      <label>Kontaktperson<input id="secContact"></label><label>Telefonnummer<input id="secPhone"></label>
+      <label class="wide">Adress<input id="secAddress"></label>
+    </div></section>
+    <section class="projectCard"><div class="projectCardHead"><span>3</span><div><h3>Serviceföretag</h3></div></div><div class="grid2">
+      <label>Företag<input id="secCompany"></label><label>Tekniker<input id="secTechnician"></label>
+      <label>Kontaktman<input id="secCompanyContact"></label><label>Telefonnummer<input id="secCompanyPhone"></label>
+      <label class="wide">Adress<input id="secCompanyAddress"></label>
+      <label>Signatur<input id="secSignature"></label>
+    </div></section>
+  </div>
+</section>
+</main>
+
+<nav id="mobileBar">
+  <button id="secNavDrawing" class="active"><span class="navLabel">Ritning</span></button>
+  <button id="secNavOverview"><span class="navLabel">Översikt</span></button>
+  <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
+  <button id="secNavProject"><span class="navLabel">Projekt</span></button>
+</nav>
+<script src="security.js?v=1"></script>
+</body></html>
