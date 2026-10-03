@@ -9,9 +9,7 @@ body.securityApp{--alarm:#8b5a2b;--lock:#176b93;--access:#6a4a9a}
 body.secHasPdf #secEmpty{display:none}
 .securityTools{display:flex;gap:6px;padding:7px;background:#fff;border-top:1px solid var(--line)}
 .securityTools button{flex:1;font-size:11px;padding:6px}
-.secMarker{position:absolute;height:25px;min-width:28px;padding:0 6px;border:1.5px solid #fff;border-radius:5px;color:#fff;font-size:10px;font-weight:800;box-shadow:0 2px 5px #0005;touch-action:none;overflow:visible}
-.secMarker:after{content:"";position:absolute;top:50%;right:-9px;transform:translateY(-50%);border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--mc)}
-.secMarker{transform:translate(calc(-100% - 9px),-50%);background:var(--mc)}
+.secMarker{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;min-width:34px;min-height:34px;padding:0;border:2px solid #fff;border-radius:50%;color:#fff;font-size:10px;font-weight:800;box-shadow:0 2px 5px #0005;touch-action:none;overflow:hidden;background:var(--mc)}
 .secMarker.alarm{--mc:var(--alarm)}.secMarker.lock{--mc:var(--lock)}.secMarker.access{--mc:var(--access)}
 .secMarker.status-ok{box-shadow:0 0 0 2px #238354,0 2px 5px #0005}.secMarker.status-action{box-shadow:0 0 0 2px #c77c13,0 2px 5px #0005}.secMarker.status-fail{box-shadow:0 0 0 2px #bd3f46,0 2px 5px #0005}.secMarker.status-untested{box-shadow:0 0 0 2px #77858e,0 2px 5px #0005}
 #secHint{padding:7px 10px;background:#fff0c2;font-size:12px;text-align:center}
@@ -31,3 +29,12 @@ body[data-view=drawing] #securityDrawing{display:flex}body[data-view=protocol] #
 #secViewer.mousePanning{cursor:grabbing;user-select:none}
 body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 #secStage{transform-origin:0 0}
+
+.secProgressActions{display:flex;gap:6px;flex-wrap:wrap}.secProgressActions button{min-height:34px;padding:5px 8px;font-size:11px}
+.secPreviewDialog{width:min(900px,96vw);height:min(92vh,1000px);padding:0;border:0;border-radius:12px;overflow:hidden;background:#e7edf1}
+.secPreviewDialog::backdrop{background:#0008}
+.secPreviewHead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;background:#132b38;color:#fff}
+.secPreviewHead>div:first-child{display:flex;flex-direction:column}.secPreviewHead span{font-size:10px;color:#c6d8e2}
+.secPreviewControls{display:flex;align-items:center;gap:5px}.secPreviewControls button{min-height:32px;padding:3px 9px}.secPreviewControls span{min-width:52px;text-align:center;color:#fff}
+#secPreviewWrap{height:calc(100% - 52px);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;background:#cfd8dd}
+#secPreviewCanvas{display:block;max-width:none;background:#fff;box-shadow:0 2px 12px #0003}
