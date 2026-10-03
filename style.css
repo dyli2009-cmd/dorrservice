@@ -33,3 +33,45 @@ body.customerPreviewOpen #globalCustomerPreview{background:#e6eff4;color:#203440
   body.placing #viewerWrap{cursor:crosshair}
   #viewerWrap .marker{cursor:pointer}
 }
+
+
+/* Mobile app / PWA shell 2.4.0 */
+html{background:#132b38}
+body{height:var(--app-height,100dvh);padding-top:0;padding-bottom:0}
+header{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+#mobileBar{min-height:58px;padding-left:max(7px,env(safe-area-inset-left));padding-right:max(7px,env(safe-area-inset-right));transition:opacity .12s ease}
+#mobileBar button{display:flex;flex-direction:column;gap:2px;min-width:0;min-height:50px;border-radius:10px;line-height:1;padding:5px 2px 4px}
+#mobileBar .navIcon{display:flex;align-items:center;justify-content:center;width:22px;height:22px;flex:none}
+#mobileBar .navIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#mobileBar .navLabel{font-size:10.5px;font-weight:650;white-space:nowrap}
+#mobileBar button.active{background:#294554;color:#fff}
+body.keyboard-open #mobileBar{visibility:hidden;pointer-events:none;opacity:0}
+body.keyboard-open .view{scroll-padding-bottom:calc(var(--keyboard-height,0px) + 28px)}
+body.keyboard-open #customerPreviewPane{display:none!important}
+.installAppPanel{margin-top:14px;padding:12px;border:1px solid #cbd7df;border-radius:10px;background:#fff}
+.installAppPanel strong{font-size:13px}.installAppPanel p{font-size:11px;line-height:1.45;color:#60717d;margin:5px 0 9px}.installAppPanel button{width:100%}
+@media(max-width:520px){
+ header{gap:5px;padding-top:max(7px,env(safe-area-inset-top));padding-bottom:7px}
+ header .brand{min-width:0;max-width:104px;overflow:hidden}
+ header strong{font-size:13px}
+ header button,header .filebtn{font-size:10.5px;min-height:34px;padding:6px 7px;white-space:nowrap}
+ .objectBar{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+ input,select,textarea{font-size:16px}
+ textarea{resize:none}
+ .view{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+ #drawingView{padding-left:0;padding-right:0}
+ #mobileBar{padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+}
+@media(max-width:360px){
+ #mobileBar .navLabel{font-size:9.5px}
+ header .brand span{display:none}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #mobileBar{min-height:48px;padding-top:3px;padding-bottom:calc(3px + env(safe-area-inset-bottom))}
+ #mobileBar button{min-height:42px;gap:0}
+ #mobileBar .navIcon,#mobileBar .navIcon svg{width:19px;height:19px}
+ #mobileBar .navLabel{font-size:9px}
+}
+@media(display-mode:standalone){
+ header{padding-top:max(8px,env(safe-area-inset-top))}
+}
