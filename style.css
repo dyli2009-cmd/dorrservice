@@ -185,3 +185,5 @@ header button,header .filebtn,.objectBar,#appMessage{
  header{padding-top:5px!important}
  body::before{display:none!important}
 }
+
+#fitBtn,#mobileFit,#secFit,#secFitMobile{display:none!important}
