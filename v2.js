@@ -167,9 +167,16 @@ async function renderCustomerPreview(){
  }catch(e){if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
 }
 function scheduleCustomerPreview(){if($('customerPreviewPane')?.hidden)return;clearTimeout(customerPreviewTimer);customerPreviewTimer=setTimeout(renderCustomerPreview,220)}
-$('toggleCustomerPreview').onclick=()=>{
- const pane=$('customerPreviewPane'),open=pane.hidden;pane.hidden=!open;$('projectPanel').classList.toggle('previewing',open);$('toggleCustomerPreview').textContent=open?'Dölj kundmall':'👁 Visa kundmall live';if(open)setTimeout(renderCustomerPreview,0)
-};
-$('closeCustomerPreview').onclick=()=>{$('customerPreviewPane').hidden=true;$('projectPanel').classList.remove('previewing');$('toggleCustomerPreview').textContent='👁 Visa kundmall live'};
+function setCustomerPreview(open){
+ const pane=$('customerPreviewPane');pane.hidden=!open;document.body.classList.toggle('customerPreviewOpen',open);$('projectPanel').classList.toggle('previewing',open);
+ $('toggleCustomerPreview').textContent=open?'Dölj kundmall':'👁 Visa kundmall live';
+ $('globalCustomerPreview').textContent=open?'Dölj kundmall':'Kundmall';
+ if(open)setTimeout(renderCustomerPreview,0)
+}
+$('toggleCustomerPreview').onclick=()=>setCustomerPreview($('customerPreviewPane').hidden);
+$('globalCustomerPreview').onclick=()=>setCustomerPreview($('customerPreviewPane').hidden);
+$('closeCustomerPreview').onclick=()=>setCustomerPreview(false);
 $('projectPanel').addEventListener('input',scheduleCustomerPreview);$('projectPanel').addEventListener('change',()=>setTimeout(scheduleCustomerPreview,80));
 window.addEventListener('resize',()=>{if(!$('customerPreviewPane')?.hidden)scheduleCustomerPreview()});
+const customerPreviewSave=save;save=function(skip=false){customerPreviewSave(skip);scheduleCustomerPreview()};
+const customerPreviewShow=show;show=function(){customerPreviewShow();scheduleCustomerPreview()};
