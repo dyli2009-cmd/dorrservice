@@ -66,6 +66,14 @@ let loadVersion=0,renderVersion=0,renderQueue=Promise.resolve(),renderTask=null;
 let pageWidth=1,pageHeight=1;
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
+async function stripLegacyReportPages(bytes){
+ try{
+  const scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;let cut=0;
+  for(let i=1;i<=scan.numPages;i++){const pg=await scan.getPage(i),tc=await pg.getTextContent(),txt=tc.items.map(x=>x.str).join(' ').toUpperCase();if(txt.includes('PROVNINGSPROTOKOLL')||txt.includes('ANMÄRKNINGSÖVERSIKT')){cut=i-1;break}}
+  await scan.destroy();if(!cut)return bytes;
+  const src=await PDFLib.PDFDocument.load(bytes,{updateMetadata:false}),out=await PDFLib.PDFDocument.create(),pages=await out.copyPages(src,Array.from({length:cut},(_,i)=>i));pages.forEach(p=>out.addPage(p));return new Uint8Array(await out.save());
+ }catch(e){return bytes}
+}
 $('file').onchange=async e=>{
  const f=e.target.files[0];if(!f)return;if(exporting){notice('Vänta tills PDF-exporten är klar innan du byter ritning.');e.target.value='';return}const version=++loadVersion;let candidate;
  notice('Laddar ritning…');$('exportBtn').disabled=true;$('viewerWrap').setAttribute('aria-busy','true');
@@ -74,7 +82,7 @@ $('file').onchange=async e=>{
   if(version!==loadVersion)return;
   const imported=await inspectWorkPdf(bytes);
   if(version!==loadVersion)return;
-  const drawingBytes=imported?.drawingBytes||bytes;
+  const drawingBytes=imported?.drawingBytes||await stripLegacyReportPages(bytes);
   candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
   if(version!==loadVersion){await candidate.destroy();return}
   // Validate the first page before replacing the current drawing.
