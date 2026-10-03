@@ -68,3 +68,7 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 .secTarget{position:absolute;z-index:3;transform:translate(-50%,-50%);width:12px;height:12px;min-width:12px;min-height:12px;padding:0;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px #0005;touch-action:none}
 .secTarget.status-ok{background:#238354;border-color:#fff}.secTarget.status-action{background:#c77c13;border-color:#fff}.secTarget.status-fail{background:#bd3f46;border-color:#fff}.secTarget.status-untested{background:#77858e;border-color:#fff}
 .secMarker{z-index:4;width:30px;height:30px;min-width:30px;min-height:30px}
+
+@media(max-width:800px){
+ #secViewer{overscroll-behavior:contain}
+}
