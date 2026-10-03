@@ -232,14 +232,16 @@ async function createWorkPdf(){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
    const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb,statusColor=rgb(...color.map(n=>n/255));
-   const ringRadius=Math.max(7,Math.min(11,radius*.9));
-   page.drawCircle({x,y,size:ringRadius,borderColor:statusColor,borderWidth:2.2});
-   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius:Math.max(radius,ringRadius)});
    const labelRaw=d.serialNumber||d.id.replace(/^D/,'');const label=String(labelRaw).replace(/^0+(?=\d)/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180;
-   const gap=ringRadius+4,labelW=w+5,labelH=size+4;
-   const cx=x+gap*Math.cos(rad),cy=y+gap*Math.sin(rad);
-   page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.88,rotate:degrees(angle)});
-   const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:cx+dx*Math.cos(rad)-dy*Math.sin(rad),y:cy+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
+   const labelW=w+6,labelH=size+4,shaft=11,dir=d.x<.18?-1:1,ux=Math.cos(rad)*dir,uy=Math.sin(rad)*dir,px=-uy,py=ux;
+   const cx=x-ux*(shaft+labelW/2),cy=y-uy*(shaft+labelW/2),edgeX=x-ux*shaft,edgeY=y-uy*shaft;
+   page.drawLine({start:{x:edgeX,y:edgeY},end:{x,y},thickness:2,color:statusColor});
+   const head=5,wing=3.2;
+   page.drawLine({start:{x,y},end:{x:x-ux*head+px*wing,y:y-uy*head+py*wing},thickness:2,color:statusColor});
+   page.drawLine({start:{x,y},end:{x:x-ux*head-px*wing,y:y-uy*head-py*wing},thickness:2,color:statusColor});
+   page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.9,rotate:degrees(angle)});
+   const tx=-w/2,ty=-size/3;page.drawText(safeLabel,{x:cx+tx*Math.cos(rad)-ty*Math.sin(rad),y:cy+tx*Math.sin(rad)+ty*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
+   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius:Math.max(radius,14)});
   });
   (snapshot.textNotes||[]).filter(n=>n.page===index+1&&n.text).forEach(n=>{
    const [x,y]=viewport.convertToPdfPoint(n.x*viewport.width,n.y*viewport.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,120),size=7.2,maxWidth=Math.min(150,viewport.width*.28);
@@ -288,7 +290,7 @@ $('exportBtn').onclick=async()=>{
 createProblemPdf=function(){if(!doors.some(hasDoorProblem))throw new Error('Inga dörrar med registrerade problem.');return buildServiceReportDoc(structuredClone({doors,project,logoData}),false)};
 updateCompactUI();
 
-const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.querySelectorAll('.marker')).forEach((element,index)=>{const d=items[index];if(!d)return;element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)})};
+const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.querySelectorAll('.marker')).forEach((element,index)=>{const d=items[index];if(!d)return;element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)+' '+(d.x<.18?'arrowLeft':'arrowRight')})};
 
 let keyboardBaseline=Math.round(window.visualViewport?.height||window.innerHeight),keyboardTimer=null;
 function editableElement(){return document.activeElement?.matches?.('input,textarea,select,[contenteditable=true]')?document.activeElement:null}
