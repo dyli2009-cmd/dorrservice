@@ -82,7 +82,7 @@ function statusOf(o){if(o.status==='fail')return'fail';if(Object.values(o.checks
 function normalize(o){o.checks=o.checks||{};const cfg=SYSTEMS[o.type];(cfg?.checks||[]).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.customChecks=o.customChecks||[];o.customChecks.forEach(c=>o.checks[c.id]=o.checks[c.id]||{result:'',note:''});o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
-function save(){if(!activeKey)return;const data={version:1,items,project,logoData,updatedAt:new Date().toISOString()};localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));refreshTop()}
+function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
 function loadSaved(key){try{return JSON.parse(localStorage.getItem('security-service:'+key)||'null')}catch(e){return null}}
 function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||'Säkerhetsservice';$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf)}
 function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project')}
@@ -202,11 +202,43 @@ $('secNavOverview').onclick=()=>{showOverview();$('securityOverview').showModal(
 function projectFieldMap(){return {secProjectName:'projectName',secFacilityNo:'facilityNo',secOrder:'order',secDate:'date',secNextDate:'nextDate',secCustomer:'customer',secAgreement:'agreement',secContact:'contact',secPhone:'phone',secAddress:'address',secPostalCode:'postalCode',secPostalCity:'postalCity',secCompany:'company',secCompanyContact:'companyContact',secCompanyPhone:'companyPhone',secCompanyAddress:'companyAddress',secCompanyPostalCode:'companyPostalCode',secCompanyPostalCity:'companyPostalCity',secTechnician:'technician',secSignature:'signature'}}
 function refreshLogoPreview(){
  const box=$('secLogoPreview');if(!box)return;box.replaceChildren();
- if(logoData){const img=document.createElement('img');img.src=logoData;img.alt='Företagslogotyp';box.appendChild(img)}
+ const status=$('secLogoStatus'),remove=$('secLogoRemove');
+ if(logoData){
+  const img=document.createElement('img');img.src=logoData;img.alt='Företagslogotyp';box.appendChild(img);
+  if(status)status.textContent='Logotyp inlagd och sparad i projektet.';
+  if(remove)remove.hidden=false;
+ }else{
+  if(status)status.textContent='Ingen logotyp vald.';
+  if(remove)remove.hidden=true;
+ }
 }
 function syncProjectInputs(){for(const[id,key]of Object.entries(projectFieldMap()))$(id).value=project[key]||'';refreshLogoPreview()}
 for(const[id,key]of Object.entries(projectFieldMap()))$(id).oninput=()=>{project[key]=$(id).value;save()};
-$('secLogoFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{logoData=String(r.result||'');refreshLogoPreview();save()};r.readAsDataURL(f)};
+async function prepareLogoFile(file){
+ if(!file||!file.type.startsWith('image/'))throw new Error('Välj en bildfil.');
+ const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(new Error('Kunde inte läsa bilden.'));r.readAsDataURL(file)});
+ const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('Bildformatet kunde inte läsas. Prova PNG eller JPG.'));im.src=data});
+ const maxW=1000,maxH=500,scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+ const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.clearRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+ return cv.toDataURL('image/png');
+}
+$('secLogoFile').onchange=async e=>{
+ const input=e.currentTarget,file=input.files?.[0];if(!file)return;
+ const status=$('secLogoStatus');if(status)status.textContent='Läser in loggan…';
+ try{
+  const prepared=await prepareLogoFile(file);
+  logoData=prepared;refreshLogoPreview();
+  try{save()}catch(err){console.error(err)}
+  if(status)status.textContent='Logotyp inlagd och sparad i projektet.';
+ }catch(err){
+  console.error(err);if(status)status.textContent=err.message||'Kunde inte lägga in loggan.';
+  msg(err.message||'Kunde inte lägga in loggan.',true);
+ }finally{input.value=''}
+};
+$('secLogoRemove').onclick=()=>{
+ logoData='';refreshLogoPreview();
+ try{save()}catch(err){console.error(err)}
+};
 function reportDoc(){
  const doc=new jspdf.jsPDF('p','mm','a4'),left=12,width=186,bottom=277;
  doc.__protocolPages={};doc.__backLinks=[];
