@@ -159,11 +159,18 @@ async function renderCustomerPreview(){
   const preview=await pdfjsLib.getDocument({data:bytes}).promise;
   if(token!==customerPreviewToken){await preview.destroy();return}
   if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
-  const pg=await preview.getPage(preview.numPages),base=pg.getViewport({scale:1});
-  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(window.devicePixelRatio||1,2),renderViewport=pg.getViewport({scale:displayScale*pixelRatio});
-  canvas.width=Math.ceil(renderViewport.width);canvas.height=Math.ceil(renderViewport.height);canvas.style.width=Math.round(base.width*displayScale)+'px';canvas.style.height=Math.round(base.height*displayScale)+'px';
-  await pg.render({canvasContext:canvas.getContext('2d'),viewport:renderViewport}).promise;
-  if(token===customerPreviewToken)status.textContent='Visar '+(door.id||'provningsprotokoll')+' · uppdateras automatiskt';
+  const firstProtocolPage=preview.numPages>=2?2:1,first=await preview.getPage(firstProtocolPage),base=first.getViewport({scale:1});
+  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(window.devicePixelRatio||1,2),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
+  const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-firstProtocolPage+1;
+  canvas.width=renderW;canvas.height=renderH*pageCount+renderGap*Math.max(0,pageCount-1);canvas.style.width=cssW+'px';canvas.style.height=(cssH*pageCount+cssGap*Math.max(0,pageCount-1))+'px';
+  const out=canvas.getContext('2d');out.clearRect(0,0,canvas.width,canvas.height);
+  for(let pageNo=firstProtocolPage,i=0;pageNo<=preview.numPages;pageNo++,i++){
+   if(token!==customerPreviewToken)return;
+   const pg=pageNo===firstProtocolPage?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
+   tmp.width=Math.ceil(viewport.width);tmp.height=Math.ceil(viewport.height);await pg.render({canvasContext:tmp.getContext('2d'),viewport}).promise;
+   out.drawImage(tmp,0,i*(renderH+renderGap));tmp.width=tmp.height=0;
+  }
+  if(token===customerPreviewToken)status.textContent='Visar '+(door.id||'provningsprotokoll')+' · '+pageCount+' sida'+(pageCount===1?'':'or')+' · uppdateras automatiskt';
  }catch(e){if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
 }
 function scheduleCustomerPreview(){if($('customerPreviewPane')?.hidden)return;clearTimeout(customerPreviewTimer);customerPreviewTimer=setTimeout(renderCustomerPreview,220)}
