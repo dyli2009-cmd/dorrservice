@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dörrservice</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f2f4f7;color:#17202a}
+header{position:sticky;top:0;z-index:20;background:#17202a;color:white;padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header strong{font-size:19px;margin-right:auto}button,.filebtn,select,input,textarea{font:inherit}button,.filebtn{border:0;border-radius:9px;padding:10px 12px;background:#fff;color:#17202a;font-weight:650;cursor:pointer}.primary{background:#1f6feb;color:#fff}.danger{background:#c62828;color:#fff}
+#file{display:none}.pagebar{display:flex;gap:8px;align-items:center;background:white;padding:9px 12px;border-bottom:1px solid #ddd;position:sticky;top:58px;z-index:15}.pagebar button{background:#e9edf2}
+main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;padding:12px}
+#viewerWrap{overflow:auto;background:#c8cdd3;border-radius:12px;min-height:72vh;padding:12px;touch-action:pan-x pan-y}
+#stage{position:relative;margin:auto;width:max-content;background:white;box-shadow:0 2px 10px #0003}
+#pdfCanvas{display:block;max-width:none}.markerLayer{position:absolute;inset:0}
+.marker{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;border:3px solid white;box-shadow:0 2px 7px #0008;user-select:none;touch-action:none;cursor:grab}.untested{background:#6c757d}.ok{background:#1b8f3a}.fail{background:#d32f2f}.action{background:#e28a00}
+aside{background:white;border-radius:12px;padding:14px;height:max-content;position:sticky;top:112px}aside h2{margin:0 0 12px}.field{margin:10px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;padding:9px;border:1px solid #ccd2d8;border-radius:8px}.checks label{display:block;padding:6px 0}.empty{color:#667085}
+#hint{padding:9px 12px;background:#fff8d8;border-bottom:1px solid #eadb9b;display:none}
+@media(max-width:800px){main{display:block;padding:8px}aside{position:static;margin-top:10px}.pagebar{top:64px}header strong{width:100%}#viewerWrap{min-height:58vh}.marker{width:42px;height:42px}}
+</style>
+</head>
+<body>
+<header><strong>🚪 Dörrservice</strong>
+<label class="filebtn primary" for="file">Ladda upp ritning</label><input id="file" type="file" accept="application/pdf">
+<button id="addBtn">+ Lägg till dörr</button></header>
+<div id="hint">Tryck på ritningen där dörren finns. En ny dörr skapas automatiskt.</div>
+<div class="pagebar"><button id="prev">←</button><span id="pageInfo">Ingen ritning</span><button id="next">→</button><span style="margin-left:auto" id="doorCount">0 dörrar</span></div>
+<main><section id="viewerWrap"><div id="stage"><canvas id="pdfCanvas"></canvas><div id="markers" class="markerLayer"></div></div></section>
+<aside><div id="empty" class="empty"><h2>Provningsprotokoll</h2>Välj en dörr på ritningen.</div>
+<div id="form" hidden><h2 id="formTitle">D1</h2>
+<div class="field"><label>Dörr-ID</label><input id="doorId"></div>
+<div class="field"><label>Automatik / modell</label><input id="model" placeholder="t.ex. SW100, SW300, ED100"></div>
+<div class="field"><label>Status</label><select id="status"><option value="untested">Ej provad</option><option value="ok">Godkänd</option><option value="fail">Ej godkänd</option><option value="action">Åtgärd krävs</option></select></div>
+<div class="checks"><label><input type="checkbox" id="opening"> Öppning/stängning kontrollerad</label><label><input type="checkbox" id="sensor"> Säkerhetssensor kontrollerad</label><label><input type="checkbox" id="impulse"> Impulsdon kontrollerat</label><label><input type="checkbox" id="lock"> Lås/el-slutbleck kontrollerat</label></div>
+<div class="field"><label>Anteckning</label><textarea id="notes" rows="5"></textarea></div>
+<button class="danger" id="deleteBtn">Ta bort dörr</button></div></aside></main>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let pdf=null,pageNo=1,addMode=false,selected=null,doors=[],renderScale=1.35;
+const $=id=>document.getElementById(id), canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),stage=$('stage'),markers=$('markers');
+function save(){localStorage.setItem('dorrservice-doors',JSON.stringify(doors));$('doorCount').textContent=doors.length+' dörrar'}
+try{doors=JSON.parse(localStorage.getItem('dorrservice-doors')||'[]')}catch(e){doors=[]} save();
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const data=new Uint8Array(await f.arrayBuffer());pdf=await pdfjsLib.getDocument({data}).promise;pageNo=1;await renderPage()};
+async function renderPage(){if(!pdf)return;const page=await pdf.getPage(pageNo);let vp=page.getViewport({scale:renderScale});const max=Math.max(320,$('viewerWrap').clientWidth-28);if(vp.width>max){renderScale*=max/vp.width;vp=page.getViewport({scale:renderScale})}canvas.width=vp.width;canvas.height=vp.height;stage.style.width=vp.width+'px';stage.style.height=vp.height+'px';await page.render({canvasContext:ctx,viewport:vp}).promise;$('pageInfo').textContent='Sida '+pageNo+' / '+pdf.numPages;drawMarkers()}
+$('prev').onclick=()=>{if(pdf&&pageNo>1){pageNo--;renderPage()}};$('next').onclick=()=>{if(pdf&&pageNo<pdf.numPages){pageNo++;renderPage()}};
+$('addBtn').onclick=()=>{if(!pdf){alert('Ladda upp en PDF-ritning först.');return}addMode=!addMode;$('hint').style.display=addMode?'block':'none';$('addBtn').classList.toggle('primary',addMode)};
+markers.addEventListener('click',e=>{if(e.target===markers&&addMode){const r=markers.getBoundingClientRect();addDoor((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height)}});
+function nextId(){let n=1;const ids=new Set(doors.map(d=>d.id));while(ids.has('D'+n))n++;return 'D'+n}
+function addDoor(x,y){const d={uid:crypto.randomUUID?crypto.randomUUID():Date.now()+'',id:nextId(),page:pageNo,x,y,model:'',status:'untested',opening:false,sensor:false,impulse:false,lock:false,notes:''};doors.push(d);selected=d.uid;addMode=false;$('hint').style.display='none';$('addBtn').classList.remove('primary');save();drawMarkers();showForm()}
+function drawMarkers(){markers.innerHTML='';doors.filter(d=>d.page===pageNo).forEach(d=>{const el=document.createElement('div');el.className='marker '+d.status;el.textContent=d.id;el.style.left=(d.x*100)+'%';el.style.top=(d.y*100)+'%';el.dataset.uid=d.uid;let moved=false;el.onpointerdown=ev=>{moved=false;el.setPointerCapture(ev.pointerId);const move=mv=>{moved=true;const r=markers.getBoundingClientRect();d.x=Math.max(0,Math.min(1,(mv.clientX-r.left)/r.width));d.y=Math.max(0,Math.min(1,(mv.clientY-r.top)/r.height));el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'};const up=()=>{el.removeEventListener('pointermove',move);save();if(!moved){selected=d.uid;showForm()} };el.addEventListener('pointermove',move);el.addEventListener('pointerup',up,{once:true})};markers.appendChild(el)})}
+function current(){return doors.find(d=>d.uid===selected)}
+function showForm(){const d=current();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;$('formTitle').textContent=d.id+' – Sida '+d.page;$('doorId').value=d.id;$('model').value=d.model;$('status').value=d.status;$('opening').checked=d.opening;$('sensor').checked=d.sensor;$('impulse').checked=d.impulse;$('lock').checked=d.lock;$('notes').value=d.notes}
+function bind(id,key,type='value'){$(id).oninput=()=>{const d=current();if(!d)return;d[key]=type==='checked'?$(id).checked:$(id).value;save();drawMarkers();showForm()}}
+bind('doorId','id');bind('model','model');bind('status','status');bind('opening','opening','checked');bind('sensor','sensor','checked');bind('impulse','impulse','checked');bind('lock','lock','checked');bind('notes','notes');
+$('deleteBtn').onclick=()=>{const d=current();if(!d)return;if(confirm('Ta bort '+d.id+' och dess provningsprotokoll?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();drawMarkers();showForm()}};
+</script></body></html>
