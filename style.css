@@ -14,3 +14,7 @@ body{height:var(--app-height,100dvh)}.marker{overflow:visible}.marker::before{co
 #projectPanel .projectCard .wide{grid-column:auto}
 #projectPanel .projectCard label{margin:8px 0 0}
 #projectPanel .projectCard input{width:100%}
+
+.previewToolbar{display:flex;align-items:center;gap:10px;margin:12px 0}.previewToolbar span{font-size:11px;color:#60717d}.projectPreviewLayout{display:block}.customerPreviewHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;background:#132b38;color:#fff;position:sticky;top:0;z-index:2}.customerPreviewHead>div{display:flex;flex-direction:column;gap:2px}.customerPreviewHead strong{font-size:13px}.customerPreviewHead span{font-size:10px;color:#b8c8d1}.customerPreviewHead button{min-width:34px;min-height:34px;padding:0;font-size:20px;background:#294554;color:#fff;border-color:#496574}#customerPreviewPane{background:#cfd8dd;border:1px solid #b9c5cb;border-radius:10px;overflow:hidden}#customerPreviewCanvasWrap{padding:10px;overflow:auto;max-height:calc(100dvh - 180px);text-align:center}#customerPreviewCanvas{display:block;margin:0 auto;background:#fff;box-shadow:0 2px 12px #0003;max-width:none}
+@media(min-width:1050px){#projectPanel.previewing{max-width:1440px}.projectPreviewLayout{display:grid;grid-template-columns:minmax(390px,560px) minmax(560px,1fr);gap:16px;align-items:start}#customerPreviewPane{position:sticky;top:62px}.previewToolbar{max-width:560px}}
+@media(max-width:1049px){#customerPreviewPane{margin-top:14px}#customerPreviewCanvasWrap{max-height:75dvh}}
