@@ -231,17 +231,13 @@ async function createWorkPdf(){
  for(let index=0;index<copied.length;index++){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
-   const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb,statusColor=rgb(...color.map(n=>n/255));
-   const labelRaw=d.serialNumber||d.id.replace(/^D/,'');const label=String(labelRaw).replace(/^0+(?=\d)/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180;
-   const labelW=w+6,labelH=size+4,shaft=11,dir=d.x<.18?-1:1,ux=Math.cos(rad)*dir,uy=Math.sin(rad)*dir,px=-uy,py=ux;
-   const cx=x-ux*(shaft+labelW/2),cy=y-uy*(shaft+labelW/2),edgeX=x-ux*shaft,edgeY=y-uy*shaft;
-   page.drawLine({start:{x:edgeX,y:edgeY},end:{x,y},thickness:2,color:statusColor});
-   const head=5,wing=3.2;
-   page.drawLine({start:{x,y},end:{x:x-ux*head+px*wing,y:y-uy*head+py*wing},thickness:2,color:statusColor});
-   page.drawLine({start:{x,y},end:{x:x-ux*head-px*wing,y:y-uy*head-py*wing},thickness:2,color:statusColor});
-   page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.9,rotate:degrees(angle)});
-   const tx=-w/2,ty=-size/3;page.drawText(safeLabel,{x:cx+tx*Math.cos(rad)-ty*Math.sin(rad),y:cy+tx*Math.sin(rad)+ty*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
-   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius:Math.max(radius,14)});
+   const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),[lx,ly]=viewport.convertToPdfPoint((Number.isFinite(d.labelX)?d.labelX:d.x+.075)*viewport.width,(Number.isFinite(d.labelY)?d.labelY:d.y-.045)*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb,statusColor=rgb(...color.map(n=>n/255));
+   const labelRaw=d.serialNumber||d.id.replace(/^D/,'');const label=String(labelRaw).replace(/^0+(?=\d)/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180,r=Math.max(8,w/2+4.5),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,startX=lx+ux*(r+1.5),startY=ly+uy*(r+1.5),endX=x-ux*2,endY=y-uy*2;
+   page.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:1.05,color:statusColor,opacity:.9});
+   const head=5,wing=2.8,px=-uy,py=ux;page.drawLine({start:{x,y},end:{x:x-ux*head+px*wing,y:y-uy*head+py*wing},thickness:1.05,color:statusColor});page.drawLine({start:{x,y},end:{x:x-ux*head-px*wing,y:y-uy*head-py*wing},thickness:1.05,color:statusColor});
+   page.drawCircle({x,y,size:2.2,color:statusColor,borderColor:rgb(1,1,1),borderWidth:.7});page.drawCircle({x:lx,y:ly,size:r,color:statusColor,borderColor:rgb(1,1,1),borderWidth:1.2});
+   const tx=-w/2,ty=-size/3;page.drawText(safeLabel,{x:lx+tx*Math.cos(rad)-ty*Math.sin(rad),y:ly+tx*Math.sin(rad)+ty*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
+   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x:lx,y:ly,radius:Math.max(r,12)});
   });
   (snapshot.textNotes||[]).filter(n=>n.page===index+1&&n.text).forEach(n=>{
    const [x,y]=viewport.convertToPdfPoint(n.x*viewport.width,n.y*viewport.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,120),size=7.2,maxWidth=Math.min(150,viewport.width*.28);
