@@ -96,10 +96,10 @@ async function inspectWorkPdf(bytes){
  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib;
  const doc=await PDFDocument.load(bytes,{updateMetadata:false});const ref=doc.catalog.get(PDFName.of('DorrserviceWork'));if(!ref)return null;
  const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error('Arbets-PDF:ens uppgifter är skadade.');
- const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version!==2)throw new Error('Arbets-PDF:en har en version som denna app inte kan läsa.');
+ const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error('Arbets-PDF:en har en äldre dataversion som inte kan läsas automatiskt.');
  const data=metadata.lookup(PDFName.of('Data'),PDFRawStream),drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);
  const state=JSON.parse(new TextDecoder().decode(decodePDFRawStream(data).decode()));
- if(state.app!=='dorrservice'||state.version!==2||!Array.isArray(state.doors)||!state.project||typeof state.project!=='object'||state.doors.some(d=>!d||typeof d.uid!=='string'||typeof d.id!=='string'||!Number.isInteger(d.page)||d.page<1||!Number.isFinite(d.x)||!Number.isFinite(d.y)||d.x<0||d.x>1||d.y<0||d.y>1))throw new Error('Arbets-PDF:en innehåller ogiltiga dörruppgifter.');
+ if(state.app!=='dorrservice'||state.version<2||!Array.isArray(state.doors)||!state.project||typeof state.project!=='object'||state.doors.some(d=>!d||typeof d.uid!=='string'||typeof d.id!=='string'||!Number.isInteger(d.page)||d.page<1||!Number.isFinite(d.x)||!Number.isFinite(d.y)||d.x<0||d.x>1||d.y<0||d.y>1))throw new Error('Arbets-PDF:en innehåller ogiltiga dörruppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.doors.some(d=>d.page>source.getPageCount()))throw new Error('Dörrarna hör inte till arbets-PDF:ens ritningssidor.');
  return {drawingBytes,work:{version:1,doors:state.doors,project:state.project,logoData:state.logoData||''}};
