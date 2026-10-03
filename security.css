@@ -38,3 +38,5 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 .secPreviewControls{display:flex;align-items:center;gap:5px}.secPreviewControls button{min-height:32px;padding:3px 9px}.secPreviewControls span{min-width:52px;text-align:center;color:#fff}
 #secPreviewWrap{height:calc(100% - 52px);overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px;background:#cfd8dd}
 #secPreviewCanvas{display:block;max-width:none;background:#fff;box-shadow:0 2px 12px #0003}
+
+.secCheckHead .secRemoveCustom{flex:0 0 auto;min-height:28px;padding:3px 7px;border-color:#efceca;background:#fff5f4;color:#a6292e;font-size:10px}
