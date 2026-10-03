@@ -20,7 +20,7 @@ const COMMON_FAULTS={
 };
 let pdf,page=1,addMode=false,selected=null,doors=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,project={},logoData='',visualZoom=1;
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),wrap=$('viewerWrap');
-let activeDrawingKey=null,activeDrawingName='',exporting=false;
+let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
 function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');return d}doors.forEach(normalize);
 let saveTimer;
@@ -51,7 +51,7 @@ function save(skipOverview=false){$('doorCount').textContent=doors.length+' dör
 window.addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
 save();
-const PF=['projectName','facilityNo','customer','contact','projectOrder','inspectionDate','projectNextDate','company','phone'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});refreshDrawingUI();
+const PF=['projectName','facilityNo','customer','contact','projectOrder','inspectionDate','projectNextDate','company','phone','technician','serviceSignature'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});refreshDrawingUI();
 $('settingsBtn').onclick=()=>{$('projectPanel').hidden=!$('projectPanel').hidden};
 $('logoFile').onchange=e=>{const f=e.target.files[0],key=activeDrawingKey;if(!f||!key)return;const r=new FileReader();r.onload=()=>{if(key!==activeDrawingKey)return;logoData=r.result;refreshDrawingUI();save()};r.readAsDataURL(f)};
 $('restoreLegacy').onclick=()=>{
@@ -72,7 +72,10 @@ $('file').onchange=async e=>{
  try{
   const bytes=new Uint8Array(await f.arrayBuffer()),key=await drawingFingerprint(bytes);
   if(version!==loadVersion)return;
-  candidate=await pdfjsLib.getDocument({data:bytes}).promise;
+  const imported=await inspectWorkPdf(bytes);
+  if(version!==loadVersion)return;
+  const drawingBytes=imported?.drawingBytes||bytes;
+  candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
   if(version!==loadVersion){await candidate.destroy();return}
   // Validate the first page before replacing the current drawing.
   await candidate.getPage(1);
@@ -80,18 +83,18 @@ $('file').onchange=async e=>{
   const previous=pdf;++renderVersion;if(renderTask)renderTask.cancel();await renderQueue;
   if(version!==loadVersion){await candidate.destroy();return}
   if(!persist()){await candidate.destroy();return}
-  const record=savedDrawing(key);
+  const record=savedDrawing(key)||imported?.work;
   const nextDoors=(record?.doors||[]).map(normalize);
-  pdf=candidate;activeDrawingKey=key;activeDrawingName=f.name;
+  pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
   doors=nextDoors;project=record?.project||{};logoData=record?.logoData||'';
   page=1;zoom=1;selected=null;pinch=null;panTouch=null;
   canvas.width=canvas.height=0;canvas.style.width=canvas.style.height='0px';markers.replaceChildren();$('stage').style.width=$('stage').style.height='0px';pageWidth=pageHeight=1;$('pageInfo').textContent='Laddar sida…';
-  $('overviewFilter').value='problems';$('overviewSearch').value='';refreshDrawingUI();save();if($('overviewDialog').open)$('overviewDialog').close();$('projectPanel').hidden=true;
-  $('stage').style.transform='';addMode=false;document.body.classList.remove('placing','protocolOpen');$('hint').style.display='none';show();
+  $('overviewFilter').value='all';$('overviewSearch').value='';refreshDrawingUI();save();if($('overviewDialog').open)$('overviewDialog').close();$('projectPanel').hidden=true;
+  $('stage').style.transform='';addMode=false;document.body.classList.remove('placing','protocolOpen');$('hint').style.display='none';show();goView('drawing');
   if(previous)await previous.destroy();
   const rendered=await render(true);wrap.scrollLeft=0;wrap.scrollTop=0;
-  if(version===loadVersion&&rendered)notice((record?'Sparad ritning: ':'Ny ritning: ')+f.name+' – '+doors.length+' dörrar. Välj ＋ Dörr för att lägga till.');
- }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
+  if(version===loadVersion&&rendered)notice((imported?'Arbets-PDF öppnad: ':record?'Sparad ritning: ':'Ny ritning: ')+f.name+' – '+doors.length+' dörrar. Välj ＋ Dörr för att lägga till.');
+ }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
  finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey;e.target.value=''}}
 };
 function render(fit=false,focus=null){
@@ -100,7 +103,7 @@ function render(fit=false,focus=null){
  renderQueue=renderQueue.catch(()=>{}).then(async()=>{
   if(version!==renderVersion)return;
   const p=await documentPdf.getPage(pageNumber);if(version!==renderVersion)return;
-  const natural=p.getViewport({scale:1});if(fit)baseScale=Math.min(1.6,Math.max(1,wrap.clientWidth-24)/natural.width);
+  const natural=p.getViewport({scale:1});if(fit)baseScale=Math.min(1.6,Math.max(1,(wrap.clientWidth||$('drawingView').parentElement.clientWidth)-24)/natural.width);
   const oldW=pageWidth,oldH=pageHeight,oldSL=wrap.scrollLeft,oldST=wrap.scrollTop;
   const logical=p.getViewport({scale:baseScale*zoom}),raster=boundedViewport(p,baseScale*zoom*Math.min(window.devicePixelRatio||1,2));
   // Keep zoom/marker coordinates in CSS pixels; cap only the raster allocation.
@@ -119,7 +122,7 @@ function render(fit=false,focus=null){
  return renderQueue;
 }
 function setZoom(z,focus={x:wrap.clientWidth/2,y:wrap.clientHeight/2}){zoom=Math.max(.5,Math.min(8,z));visualZoom=1;$('stage').style.transform='';render(false,focus)}$('zoomIn').onclick=()=>setZoom(zoom*1.25);$('zoomOut').onclick=()=>setZoom(zoom/1.25);$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){if(!pdf)return alert('Ladda upp en PDF först');addMode=!addMode;document.body.classList.toggle('placing',addMode);$('hint').style.display=addMode?'block':'none'}
-markers.addEventListener('click',e=>{if(e.target!==markers||!addMode)return;const r=markers.getBoundingClientRect(),ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,model:'',status:'untested',notes:''});doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')});
+markers.addEventListener('click',e=>{if(e.target!==markers||!addMode)return;const r=markers.getBoundingClientRect(),ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')});
 function draw(){
  markers.replaceChildren();doors.filter(d=>d.page===page).forEach(d=>{
   const el=document.createElement('button');el.type='button';el.className='marker '+(d.status||'untested');el.textContent=d.id;el.setAttribute('aria-label','Öppna protokoll för '+d.id);
