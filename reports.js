@@ -84,11 +84,28 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     x+=ws[i]
    });y+=h;
   });
+  function continuationTop(){
+   doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
+   if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
+   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.text('Egenkontroll Dörrautomatik Slagdörr',left+58+(width-58)/2,16.3,{align:'center'});
+   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Allmän Info - fortsättning',left+58+(width-58)/2,22,{align:'center'});
+   y=31;cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=12;
+  }
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
-  const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' – '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),d.notes].filter(Boolean).join('\n');
-  const boxH=Math.min(30,Math.max(18,276-y)),lines=doc.splitTextToSize(notes||'',width-7);
+  const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' - '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),d.notes].filter(Boolean).join('\n');
+  const lines=doc.splitTextToSize(notes||'',width-7),boxH=Math.min(30,Math.max(18,276-y)),lineH=3.2,firstMax=Math.max(1,Math.floor((boxH-5)/lineH));
   doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
-  if(lines.length){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);const maxLines=Math.max(1,Math.floor((boxH-5)/3.2));doc.text(lines.slice(0,maxLines),left+3,y+5,{lineHeightFactor:1.15})}
+  if(lines.length){
+   doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);
+   const firstChunk=lines.slice(0,firstMax);doc.text(firstChunk,left+3,y+5,{lineHeightFactor:1.15});let offset=firstChunk.length;
+   while(offset<lines.length){
+    doc.addPage();continuationTop();
+    doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info - fortsättning:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
+    const contBoxH=276-y,contMax=Math.max(1,Math.floor((contBoxH-5)/lineH)),chunk=lines.slice(offset,offset+contMax);
+    doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,contBoxH,'FD');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);doc.text(chunk,left+3,y+5,{lineHeightFactor:1.15});offset+=chunk.length;
+   }
+  }
  });
  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);text([p.company,p.projectName||p.facilityNo].filter(Boolean).join(' · ')||'Dörrservice',left,289,7,false,[89,110,123]);text('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
  return doc;
