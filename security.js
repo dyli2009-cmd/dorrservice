@@ -72,7 +72,7 @@ const SYSTEMS={
  }}
 };
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
-let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],selected=null,addType=null,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1;
+let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],selected=null,addType=null,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -113,10 +113,10 @@ function drawMarkers(){
  pageItems.forEach(o=>{
   const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';
   let targetDrag=null;
-  target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();targetDrag={id:e.pointerId};target.setPointerCapture(e.pointerId)};
+  target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;targetDrag={id:e.pointerId};target.setPointerCapture(e.pointerId)};
   target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId)return;const r=markers.getBoundingClientRect();o.x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));o.y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
-  target.onpointerup=e=>{if(targetDrag?.id===e.pointerId)save();targetDrag=null};
-  target.onpointercancel=()=>{targetDrag=null};markers.appendChild(target);
+  target.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag?.id===e.pointerId)save();targetDrag=null};
+  target.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;targetDrag=null};markers.appendChild(target);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
  });
  // tag connector lines after targets are known
@@ -124,10 +124,10 @@ function drawMarkers(){
  pageItems.forEach(o=>{
   const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=o.id;b.title='Dra etiketten. Pilen fortsätter peka på dörren.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
-  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId)};
+  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId)};
   b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<5)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,(e.clientX-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(e.clientY-r.top)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
-  b.onpointerup=e=>{if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
-  b.onpointercancel=()=>{drag=null};
+  b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
+  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;drag=null};
   b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;selected=o.uid;showSelected();go('protocol')};
   markers.appendChild(b)
  })
@@ -193,6 +193,7 @@ viewer.addEventListener('pointercancel',endMousePan);
 viewer.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;viewer.classList.remove('mousePanning')}});
 
 viewer.addEventListener('touchstart',e=>{
+ if(e.target.closest('.secMarker,.secTarget')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
  if(e.touches.length===2){
   e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect();
   pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}};
@@ -215,6 +216,7 @@ function endTouch(e){
  if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus);return}
  if(e.touches.length===0&&panTouch){
   const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
+  if(Date.now()<suppressPageSwipeUntil)return;
   if(t&&p.pageSwipe&&Date.now()-p.started<900){
    const dx=t.clientX-p.startX,dy=t.clientY-p.startY;
    if(Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
