@@ -51,8 +51,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    cell('Företag:',p.company,left,y,93);cell('Företag:','',left+93,y,93);y+=7;
    cell('Kontaktman på objektet:',p.contact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
    cell('Telefonnummer:',p.phone,left,y,93);cell('Telefonnummer:','',left+93,y,93);y+=7;
-   cell('Adress:','',left,y,93);cell('Adress:','',left+93,y,93);y+=7;
-   cell('Postnummer / Postadress:','',left,y,93);cell('Postnummer / Postadress:','',left+93,y,93);y+=7;
+   cell('Adress:',p.address,left,y,93);cell('Adress:','',left+93,y,93);y+=7;
+   cell('Postnummer / Postadress:',[p.postalCode,p.postalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:','',left+93,y,93);y+=7;
    cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=8;
   }
   function checkHeader(){
