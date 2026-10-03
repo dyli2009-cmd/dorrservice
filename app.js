@@ -155,7 +155,12 @@ wrap.addEventListener('wheel',e=>{
   setZoom(target,finalFocus);
  },180);
 },{passive:false});
-$('zoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('zoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){
+function changeDrawingPage(delta){
+ if(!pdf)return false;
+ const next=Math.max(1,Math.min(pdf.numPages,page+delta));if(next===page)return false;
+ clearTimeout(wheelZoomTimer);wheelZoomTarget=null;wheelZoomFocus=null;page=next;zoom=1;visualZoom=1;$('stage').style.transform='';render(true);wrap.scrollLeft=0;wrap.scrollTop=0;return true
+}
+$('zoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('zoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>changeDrawingPage(-1);$('next').onclick=()=>changeDrawingPage(1);function toggleAdd(){
  if(!pdf)return alert('Ladda upp en PDF först');
  addMode=!addMode;textMode=false;document.body.classList.toggle('placing',addMode);document.body.classList.remove('placingText');
  $('hint').textContent='Tryck där dörren finns. Nyp för att zooma.';$('hint').style.display=addMode?'block':'none'
@@ -237,15 +242,23 @@ wrap.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e
 
 wrap.addEventListener('touchstart',e=>{
  if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
- else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.doorTarget,.drawingNote')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
+ else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.doorTarget,.drawingNote')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02}}
 },{passive:false});
 wrap.addEventListener('touchmove',e=>{
  if(e.touches.length===2&&pinch){e.preventDefault();const a=e.touches[0],b=e.touches[1];visualZoom=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist))/pinch.zoom;$('stage').style.transform='scale('+visualZoom+')';$('stage').style.transformOrigin=(wrap.scrollLeft+pinch.focus.x)+'px '+(wrap.scrollTop+pinch.focus.y)+'px';$('zoomInfo').textContent=Math.round(pinch.zoom*visualZoom*100)+'%'}
  else if(e.touches.length===1&&panTouch&&!addMode&&!textMode&&!pinch){e.preventDefault();const t=e.touches[0];wrap.scrollLeft=panTouch.left-(t.clientX-panTouch.x);wrap.scrollTop=panTouch.top-(t.clientY-panTouch.y)}
 },{passive:false});
 function endTouch(e){
- if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus)}
- if(e.touches.length===0)panTouch=null;
+ if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus);return}
+ if(e.touches.length===0&&panTouch){
+  const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
+  if(t&&p.pageSwipe&&Date.now()-p.started<900){
+   const dx=t.clientX-p.startX,dy=t.clientY-p.startY;
+   if(Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
+    if(changeDrawingPage(dx<0?1:-1)){e.preventDefault?.();return}
+   }
+  }
+ }
 }
 wrap.addEventListener('touchend',endTouch,{passive:true});wrap.addEventListener('touchcancel',endTouch,{passive:true});
 $('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileText')&&($('mobileText').onclick=toggleText);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
