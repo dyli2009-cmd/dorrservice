@@ -67,9 +67,9 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    vals.forEach((v,i)=>{
     doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(x,y,ws[i],h,'FD');doc.setTextColor(0,0,0);
     if(i===1){
-      doc.setFont('helvetica','normal');doc.setFontSize(6.8);
-      const lines=doc.splitTextToSize(String(v||''),ws[i]-4).slice(0,2),step=2.55,startY=y+h/2-((lines.length-1)*step)/2+.8;
-      doc.text(lines,x+ws[i]/2,startY,{align:'center',lineHeightFactor:1});
+      doc.setFont('helvetica','normal');doc.setFontSize(7);
+      const lines=doc.splitTextToSize(String(v||''),ws[i]-4).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;
+      doc.text(lines,x+2,startY,{align:'left',lineHeightFactor:1});
     }else if(i===3&&c.result==='ok'){
       const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineWidth(.65);doc.line(cx-2.2,cy,cx-.5,cy+1.7);doc.line(cx-.5,cy+1.7,cx+2.7,cy-1.8);
     }else{
