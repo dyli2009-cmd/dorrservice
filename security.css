@@ -40,3 +40,10 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 #secPreviewCanvas{display:block;max-width:none;background:#fff;box-shadow:0 2px 12px #0003}
 
 .secCheckHead .secRemoveCustom{flex:0 0 auto;min-height:28px;padding:3px 7px;border-color:#efceca;background:#fff5f4;color:#a6292e;font-size:10px}
+
+.secCheck.result-ok{background:#eaf6ee;border-color:#8fc4a6}
+.secCheck.result-ok .secCheckHead strong,.secCheck.result-ok .secCheckHead span{color:#1d7047}
+.secCheck.result-ok .secChoices button.active{background:#dff1e6;border-color:#4a9770;color:#1c7147;outline:none}
+.secCheck.result-remark{background:#fff5e5;border-color:#e6bd72}
+.secCheck.result-remark .secCheckHead strong,.secCheck.result-remark .secCheckHead span{color:#945800}
+.secCheck.result-na{background:#eef2f4;border-color:#c8d2d8}
