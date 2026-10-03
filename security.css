@@ -27,3 +27,7 @@ body.secHasPdf #secEmpty{display:none}
 .secSummaryCard{border:1px solid var(--line);border-left:6px solid #77858e;border-radius:8px;background:#fff;padding:9px;margin:7px 0}.secSummaryCard.ok{border-left-color:#238354}.secSummaryCard.action{border-left-color:#c77c13}.secSummaryCard.fail{border-left-color:#bd3f46}.secSummaryCard.untested{border-left-color:#77858e}.secSummaryCard h3{margin:0 0 5px;font-size:14px}.secSummaryCard ul{margin:5px 0 0;padding-left:18px;font-size:12px}
 body[data-view=drawing] #securityDrawing{display:flex}body[data-view=protocol] #securityProtocol{display:block}body[data-view=project] #securityProject{display:block}
 @media(max-width:700px){.securityTools{overflow-x:auto}.securityTools button{flex:0 0 auto}.secChoices{grid-template-columns:1fr}.secMarker{font-size:9px}}
+#secViewer{cursor:grab}
+#secViewer.mousePanning{cursor:grabbing;user-select:none}
+body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
+#secStage{transform-origin:0 0}
