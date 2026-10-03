@@ -61,3 +61,10 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 .secLogoActions .filebtn,.secLogoActions button{min-height:36px;font-size:12px}
 #secLogoStatus{margin:0}
 #secLogoPreview{min-height:52px}
+
+.secConnectorLayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+.secConnector{stroke-width:1.55;vector-effect:non-scaling-stroke;opacity:.88}
+.secConnector.ok{stroke:#238354}.secConnector.action{stroke:#c77c13}.secConnector.fail{stroke:#bd3f46}.secConnector.untested{stroke:#77858e}
+.secTarget{position:absolute;z-index:3;transform:translate(-50%,-50%);width:12px;height:12px;min-width:12px;min-height:12px;padding:0;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px #0005;touch-action:none}
+.secTarget.status-ok{background:#238354;border-color:#fff}.secTarget.status-action{background:#c77c13;border-color:#fff}.secTarget.status-fail{background:#bd3f46;border-color:#fff}.secTarget.status-untested{background:#77858e;border-color:#fff}
+.secMarker{z-index:4;width:30px;height:30px;min-width:30px;min-height:30px}
