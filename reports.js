@@ -76,10 +76,14 @@ function buildServiceReportDoc(snapshot,includeProtocols){
       doc.setFont('helvetica','normal');doc.setFontSize(7);
       const lines=doc.splitTextToSize(String(v||''),ws[i]-3.5).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;
       doc.text(lines,x+1.7,startY,{lineHeightFactor:1});
+    }else if(i===2&&c.result==='na'){
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-3.0,cy,cx+3.0,cy);doc.setLineCap('butt');
     }else if(i===3&&c.result==='ok'){
-      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.95);doc.line(cx-3.0,cy-.1,cx-1.0,cy+2.0);doc.line(cx-1.0,cy+2.0,cx+3.3,cy-2.4);doc.setLineCap('butt');
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-3.0,cy-.2,cx-1.0,cy+1.8);doc.line(cx-1.0,cy+1.8,cx+3.0,cy-2.2);doc.setLineCap('butt');
+    }else if(i===4&&c.result==='remark'){
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-2.7,cy-2.7,cx+2.7,cy+2.7);doc.line(cx+2.7,cy-2.7,cx-2.7,cy+2.7);doc.setLineCap('butt');
     }else{
-      doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(i>=2&&i<=4?8:6.6);doc.text(String(v||''),x+ws[i]/2,y+h/2+1.1,{align:'center'});
+      doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.6);doc.text(String(v||''),x+ws[i]/2,y+h/2+1.1,{align:'center'});
     }
     x+=ws[i]
    });y+=h;
