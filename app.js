@@ -113,7 +113,7 @@ function render(fit=false,focus=null){
  renderQueue=renderQueue.catch(()=>{}).then(async()=>{
   if(version!==renderVersion)return;
   const p=await documentPdf.getPage(pageNumber);if(version!==renderVersion)return;
-  const natural=p.getViewport({scale:1});if(fit)baseScale=Math.min(1.6,Math.max(1,(wrap.clientWidth||$('drawingView').parentElement.clientWidth)-24)/natural.width);
+  const natural=p.getViewport({scale:1});if(fit){const availW=Math.max(120,(wrap.clientWidth||$('drawingView').parentElement.clientWidth)-24),availH=Math.max(120,(wrap.clientHeight||$('drawingView').parentElement.clientHeight)-24);baseScale=Math.min(1.6,Math.max(.1,Math.min(availW/natural.width,availH/natural.height)));}
   const oldW=pageWidth,oldH=pageHeight,oldSL=wrap.scrollLeft,oldST=wrap.scrollTop;
   const logical=p.getViewport({scale:baseScale*zoom}),raster=boundedViewport(p,baseScale*zoom*Math.min(window.devicePixelRatio||1,2));
   // Keep zoom/marker coordinates in CSS pixels; cap only the raster allocation.
