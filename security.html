@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#132b38">
 <title>Säkerhetsservice</title>
 <link rel="stylesheet" href="style.css?v=2.4.3-r8">
-<link rel="stylesheet" href="security.css?v=2">
+<link rel="stylesheet" href="security.css?v=3">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -17,6 +17,7 @@
   <a class="filebtn" href="./">Dörrautomatik</a>
   <label class="filebtn" for="securityFile">Öppna PDF</label>
   <input id="securityFile" type="file" accept="application/pdf" hidden>
+  <button id="securityPreview">Kundmall</button>
   <button id="securityExport" class="primary">Spara PDF</button>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
@@ -51,10 +52,10 @@
       <label>Placering / Dörrlittra<input id="secLocation"></label>
       <label class="wide">ID / märkning<input id="secId"></label>
     </div>
-    <div class="progressLine"><strong id="secProgress"></strong><button id="secAddCheck">＋ Egen kontrollpunkt</button></div>
+    <div class="progressLine"><strong id="secProgress"></strong><div class="secProgressActions"><button id="secApproveAll" class="primary">✓ Godkänn alla</button><button id="secAddCheck">＋ Egen kontrollpunkt</button></div></div>
     <div id="secChecklist"></div>
     <label>Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
-    <label>Slutbedömning<select id="secStatus"><option value="untested">Ej kontrollerad / pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label>
+    <label>Slutbedömning<select id="secStatus"><option value="untested">Ej kontrollerad / pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label><p class="muted">Status räknas automatiskt från kontrollpunkterna. Välj “Ej godkänd” manuellt när objektet ska underkännas.</p>
     <button id="secDelete" class="danger">Ta bort objekt</button>
   </div>
 </aside>
@@ -64,6 +65,11 @@
   <div class="securityLegend"><span class="s-ok">Godkänd</span><span class="s-action">Anmärkning</span><span class="s-fail">Ej godkänd</span><span class="s-untested">Ej klar</span></div>
   <div id="secOverviewSummary"></div>
   <div id="secOverviewList"></div>
+</dialog>
+
+<dialog id="secPreviewDialog" class="secPreviewDialog">
+  <div class="secPreviewHead"><div><strong>Kundmall – live</strong><span id="secPreviewTitle">Förhandsvisning</span></div><div class="secPreviewControls"><button id="secPreviewPrev">‹</button><span id="secPreviewPage">1 / 1</span><button id="secPreviewNext">›</button><button id="secPreviewClose">×</button></div></div>
+  <div id="secPreviewWrap"><canvas id="secPreviewCanvas"></canvas></div>
 </dialog>
 
 <section id="securityProject" class="view">
@@ -97,5 +103,5 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="security.js?v=2"></script>
+<script src="security.js?v=3"></script>
 </body></html>
