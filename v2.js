@@ -139,3 +139,37 @@ const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.pag
 
 function sizeForKeyboard(){document.documentElement.style.setProperty('--app-height',(window.visualViewport?.height||window.innerHeight)+'px')}
 window.visualViewport?.addEventListener('resize',()=>{sizeForKeyboard();if(document.activeElement?.matches('input,textarea,select'))requestAnimationFrame(()=>document.activeElement.scrollIntoView({block:'nearest'}))});window.addEventListener('resize',sizeForKeyboard);sizeForKeyboard();
+
+let customerPreviewTimer=null,customerPreviewToken=0,customerPreviewPdf=null;
+function customerPreviewDoor(){
+ const source=cur()||doors[0];
+ if(source)return structuredClone(source);
+ const checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
+ return {uid:'preview',id:'D001',serialNumber:'001',page:1,x:.5,y:.5,model:'',machineId:'',location:'',ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''};
+}
+async function renderCustomerPreview(){
+ const pane=$('customerPreviewPane');if(!pane||pane.hidden)return;
+ const token=++customerPreviewToken,status=$('customerPreviewStatus'),canvas=$('customerPreviewCanvas'),holder=$('customerPreviewCanvasWrap');
+ status.textContent='Uppdaterar…';
+ try{
+  const door=customerPreviewDoor();normalize(door);
+  const snapshot=structuredClone({project,logoData,doors:[door]});
+  const report=buildServiceReportDoc(snapshot,true);
+  const bytes=new Uint8Array(report.output('arraybuffer'));
+  const preview=await pdfjsLib.getDocument({data:bytes}).promise;
+  if(token!==customerPreviewToken){await preview.destroy();return}
+  if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
+  const pg=await preview.getPage(preview.numPages),base=pg.getViewport({scale:1});
+  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(window.devicePixelRatio||1,2),renderViewport=pg.getViewport({scale:displayScale*pixelRatio});
+  canvas.width=Math.ceil(renderViewport.width);canvas.height=Math.ceil(renderViewport.height);canvas.style.width=Math.round(base.width*displayScale)+'px';canvas.style.height=Math.round(base.height*displayScale)+'px';
+  await pg.render({canvasContext:canvas.getContext('2d'),viewport:renderViewport}).promise;
+  if(token===customerPreviewToken)status.textContent='Visar '+(door.id||'provningsprotokoll')+' · uppdateras automatiskt';
+ }catch(e){if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
+}
+function scheduleCustomerPreview(){if($('customerPreviewPane')?.hidden)return;clearTimeout(customerPreviewTimer);customerPreviewTimer=setTimeout(renderCustomerPreview,220)}
+$('toggleCustomerPreview').onclick=()=>{
+ const pane=$('customerPreviewPane'),open=pane.hidden;pane.hidden=!open;$('projectPanel').classList.toggle('previewing',open);$('toggleCustomerPreview').textContent=open?'Dölj kundmall':'👁 Visa kundmall live';if(open)setTimeout(renderCustomerPreview,0)
+};
+$('closeCustomerPreview').onclick=()=>{$('customerPreviewPane').hidden=true;$('projectPanel').classList.remove('previewing');$('toggleCustomerPreview').textContent='👁 Visa kundmall live'};
+$('projectPanel').addEventListener('input',scheduleCustomerPreview);$('projectPanel').addEventListener('change',()=>setTimeout(scheduleCustomerPreview,80));
+window.addEventListener('resize',()=>{if(!$('customerPreviewPane')?.hidden)scheduleCustomerPreview()});
