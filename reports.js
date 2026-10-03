@@ -54,8 +54,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+61,12.4);doc.setFontSize(9.6);doc.text('CHECKLISTA REVION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
    y=31;
    cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',d.nextDate||p.projectNextDate,left+93,y,93);y+=7;
-   cell('ANLÄGGNING:',p.projectName,left,y,56,7,true);cell('Anläggningsnummer:',p.facilityNo,left+56,y,37);
-   cell('BESTÄLLARE:',p.customer,left+93,y,56,7,true);cell('Avtalsnummer:',p.agreementNo,left+149,y,37);y+=7;
+   cell('ANLÄGGNING:',[p.projectName,'| Anläggningsnummer:',p.facilityNo].filter(Boolean).join(' '),left,y,93,7,true);
+   cell('BESTÄLLARE:',[p.customer,'| Avtalsnummer:',p.agreementNo].filter(Boolean).join(' '),left+93,y,93,7,true);y+=7;
    cell('Företag:',p.company,left,y,93);cell('Företag:',p.customer,left+93,y,93);y+=7;
    cell('Kontaktman på objektet:',p.companyContact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
    cell('Telefonnummer:',p.companyPhone,left,y,93);cell('Telefonnummer:',p.phone,left+93,y,93);y+=7;
