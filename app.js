@@ -143,22 +143,6 @@ function draw(){
  })
 }
 function cur(){return doors.find(d=>d.uid===selected)}
-function buildChecklist(d){
- const box=$('checklist');box.innerHTML='';
- const all=document.createElement('button');all.className='approveAll';all.textContent='✓ GODKÄNN ALLT';all.title='Sätter alla kontrollpunkter till OK. Du kan sedan ändra enstaka punkter till Fel.';all.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});save();buildChecklist(d)};box.appendChild(all);
- CHECKS.forEach(([n,t])=>{
-  const c=d.checks[n],r=document.createElement('div');r.className='checkrow';
-  r.innerHTML='<div class="checktitle">'+n+' '+t+'</div><div class="quickBtns"><button data-v="na">– Ingår ej</button><button data-v="ok">✓ OK</button><button data-v="remark">! Fel</button></div><div class="faultArea" hidden><select class="faultSelect"><option value="">Välj vanlig anmärkning…</option></select><input class="faultText" placeholder="Eller skriv egen anmärkning"></div>';
-  const area=r.querySelector('.faultArea'),sel=r.querySelector('.faultSelect'),inp=r.querySelector('.faultText');
-  (COMMON_FAULTS[n]||['Justering/åtgärd krävs']).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o)});
-  const own=document.createElement('option');own.value='__own';own.textContent='Annat – skriv själv';sel.appendChild(own);
-  inp.value=c.note||'';if(c.result==='remark')area.hidden=false;
-  r.querySelectorAll('.quickBtns button').forEach(b=>{if(b.dataset.v===c.result)b.classList.add('active');b.onclick=()=>{c.result=b.dataset.v;if(c.result!=='remark')c.note='';save();r.querySelectorAll('.quickBtns button').forEach(button=>button.classList.toggle('active',button.dataset.v===c.result));area.hidden=c.result!=='remark';if(c.result!=='remark'){inp.value='';sel.value=''}}});
-  sel.onchange=()=>{if(sel.value&&sel.value!=='__own'){c.note=sel.value;inp.value=c.note;save()}else if(sel.value==='__own'){inp.focus()}};
-  inp.oninput=()=>{c.note=inp.value;save()};
-  box.appendChild(r)
- })
-}
 function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);$('formTitle').textContent=d.id+' – Sida '+d.page;['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show()}};
 wrap.addEventListener('touchstart',e=>{
  if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
@@ -173,10 +157,6 @@ function endTouch(e){
  if(e.touches.length===0)panTouch=null;
 }
 wrap.addEventListener('touchend',endTouch,{passive:true});wrap.addEventListener('touchcancel',endTouch,{passive:true});
-function cell(doc,x,y,w,h,label,value){doc.rect(x,y,w,h);doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.text(label,x+2,y+3.5);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(String(value||'-').substring(0,45),x+2,y+8)}
-async function addDrawingPages(doc,protocolPages={}){if(!pdf)return false;for(let pno=1;pno<=pdf.numPages;pno++){if(pno>1)doc.addPage('a4','portrait');const p=await pdf.getPage(pno),v=boundedViewport(p,1.45),cv=document.createElement('canvas');cv.width=v.width;cv.height=v.height;await p.render({canvasContext:cv.getContext('2d'),viewport:v}).promise;const ds=doors.filter(d=>d.page===pno);const c=cv.getContext('2d');ds.forEach(d=>{const x=d.x*cv.width,y=d.y*cv.height;c.beginPath();c.arc(x,y,12,0,Math.PI*2);c.fillStyle=d.status==='ok'?'#198754':d.status==='fail'?'#dc3545':d.status==='action'?'#e28a00':'#6c757d';c.fill();c.strokeStyle='#fff';c.lineWidth=3;c.stroke();c.fillStyle='#fff';c.font='bold 12px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText(d.id,x,y)});const img=cv.toDataURL('image/jpeg',.88),ratio=Math.min(190/cv.width,267/cv.height),ox=(210-cv.width*ratio)/2,oy=(297-cv.height*ratio)/2;doc.addImage(img,'JPEG',ox,oy,cv.width*ratio,cv.height*ratio);ds.forEach(d=>{const target=protocolPages[d.uid];if(!target)return;const x=ox+d.x*cv.width*ratio,y=oy+d.y*cv.height*ratio,hit=9;doc.link(x-hit/2,y-hit/2,hit,hit,{pageNumber:target})})}return true}
-function addProtocol(doc,d,drawingPage=d.page){doc.addPage('a4','portrait');normalize(d);const L=12,W=186;doc.setLineWidth(.25);if(logoData){try{doc.addImage(logoData,'PNG',L,8,36,14)}catch(e){try{doc.addImage(logoData,'JPEG',L,8,36,14)}catch(_){}}}doc.rect(L,7,W,17);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('PROVNINGSPROTOKOLL',105,14,{align:'center'});doc.setFontSize(9);doc.text('REVISION AV DÖRRAUTOMATIK',105,19,{align:'center'});let y=27;cell(doc,L,y,62,12,'OBJEKT',project.projectName);cell(doc,L+62,y,62,12,'DATUM',project.inspectionDate);cell(doc,L+124,y,62,12,'ORDER / AO',d.ao||project.projectOrder);y+=12;cell(doc,L,y,62,12,'ANLÄGGNINGSNUMMER',project.facilityNo);cell(doc,L+62,y,62,12,'BESTÄLLARE',project.customer);cell(doc,L+124,y,62,12,'KONTAKTPERSON',project.contact);y+=12;cell(doc,L,y,62,12,'MASKIN-ID',d.machineId);cell(doc,L+62,y,62,12,'PLACERING / DÖRRLITTRA',d.location||d.id);cell(doc,L+124,y,62,12,'AUTOMATIK / MODELL',d.model);y+=15;const widths=[12,91,20,27,27,9],heads=['Nr','Benämning kontroll','Ingår ej','Klart utan anm.','Klart med anm.','Sign'];let x=L;doc.setFontSize(6.5);doc.setFont('helvetica','bold');heads.forEach((h,i)=>{doc.rect(x,y,widths[i],10);doc.text(doc.splitTextToSize(h,widths[i]-2),x+1,y+3);x+=widths[i]});y+=10;doc.setFont('helvetica','normal');CHECKS.forEach(([n,t])=>{const c=d.checks[n],h=9;x=L;const vals=[n,t,c.result==='na'?'X':'',c.result==='ok'?'X':'',c.result==='remark'?'X':'',d.signature||''];vals.forEach((val,i)=>{doc.rect(x,y,widths[i],h);doc.setFontSize(i===1?6.2:7);if(i===0||i>=2){doc.setFont(i>=2&&val?'helvetica':'helvetica',i>=2&&val?'bold':'normal');doc.text(String(val),x+widths[i]/2,y+h/2+1.2,{align:'center'})}else{doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(String(val),widths[i]-2);const lh=2.7,startY=y+h/2-((Math.min(lines.length,2)-1)*lh)/2+1;doc.text(lines.slice(0,2),x+1,startY)}x+=widths[i]});y+=h});const remarks=CHECKS.filter(([n])=>d.checks[n]&&d.checks[n].note&&d.checks[n].note.trim()).map(([n,t])=>n+' '+d.checks[n].note.trim());y+=3;const remarkLines=[];remarks.forEach(r=>remarkLines.push(...doc.splitTextToSize(r,W-4)));const generalLines=doc.splitTextToSize(d.notes||'-',W-4);const boxH=Math.max(30,12+(remarkLines.length+generalLines.length)*4);doc.rect(L,y,W,boxH);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('ANMÄRKNINGAR FRÅN KONTROLLPUNKTER',L+2,y+4);doc.setFont('helvetica','normal');doc.setFontSize(8);let ty=y+9;if(remarkLines.length){doc.text(remarkLines,L+2,ty);ty+=remarkLines.length*4+3}else{doc.text('-',L+2,ty);ty+=7}doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('ALLMÄN INFO / ANMÄRKNING',L+2,ty);ty+=5;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(generalLines,L+2,ty);y+=boxH+3;cell(doc,L,y,62,12,'NÄSTA PROVNING',d.nextDate||project.projectNextDate);cell(doc,L+62,y,62,12,'FÖRETAG / TEKNIKER',project.company);cell(doc,L+124,y,62,12,'SIGNATUR',d.signature);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(17,106,153);doc.text('Till ritning / '+d.id,198,291,{align:'right'});doc.link(155,284,43,10,{pageNumber:drawingPage});doc.setTextColor(0,0,0)}
-$('exportBtn').onclick=async()=>{if(exporting||wrap.getAttribute('aria-busy')==='true')return;if(!doors.length)return alert('Det finns inga dörrar att spara.');exporting=true;$('file').disabled=true;$('exportBtn').disabled=true;try{const {jsPDF}=window.jspdf,doc=new jsPDF('p','mm','a4');const sorted=doors.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,undefined,{numeric:true})),drawingPages=pdf?pdf.numPages:1,protocolPages={};sorted.forEach((d,i)=>protocolPages[d.uid]=drawingPages+i+1);let has=await addDrawingPages(doc,protocolPages);if(!has){doc.setFontSize(16);doc.text('Dörrservice',14,20)}sorted.forEach(d=>addProtocol(doc,d,pdf?d.page:1));doc.save('provningsprotokoll-med-ritning.pdf')}catch(error){alert('Kunde inte skapa protokollet. Kontrollera anslutningen och prova igen.')}finally{exporting=false;$('file').disabled=false;$('exportBtn').disabled=!activeDrawingKey}};
 $('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
 
 const STATUS_LABELS={untested:'Ej provad',ok:'Godkänd',action:'Åtgärd krävs',fail:'Ej godkänd'};
@@ -228,47 +208,3 @@ $('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;
 $('closeOverview').onclick=()=>$('overviewDialog').close();
 $('overviewFilter').onchange=renderOverview;$('overviewSearch').oninput=renderOverview;
 
-function problemRemarkText(d){
- const lines=doorProblems(d).map(([n,title])=>n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.'));
- if(!lines.length)lines.push(STATUS_LABELS[d.status]||'Anmärkning');
- if(d.location)lines.unshift('Placering: '+d.location);
- if(d.notes?.trim())lines.push('Allmän anmärkning: '+d.notes.trim());
- return lines.join('\n');
-}
-function createProblemPdf(){
- const problemDoors=doors.filter(hasDoorProblem).sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
- if(!problemDoors.length)throw new Error('Inga dörrar med registrerade problem.');
- if(!window.jspdf?.jsPDF)throw new Error('PDF-biblioteket kunde inte laddas. Kontrollera internetanslutningen och ladda om appen.');
- const doc=new window.jspdf.jsPDF('p','mm','a4'),left=12,widths=[18,128,40],bottom=275,lineHeight=3.8;
- let y;
- function startPage(){
-  doc.setDrawColor(120);doc.setLineWidth(.25);doc.rect(left,12,186,20);
-  if(logoData){try{doc.addImage(logoData,left+3,15,32,14)}catch(error){}}
-  else{doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(doc.splitTextToSize(project.company||'Dörrservice',45).slice(0,2),left+3,20)}
-  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('ANMÄRKNINGSLISTA',left+52,20);doc.setFontSize(9);doc.text('Egenkontroll av dörrautomatik',left+52,26);
-  [['OBJEKT',project.projectName],['DATUM',project.inspectionDate],['ORDER NR',project.projectOrder]].forEach(([label,value],i)=>{
-   const x=left+i*62;doc.rect(x,42,62,15);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(label,x+2,46);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(doc.splitTextToSize(String(value||'-'),58).slice(0,2),x+2,51);
-  });
-  y=65;doc.setFont('helvetica','bold');doc.setFontSize(8);let x=left;
-  ['Dörr nr','Anmärkning','Åtgärdat datum + sign.'].forEach((title,i)=>{doc.rect(x,y,widths[i],9);doc.text(title,x+2,y+5.5);x+=widths[i]});y+=9;doc.setFont('helvetica','normal');doc.setFontSize(8);
- }
- startPage();
- problemDoors.forEach(d=>{
-  const values=[d.id,problemRemarkText(d),[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n')];
-  const columns=values.map((value,i)=>doc.splitTextToSize(String(value||''),widths[i]-4));
-  let offset=0,total=Math.max(1,...columns.map(lines=>lines.length));
-  while(offset<total){
-   const capacity=Math.floor((bottom-y-4)/lineHeight);
-   if(capacity<1||bottom-y<10){doc.addPage();startPage();continue}
-   const count=Math.min(capacity,total-offset),height=Math.max(10,4+count*lineHeight);let x=left;
-   columns.forEach((lines,i)=>{doc.rect(x,y,widths[i],height);const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length)doc.text(chunk,x+2,y+4);x+=widths[i]});
-   y+=height;offset+=count;
-   if(offset<total){doc.addPage();startPage()}
-  }
- });
- while(y+8<=bottom){let x=left;widths.forEach(w=>{doc.rect(x,y,w,8);x+=w});y+=8}
- const pages=doc.getNumberOfPages();
- for(let number=1;number<=pages;number++){doc.setPage(number);doc.setFontSize(7);doc.setTextColor(80);doc.line(left,282,198,282);doc.text('Anmärkningslista – dörrservice',left,286);doc.text('Sida '+number+' av '+pages,198,286,{align:'right'})}
- return doc;
-}
-$('overviewPdf').onclick=()=>{try{persist();createProblemPdf().save('anmarkningslista-dorrservice.pdf')}catch(error){alert(error.message||'Kunde inte skapa PDF. Prova igen.')}};
