@@ -137,7 +137,7 @@ function draw(){
 function cur(){return doors.find(d=>d.uid===selected)}
 function buildChecklist(d){
  const box=$('checklist');box.innerHTML='';
- const all=document.createElement('button');all.className='approveAll';all.textContent='✓ Godkänn alla kontrollpunkter';all.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});save();buildChecklist(d)};box.appendChild(all);
+ const all=document.createElement('button');all.className='approveAll';all.textContent='✓ GODKÄNN ALLT';all.title='Sätter alla kontrollpunkter till OK. Du kan sedan ändra enstaka punkter till Fel.';all.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});save();buildChecklist(d)};box.appendChild(all);
  CHECKS.forEach(([n,t])=>{
   const c=d.checks[n],r=document.createElement('div');r.className='checkrow';
   r.innerHTML='<div class="checktitle">'+n+' '+t+'</div><div class="quickBtns"><button data-v="na">– Ingår ej</button><button data-v="ok">✓ OK</button><button data-v="remark">! Fel</button></div><div class="faultArea" hidden><select class="faultSelect"><option value="">Välj vanlig anmärkning…</option></select><input class="faultText" placeholder="Eller skriv egen anmärkning"></div>';
