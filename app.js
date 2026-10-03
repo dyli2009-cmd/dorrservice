@@ -22,7 +22,7 @@ let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
-function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');return d}doors.forEach(normalize);
+function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
 let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){
@@ -172,13 +172,26 @@ markers.addEventListener('click',e=>{
  const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x,y,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')
 });
 function draw(){
- markers.replaceChildren();doors.filter(d=>d.page===page).forEach(d=>{
-  const el=document.createElement('button');el.type='button';el.className='marker '+(d.status||'untested');el.textContent=d.id;el.setAttribute('aria-label','Öppna protokoll för '+d.id);
-  el.style.left=d.x*100+'%';el.style.top=d.y*100+'%';let drag=null,ignoreClickUntil=0;
-  el.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;ev.stopPropagation();drag={pointer:ev.pointerId,x:ev.clientX,y:ev.clientY,moved:false,originalX:d.x,originalY:d.y};el.setPointerCapture(ev.pointerId)});
-  el.addEventListener('pointermove',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(!drag.moved&&Math.hypot(ev.clientX-drag.x,ev.clientY-drag.y)<6)return;drag.moved=true;const r=markers.getBoundingClientRect();d.x=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));d.y=Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height));el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'});
+ markers.replaceChildren();
+ const pageDoors=doors.filter(d=>d.page===page).map(normalize),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+ svg.setAttribute('class','doorConnectorLayer');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('viewBox','0 0 1000 1000');svg.setAttribute('preserveAspectRatio','none');
+ const defs=document.createElementNS(ns,'defs');
+ [['ok','#238354'],['action','#c77c13'],['fail','#bd3f46'],['untested','#77858e']].forEach(([key,color])=>{const marker=document.createElementNS(ns,'marker');marker.setAttribute('id','doorArrow-'+key);marker.setAttribute('viewBox','0 0 8 8');marker.setAttribute('refX','7');marker.setAttribute('refY','4');marker.setAttribute('markerWidth','7');marker.setAttribute('markerHeight','7');marker.setAttribute('orient','auto');const path=document.createElementNS(ns,'path');path.setAttribute('d','M0,0 L8,4 L0,8 z');path.setAttribute('fill',color);marker.appendChild(path);defs.appendChild(marker)});
+ svg.appendChild(defs);
+ pageDoors.forEach(d=>{const st=d.status||'untested',line=document.createElementNS(ns,'line');line.setAttribute('data-uid',d.uid);line.setAttribute('x1',String(d.labelX*1000));line.setAttribute('y1',String(d.labelY*1000));line.setAttribute('x2',String(d.x*1000));line.setAttribute('y2',String(d.y*1000));line.setAttribute('class','doorConnector '+st);line.setAttribute('marker-end','url(#doorArrow-'+st+')');svg.appendChild(line)});
+ markers.appendChild(svg);
+ pageDoors.forEach(d=>{
+  const target=document.createElement('button');target.type='button';target.className='doorTarget '+(d.status||'untested');target.title='Dörrpunkt – dra för att flytta träffpunkten';target.setAttribute('aria-label','Dörrpunkt för '+d.id);target.style.left=d.x*100+'%';target.style.top=d.y*100+'%';
+  let targetDrag=null;
+  target.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;ev.stopPropagation();targetDrag={pointer:ev.pointerId};target.setPointerCapture(ev.pointerId)});
+  target.addEventListener('pointermove',ev=>{if(!targetDrag||targetDrag.pointer!==ev.pointerId)return;const r=markers.getBoundingClientRect();d.x=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));d.y=Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height));target.style.left=d.x*100+'%';target.style.top=d.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(d.uid)+'"]');if(line){line.setAttribute('x2',String(d.x*1000));line.setAttribute('y2',String(d.y*1000))}});
+  target.addEventListener('pointerup',ev=>{if(targetDrag?.pointer===ev.pointerId)save();targetDrag=null});target.addEventListener('pointercancel',()=>{targetDrag=null});markers.appendChild(target);
+  const el=document.createElement('button');el.type='button';el.className='marker '+(d.status||'untested');const raw=d.serialNumber||String(d.id||'').replace(/^D/,'');el.textContent=String(raw).replace(/^0+(?=\d)/,'');el.setAttribute('aria-label','Öppna protokoll för '+d.id);el.title='Dra numret. Pilen fortsätter peka på dörren.';
+  el.style.left=d.labelX*100+'%';el.style.top=d.labelY*100+'%';let drag=null,ignoreClickUntil=0;
+  el.addEventListener('pointerdown',ev=>{if(ev.button!==0)return;ev.stopPropagation();drag={pointer:ev.pointerId,x:ev.clientX,y:ev.clientY,moved:false,originalX:d.labelX,originalY:d.labelY};el.setPointerCapture(ev.pointerId)});
+  el.addEventListener('pointermove',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(!drag.moved&&Math.hypot(ev.clientX-drag.x,ev.clientY-drag.y)<6)return;drag.moved=true;const r=markers.getBoundingClientRect();d.labelX=Math.max(.015,Math.min(.985,(ev.clientX-r.left)/r.width));d.labelY=Math.max(.015,Math.min(.985,(ev.clientY-r.top)/r.height));el.style.left=d.labelX*100+'%';el.style.top=d.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(d.uid)+'"]');if(line){line.setAttribute('x1',String(d.labelX*1000));line.setAttribute('y1',String(d.labelY*1000))}});
   el.addEventListener('pointerup',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;if(drag.moved){ignoreClickUntil=Date.now()+900;ev.preventDefault();ev.stopPropagation();save()}drag=null});
-  el.addEventListener('pointercancel',()=>{if(drag){d.x=drag.originalX;d.y=drag.originalY;el.style.left=d.x*100+'%';el.style.top=d.y*100+'%'}drag=null;ignoreClickUntil=Date.now()+300});
+  el.addEventListener('pointercancel',()=>{if(drag){d.labelX=drag.originalX;d.labelY=drag.originalY;el.style.left=d.labelX*100+'%';el.style.top=d.labelY*100+'%'}drag=null;ignoreClickUntil=Date.now()+300});
   el.addEventListener('click',ev=>{if(Date.now()<ignoreClickUntil){ev.preventDefault();ev.stopImmediatePropagation()}},true);
   el.onclick=ev=>{ev.stopPropagation();if(Date.now()<ignoreClickUntil){ev.preventDefault();return}selected=d.uid;show();if(innerWidth<=800)document.body.classList.add('protocolOpen')};markers.appendChild(el)
  })
@@ -199,7 +212,7 @@ function draw(){
 function cur(){return doors.find(d=>d.uid===selected)}
 function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);$('formTitle').textContent=d.id+' – Sida '+d.page;['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show()}};
 wrap.addEventListener('pointerdown',e=>{
- if(!pdf||addMode||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker,.drawingNote'))return;
+ if(!pdf||addMode||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker,.doorTarget,.drawingNote'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};
  wrap.classList.add('mousePanning');wrap.setPointerCapture(e.pointerId);e.preventDefault();
 });
@@ -218,7 +231,7 @@ wrap.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e
 
 wrap.addEventListener('touchstart',e=>{
  if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
- else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.drawingNote')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
+ else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.doorTarget,.drawingNote')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
 },{passive:false});
 wrap.addEventListener('touchmove',e=>{
  if(e.touches.length===2&&pinch){e.preventDefault();const a=e.touches[0],b=e.touches[1];visualZoom=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist))/pinch.zoom;$('stage').style.transform='scale('+visualZoom+')';$('stage').style.transformOrigin=(wrap.scrollLeft+pinch.focus.x)+'px '+(wrap.scrollTop+pinch.focus.y)+'px';$('zoomInfo').textContent=Math.round(pinch.zoom*visualZoom*100)+'%'}
