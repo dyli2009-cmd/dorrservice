@@ -36,7 +36,7 @@ $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoo
 $('signature').oninput=()=>{};
 buildChecklist=function(d){
  const box=$('checklist');box.replaceChildren();
- const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ GODKÄNN ALLT';approveAll.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';save();buildChecklist(d);draw();updateCompactUI()};box.appendChild(approveAll);
+ const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';save();buildChecklist(d);draw();updateCompactUI()};box.appendChild(approveAll);
  GROUPS.forEach(([title,indices])=>{
   const group=document.createElement('details');group.className='checkGroup';group.open=true;
   const summary=document.createElement('summary');summary.textContent=title;const count=document.createElement('span');summary.appendChild(count);group.appendChild(summary);
