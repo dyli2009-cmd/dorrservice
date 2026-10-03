@@ -40,8 +40,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   }
   function protocolTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,10,width,20);
-   if(logo){try{const im=doc.getImageProperties(logo),sc=Math.min(45/im.width,14/im.height);doc.addImage(logo,left+3,13,im.width*sc,im.height*sc)}catch(e){}}
-   doc.line(left+58,10,left+58,30);text('Egenkontroll Dörrautomatik Slagdörr',left+122,21,12,true,[25,25,25]);
+   if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=10,boxW=58,boxH=20,pad=3,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
+   doc.line(left+58,10,left+58,30);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(25,25,25);doc.text('Egenkontroll Dörrautomatik Slagdörr',left+58+(width-58)/2,21,{align:'center'});
    y=38;
    cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',d.nextDate||p.projectNextDate,left+93,y,93);y+=9;
    cell('ANLÄGGNING:',p.projectName,left,y,28,true);cell('Anläggningsnummer:',p.facilityNo,left+28,y,65);cell('BESTÄLLARE:',p.customer,left+93,y,27,true);cell('Avtalsnummer:','',left+120,y,66);y+=9;
