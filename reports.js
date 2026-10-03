@@ -51,7 +51,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   function protocolTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
-   doc.line(left+58,8,left+58,26);doc.setFont('helvetica','bold');doc.setFontSize(10.4);doc.setTextColor(25,25,25);doc.text('Egenkontroll Dörrautomatik Slagdörr',left+58+(width-58)/2,15.2,{align:'center'});
+   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+58+(width-58)/2,12.4,{align:'center'});doc.setFontSize(9.6);doc.text('CHECKLISTA REVION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
    y=31;
    cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',d.nextDate||p.projectNextDate,left+93,y,93);y+=7;
    cell('ANLÄGGNING:',p.projectName,left,y,93,7,true);cell('BESTÄLLARE:',p.customer,left+93,y,93,7,true);y+=7;
@@ -99,7 +99,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   function continuationTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
-   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(9.8);doc.text('Egenkontroll Dörrautomatik Slagdörr',left+58+(width-58)/2,14.7,{align:'center'});
+   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.1);doc.text('Dokumentnr: 2519-1',left+58+(width-58)/2,11.7,{align:'center'});doc.setFontSize(8.9);doc.text('CHECKLISTA REVION AV DÖRRAUTOMATIK',left+58+(width-58)/2,17.3,{align:'center'});
    doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.text('Allmän Info - fortsättning',112,22.4,{align:'center'});
    y=31;cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=12;
   }
