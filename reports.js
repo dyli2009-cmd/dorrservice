@@ -57,7 +57,13 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   }
   function checkHeader(){
    const ws=[10,99,15,25,27,10],titles=['Nr:','Benämning Kontroll','Ingår ej','Klart utan\nAnmärkning','Klart med\nAnmärkning','Signatur'];let x=left;
-   titles.forEach((t,i)=>{doc.setFillColor(244,244,244);doc.rect(x,y,ws[i],9,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.8:6.5);doc.setTextColor(25,25,25);doc.text(t.split('\\n'),x+1.3,y+3.4,{lineHeightFactor:1});x+=ws[i]});y+=9;
+   titles.forEach((t,i)=>{
+    doc.setFillColor(244,244,244);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(x,y,ws[i],9,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.8:6.5);doc.setTextColor(0,0,0);
+    const lines=t.split('\\n');
+    if(i===1)doc.text(lines,x+2,y+5.5,{lineHeightFactor:1});
+    else doc.text(lines,x+ws[i]/2,y+3.4,{align:'center',lineHeightFactor:1});
+    x+=ws[i]
+   });y+=9;
   }
   doc.addPage();protocolTop();checkHeader();
   const ws=[10,99,15,25,27,10];
@@ -68,10 +74,10 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(x,y,ws[i],h,'FD');doc.setTextColor(0,0,0);
     if(i===1){
       doc.setFont('helvetica','normal');doc.setFontSize(7);
-      const lines=doc.splitTextToSize(String(v||''),ws[i]-4).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;
-      doc.text(lines,x+2,startY,{align:'left',lineHeightFactor:1});
+      const lines=doc.splitTextToSize(String(v||''),ws[i]-3.5).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;
+      doc.text(lines,x+1.7,startY,{lineHeightFactor:1});
     }else if(i===3&&c.result==='ok'){
-      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineWidth(.65);doc.line(cx-2.2,cy,cx-.5,cy+1.7);doc.line(cx-.5,cy+1.7,cx+2.7,cy-1.8);
+      const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.95);doc.line(cx-3.0,cy-.1,cx-1.0,cy+2.0);doc.line(cx-1.0,cy+2.0,cx+3.3,cy-2.4);doc.setLineCap('butt');
     }else{
       doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(i>=2&&i<=4?8:6.6);doc.text(String(v||''),x+ws[i]/2,y+h/2+1.1,{align:'center'});
     }
