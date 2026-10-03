@@ -83,3 +83,8 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
  isolation:isolate;
  transform:translateZ(0);
 }
+
+@media all and (display-mode:standalone){
+ .securityApp{background:#132b38!important}
+ .securityApp header{background:#132b38!important;padding-top:max(10px,env(safe-area-inset-top))!important}
+}
