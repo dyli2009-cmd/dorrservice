@@ -235,7 +235,7 @@ async function createWorkPdf(){
    const ringRadius=Math.max(7,Math.min(11,radius*.9));
    page.drawCircle({x,y,size:ringRadius,borderColor:statusColor,borderWidth:2.2});
    markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius:Math.max(radius,ringRadius)});
-   const label=d.serialNumber||d.id.replace(/^D/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180;
+   const labelRaw=d.serialNumber||d.id.replace(/^D/,'');const label=String(labelRaw).replace(/^0+(?=\d)/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180;
    const gap=ringRadius+4,labelW=w+5,labelH=size+4;
    const cx=x+gap*Math.cos(rad),cy=y+gap*Math.sin(rad);
    page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.88,rotate:degrees(angle)});
@@ -277,7 +277,7 @@ $('exportBtn').onclick=async()=>{
 createProblemPdf=function(){if(!doors.some(hasDoorProblem))throw new Error('Inga dörrar med registrerade problem.');return buildServiceReportDoc(structuredClone({doors,project,logoData}),false)};
 updateCompactUI();
 
-const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.children).forEach((element,index)=>{const d=items[index];element.textContent=d.serialNumber||d.id;element.title=d.id;element.className='marker '+displayStatus(d)})};
+const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.children).forEach((element,index)=>{const d=items[index];element.textContent=String(d.serialNumber||d.id).replace(/^0+(?=\d)/,'');element.title=d.id;element.className='marker '+displayStatus(d)})};
 
 function sizeForKeyboard(){document.documentElement.style.setProperty('--app-height',(window.visualViewport?.height||window.innerHeight)+'px')}
 window.visualViewport?.addEventListener('resize',()=>{sizeForKeyboard();if(document.activeElement?.matches('input,textarea,select'))requestAnimationFrame(()=>document.activeElement.scrollIntoView({block:'nearest'}))});window.addEventListener('resize',sizeForKeyboard);sizeForKeyboard();
