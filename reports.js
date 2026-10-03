@@ -40,6 +40,14 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    doc.text(labelText,x+1.5,yy+h/2+1);
    if(value!==undefined&&value!==null&&String(value)!==''){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(6.8);doc.setTextColor(0,0,0);doc.text(doc.splitTextToSize(String(value),Math.max(5,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1)}
   }
+  function backToDrawingButton(){
+   const bx=158,by=2,bw=40,bh=5.5;
+   doc.setFillColor(248,248,248);doc.setDrawColor(45,45,45);doc.setLineWidth(.18);doc.rect(bx,by,bw,bh,'FD');
+   doc.setDrawColor(20,20,20);doc.setLineWidth(.45);doc.line(bx+3.2,by+bh/2,bx+6.2,by+bh/2);doc.line(bx+3.2,by+bh/2,bx+4.6,by+bh/2-1.1);doc.line(bx+3.2,by+bh/2,bx+4.6,by+bh/2+1.1);
+   doc.setFont('helvetica','bold');doc.setFontSize(6.4);doc.setTextColor(20,20,20);doc.text('Till ritning',bx+8,by+3.65);
+   doc.__doorBackLinks=doc.__doorBackLinks||[];
+   doc.__doorBackLinks.push({doorKey:d.uid||d.id,pageNo:doc.getNumberOfPages(),drawingPage:d.page,rect:[bx,by,bw,bh]});
+  }
   function protocolTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
@@ -65,7 +73,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     x+=ws[i]
    });y+=9;
   }
-  doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();protocolTop();checkHeader();
+  doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();backToDrawingButton();protocolTop();checkHeader();
   const ws=[10,99,15,25,27,10];
   CHECKS.forEach(([n,title])=>{
    const c=d.checks[n]||{},h=7.7;let x=left;
@@ -103,7 +111,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);
    const firstChunk=lines.slice(0,firstMax);doc.text(firstChunk,left+3,y+5,{lineHeightFactor:1.15});let offset=firstChunk.length;
    while(offset<lines.length){
-    doc.addPage();continuationTop();
+    doc.addPage();backToDrawingButton();continuationTop();
     doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info - fortsättning:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
     const contBoxH=276-y,contMax=Math.max(1,Math.floor((contBoxH-5)/lineH)),chunk=lines.slice(offset,offset+contMax);
     doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,contBoxH,'FD');
