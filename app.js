@@ -51,7 +51,7 @@ function save(skipOverview=false){$('doorCount').textContent=doors.length+' dör
 window.addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
 save();
-const PF=['projectName','facilityNo','customer','contact','projectOrder','inspectionDate','projectNextDate','company','phone','technician','serviceSignature'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});refreshDrawingUI();
+const PF=['projectName','facilityNo','customer','contact','projectOrder','inspectionDate','projectNextDate','company','phone','address','postalCode','postalCity','technician','serviceSignature'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});refreshDrawingUI();
 $('settingsBtn').onclick=()=>{$('projectPanel').hidden=!$('projectPanel').hidden};
 $('logoFile').onchange=e=>{const f=e.target.files[0],key=activeDrawingKey;if(!f||!key)return;const r=new FileReader();r.onload=()=>{if(key!==activeDrawingKey)return;logoData=r.result;refreshDrawingUI();save()};r.readAsDataURL(f)};
 $('restoreLegacy').onclick=()=>{
