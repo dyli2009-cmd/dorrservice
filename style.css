@@ -4,3 +4,5 @@ body{height:var(--app-height,100dvh)}.marker{overflow:visible}.marker::before{co
 
 /* Compact door marker: smaller visually, generous invisible touch target. */
 .marker{width:26px;height:26px;min-height:26px;font-size:8px;border-width:2px}.marker::before{inset:-9px}
+
+.approveAll{display:flex!important;width:100%;min-height:54px;margin:8px 0 14px;background:#238354!important;border:2px solid #17683f!important;color:#fff!important;font-size:16px!important;font-weight:800!important;border-radius:9px!important}
