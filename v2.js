@@ -108,18 +108,30 @@ async function createWorkPdf(){
  if(!pdf||!sourcePdfBytes)throw new Error('Öppna en PDF-ritning först.');
  if(!window.PDFLib||!window.jspdf?.jsPDF)throw new Error('PDF-biblioteken kunde inte laddas.');
  const snapshot=structuredClone({doors,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
- const {PDFDocument,PDFName,StandardFonts,rgb,degrees}=PDFLib;
- const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold);
+ const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib;
+ const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold),markerLinks=[];
  for(let index=0;index<copied.length;index++){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
    const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb;
    page.drawCircle({x,y,size:radius,color:rgb(...color.map(n=>n/255)),borderColor:rgb(1,1,1),borderWidth:1.5});
+   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius});
    const label=d.serialNumber||d.id.replace(/^D/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(9,2*radius/Math.max(2,safeLabel.length)*1.35),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle;
    const rad=angle*Math.PI/180;const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:x+dx*Math.cos(rad)-dy*Math.sin(rad),y:y+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
   });
  }
- const report=buildServiceReportDoc(snapshot,true),reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
+ const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
+ function addInternalPdfLink(sourcePage,targetPage,rect){
+  const linkRef=output.context.register(output.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:[targetPage.ref,'Fit']}));
+  const existing=sourcePage.node.get(PDFName.of('Annots'));
+  if(existing){const annots=sourcePage.node.lookup(PDFName.of('Annots'),PDFArray);annots.push(linkRef)}
+  else sourcePage.node.set(PDFName.of('Annots'),output.context.obj([linkRef]));
+ }
+ markerLinks.forEach(({pageIndex,doorKey,x,y,radius})=>{
+  const reportPageNo=protocolPageMap[doorKey];if(!reportPageNo)return;
+  const targetIndex=source.getPageCount()+reportPageNo-1,targetPage=output.getPage(targetIndex),sourcePage=output.getPage(pageIndex),hit=Math.max(12,radius*1.8);
+  addInternalPdfLink(sourcePage,targetPage,[x-hit,y-hit,x+hit,y+hit]);
+ });
  const state={app:'dorrservice',version:2,exportedAt:new Date().toISOString(),...snapshot};
  const dataRef=output.context.register(output.context.flateStream(new TextEncoder().encode(JSON.stringify(state))));const drawingRef=output.context.register(output.context.flateStream(originalBytes));
  output.catalog.set(PDFName.of('DorrserviceWork'),output.context.register(output.context.obj({Version:2,Data:dataRef,Drawing:drawingRef})));
