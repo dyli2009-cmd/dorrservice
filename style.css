@@ -110,3 +110,38 @@ body.placingText #markers{cursor:text}
  .pagebar button{min-width:38px;padding-left:7px;padding-right:7px}
  .mobileSwipeHint{font-size:8px}
 }
+
+/* iOS: keep top app chrome solid and crisp while scrolling */
+html,body{background:#f1f4f6}
+header{
+ position:relative;
+ z-index:50;
+ background:#132b38!important;
+ opacity:1!important;
+ filter:none!important;
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ isolation:isolate;
+ -webkit-font-smoothing:antialiased;
+ transform:translateZ(0);
+}
+header::before{
+ content:"";
+ position:absolute;
+ left:0;right:0;
+ top:calc(-1 * env(safe-area-inset-top));
+ height:env(safe-area-inset-top);
+ background:#132b38;
+ z-index:-1;
+ pointer-events:none;
+}
+header button,header .filebtn,.objectBar,#appMessage{
+ backdrop-filter:none!important;
+ -webkit-backdrop-filter:none!important;
+ filter:none!important;
+ opacity:1!important;
+}
+@supports (-webkit-touch-callout:none){
+ body{background:#f1f4f6}
+ header{background-color:#132b38!important}
+}
