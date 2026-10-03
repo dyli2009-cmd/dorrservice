@@ -10,8 +10,11 @@ body.secHasPdf #secEmpty{display:none}
 .securityTools{display:flex;gap:6px;padding:7px;background:#fff;border-top:1px solid var(--line)}
 .securityTools button{flex:1;font-size:11px;padding:6px}
 .secMarker{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;min-width:34px;min-height:34px;padding:0;border:2px solid #fff;border-radius:50%;color:#fff;font-size:10px;font-weight:800;box-shadow:0 2px 5px #0005;touch-action:none;overflow:hidden;background:var(--mc)}
-.secMarker.alarm{--mc:var(--alarm)}.secMarker.lock{--mc:var(--lock)}.secMarker.access{--mc:var(--access)}
-.secMarker.status-ok{box-shadow:0 0 0 2px #238354,0 2px 5px #0005}.secMarker.status-action{box-shadow:0 0 0 2px #c77c13,0 2px 5px #0005}.secMarker.status-fail{box-shadow:0 0 0 2px #bd3f46,0 2px 5px #0005}.secMarker.status-untested{box-shadow:0 0 0 2px #77858e,0 2px 5px #0005}
+.secMarker.alarm,.secMarker.lock,.secMarker.access{--mc:#77858e}
+.secMarker.status-ok{--mc:#238354;background:#238354;box-shadow:0 2px 5px #0005}
+.secMarker.status-action{--mc:#c77c13;background:#c77c13;box-shadow:0 2px 5px #0005}
+.secMarker.status-fail{--mc:#bd3f46;background:#bd3f46;box-shadow:0 2px 5px #0005}
+.secMarker.status-untested{--mc:#77858e;background:#77858e;box-shadow:0 2px 5px #0005}
 #secHint{padding:7px 10px;background:#fff0c2;font-size:12px;text-align:center}
 #securityProtocol,#securityProject{max-width:780px;width:100%;margin:auto}
 .secCheck{border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px;margin-bottom:7px}
