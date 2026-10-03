@@ -20,6 +20,12 @@ const COMMON_FAULTS={
 };
 let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1;
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
+const appHome=$('appHome'),enterDoorMode=$('enterDoorMode'),homeBtn=$('homeBtn');
+function showAppHome(){document.body.classList.add('homeMode');if(appHome)appHome.hidden=false}
+function enterDoorService(){document.body.classList.remove('homeMode');if(appHome)appHome.hidden=true}
+if(enterDoorMode)enterDoorMode.onclick=enterDoorService;
+if(homeBtn)homeBtn.onclick=showAppHome;
+
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
 function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
