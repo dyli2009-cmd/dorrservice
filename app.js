@@ -18,7 +18,7 @@ const COMMON_FAULTS={
 '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
-let pdf,page=1,addMode=false,selected=null,doors=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,project={},logoData='',visualZoom=1;
+let pdf,page=1,addMode=false,selected=null,doors=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1;
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),wrap=$('viewerWrap');
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
@@ -144,6 +144,24 @@ function draw(){
 }
 function cur(){return doors.find(d=>d.uid===selected)}
 function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);$('formTitle').textContent=d.id+' – Sida '+d.page;['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','model','status','notes','machineId','location','ao','nextDate','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show()}};
+wrap.addEventListener('pointerdown',e=>{
+ if(!pdf||addMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker'))return;
+ panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};
+ wrap.classList.add('mousePanning');wrap.setPointerCapture(e.pointerId);e.preventDefault();
+});
+wrap.addEventListener('pointermove',e=>{
+ if(!panMouse||panMouse.pointer!==e.pointerId)return;
+ wrap.scrollLeft=panMouse.left-(e.clientX-panMouse.x);wrap.scrollTop=panMouse.top-(e.clientY-panMouse.y);e.preventDefault();
+});
+function endMousePan(e){
+ if(!panMouse||panMouse.pointer!==e.pointerId)return;
+ try{wrap.releasePointerCapture(e.pointerId)}catch(_){}
+ panMouse=null;wrap.classList.remove('mousePanning');
+}
+wrap.addEventListener('pointerup',endMousePan);
+wrap.addEventListener('pointercancel',endMousePan);
+wrap.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;wrap.classList.remove('mousePanning')}});
+
 wrap.addEventListener('touchstart',e=>{
  if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
  else if(e.touches.length===1&&!addMode&&!e.target.closest('.marker')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop}}
