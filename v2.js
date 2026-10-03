@@ -231,11 +231,15 @@ async function createWorkPdf(){
  for(let index=0;index<copied.length;index++){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
-   const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb;
-   page.drawCircle({x,y,size:radius,color:rgb(...color.map(n=>n/255)),borderColor:rgb(1,1,1),borderWidth:1.5});
-   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius});
-   const label=d.serialNumber||d.id.replace(/^D/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(9,2*radius/Math.max(2,safeLabel.length)*1.35),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle;
-   const rad=angle*Math.PI/180;const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:x+dx*Math.cos(rad)-dy*Math.sin(rad),y:y+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
+   const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb,statusColor=rgb(...color.map(n=>n/255));
+   const ringRadius=Math.max(7,Math.min(11,radius*.9));
+   page.drawCircle({x,y,size:ringRadius,borderColor:statusColor,borderWidth:2.2});
+   markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x,y,radius:Math.max(radius,ringRadius)});
+   const label=d.serialNumber||d.id.replace(/^D/,'');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=Math.min(8,Math.max(5.2,12/Math.max(2,safeLabel.length)*1.45)),w=font.widthOfTextAtSize(safeLabel,size),angle=page.getRotation().angle,rad=angle*Math.PI/180;
+   const gap=ringRadius+4,labelW=w+5,labelH=size+4;
+   const cx=x+gap*Math.cos(rad),cy=y+gap*Math.sin(rad);
+   page.drawRectangle({x:cx-labelW/2,y:cy-labelH/2,width:labelW,height:labelH,color:statusColor,opacity:.88,rotate:degrees(angle)});
+   const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:cx+dx*Math.cos(rad)-dy*Math.sin(rad),y:cy+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
   });
  }
  const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},backLinks=report.__doorBackLinks||[],reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
