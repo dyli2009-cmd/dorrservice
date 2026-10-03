@@ -89,3 +89,5 @@ body.keyboard-open #customerPreviewPane{display:none!important}
 body.placingText #viewerWrap{cursor:text}
 body.placingText #markers{cursor:text}
 @media(max-width:520px){.drawingTools{gap:5px}.drawingTools button{padding-inline:5px;font-size:11px}.drawingNoteLabel{max-width:145px;font-size:9.5px}}
+
+.securityLaunch{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;margin:10px 0 14px;padding:12px 14px;border:1px solid #bad3df;border-radius:10px;background:#edf6fa;color:#173f55;text-decoration:none}.securityLaunch strong{font-size:14px}.securityLaunch span{grid-column:1;color:#60717d;font-size:11px}.securityLaunch b{grid-column:2;grid-row:1/3;font-size:12px}.securityLaunch:hover{background:#e3f1f7}
