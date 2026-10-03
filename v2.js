@@ -82,7 +82,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    const parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
    doors.push(normalize({
     uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
-    serialNumber:String(parsed.serial||doors.length+1).padStart(3,'0'),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
+    serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
     location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''
    }))
   }
@@ -136,7 +136,7 @@ function updateCompactUI(){
 }
 const baseSave=save;save=function(skip=false){baseSave(skip);updateCompactUI()};
 const baseRefresh=refreshDrawingUI;refreshDrawingUI=function(){baseRefresh();updateCompactUI()};
-function nextSerial(){const largest=Math.max(0,...doors.map(d=>Number(d.serialNumber)||Number(/^D(\d+)$/.exec(d.id)?.[1])||0));const n=Math.max(Number(project.nextDoorNumber)||1,largest+1);project.nextDoorNumber=n+1;return String(n).padStart(3,'0')}
+function nextSerial(){const largest=Math.max(0,...doors.map(d=>Number(d.serialNumber)||Number(/^D(\d+)$/.exec(d.id)?.[1])||0));const n=Math.max(Number(project.nextDoorNumber)||1,largest+1);project.nextDoorNumber=n+1;return String(n)}
 function proposedId(d){return project.facilityNo&&d.modelCode&&d.serialNumber?[project.facilityNo.trim(),d.modelCode,d.serialNumber].join('-'):null}
 function setDoorId(d,value,mode){
  const id=String(value||'').trim();if(!id){$('idMessage').textContent='Märkningen får inte vara tom.';return false}
@@ -148,8 +148,8 @@ const custom=document.createElement('option');custom.value='custom';custom.textC
 const generate=document.createElement('button');generate.type='button';generate.id='generateId';generate.className='secondary wide';generate.textContent='Skapa märkning från objekt, modell och löpnummer';$('idMessage').after(generate);
 generate.onclick=()=>{const d=cur();if(!d)return;const id=proposedId(d);if(!id){$('idMessage').textContent='Fyll i objektnummer under Projekt, välj modell och ange löpnummer.';return}setDoorId(d,id,'auto')};
 $('modelChoice').onchange=()=>{const d=cur();if(!d)return;const model=MODELS.find(([code])=>code===$('modelChoice').value);d.modelCode=model?.[0]||'';if(model)d.model=model[1];$('model').value=d.model;$('modelCode').value=d.modelCode;if(d.idMode==='auto'&&proposedId(d))setDoorId(d,proposedId(d),'auto');save()};
-$('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serialNumber').value.trim();if(!/^\d{1,6}$/.test(value)){$('idMessage').textContent='Ange ett löpnummer med 1–6 siffror.';if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
- $('serialNumber').value=d.serialNumber||'';return}const old=d.serialNumber;d.serialNumber=value.padStart(3,'0');if(d.idMode==='auto'&&proposedId(d)&&!setDoorId(d,proposedId(d),'auto'))d.serialNumber=old;$('serialNumber').value=d.serialNumber;save()};
+$('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serialNumber').value.trim();if(!/^\d{1,6}$/.test(value)||Number(value)<1){$('idMessage').textContent='Ange ett löpnummer från 1 till 999999.';if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
+ $('serialNumber').value=d.serialNumber||'';return}const old=d.serialNumber;d.serialNumber=String(Number(value));if(d.idMode==='auto'&&proposedId(d)&&!setDoorId(d,proposedId(d),'auto'))d.serialNumber=old;$('serialNumber').value=d.serialNumber;save()};
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
 $('signature').oninput=()=>{};
 buildChecklist=function(d){
@@ -173,7 +173,7 @@ buildChecklist=function(d){
 let lastShownDoor=null;
 const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;
  if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
- $('serialNumber').value=d.serialNumber||'';$('modelCode').value=d.modelCode||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
+ if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelCode').value=d.modelCode||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
  const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus;$('previousIssues').replaceChildren();
  if(prior.length){const ul=document.createElement('ul');prior.forEach(issue=>{const li=document.createElement('li');li.textContent=issue.n+' '+issue.title+' – '+(issue.note||'Beskrivning saknas');ul.appendChild(li)});$('previousIssues').appendChild(ul)}
  if(d.previousNotes){const p=document.createElement('p');p.textContent=d.previousNotes;$('previousIssues').appendChild(p)}
@@ -343,7 +343,7 @@ function customerPreviewDoor(){
  const source=cur()||doors[0];
  if(source)return structuredClone(source);
  const checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
- return {uid:'preview',id:'D001',serialNumber:'001',page:1,x:.5,y:.5,model:'',machineId:'',location:'',ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''};
+ return {uid:'preview',id:'D1',serialNumber:'1',page:1,x:.5,y:.5,model:'',machineId:'',location:'',ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''};
 }
 async function renderCustomerPreview(){
  const pane=$('customerPreviewPane');if(!pane||pane.hidden)return;
