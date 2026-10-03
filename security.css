@@ -47,3 +47,7 @@ body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
 .secCheck.result-remark{background:#fff5e5;border-color:#e6bd72}
 .secCheck.result-remark .secCheckHead strong,.secCheck.result-remark .secCheckHead span{color:#945800}
 .secCheck.result-na{background:#eef2f4;border-color:#c8d2d8}
+
+#secLogoPreview{min-height:42px;display:flex;align-items:center;padding:6px;border:1px dashed #c7d3da;border-radius:7px;background:#f8fafb}
+#secLogoPreview:empty::before{content:"Ingen logotyp vald";font-size:11px;color:#77858e}
+#secLogoPreview img{display:block;max-width:180px;max-height:64px;object-fit:contain}
