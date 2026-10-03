@@ -2,21 +2,26 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const drawing=require('./pdf-fixture.cjs');
+const fixturePdf=drawing(),fixtureHash=require('node:crypto').createHash('sha256').update(fixturePdf).digest('hex');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
  try{
   const page=await browser.newPage({viewport:{width:1100,height:850}});const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.addInitScript(()=>{
-   localStorage.setItem('project',JSON.stringify({projectName:'216720-27',inspectionDate:'2026-09-30',projectOrder:'6232833,00',company:'Dörrservice'}));
-   localStorage.setItem('doors',JSON.stringify([
+  await page.addInitScript(hash=>{
+   const fixtureProject=({projectName:'216720-27',inspectionDate:'2026-09-30',projectOrder:'6232833,00',company:'Dörrservice'});
+   const fixtureDoors=[
     {uid:'one',id:'D1',page:1,status:'ok',checks:{}},
     {uid:'two',id:'D2',page:2,status:'untested',checks:{'1.11':{result:'remark',note:'Sensor fungerar inte.'}}},
     {uid:'five',id:'D5',page:1,status:'action',notes:'Justera dörrstängare.',checks:{}}
-   ]));
-  });
+   ];const key='doorservice-drawing-v1:'+hash;if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({version:1,doors:fixtureDoors,project:fixtureProject,logoData:''}));
+  },fixtureHash);
   await page.route('https://cdnjs.cloudflare.com/**',route=>{const file=new URL(route.request().url()).pathname.split('/').pop();return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(process.env.PDFJS_DIR||'/tmp',file))})});
   await page.route('https://dorrservice.test/**',route=>{const file=new URL(route.request().url()).pathname.slice(1)||'index.html';return route.fulfill({contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html',body:fs.readFileSync(path.join(__dirname,'..',file))})});
-  await page.goto('https://dorrservice.test/');await page.locator('#overviewBtn').click();
+  await page.goto('https://dorrservice.test/');
+  await page.locator('#file').setInputFiles({name:'test-ritning.pdf',mimeType:'application/pdf',buffer:fixturePdf});
+  await page.waitForFunction(()=>document.querySelector('#pageInfo').textContent==='Sida 1 / 2');
+  await page.locator('#overviewBtn').click();
   await page.locator('[data-uid="two"] [data-field="remediationDate"]').fill('2026-10-03');
   await page.locator('[data-uid="two"] [data-field="remediationSignature"]').fill('AB');
   assert.equal(await page.locator('.overviewTable tbody tr').count(),2);

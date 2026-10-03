@@ -2,6 +2,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const fixtureHash=require('node:crypto').createHash('sha256').update(Buffer.from([1])).digest('hex');
 const fixtures=[
  {uid:'one',id:'D1',page:1,status:'ok',checks:{},x:.2,y:.2},
  {uid:'two',id:'D2',page:2,status:'untested',location:'Entré',machineId:'M123',checks:{'1.11':{result:'remark',note:'Säkerhetssensor trasig'},'1.2':{result:'remark',note:''}},x:.3,y:.3},
@@ -16,10 +17,12 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});page.setDefaultTimeout(10000);
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.addInitScript(data=>{if(!localStorage.getItem('doors'))localStorage.setItem('doors',JSON.stringify(data))},fixtures);
+  await page.addInitScript(({hash,data})=>{const key='doorservice-drawing-v1:'+hash;if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({version:1,doors:data,project:{},logoData:''}))},{hash:fixtureHash,data:fixtures});
   await page.route('https://cdnjs.cloudflare.com/**',route=>route.fulfill({contentType:'application/javascript',body:route.request().url().includes('pdf.min.js')?pdfStub:'window.jspdf={};'}));
   await page.route('https://dorrservice.test/**',route=>{const file=new URL(route.request().url()).pathname.slice(1)||'index.html';return route.fulfill({contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html',body:fs.readFileSync(path.join(__dirname,'..',file))})});
   await page.goto('https://dorrservice.test/');
+  await page.locator('#file').setInputFiles({name:'ritning.pdf',mimeType:'application/pdf',buffer:Buffer.from([1])});
+  await page.waitForFunction(()=>document.querySelector('#pageInfo').textContent==='Sida 1 / 2');
   await page.locator('#mobileOverview').tap();
   assert.equal(await page.locator('#overviewSummary').textContent(),'4 av 6 dörrar har problem');
   assert.equal(await page.locator('.overviewRow').count(),4);
@@ -49,7 +52,7 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
   await page.locator('[data-uid="two"] button').tap();
   assert.equal(await page.locator('#overviewDialog').evaluate(el=>el.open),false);
   assert.equal(await page.locator('#formTitle').textContent(),'D2 – Sida 2');
-  assert((await page.locator('#appMessage').textContent()).includes('Ladda upp ritningen igen'));
+  await page.waitForFunction(()=>document.querySelector('#pageInfo').textContent==='Sida 2 / 2');
   // Fix both recorded faults; the overview should no longer include this door.
   for(const index of [1,10]){
    const row=page.locator('.checkrow').nth(index);await row.evaluate(el=>el.scrollIntoView({block:'center'}));await row.locator('[data-v="ok"]').tap();
@@ -68,7 +71,11 @@ const pdfStub="window.pdfjsLib={GlobalWorkerOptions:{},getDocument:()=>({promise
   await page.locator('#closeProtocol').tap();await page.locator('#mobileOverview').tap();
   await page.screenshot({path:path.join(__dirname,'..','overview-preview.png')});
   // Reopening after a reload reflects saved checklist changes, not a separate copy.
-  await page.waitForTimeout(300);await page.reload();await page.locator('#mobileOverview').tap();
+  await page.waitForTimeout(300);await page.reload();
+  assert.equal(await page.locator('#doorCount').textContent(),'0 dörrar');
+  await page.locator('#file').setInputFiles({name:'ritning.pdf',mimeType:'application/pdf',buffer:Buffer.from([1])});
+  await page.waitForFunction(()=>document.querySelector('#pageInfo').textContent==='Sida 1 / 2');
+  await page.locator('#mobileOverview').tap();
   assert.equal(await page.locator('.overviewRow').count(),3);
   await page.locator('#overviewFilter').selectOption('all');
   assert.equal(await page.locator('[data-uid="two"] [data-field="remediationDate"]').inputValue(),'2026-10-03');

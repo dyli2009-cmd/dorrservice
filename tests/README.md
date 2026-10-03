@@ -8,6 +8,7 @@ Kör från projektets rot:
 node --check app.js
 node tests/mobile.cjs
 node tests/overview.cjs
+node tests/drawing-sessions.cjs
 ```
 
 Mobiltestet använder en simulerad PDF-renderare med stora sidmått och fördröjda renderingar. Det kontrollerar dörrplacering, tryck på markeringar, checklistor, rasterstorlek, avbruten rendering, nypzoom, sidbyte och felhantering. Inga externa anrop behövs; sidan och biblioteken levereras via Playwrights lokala routing.
@@ -15,6 +16,10 @@ Mobiltestet använder en simulerad PDF-renderare med stora sidmått och fördrö
 Översiktstestet kontrollerar att felmarkeringar och problemstatus samlas även när de skiljer sig åt, att tomma felbeskrivningar fortfarande syns, sökning och filtrering, säker visning av användartext, fingerskrollning, navigation till rätt protokoll och PDF-sida samt uppdatering efter rättade fel och omladdning.
 
 Åtgärdsdatum och åtgärdssignatur kontrolleras i tabellen och efter omladdning. De lagras separat från signaturen för själva provningen.
+
+Ritningstestet kontrollerar tom startvy, två PDF-filer med samma namn men olika innehåll, samma PDF med nytt namn, separat projekt/logotyp/anmärkningar/åtgärdsdatum/signatur, omladdning och osparade ändringar. Det provar även samtidiga uppladdningar, skadade PDF-filer och sparade poster, misslyckad rendering, lagringsfel, filbyte under export samt uttrycklig koppling av det äldre arbetet.
+
+Arbetet lagras lokalt per SHA-256 av PDF-filens innehåll i `doorservice-drawing-v1:<hash>`. PDF-filen behöver väljas igen efter omladdning; inga gamla dörrar visas innan en ritning har öppnats. Den äldre versionens `doors`, `project` och `logoData` lämnas kvar. De kan kopplas till rätt PDF via knappen under Projekt, efter ett uttryckligt val av användaren.
 
 Testa även med riktig PDF.js 3.11.174:
 
@@ -31,4 +36,4 @@ Det testet skapar en giltig PDF med två ritningssidor och kontrollerar uppladdn
 
 PDF-testet för anmärkningslistan använder riktig jsPDF och läser den nedladdade PDF:en med PDF.js. Det kontrollerar objekt/datum/order, urval och sortering av problemdörrar, åtgärdsdatum/signatur och sidbrytning för mycket långa anmärkningar. Exempelfilen sparas som `anmarkningslista-example.pdf`, med förhandsbilder av tabellen och PDF:en.
 
-Tester i Chromium ersätter inte provning på en fysisk telefon. Kontrollera särskilt nypzoom och läsbarhet med verkliga stora ritningar. Rastertaket begränsar minnet för sidbilder; mycket komplexa PDF-filer kan fortfarande ta tid att tolka. Den äldre exporten av fullständiga provningsprotokoll och flera separata projekt omfattas inte av dessa tester.
+Tester i Chromium ersätter inte provning på en fysisk telefon. Kontrollera särskilt nypzoom och läsbarhet med verkliga stora ritningar. Rastertaket begränsar minnet för sidbilder; mycket komplexa PDF-filer kan fortfarande ta tid att tolka. Den äldre exportens fullständiga protokolllayout omfattas inte av dessa tester.
