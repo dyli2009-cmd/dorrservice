@@ -120,7 +120,7 @@ async function createWorkPdf(){
    const rad=angle*Math.PI/180;const dx=-w/2,dy=-size/3;page.drawText(safeLabel,{x:x+dx*Math.cos(rad)-dy*Math.sin(rad),y:y+dx*Math.sin(rad)+dy*Math.cos(rad),size,font,color:rgb(1,1,1),rotate:degrees(angle)});
   });
  }
- const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
+ const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},backLinks=report.__doorBackLinks||[],reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
  function addInternalPdfLink(sourcePage,targetPage,rect){
   const linkRef=output.context.register(output.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:[targetPage.ref,'Fit']}));
   const existing=sourcePage.node.get(PDFName.of('Annots'));
@@ -131,6 +131,14 @@ async function createWorkPdf(){
   const reportPageNo=protocolPageMap[doorKey];if(!reportPageNo)return;
   const targetIndex=source.getPageCount()+reportPageNo-1,targetPage=output.getPage(targetIndex),sourcePage=output.getPage(pageIndex),hit=Math.max(12,radius*1.8);
   addInternalPdfLink(sourcePage,targetPage,[x-hit,y-hit,x+hit,y+hit]);
+ });
+ backLinks.forEach(({pageNo,drawingPage,rect})=>{
+  if(!pageNo||!drawingPage||!Array.isArray(rect))return;
+  const sourceIndex=source.getPageCount()+pageNo-1,targetIndex=drawingPage-1;
+  if(sourceIndex<0||sourceIndex>=output.getPageCount()||targetIndex<0||targetIndex>=source.getPageCount())return;
+  const sourcePage=output.getPage(sourceIndex),targetPage=output.getPage(targetIndex),size=sourcePage.getSize(),sx=size.width/210,sy=size.height/297;
+  const [mx,my,mw,mh]=rect,pdfRect=[mx*sx,size.height-(my+mh)*sy,(mx+mw)*sx,size.height-my*sy];
+  addInternalPdfLink(sourcePage,targetPage,pdfRect);
  });
  const state={app:'dorrservice',version:2,exportedAt:new Date().toISOString(),...snapshot};
  const dataRef=output.context.register(output.context.flateStream(new TextEncoder().encode(JSON.stringify(state))));const drawingRef=output.context.register(output.context.flateStream(originalBytes));
