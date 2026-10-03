@@ -131,7 +131,25 @@ function render(fit=false,focus=null){
  }).catch(error=>{if(error.name!=='RenderingCancelledException'&&version===renderVersion)notice('Kunde inte visa sidan. Prova Passa eller välj en annan sida.',true);return false});
  return renderQueue;
 }
-function setZoom(z,focus={x:wrap.clientWidth/2,y:wrap.clientHeight/2}){zoom=Math.max(.5,Math.min(8,z));visualZoom=1;$('stage').style.transform='';render(false,focus)}wrap.addEventListener('wheel',e=>{if(!pdf)return;e.preventDefault();const r=wrap.getBoundingClientRect();setZoom(zoom*(e.deltaY<0?1.15:1/1.15),{x:e.clientX-r.left,y:e.clientY-r.top})},{passive:false});$('zoomIn').onclick=()=>setZoom(zoom*1.25);$('zoomOut').onclick=()=>setZoom(zoom/1.25);$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){if(!pdf)return alert('Ladda upp en PDF först');addMode=!addMode;document.body.classList.toggle('placing',addMode);$('hint').style.display=addMode?'block':'none'}
+let wheelZoomTimer=null,wheelZoomTarget=null,wheelZoomFocus=null;
+function setZoom(z,focus={x:wrap.clientWidth/2,y:wrap.clientHeight/2}){zoom=Math.max(.5,Math.min(8,z));visualZoom=1;$('stage').style.transform='';render(false,focus)}
+wrap.addEventListener('wheel',e=>{
+ if(!pdf)return;
+ e.preventDefault();
+ const r=wrap.getBoundingClientRect(),focus={x:e.clientX-r.left,y:e.clientY-r.top},base=wheelZoomTarget??zoom;
+ wheelZoomTarget=Math.max(.5,Math.min(8,base*(e.deltaY<0?1.12:1/1.12)));wheelZoomFocus=focus;
+ visualZoom=wheelZoomTarget/zoom;
+ $('stage').style.transform='scale('+visualZoom+')';
+ $('stage').style.transformOrigin=(wrap.scrollLeft+focus.x)+'px '+(wrap.scrollTop+focus.y)+'px';
+ $('zoomInfo').textContent=Math.round(wheelZoomTarget*100)+'%';
+ clearTimeout(wheelZoomTimer);
+ wheelZoomTimer=setTimeout(()=>{
+  const target=wheelZoomTarget,finalFocus=wheelZoomFocus;
+  wheelZoomTarget=null;wheelZoomFocus=null;wheelZoomTimer=null;
+  setZoom(target,finalFocus);
+ },180);
+},{passive:false});
+$('zoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('zoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('fitBtn').onclick=()=>{zoom=1;render(true)};$('prev').onclick=()=>{if(pdf&&page>1){page--;zoom=1;render(true)}};$('next').onclick=()=>{if(pdf&&page<pdf.numPages){page++;zoom=1;render(true)}};function toggleAdd(){if(!pdf)return alert('Ladda upp en PDF först');addMode=!addMode;document.body.classList.toggle('placing',addMode);$('hint').style.display=addMode?'block':'none'}
 markers.addEventListener('click',e=>{if(e.target!==markers||!addMode)return;const r=markers.getBoundingClientRect(),ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';save();draw();show();if(innerWidth<=800)document.body.classList.add('protocolOpen')});
 function draw(){
  markers.replaceChildren();doors.filter(d=>d.page===page).forEach(d=>{
