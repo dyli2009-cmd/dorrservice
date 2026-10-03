@@ -172,3 +172,16 @@ header button,header .filebtn,.objectBar,#appMessage{
   header{background:#132b38!important}
  }
 }
+
+/* Compact iPhone/PWA top bar: keep controls sharp and reduce the tall top area */
+@media(max-width:800px){
+ header{padding:5px 7px!important;padding-top:5px!important;gap:4px;min-height:42px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+ header .brand{gap:4px;margin-right:4px}
+ header strong{font-size:12px}
+ header .brand span{display:none}
+ header button,header .filebtn{min-height:32px;height:32px;padding:5px 7px;font-size:10.5px;white-space:nowrap;border-radius:7px;flex:none}
+}
+@media all and (display-mode:standalone) and (max-width:800px){
+ header{padding-top:5px!important}
+ body::before{display:none!important}
+}
