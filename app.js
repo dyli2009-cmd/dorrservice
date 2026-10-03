@@ -25,7 +25,7 @@ function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.
 let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){clearTimeout(saveTimer);try{localStorage.setItem('doors',JSON.stringify(doors));localStorage.setItem('project',JSON.stringify(project))}catch(e){notice('Kunde inte spara på enheten. Behåll appen öppen och exportera protokollet.',true)}}
-function save(){$('doorCount').textContent=doors.length+' dörrar';clearTimeout(saveTimer);saveTimer=setTimeout(persist,250)}
+function save(){$('doorCount').textContent=doors.length+' dörrar';if($('overviewDialog').open)renderOverview();clearTimeout(saveTimer);saveTimer=setTimeout(persist,250)}
 window.addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
 save();
@@ -126,3 +126,41 @@ async function addDrawingPages(doc){if(!pdf)return false;for(let pno=1;pno<=pdf.
 function addProtocol(doc,d){doc.addPage('a4','portrait');normalize(d);const L=12,W=186;doc.setLineWidth(.25);if(logoData){try{doc.addImage(logoData,'PNG',L,8,36,14)}catch(e){try{doc.addImage(logoData,'JPEG',L,8,36,14)}catch(_){}}}doc.rect(L,7,W,17);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text('PROVNINGSPROTOKOLL',105,14,{align:'center'});doc.setFontSize(9);doc.text('REVISION AV DÖRRAUTOMATIK',105,19,{align:'center'});let y=27;cell(doc,L,y,62,12,'OBJEKT',project.projectName);cell(doc,L+62,y,62,12,'DATUM',project.inspectionDate);cell(doc,L+124,y,62,12,'ORDER / AO',d.ao||project.projectOrder);y+=12;cell(doc,L,y,62,12,'ANLÄGGNINGSNUMMER',project.facilityNo);cell(doc,L+62,y,62,12,'BESTÄLLARE',project.customer);cell(doc,L+124,y,62,12,'KONTAKTPERSON',project.contact);y+=12;cell(doc,L,y,62,12,'MASKIN-ID',d.machineId);cell(doc,L+62,y,62,12,'PLACERING / DÖRRLITTRA',d.location||d.id);cell(doc,L+124,y,62,12,'AUTOMATIK / MODELL',d.model);y+=15;const widths=[12,91,20,27,27,9],heads=['Nr','Benämning kontroll','Ingår ej','Klart utan anm.','Klart med anm.','Sign'];let x=L;doc.setFontSize(6.5);doc.setFont('helvetica','bold');heads.forEach((h,i)=>{doc.rect(x,y,widths[i],10);doc.text(doc.splitTextToSize(h,widths[i]-2),x+1,y+3);x+=widths[i]});y+=10;doc.setFont('helvetica','normal');CHECKS.forEach(([n,t])=>{const c=d.checks[n],h=9;x=L;const vals=[n,t,c.result==='na'?'X':'',c.result==='ok'?'X':'',c.result==='remark'?'X':'',d.signature||''];vals.forEach((val,i)=>{doc.rect(x,y,widths[i],h);doc.setFontSize(i===1?6.2:7);if(i===0||i>=2){doc.setFont(i>=2&&val?'helvetica':'helvetica',i>=2&&val?'bold':'normal');doc.text(String(val),x+widths[i]/2,y+h/2+1.2,{align:'center'})}else{doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(String(val),widths[i]-2);const lh=2.7,startY=y+h/2-((Math.min(lines.length,2)-1)*lh)/2+1;doc.text(lines.slice(0,2),x+1,startY)}x+=widths[i]});y+=h});const remarks=CHECKS.filter(([n])=>d.checks[n]&&d.checks[n].note&&d.checks[n].note.trim()).map(([n,t])=>n+' '+d.checks[n].note.trim());y+=3;const remarkLines=[];remarks.forEach(r=>remarkLines.push(...doc.splitTextToSize(r,W-4)));const generalLines=doc.splitTextToSize(d.notes||'-',W-4);const boxH=Math.max(30,12+(remarkLines.length+generalLines.length)*4);doc.rect(L,y,W,boxH);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('ANMÄRKNINGAR FRÅN KONTROLLPUNKTER',L+2,y+4);doc.setFont('helvetica','normal');doc.setFontSize(8);let ty=y+9;if(remarkLines.length){doc.text(remarkLines,L+2,ty);ty+=remarkLines.length*4+3}else{doc.text('-',L+2,ty);ty+=7}doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('ALLMÄN INFO / ANMÄRKNING',L+2,ty);ty+=5;doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(generalLines,L+2,ty);y+=boxH+3;cell(doc,L,y,62,12,'NÄSTA PROVNING',d.nextDate||project.projectNextDate);cell(doc,L+62,y,62,12,'FÖRETAG / TEKNIKER',project.company);cell(doc,L+124,y,62,12,'SIGNATUR',d.signature)}
 $('exportBtn').onclick=async()=>{if(!doors.length)return alert('Det finns inga dörrar att spara.');const {jsPDF}=window.jspdf,doc=new jsPDF('p','mm','a4');let has=await addDrawingPages(doc);if(!has){doc.setFontSize(16);doc.text('Dörrservice',14,20)}doors.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,undefined,{numeric:true})).forEach(d=>addProtocol(doc,d));doc.save('provningsprotokoll-med-ritning.pdf')};
 $('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
+
+const STATUS_LABELS={untested:'Ej provad',ok:'Godkänd',action:'Åtgärd krävs',fail:'Ej godkänd'};
+function doorProblems(d){return CHECKS.filter(([n])=>d.checks?.[n]?.result==='remark')}
+function hasDoorProblem(d){return d.status==='action'||d.status==='fail'||doorProblems(d).length>0}
+function renderOverview(){
+ const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv');
+ const problemCount=doors.filter(hasDoorProblem).length;
+ $('overviewSummary').textContent=problemCount+' av '+doors.length+' dörrar har problem';
+ const list=$('overviewList');list.replaceChildren();
+ const visible=doors.filter(d=>{
+  if(filter==='problems'&&!hasDoorProblem(d))return false;
+  if(filter==='untested'&&d.status!=='untested')return false;
+  if(filter==='ok'&&(d.status!=='ok'||hasDoorProblem(d)))return false;
+  return !query||[d.id,d.machineId,d.location,d.model,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+(d.checks[n].note||''))].join(' ').toLocaleLowerCase('sv').includes(query);
+ }).sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+ if(!visible.length){const empty=document.createElement('p');empty.className='overviewEmpty';empty.textContent=!doors.length?'Inga dörrar ännu. Ladda upp en ritning och lägg till dörrar.':query?'Inga dörrar matchar sökningen.':filter==='problems'?'Inga dörrar med registrerade problem.':'Inga dörrar i det här urvalet.';list.appendChild(empty);return}
+ const fragment=document.createDocumentFragment();
+ visible.forEach(d=>{
+  const card=document.createElement('article');card.className='doorCard';card.dataset.uid=d.uid;
+  const heading=document.createElement('h3');heading.textContent=d.id+(d.location?' – '+d.location:'');card.appendChild(heading);
+  const meta=document.createElement('p');meta.className='doorMeta';meta.textContent='Sida '+d.page+(d.machineId?' · Maskin-ID '+d.machineId:'')+(d.model?' · '+d.model:'');card.appendChild(meta);
+  const badge=document.createElement('span');badge.className='doorStatus '+(hasDoorProblem(d)?'problem':'');badge.textContent=(STATUS_LABELS[d.status]||'Ej provad')+(doorProblems(d).length?' · '+doorProblems(d).length+(doorProblems(d).length===1?' felmarkerad kontrollpunkt':' felmarkerade kontrollpunkter'):'');card.appendChild(badge);
+  const issues=document.createElement('ul');doorProblems(d).forEach(([n,title])=>{const li=document.createElement('li');li.textContent=n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.');issues.appendChild(li)});if(issues.childElementCount)card.appendChild(issues);
+  if(d.notes?.trim()){const note=document.createElement('p');note.textContent='Allmän anmärkning: '+d.notes;card.appendChild(note)}
+  const button=document.createElement('button');button.type='button';button.textContent='Öppna protokoll';button.setAttribute('aria-label','Öppna protokoll för '+d.id);button.onclick=()=>openOverviewDoor(d.uid);card.appendChild(button);fragment.appendChild(card);
+ });list.appendChild(fragment);
+}
+function openOverview(){document.body.classList.remove('protocolOpen');renderOverview();$('overviewDialog').showModal();$('overviewDialog').scrollTop=0}
+async function openOverviewDoor(uid){
+ const d=doors.find(item=>item.uid===uid);if(!d)return;
+ selected=uid;$('overviewDialog').close();addMode=false;document.body.classList.remove('placing');$('hint').style.display='none';show();
+ if(innerWidth<=800)document.body.classList.add('protocolOpen');$('protocolPanel').scrollTop=0;
+ if(pdf&&d.page>=1&&d.page<=pdf.numPages){page=d.page;zoom=1;await render(true);wrap.scrollLeft=Math.max(0,d.x*pageWidth-wrap.clientWidth/2);wrap.scrollTop=Math.max(0,d.y*pageHeight-wrap.clientHeight/2)}
+ else if(!pdf)notice('Protokollet är öppet. Ladda upp ritningen igen för att se dörren på PDF-sidan.');
+}
+$('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;
+$('closeOverview').onclick=()=>$('overviewDialog').close();
+$('overviewFilter').onchange=renderOverview;$('overviewSearch').oninput=renderOverview;
