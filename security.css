@@ -1,0 +1,29 @@
+body.securityApp{--alarm:#8b5a2b;--lock:#176b93;--access:#6a4a9a}
+#securityMessage{flex:none;font-size:11px;padding:6px 12px;background:#e9f2f7;color:#426171}
+#securityDrawing{padding:0;flex-direction:column;overflow:hidden}
+#secViewer{position:relative;flex:1;min-height:0;overflow:auto;background:#d8dfe3;touch-action:none}
+#secStage{position:relative;width:max-content;background:#fff;margin:auto}
+#secCanvas{display:block}
+#secMarkers{position:absolute;inset:0}
+#secEmpty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;color:#526774;background:#e7edf1}
+body.secHasPdf #secEmpty{display:none}
+.securityTools{display:flex;gap:6px;padding:7px;background:#fff;border-top:1px solid var(--line)}
+.securityTools button{flex:1;font-size:11px;padding:6px}
+.secMarker{position:absolute;height:25px;min-width:28px;padding:0 6px;border:1.5px solid #fff;border-radius:5px;color:#fff;font-size:10px;font-weight:800;box-shadow:0 2px 5px #0005;touch-action:none;overflow:visible}
+.secMarker:after{content:"";position:absolute;top:50%;right:-9px;transform:translateY(-50%);border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid var(--mc)}
+.secMarker{transform:translate(calc(-100% - 9px),-50%);background:var(--mc)}
+.secMarker.alarm{--mc:var(--alarm)}.secMarker.lock{--mc:var(--lock)}.secMarker.access{--mc:var(--access)}
+.secMarker.status-ok{box-shadow:0 0 0 2px #238354,0 2px 5px #0005}.secMarker.status-action{box-shadow:0 0 0 2px #c77c13,0 2px 5px #0005}.secMarker.status-fail{box-shadow:0 0 0 2px #bd3f46,0 2px 5px #0005}.secMarker.status-untested{box-shadow:0 0 0 2px #77858e,0 2px 5px #0005}
+#secHint{padding:7px 10px;background:#fff0c2;font-size:12px;text-align:center}
+#securityProtocol,#securityProject{max-width:780px;width:100%;margin:auto}
+.secCheck{border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px;margin-bottom:7px}
+.secCheckHead{display:flex;gap:8px;align-items:flex-start}.secCheckHead strong{min-width:34px}.secCheckHead span{flex:1}
+.secChoices{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}.secChoices button{font-size:11px;min-height:34px;padding:5px}
+.secChoices button.active{outline:2px solid #173f55}
+.secFault{margin-top:7px}.secFault select,.secFault input{width:100%}
+.secCustomBadge{font-size:9px;background:#e9f2f7;padding:2px 4px;border-radius:4px}
+#securityOverview{width:min(920px,96vw);height:min(86vh,900px);border:0;border-radius:12px;padding:14px}
+.securityLegend{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 12px}.securityLegend span{padding:4px 7px;border-radius:12px;font-size:11px}.s-ok{background:#e5f4ea;color:#1d7047}.s-action{background:#fff2d8;color:#9b6200}.s-fail{background:#fce5e7;color:#a92f38}.s-untested{background:#ebf1f4;color:#617583}
+.secSummaryCard{border:1px solid var(--line);border-left:6px solid #77858e;border-radius:8px;background:#fff;padding:9px;margin:7px 0}.secSummaryCard.ok{border-left-color:#238354}.secSummaryCard.action{border-left-color:#c77c13}.secSummaryCard.fail{border-left-color:#bd3f46}.secSummaryCard.untested{border-left-color:#77858e}.secSummaryCard h3{margin:0 0 5px;font-size:14px}.secSummaryCard ul{margin:5px 0 0;padding-left:18px;font-size:12px}
+body[data-view=drawing] #securityDrawing{display:flex}body[data-view=protocol] #securityProtocol{display:block}body[data-view=project] #securityProject{display:block}
+@media(max-width:700px){.securityTools{overflow-x:auto}.securityTools button{flex:0 0 auto}.secChoices{grid-template-columns:1fr}.secMarker{font-size:9px}}
