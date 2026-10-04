@@ -180,7 +180,8 @@ if(protocolTextLarger)protocolTextLarger.onclick=()=>{protocolTextLevel=Math.min
 applyProtocolTextLevel();
 buildChecklist=function(d){
  normalize(d);const box=$('checklist');box.replaceChildren();
- const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{doorChecks(d).forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';$('status').value='ok';save();buildChecklist(d);$('status').value=d.status;draw();updateCompactUI()};box.appendChild(approveAll);
+ const actions=document.createElement('div');actions.className='doorCheckActions';box.appendChild(actions);
+ const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{doorChecks(d).forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';$('status').value='ok';save();buildChecklist(d);$('status').value=d.status;draw();updateCompactUI()};actions.appendChild(approveAll);
  const groups=GROUPS.map(([title,indices])=>[title,indices.map(i=>CHECKS[i])]);
  if(d.customChecks.length)groups.push(['Egna kontrollpunkter',d.customChecks.map(c=>[c.id,c.title])]);
  groups.forEach(([title,checks])=>{
@@ -213,8 +214,8 @@ buildChecklist=function(d){
    row.append(buttons,area);group.appendChild(row);
   });update();box.appendChild(group);
  });
- const add=document.createElement('button');add.type='button';add.className='doorAddCheck';add.textContent='＋ Lägg till egen kontrollpunkt';
- add.onclick=()=>{const title=prompt('Skriv den extra kontrollpunkten:','');if(!addDoorCustomCheck(d,title))return;$('status').value=d.status;save();buildChecklist(d);draw();requestAnimationFrame(()=>{const rows=box.querySelectorAll('.checkrow');rows[rows.length-1]?.scrollIntoView({block:'nearest'})})};box.appendChild(add);
+ const add=document.createElement('button');add.type='button';add.className='doorAddCheck';add.textContent='＋ Egen kontrollpunkt';
+ add.onclick=()=>{const title=prompt('Skriv den extra kontrollpunkten:','');if(!addDoorCustomCheck(d,title))return;$('status').value=d.status;save();buildChecklist(d);draw();requestAnimationFrame(()=>{const rows=box.querySelectorAll('.checkrow');rows[rows.length-1]?.scrollIntoView({block:'nearest'})})};actions.appendChild(add);
 };
 let lastShownDoor=null;
 const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;

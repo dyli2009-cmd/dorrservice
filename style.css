@@ -615,4 +615,11 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 #protocolPanel .checktitle{align-items:flex-start}
 #protocolPanel .checktitle>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
 #protocolPanel .doorRemoveCheck{flex:none;min-height:36px;padding:5px 8px;font-size:11px;color:#a6292e;background:#fff5f4;border-color:#efceca}
-#protocolPanel .doorAddCheck{width:100%;min-height:44px;margin:8px 0 14px;background:#e6eff4;border-color:#cbdde7}
+#protocolPanel .doorCheckActions{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+#protocolPanel .doorCheckActions button{width:auto!important;min-height:34px!important;padding:5px 8px!important;font-size:11px!important;margin:0!important}
+#protocolPanel .doorCheckActions .approveAll{background:var(--blue)!important;border-color:var(--blue)!important}
+#protocolPanel .doorAddCheck{background:#fff;border-color:var(--line)}
+@media(max-width:700px){
+ #protocolPanel .doorCheckActions{gap:3px;margin:3px 0 6px}
+ #protocolPanel .doorCheckActions button{min-height:27px!important;padding:2px 6px!important;font-size:9.5px!important}
+}
