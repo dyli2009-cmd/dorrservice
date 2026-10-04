@@ -365,3 +365,20 @@ body.secTextAdding #secViewer{cursor:crosshair}
  #securityProtocol #secPreviousIssues .previousIssue{padding:4px 6px;font-size:8.8px}
  #securityProject .secNewServiceCard button{min-height:29px;padding:3px 6px;font-size:9px}
 }
+
+
+/* Web 2.4.25: guided Security work-file flow. */
+.secOpenWorkDialog{width:min(430px,92vw);border:0;border-radius:12px;padding:0;background:#fff;box-shadow:0 18px 55px #0005}
+.secOpenWorkDialog::backdrop{background:#0b1b24aa}
+.secOpenWorkHead{display:flex;flex-direction:column;gap:2px;padding:13px 14px;background:#132b38;color:#fff}
+.secOpenWorkHead strong{font-size:15px}.secOpenWorkHead span{font-size:10px;color:#c6d8e2}
+.secOpenWorkDialog>p{margin:0;padding:12px 14px 5px;font-size:10px;line-height:1.4;color:#40545f}
+.secOpenWorkDialog>.muted{padding:7px 14px 13px;font-size:8.8px;color:#6c7f89}
+.secOpenWorkActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px 14px 4px}
+.secOpenWorkActions button{min-height:40px}
+@media(max-width:520px){
+ .secOpenWorkDialog{width:min(390px,94vw)}
+ .secOpenWorkActions{grid-template-columns:1fr;gap:5px;padding:7px 10px 3px}
+ .secOpenWorkHead{padding:11px 12px}
+ .secOpenWorkDialog>p{padding-left:11px;padding-right:11px}
+}
