@@ -138,3 +138,20 @@ body.secTextAdding #secViewer{cursor:crosshair}
  .securityApp.protocolReadable #securityProtocol .secCheckHead{font-size:12px;line-height:1.3}
  .securityApp.protocolReadable #securityProtocol .secChoices button{font-size:10.5px;min-height:33px}
 }
+
+
+/* Web 2.4.9: compact remark fields in Security protocol on phones. */
+@media(max-width:800px){
+ #securityProtocol .secFault select,
+ #securityProtocol .secFault input{
+  min-height:28px;
+  padding:3px 5px;
+  font-size:10.5px;
+  line-height:1.2;
+ }
+ .securityApp.protocolReadable #securityProtocol .secFault select,
+ .securityApp.protocolReadable #securityProtocol .secFault input{
+  min-height:33px;
+  font-size:12px;
+ }
+}
