@@ -9,7 +9,7 @@ const html=fs.readFileSync(path.join(root,'security.html'),'utf8');
 assert(js.includes("PDFName.of('SecurityServiceWork')"),'Security work-PDF metadata must be embedded/read');
 assert(js.includes("app:'security-service',version:2"),'Security work-PDF state version must exist');
 assert(js.includes('inspectSecurityWorkPdf'),'Security work-PDF import must exist');
-assert(js.includes("project.order='';project.date=new Date().toISOString().slice(0,10);project.technician='';project.signature=''"),'New service must reset visit-specific fields only');
+assert(js.includes("project.order='';project.date=localToday();project.nextDate=suggestedNextDate;project.signature=''"),'New service must reset visit-specific fields without clearing technician');
 assert(js.includes('previousIssues')&&js.includes('previousServiceDate'),'Previous service history must be preserved');
 assert(html.includes('id="secNewServiceBtn"'),'New service button must exist');
 assert(html.includes('id="secPreviousPanel"'),'Previous service panel must exist');
@@ -18,7 +18,6 @@ assert(html.includes('id="secPreviousPanel"'),'Previous service panel must exist
 assert(js.includes("go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd."),'New Security objects must stay on drawing for arrow/label adjustment');
 assert(js.includes("function localToday()"),'Security project must have a local-today helper');
 assert(js.includes("date:localToday()"),'A new Security project must default to today');
-assert(js.includes("secOpenWorkDialog").toString?true:true);
 assert(html.includes('id="secOpenWorkDialog"')&&html.includes('id="secOpenNewService"')&&html.includes('id="secOpenContinue"'),'Saved work PDF must ask New service vs Continue/edit');
 assert(js.includes("project.order='';project.date=localToday();project.nextDate=suggestedNextDate;project.signature=''"),'New service must reset visit fields while retaining technician');
 assert(!js.includes("project.technician=''"),'New Security service must not clear the technician');
