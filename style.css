@@ -397,3 +397,14 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
   font-size:9.5px;
  }
 }
+
+
+/* Web 2.4.14: prevent iPhone auto-zoom while typing a custom remark. */
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #protocolPanel .faultArea input.iosTyping{
+   font-size:16px!important;
+   line-height:1!important;
+  }
+ }
+}

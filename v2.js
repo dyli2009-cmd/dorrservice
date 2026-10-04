@@ -177,8 +177,8 @@ buildChecklist=function(d){
    const known=faults.includes(c.note||'');input.value=known?'':(c.note||'');select.value=known?c.note:'';showCustom(!!c.note&&!known);
    area.append(select,input,back);
    DOOR_CHECK_RESULTS.forEach(([value,label])=>{const button=document.createElement('button');button.type='button';button.dataset.v=value;button.textContent=label;button.classList.toggle('active',c.result===value);button.onclick=()=>{c.result=c.result===value?'':value;if(c.result!=='remark'){c.note='';input.value='';select.value='';showCustom(false)}const anyRemark=CHECKS.some(([cn])=>d.checks[cn]?.result==='remark');const allDone=CHECKS.every(([cn])=>['ok','na','remark'].includes(d.checks[cn]?.result));if(d.status!=='fail')d.status=anyRemark?'action':allDone?'ok':'untested';$('status').value=d.status;buttons.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===c.result));area.hidden=c.result!=='remark';update();save();draw()};buttons.appendChild(button)});
-   select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);setTimeout(()=>input.focus(),0);save();draw();return}c.note=select.value||'';if(d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
-   input.oninput=()=>{c.note=input.value;if(c.result==='remark'&&d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
+   select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();draw();return}c.note=select.value||'';if(d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
+   input.oninput=()=>{c.note=input.value;if(c.result==='remark'&&d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};input.onblur=()=>input.classList.remove('iosTyping');
    back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();draw();select.focus()};
    row.append(buttons,area);group.appendChild(row);
   });update();box.appendChild(group);
