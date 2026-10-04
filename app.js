@@ -21,6 +21,7 @@ const COMMON_FAULTS={
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
 let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1,suppressPageSwipeUntil=0;
+function doorLocalToday(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
 const appHome=$('appHome'),enterDoorMode=$('enterDoorMode'),homeBtn=$('homeBtn');
 function showAppHome(){document.body.classList.add('homeMode');if(appHome)appHome.hidden=false}
@@ -59,7 +60,9 @@ function save(skipOverview=false){$('doorCount').textContent=doors.length+' dör
 window.addEventListener('pagehide',persist);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
 save();
-const PF=['projectName','facilityNo','customer','agreementNo','contact','projectOrder','inspectionDate','projectNextDate','company','companyContact','companyPhone','companyAddress','companyPostalCode','companyPostalCity','phone','address','postalCode','postalCity','technician','serviceSignature'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});refreshDrawingUI();
+const PF=['projectName','facilityNo','customer','agreementNo','contact','projectOrder','inspectionDate','projectNextDate','company','companyContact','companyPhone','companyAddress','companyPostalCode','companyPostalCity','phone','address','postalCode','postalCity','technician','serviceSignature'];PF.forEach(k=>{$(k).oninput=()=>{project[k]=$(k).value;save()}});
+$('technician').oninput=()=>{const previous=project.technician||'',value=$('technician').value;project.technician=value;if(!project.companyContact||project.companyContact===previous){project.companyContact=value;$('companyContact').value=value}save()};
+refreshDrawingUI();
 $('settingsBtn').onclick=()=>{$('projectPanel').hidden=!$('projectPanel').hidden};
 $('logoFile').onchange=e=>{const f=e.target.files[0],key=activeDrawingKey;if(!f||!key)return;const r=new FileReader();r.onload=()=>{if(key!==activeDrawingKey)return;logoData=r.result;refreshDrawingUI();save()};r.readAsDataURL(f)};
 $('restoreLegacy').onclick=()=>{
@@ -104,14 +107,21 @@ $('file').onchange=async e=>{
   const record=savedDrawing(key)||imported?.work||legacyImported?.work;
   const nextDoors=(record?.doors||[]).map(normalize),nextTextNotes=Array.isArray(record?.textNotes)?record.textNotes.filter(n=>n&&Number.isInteger(n.page)&&n.page>0&&Number.isFinite(n.x)&&Number.isFinite(n.y)&&typeof n.text==='string'):[];
   pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
-  doors=nextDoors;textNotes=nextTextNotes;project=record?.project||{};logoData=record?.logoData||'';
+  doors=nextDoors;textNotes=nextTextNotes;project=record?.project||{};if(!project.inspectionDate)project.inspectionDate=doorLocalToday();logoData=record?.logoData||'';
   page=1;zoom=1;selected=null;pinch=null;panTouch=null;
   canvas.width=canvas.height=0;canvas.style.width=canvas.style.height='0px';markers.replaceChildren();drawingNotes.replaceChildren();$('stage').style.width=$('stage').style.height='0px';pageWidth=pageHeight=1;$('pageInfo').textContent='Laddar sida…';
   $('overviewFilter').value='all';$('overviewSearch').value='';refreshDrawingUI();save();if($('overviewDialog').open)$('overviewDialog').close();$('projectPanel').hidden=true;
   $('stage').style.transform='';addMode=false;textMode=false;document.body.classList.remove('placing','placingText','protocolOpen');$('hint').style.display='none';show();goView('drawing');
   if(previous)await previous.destroy();
   const rendered=await render(true);wrap.scrollLeft=0;wrap.scrollTop=0;
-  if(version===loadVersion&&rendered){const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'))}
+  if(version===loadVersion&&rendered){
+   if(imported&&doors.length&&$('doorOpenWorkDialog')){
+    $('doorOpenWorkMeta').textContent=[project.projectName||project.facilityNo||f.name,doors.length+' dörrar',project.inspectionDate?'senaste service '+project.inspectionDate:''].filter(Boolean).join(' · ');
+    $('doorOpenWorkDialog').showModal();notice('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
+   }else{
+    const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'));
+   }
+  }
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
  finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey;e.target.value=''}}
 };
