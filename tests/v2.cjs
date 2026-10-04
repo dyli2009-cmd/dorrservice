@@ -50,6 +50,7 @@ const drawing=require('./pdf-fixture.cjs');
   const markerSource=await page.evaluate(()=>createWorkPdf.toString());
   assert(markerSource.includes("const label=[snapshot.project?.facilityNo?.trim(),serial]"));
   assert(markerSource.includes("page.drawRectangle"));
+  assert(markerSource.includes("safeLabel.length>18?10.4:11.8"));
   assert(!markerSource.includes("snapshot.project?.facilityNo?.trim(),(d.modelCode||d.model||'').trim(),serial"));
 
   // Export is a genuine PDF with original vector drawing pages first.
