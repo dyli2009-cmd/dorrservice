@@ -269,12 +269,14 @@ $('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileText')&&($('mobileText').o
 
 const STATUS_LABELS={untested:'Ej provad',ok:'Godkänd',action:'Åtgärd krävs',fail:'Ej godkänd'};
 function doorProblems(d){return CHECKS.filter(([n])=>d.checks?.[n]?.result==='remark')}
-function hasDoorProblem(d){return d.status==='action'||d.status==='fail'||doorProblems(d).length>0}
+function hasRecordedDoorProblem(d){return d.status==='action'||d.status==='fail'||doorProblems(d).length>0}
+function isDoorRemediated(d){return hasRecordedDoorProblem(d)&&!!String(d.remediationDate||'').trim()&&!!String(d.remediationSignature||'').trim()}
+function hasDoorProblem(d){return hasRecordedDoorProblem(d)&&!isDoorRemediated(d)}
 function renderOverview(){
  const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv');
- const problemCount=doors.filter(hasDoorProblem).length;
- $('overviewSummary').textContent=problemCount+' av '+doors.length+' dörrar har problem';
- $('overviewPdf').disabled=problemCount===0;
+ const problemCount=doors.filter(hasDoorProblem).length,remediatedCount=doors.filter(isDoorRemediated).length,recordedCount=doors.filter(hasRecordedDoorProblem).length;
+ $('overviewSummary').textContent=problemCount+' öppna fel · '+remediatedCount+' åtgärdade · '+doors.length+' dörrar totalt';
+ $('overviewPdf').disabled=recordedCount===0;
  const projectInfo=$('overviewProject');projectInfo.replaceChildren();
  [['Objekt',project.projectName],['Datum',project.inspectionDate],['Order nr',project.projectOrder]].forEach(([label,value])=>{const item=document.createElement('p');item.textContent=label+': '+(value||'–');projectInfo.appendChild(item)});
  const list=$('overviewList');list.replaceChildren();
@@ -296,11 +298,11 @@ function renderOverview(){
   const doorCell=document.createElement('td'),doorButton=document.createElement('button');doorButton.type='button';doorButton.textContent=d.id;doorButton.setAttribute('aria-label','Öppna protokoll för '+d.id);doorButton.onclick=()=>openOverviewDoor(d.uid);doorCell.appendChild(doorButton);row.appendChild(doorCell);
   const remarksCell=document.createElement('td');
   const meta=document.createElement('p');meta.className='doorMeta';meta.textContent=(d.location?d.location+' · ':'')+'Sida '+d.page+(d.machineId?' · Maskin-ID '+d.machineId:'');remarksCell.appendChild(meta);
-  const badge=document.createElement('span');badge.className='doorStatus '+(hasDoorProblem(d)?'problem':'');badge.textContent=STATUS_LABELS[d.status]||'Ej provad';remarksCell.appendChild(badge);
+  const badge=document.createElement('span');badge.className='doorStatus '+(isDoorRemediated(d)?'ok':d.status==='fail'?'fail':hasDoorProblem(d)?'action':d.status==='ok'?'ok':'untested');badge.textContent=isDoorRemediated(d)?'Åtgärdad':STATUS_LABELS[d.status]||'Ej provad';remarksCell.appendChild(badge);
   const issues=document.createElement('ul');doorProblems(d).forEach(([n,title])=>{const li=document.createElement('li');li.textContent=n+' '+title+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.');issues.appendChild(li)});if(issues.childElementCount)remarksCell.appendChild(issues);
   if(d.notes?.trim()){const note=document.createElement('p');note.textContent='Allmän anmärkning: '+d.notes;remarksCell.appendChild(note)}row.appendChild(remarksCell);
   const actionCell=document.createElement('td');
-  [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Signatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.value=d[key]||'';input.dataset.field=key;input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true)};label.appendChild(input);actionCell.appendChild(label)});row.appendChild(actionCell);body.appendChild(row);
+  [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Signatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.value=d[key]||'';input.dataset.field=key;input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true);badge.className='doorStatus '+(isDoorRemediated(d)?'ok':d.status==='fail'?'fail':hasDoorProblem(d)?'action':d.status==='ok'?'ok':'untested');badge.textContent=isDoorRemediated(d)?'Åtgärdad':STATUS_LABELS[d.status]||'Ej provad';draw();$('overviewSummary').textContent=doors.filter(hasDoorProblem).length+' öppna fel · '+doors.filter(isDoorRemediated).length+' åtgärdade · '+doors.length+' dörrar totalt'};label.appendChild(input);actionCell.appendChild(label)});row.appendChild(actionCell);body.appendChild(row);
  });table.appendChild(body);scroller.appendChild(table);list.appendChild(scroller);
 }
 

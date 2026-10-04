@@ -3,8 +3,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  const {project:p,doors:ds,logoData:logo}=snapshot,doc=new jspdf.jsPDF('p','mm','a4');
  const left=12,width=186,bottom=277,line=4;let y=0;
  const sorted=ds.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
- const status=d=>d.status==='fail'?'fail':hasDoorProblem(d)?'action':d.status==='ok'?'ok':'untested';
- const label=d=>({ok:'Godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',fail:'Ej godkänd',untested:'Ej kontrollerad'})[status(d)];
+ const status=d=>isDoorRemediated(d)?'ok':d.status==='fail'?'fail':hasDoorProblem(d)?'action':d.status==='ok'?'ok':'untested';
+ const label=d=>isDoorRemediated(d)?'Åtgärdad':({ok:'Godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',fail:'Ej godkänd',untested:'Ej kontrollerad'})[status(d)];
  function text(value,x,y,size=9,bold=false,color=[32,52,64]){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||'-'),x,y)}
  function header(title,subtitle){
   doc.setFillColor(19,43,56);doc.rect(0,0,210,24,'F');text(title,left,11,15,true,[255,255,255]);text(subtitle,left,18,8,false,[198,216,226]);
@@ -13,17 +13,18 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  }
  function field(label,value,x,y,w){doc.setFillColor(243,247,249);doc.rect(x,y,w,13,'F');text(label,x+2,y+4,6.5,true,[89,110,123]);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(32,52,64);doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,y+8.5)}
  function projectFields(){[['OBJEKT',p.projectName||p.facilityNo],['OBJEKTNUMMER',p.facilityNo],['ORDER',p.projectOrder]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=16;[['DATUM',p.inspectionDate],['TEKNIKER',p.technician||p.company],['SIGNATUR',p.serviceSignature]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=17}
- function overviewHeader(){header('ANMÄRKNINGSÖVERSIKT','Dörrautomatik · kundrapport');projectFields();text(ds.length+' dörrar · '+ds.filter(hasDoorProblem).length+' med anmärkningar · '+ds.filter(d=>completedChecks(d)<CHECKS.length||d.status==='untested').length+' ej klara',left,y,9,true);y+=8;let x=left;[['Godkänd','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([title,key])=>{doc.setFillColor(...REPORT_COLORS[key].rgb);doc.circle(x+1,y-1,1.3,'F');text(title,x+4,y,7,false);x+=46});y+=8;text('Markeringarna på ritningen visar dörrens löpnummer.',left,y,7,false,[89,110,123]);y+=7;tableHead()}
+ function overviewHeader(){header('ANMÄRKNINGSÖVERSIKT','Dörrautomatik · kundrapport');projectFields();text(ds.length+' dörrar · '+ds.filter(hasDoorProblem).length+' öppna · '+ds.filter(isDoorRemediated).length+' åtgärdade · '+ds.filter(d=>completedChecks(d)<CHECKS.length||d.status==='untested').length+' ej klara',left,y,8.4,true);y+=8;let x=left;[['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([title,key])=>{doc.setFillColor(...REPORT_COLORS[key].rgb);doc.circle(x+1,y-1,1.3,'F');text(title,x+4,y,6.6,false);x+=46});y+=8;text('Markeringarna på ritningen visar dörrens löpnummer.',left,y,7,false,[89,110,123]);y+=7;tableHead()}
  const widths=[33,115,38];
  function tableHead(){let x=left;['Dörr / placering','Anmärkning','Åtgärdat / signatur'].forEach((title,i)=>{doc.setFillColor(232,239,244);doc.rect(x,y,widths[i],9,'F');doc.rect(x,y,widths[i],9);text(title,x+2,y+5.5,7.5,true);x+=widths[i]});y+=9}
  function overviewPage(){doc.addPage();overviewHeader()}
- overviewHeader();const problems=sorted.filter(hasDoorProblem);
+ overviewHeader();const problems=sorted.filter(hasRecordedDoorProblem);
  if(!problems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');text('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);text('Se protokollen för vilka kontrollpunkter som är genomförda.',left+3,y+12,8);y+=20}
  problems.forEach(d=>{
   const issues=doorProblems(d).map(([n,t])=>n+' '+t+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.'));
   if(!issues.length)issues.push(label(d));if(d.notes?.trim())issues.push('Allmän anmärkning: '+d.notes.trim());
   doc.setFont('helvetica','normal');doc.setFontSize(8);
-  const columns=[d.id+'\n'+(d.location||'')+'\n'+label(d),issues.join('\n'),[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n')].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
+  const remediation=isDoorRemediated(d)?['Åtgärdad: '+d.remediationDate,'Signatur: '+d.remediationSignature].join('\n'):[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n');
+  const columns=[d.id+'\n'+(d.location||'')+'\n'+label(d),issues.join('\n'),remediation].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
   let offset=0,total=Math.max(...columns.map(c=>c.length),1);
   while(offset<total){
    const capacity=Math.floor((bottom-y-5)/line);if(capacity<1||bottom-y<12){overviewPage();continue}
@@ -105,7 +106,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    y=31;cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=12;
   }
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
-  const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' - '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),d.notes].filter(Boolean).join('\n');
+  const remediationNote=isDoorRemediated(d)?'Åtgärdad '+d.remediationDate+' · Signatur: '+d.remediationSignature:'';
+  const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' - '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),remediationNote,d.notes].filter(Boolean).join('\n');
   const lines=doc.splitTextToSize(notes||'',width-7),boxH=Math.min(30,Math.max(18,276-y)),lineH=3.2,firstMax=Math.max(1,Math.floor((boxH-5)/lineH));
   doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
   if(lines.length){
