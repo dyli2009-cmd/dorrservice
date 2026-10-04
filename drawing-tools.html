@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.32">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.33">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
- <span class="version">v2.4.32</span>
+ <span class="version">v2.4.33</span>
 </header>
 
 <main class="toolShell">
@@ -91,7 +91,19 @@
   </section>
  </section>
 
+ <section id="sizeCompare" class="sizeCompare" hidden>
+  <div class="sizeCompareHead"><strong>Filstorlek</strong><span id="sizeVerdict">Inte beräknad</span></div>
+  <div class="sizeStats">
+   <div><small>Original</small><strong id="sizeOriginal">–</strong></div>
+   <div><small>Ny arbetskopia</small><strong id="sizeNew">–</strong></div>
+   <div><small>Skillnad</small><strong id="sizeSaved">–</strong></div>
+   <div><small>Minskning</small><strong id="sizePercent">–</strong></div>
+  </div>
+  <p id="sizeDetail">Tryck “Testa optimering” för att mäta den verkliga filstorleken med dina nuvarande inställningar.</p>
+ </section>
+
  <section id="outputActions" class="outputActions" hidden>
+  <button id="analyzeSize" type="button">Testa optimering</button>
   <button id="savePdf" class="primary" type="button">Spara ren PDF</button>
   <button id="openDoor" type="button">Öppna i Dörrautomatik</button>
   <button id="openSecurity" type="button">Öppna i Säkerhetsservice</button>
@@ -102,7 +114,7 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="drawing-transfer.js?v=2.4.32"></script>
-<script src="drawing-tools.js?v=2.4.32"></script>
+<script src="drawing-transfer.js?v=2.4.33"></script>
+<script src="drawing-tools.js?v=2.4.33"></script>
 </body>
 </html>
