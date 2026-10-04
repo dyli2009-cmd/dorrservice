@@ -273,3 +273,21 @@ body header.appHeader .appVersion{
   padding-bottom:max(3px,calc(env(safe-area-inset-bottom) - 22px));
  }
 }
+
+
+/* Web 2.4.7 test: lower, tighter mobile bottom navigation without touching app logic. */
+@media(max-width:800px){
+ #mobileBar{
+  gap:2px;
+  padding-top:1px;
+  padding-bottom:max(1px,calc(env(safe-area-inset-bottom) - 26px));
+ }
+ #mobileBar button{
+  min-height:40px;
+  padding:2px 1px;
+  gap:1px;
+  border-radius:8px;
+ }
+ #mobileBar .navIcon,#mobileBar .navIcon svg{width:19px;height:19px}
+ #mobileBar .navLabel{font-size:10px}
+}
