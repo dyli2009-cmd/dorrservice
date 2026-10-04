@@ -261,3 +261,15 @@ body header.appHeader .appVersion{
  #protocolPanel .quickBtns{margin-top:0}
  #protocolPanel .faultArea{grid-column:1 / -1}
 }
+
+/* Web 2.4.6: keep mobile navigation at the current viewport's bottom. */
+@media(max-width:800px){
+ @supports(height:100dvh){
+  body{height:100dvh}
+ }
+ #mobileBar{
+  margin-top:auto;margin-bottom:0;
+  padding-top:2px;
+  padding-bottom:max(3px,calc(env(safe-area-inset-bottom) - 22px));
+ }
+}
