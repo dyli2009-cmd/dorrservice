@@ -12,7 +12,7 @@ async function receive(){
   history.replaceState({},'',location.pathname);
   const security=document.body.classList.contains('securityApp'),input=document.getElementById(security?'securityFile':'file');
   if(!input)return;
-  document.body.classList.remove('homeMode');
+  document.body.classList.remove('homeMode');const home=document.getElementById('appHome');if(home)home.hidden=true;
   const file=new File([record.blob],record.name||'ritning.pdf',{type:'application/pdf',lastModified:Date.now()});
   if(typeof input.onchange==='function')await input.onchange({target:{files:[file],value:''}});
  }catch(error){console.error('Drawing transfer failed',error)}
