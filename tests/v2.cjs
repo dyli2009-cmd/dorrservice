@@ -19,7 +19,7 @@ const drawing=require('./pdf-fixture.cjs');
   assert.equal(await page.locator('body').getAttribute('data-view'),'drawing');assert((await page.locator('#hint').textContent()).includes('Dra pilpunkten'));
   await page.locator('#markers .marker').last().tap();assert.equal(await page.locator('body').getAttribute('data-view'),'drawing');
   await page.waitForTimeout(950);await page.locator('#markers .marker').last().tap();assert.equal(await page.locator('body').getAttribute('data-view'),'protocol');
-  await page.locator('#modelChoice').selectOption('17');await page.locator('#location').fill('Entré');
+  await page.locator('#modelChoice').selectOption('17');
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-17-001');
   assert.equal(await page.locator('#signature').inputValue(),'AA');
   const sensor=page.locator('[data-check="1.11"]');await sensor.evaluate(el=>el.scrollIntoView({block:'center'}));await sensor.locator('[data-v=remark]').tap();await sensor.locator('.faultText').fill('Säkerhetssensorn fungerar inte.');
@@ -38,7 +38,7 @@ const drawing=require('./pdf-fixture.cjs');
   }
   await page.setViewportSize({width:390,height:844});await page.locator('#mobileOverview').tap();await page.screenshot({path:path.join(__dirname,'..','v2-doors.png')});
   // Duplicate IDs are rejected and manually chosen IDs remain editable.
-  await page.locator('.doorCard').last().locator('button').tap();await page.locator('.doorDetails').evaluate(el=>el.open=true);
+  await page.locator('.doorCard').last().locator('button').tap();
   await page.locator('#doorId').fill('216720-27-17-001');await page.locator('#doorId').blur();assert((await page.locator('#idMessage').textContent()).includes('redan'));
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-38-002');
   await page.locator('#doorId').fill('216720-27-38-010');await page.locator('#doorId').blur();
@@ -77,6 +77,10 @@ const drawing=require('./pdf-fixture.cjs');
   const nextBytes=await page.evaluate(async()=>Array.from(await createWorkPdf()));
   const reopened=await page.evaluate(async data=>{const result=await inspectWorkPdf(new Uint8Array(data));return {source:(await PDFLib.PDFDocument.load(result.drawingBytes)).getPageCount(),work:result.work}},nextBytes);
   assert.equal(reopened.source,2);assert.equal(reopened.work.project.technician,'Bertil Berg');assert.equal(reopened.work.doors[0].checks['1.11'].result,'');assert.equal(reopened.work.doors[0].previousIssues[0].n,'1.11');
+  // Simplified Door form: shared project data is not duplicated per door.
+  assert.equal(await page.locator('#generateId').count(),0);
+  for(const id of ['modelCode','model','machineId','ao','nextDate'])assert.equal(await page.locator('#'+id).count(),0,'Removed redundant field: '+id);
+  assert.equal(await page.locator('#location').count(),1,'Placement stays in the compact Door form');
   assert.deepEqual(errors,[]);
   console.log('PASS: 320/390/430px portrait layout, models/IDs, shared technician/signature, duplicates, real working PDF export, report order and fields, restoration without storage, next service and clean re-export');
  }finally{await browser.close()}

@@ -63,7 +63,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+61,12.4);doc.setFontSize(9.6);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
    doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.setTextColor(25,25,25);doc.text('SERVICE',left+1.5,34.5);
    y=39;
-   cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',d.nextDate||p.projectNextDate,left+93,y,93);y+=7;
+   cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',p.projectNextDate,left+93,y,93);y+=7;
    cell('ANLÄGGNING:',[p.projectName,'| Anläggningsnummer:',p.facilityNo].filter(Boolean).join(' '),left,y,93,7,true);
    cell('BESTÄLLARE:',[p.customer,'| Avtalsnummer:',p.agreementNo].filter(Boolean).join(' '),left+93,y,93,7,true);y+=7;
    cell('Företag:',p.company,left,y,93);cell('Företag:',p.customer,left+93,y,93);y+=7;
@@ -71,7 +71,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    cell('Telefonnummer:',p.companyPhone,left,y,93);cell('Telefonnummer:',p.phone,left+93,y,93);y+=7;
    cell('Adress:',p.companyAddress,left,y,93);cell('Adress:',p.address,left+93,y,93);y+=7;
    cell('Postnummer / Postadress:',[p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
-   cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=8;
+   cell('Id nummermaskin:',d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',p.projectOrder,left+124,y,62,8);y+=8;
   }
   function checkHeader(){
    const ws=[10,99,15,25,27,10],titles=['Nr:','Benämning Kontroll','Ingår ej','Klart utan\nAnmärkning','Klart med\nAnmärkning','Signatur'];let x=left;
@@ -111,7 +111,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
    doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.1);doc.text('Dokumentnr: 2519-1',left+61,11.7);doc.setFontSize(8.9);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,17.3,{align:'center'});
    doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.text('Allmän Info - fortsättning',112,22.4,{align:'center'});
-   y=31;cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=12;
+   y=31;cell('Id nummermaskin:',d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',p.projectOrder,left+124,y,62,8);y+=12;
   }
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
   const remediationNote=isDoorRemediated(d)?'Åtgärdad '+d.remediationDate+' · Signatur: '+d.remediationSignature:'';
