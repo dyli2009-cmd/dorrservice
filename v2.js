@@ -153,8 +153,15 @@ function syncAutoDoorIds(){
 const baseFacilityInput=$('facilityNo').oninput;
 $('facilityNo').oninput=()=>{if(baseFacilityInput)baseFacilityInput();syncAutoDoorIds()};
 MODELS.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=code+' · '+name;$('modelChoice').appendChild(option)});
-const custom=document.createElement('option');custom.value='custom';custom.textContent='Annan modell – skriv själv';$('modelChoice').appendChild(custom);
-$('modelChoice').onchange=()=>{const d=cur();if(!d)return;const model=MODELS.find(([code])=>code===$('modelChoice').value);d.modelCode=model?.[0]||'';if(model)d.model=model[1];if(d.idMode!=='manual')d.idMode='auto';const nextId=proposedId(d);if(nextId&&d.idMode==='auto')setDoorId(d,nextId,'auto');else save()};
+const custom=document.createElement('option');custom.value='custom';custom.textContent='Annan modell…';$('modelChoice').appendChild(custom);
+$('modelChoice').onchange=()=>{const d=cur();if(!d)return;const value=$('modelChoice').value,model=MODELS.find(([code])=>code===value);
+ if(value==='custom'){
+  const entered=prompt('Skriv modell / typ av automatik:',d.modelCode||d.model||'');
+  if(entered===null||!entered.trim()){$('modelChoice').value=d.modelCode&&MODELS.some(([code])=>code===d.modelCode)?d.modelCode:'';return}
+  d.modelCode=entered.trim();d.model=entered.trim();
+ }else{d.modelCode=model?.[0]||'';if(model)d.model=model[1]}
+ if(d.idMode!=='manual')d.idMode='auto';const nextId=proposedId(d);if(nextId&&d.idMode==='auto')setDoorId(d,nextId,'auto');else save()
+};
 $('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serialNumber').value.trim();if(!/^\d{1,6}$/.test(value)||Number(value)<1){$('idMessage').textContent='Ange ett löpnummer från 1 till 999999.';if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;lastShownDoor=d.uid}
  $('serialNumber').value=d.serialNumber||'';return}const old=d.serialNumber;d.serialNumber=String(Number(value));if(d.idMode==='auto'&&proposedId(d)&&!setDoorId(d,proposedId(d),'auto'))d.serialNumber=old;$('serialNumber').value=d.serialNumber;save()};
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
@@ -202,7 +209,7 @@ buildChecklist=function(d){
 };
 let lastShownDoor=null;
 const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;
- if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
+ if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;lastShownDoor=d.uid}
  if(isDoorRemediated(d))$('status').value='ok';
  if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
  const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus;$('previousIssues').replaceChildren();
