@@ -249,12 +249,33 @@ $('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;$
 $('closeOverview').onclick=()=>goView('drawing');$('navDrawing').onclick=()=>goView('drawing');$('closeProtocol').onclick=()=>goView('drawing');$('closeProject').onclick=()=>goView('drawing');
 $('mobileProtocol').onclick=()=>{show();goView('protocol')};$('settingsBtn').onclick=()=>goView('project');
 $('nextDoorBtn').onclick=()=>{const sorted=doors.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));const next=sorted[(sorted.findIndex(d=>d.uid===selected)+1)%sorted.length];if(next)openOverviewDoor(next.uid)};
-$('newServiceBtn').onclick=()=>{
- if(!pdf||!doors.length)return notice('Lägg till dörrar innan du startar ett nytt servicebesök.');
- if(!confirm('Starta en ny service med samma dörrar? Dagens kontroller och serviceuppgifter nollställs. Nuvarande anmärkningar visas som tidigare fel. Spara först en arbets-PDF om du vill behålla den färdiga rapporten.'))return;
- doors.forEach(d=>{d.previousIssues=doorProblems(d).map(([n,title])=>({n,title,note:d.checks[n].note||''}));d.previousNotes=d.notes||'';d.previousStatus=hasDoorProblem(d)?d.status:'';d.checks={};normalize(d);d.notes='';d.status='untested';d.signature='';d.ao='';d.remediationDate='';d.remediationSignature=''});
- project.technician='';project.serviceSignature='';project.projectOrder='';project.inspectionDate=new Date().toISOString().slice(0,10);selected=null;refreshDrawingUI();save();draw();show();goView('project');notice('Nytt servicebesök startat. Fyll i tekniker, signatur och order.');
-};
+function shiftedDoorNextDate(previousDate,previousNextDate){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(previousDate||'')||!/^\d{4}-\d{2}-\d{2}$/.test(previousNextDate||''))return '';
+ const from=new Date(previousDate+'T12:00:00'),to=new Date(previousNextDate+'T12:00:00'),days=Math.round((to-from)/86400000);
+ if(!Number.isFinite(days)||days<1||days>730)return '';
+ const base=new Date(doorLocalToday()+'T12:00:00');base.setDate(base.getDate()+days);
+ const local=new Date(base.getTime()-base.getTimezoneOffset()*60000);return local.toISOString().slice(0,10);
+}
+function startNewDoorService(requireConfirm=true){
+ if(!pdf||!doors.length){notice('Lägg till dörrar innan du startar ett nytt servicebesök.');return false}
+ if(requireConfirm&&!confirm('Starta en ny service med samma dörrar? Dagens kontroller nollställs. Projekt, kund, företag, logga, dörrar och servicetekniker behålls.'))return false;
+ const previousDate=project.inspectionDate||'',previousNextDate=project.projectNextDate||'',suggestedNextDate=shiftedDoorNextDate(previousDate,previousNextDate);
+ doors.forEach(d=>{
+  d.previousIssues=doorProblems(d).map(([n,title])=>({n,title,note:d.checks[n].note||''}));
+  d.previousNotes=d.notes||'';
+  d.previousStatus=statusText(d);
+  d.previousServiceDate=previousDate;
+  d.checks={};normalize(d);d.notes='';d.status='untested';d.signature='';d.ao='';d.remediationDate='';d.remediationSignature='';
+ });
+ project.serviceSignature='';project.projectOrder='';project.inspectionDate=doorLocalToday();project.projectNextDate=suggestedNextDate;
+ selected=null;refreshDrawingUI();save();draw();show();goView('project');notice('Nytt servicebesök startat. Grunduppgifter, logga, dörrar och servicetekniker är kvar. Fyll i nytt ordernummer och kontrollera nästa provningsdatum.');
+ requestAnimationFrame(()=>$('projectOrder')?.focus());
+ return true;
+}
+$('newServiceBtn').onclick=()=>startNewDoorService(true);
+$('doorOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
+$('doorOpenContinue').onclick=()=>{$('doorOpenWorkDialog').close();goView('drawing');notice('Arbetsfilen är öppnad för fortsatt arbete/ändringar.')};
+$('doorOpenNewService').onclick=()=>{if(startNewDoorService(false))$('doorOpenWorkDialog').close()};
 async function inspectWorkPdf(bytes){
  if(!window.PDFLib)throw new Error('PDF-biblioteket är inte tillgängligt. Ladda om appen med internetanslutning.');
  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib;
