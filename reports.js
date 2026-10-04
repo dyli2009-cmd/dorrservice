@@ -9,7 +9,6 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  function header(title,subtitle){
   doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);
   if(logo){try{const image=doc.getImageProperties(logo),pad=2.5,scale=Math.min((58-pad*2)/image.width,(18-pad*2)/image.height),iw=image.width*scale,ih=image.height*scale;doc.addImage(logo,left+(58-iw)/2,8+(18-ih)/2,iw,ih)}catch(e){}}
-  else text('DÖRRSERVICE',left+29,18,7,true,[25,25,25],{align:'center'});
   text(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25],{align:'center'});text(subtitle,left+58+(width-58)/2,21.4,6.8,false,[70,82,90],{align:'center'});
   y=32;doc.setDrawColor(204,215,223);doc.setLineWidth(.2);
  }
