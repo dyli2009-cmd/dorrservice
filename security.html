@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.23">
-<link rel="stylesheet" href="security.css?v=2.4.23">
+<link rel="stylesheet" href="style.css?v=2.4.24">
+<link rel="stylesheet" href="security.css?v=2.4.24">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Säkerhetsservice</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.23">v2.4.23</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.24">v2.4.24</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
@@ -54,6 +54,7 @@
       <label>Placering / Dörrlittra<input id="secLocation"></label>
       <label class="wide">ID / märkning<input id="secId"></label>
     </div>
+    <details id="secPreviousPanel" class="previousPanel" hidden><summary>Tidigare service / anmärkningar</summary><div id="secPreviousIssues"></div><p>Kontrollera objektet på nytt och fyll i dagens resultat.</p></details>
     <div class="progressLine"><strong id="secProgress"></strong><div class="secProgressActions"><button id="secApproveAll" class="primary">✓ Godkänn alla</button><button id="secAddCheck">＋ Egen kontrollpunkt</button></div></div>
     <div id="secChecklist"></div>
     <label>Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
@@ -116,6 +117,7 @@
       </div>
       <div id="secLogoPreview" class="wide"></div>
     </div></section>
+    <section class="projectCard secNewServiceCard"><div class="projectCardHead"><span>5</span><div><h3>Ny service</h3><p>Behåll projekt, kontaktuppgifter, logga och objekt – nollställ dagens kontroller.</p></div></div><button id="secNewServiceBtn" type="button" class="primary">Starta ny service</button></section>
   </div>
 </section>
 </main>
@@ -126,5 +128,5 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="security.js?v=2.4.23"></script>
+<script src="security.js?v=2.4.24"></script>
 </body></html>
