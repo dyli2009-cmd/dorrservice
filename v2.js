@@ -143,12 +143,19 @@ function setDoorId(d,value,mode){
  if(doors.some(other=>other.uid!==d.uid&&other.id===id)){$('idMessage').textContent='Det ID-numret används redan av en annan dörr.';return false}
  d.id=id;d.idMode=mode;$('idMessage').textContent='';$('doorId').value=id;save();draw();$('protocolHeading').textContent=id;return true;
 }
+
+function syncAutoDoorIds(){
+ let changed=false;
+ doors.forEach(d=>{if(d.idMode!=='auto')return;const id=proposedId(d);if(!id||doors.some(other=>other.uid!==d.uid&&other.id===id))return;if(d.id!==id){d.id=id;changed=true}});
+ const current=cur();if(current&&current.idMode==='auto'){$('doorId').value=current.id;$('protocolHeading').textContent=current.id}
+ if(changed){save();draw()}
+}
+const baseFacilityInput=$('facilityNo').oninput;
+$('facilityNo').oninput=()=>{if(baseFacilityInput)baseFacilityInput();syncAutoDoorIds()};
 MODELS.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=code+' · '+name;$('modelChoice').appendChild(option)});
 const custom=document.createElement('option');custom.value='custom';custom.textContent='Annan modell – skriv själv';$('modelChoice').appendChild(custom);
-const generate=document.createElement('button');generate.type='button';generate.id='generateId';generate.className='secondary wide';generate.textContent='Skapa märkning från objekt, modell och löpnummer';$('idMessage').after(generate);
-generate.onclick=()=>{const d=cur();if(!d)return;const id=proposedId(d);if(!id){$('idMessage').textContent='Fyll i objektnummer under Projekt, välj modell och ange löpnummer.';return}setDoorId(d,id,'auto')};
-$('modelChoice').onchange=()=>{const d=cur();if(!d)return;const model=MODELS.find(([code])=>code===$('modelChoice').value);d.modelCode=model?.[0]||'';if(model)d.model=model[1];$('model').value=d.model;$('modelCode').value=d.modelCode;if(d.idMode==='auto'&&proposedId(d))setDoorId(d,proposedId(d),'auto');save()};
-$('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serialNumber').value.trim();if(!/^\d{1,6}$/.test(value)||Number(value)<1){$('idMessage').textContent='Ange ett löpnummer från 1 till 999999.';if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
+$('modelChoice').onchange=()=>{const d=cur();if(!d)return;const model=MODELS.find(([code])=>code===$('modelChoice').value);d.modelCode=model?.[0]||'';if(model)d.model=model[1];if(d.idMode!=='manual')d.idMode='auto';const nextId=proposedId(d);if(nextId&&d.idMode==='auto')setDoorId(d,nextId,'auto');else save()};
+$('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serialNumber').value.trim();if(!/^\d{1,6}$/.test(value)||Number(value)<1){$('idMessage').textContent='Ange ett löpnummer från 1 till 999999.';if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;lastShownDoor=d.uid}
  $('serialNumber').value=d.serialNumber||'';return}const old=d.serialNumber;d.serialNumber=String(Number(value));if(d.idMode==='auto'&&proposedId(d)&&!setDoorId(d,proposedId(d),'auto'))d.serialNumber=old;$('serialNumber').value=d.serialNumber;save()};
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
 $('signature').oninput=()=>{};
@@ -197,7 +204,7 @@ let lastShownDoor=null;
 const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;
  if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;document.querySelector('.doorDetails').open=!d.model;lastShownDoor=d.uid}
  if(isDoorRemediated(d))$('status').value='ok';
- if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelCode').value=d.modelCode||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
+ if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
  const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus;$('previousIssues').replaceChildren();
  if(prior.length){const ul=document.createElement('ul');prior.forEach(issue=>{const li=document.createElement('li');li.textContent=issue.n+' '+issue.title+' – '+(issue.note||'Beskrivning saknas');ul.appendChild(li)});$('previousIssues').appendChild(ul)}
  if(d.previousNotes){const p=document.createElement('p');p.textContent=d.previousNotes;$('previousIssues').appendChild(p)}
