@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.24">
-<link rel="stylesheet" href="security.css?v=2.4.24">
+<link rel="stylesheet" href="style.css?v=2.4.25">
+<link rel="stylesheet" href="security.css?v=2.4.25">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Säkerhetsservice</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.24">v2.4.24</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.25">v2.4.25</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
@@ -69,6 +69,16 @@
   <div id="secOverviewSummary"></div>
   <div class="overviewFilters secOverviewFilters"><label>Visa<select id="secOverviewFilter"><option value="all">Alla objekt</option><option value="problems">Objekt med fel</option><option value="untested">Ej klara</option><option value="ok">Godkända/åtgärdade</option></select></label><label>Sök<input id="secOverviewSearch" type="search" placeholder="ID, typ, placering"></label></div>
   <div id="secOverviewList"></div>
+</dialog>
+
+<dialog id="secOpenWorkDialog" class="secOpenWorkDialog">
+  <div class="secOpenWorkHead"><strong>Sparad Security Service-fil</strong><span>Vad vill du göra?</span></div>
+  <p id="secOpenWorkMeta">Arbetsfilen innehåller tidigare serviceuppgifter.</p>
+  <div class="secOpenWorkActions">
+    <button id="secOpenNewService" type="button" class="primary">Ny service</button>
+    <button id="secOpenContinue" type="button">Fortsätt / ändra</button>
+  </div>
+  <p class="muted">Ny service behåller projekt, kund, företag, logga, objekt och tekniker men nollställer dagens kontroll.</p>
 </dialog>
 
 <dialog id="secPreviewDialog" class="secPreviewDialog">
@@ -128,5 +138,5 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="security.js?v=2.4.24"></script>
+<script src="security.js?v=2.4.25"></script>
 </body></html>
