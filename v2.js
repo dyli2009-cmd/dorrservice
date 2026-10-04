@@ -153,6 +153,8 @@ $('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serial
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
 $('signature').oninput=()=>{};
 const DOOR_CHECK_RESULTS=[['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']];
+const protocolTextSizeButton=$('protocolTextSize');
+if(protocolTextSizeButton){protocolTextSizeButton.onclick=()=>{const large=document.body.classList.toggle('protocolReadable');protocolTextSizeButton.textContent=large?'A−':'A+';protocolTextSizeButton.setAttribute('aria-pressed',String(large))}}
 buildChecklist=function(d){
  const box=$('checklist');box.replaceChildren();
  const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';$('status').value='ok';save();buildChecklist(d);$('status').value=d.status;draw();updateCompactUI()};box.appendChild(approveAll);
@@ -162,7 +164,7 @@ buildChecklist=function(d){
   const update=()=>{count.textContent=indices.filter(i=>!!d.checks[CHECKS[i][0]].result).length+' / '+indices.length};
   indices.forEach(i=>{
    const [n,title]=CHECKS[i],c=d.checks[n],row=document.createElement('div');row.className='checkrow';row.dataset.check=n;
-   const heading=document.createElement('div');heading.className='checktitle';const nr=document.createElement('span');nr.className='checkNumber';nr.textContent=n;const text=document.createElement('span');text.textContent=title;heading.append(nr,text);row.appendChild(heading);
+   const heading=document.createElement('div');heading.className='checktitle';const nr=document.createElement('span');nr.className='checkNumber';nr.textContent=n;const text=document.createElement('span');text.textContent=title;heading.append(nr,text);row.appendChild(heading);if(CHECK_HINTS[n]){const hint=document.createElement('div');hint.className='checkHint';hint.textContent=CHECK_HINTS[n];row.appendChild(hint)}
    const buttons=document.createElement('div');buttons.className='quickBtns';const area=document.createElement('div');area.className='faultArea';area.hidden=c.result!=='remark';
    const select=document.createElement('select');select.className='faultSelect';select.setAttribute('aria-label','Vanlig anmärkning '+n);const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Välj vanlig anmärkning…';select.appendChild(placeholder);(COMMON_FAULTS[n]||['Justering/åtgärd krävs']).forEach(value=>{const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option)});
    const input=document.createElement('input');input.className='faultText';input.placeholder='Beskriv felet';input.value=c.note||'';input.setAttribute('aria-label','Anmärkning '+n);area.append(select,input);

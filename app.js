@@ -1,7 +1,13 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const CHECKS=[['1.1','Samtal med nyttjaren.'],['1.2','Okulärbesiktning av dörrautomatik/dörrmiljö.'],['1.3','Kontroll av eventuella ombyggnader.'],['1.4','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],['1.5','Funktionskontroll manuell och automatisk öppning (kraft, dämpning & hastighet).'],['1.6','Funktionskontroll manuell och automatisk stängning (kraft, dämpning & hastighet).'],['1.7','Funktionskontroll öppnings- & stängningstider.'],['1.8','Funktionskontroll av nödöppning & utrymning.'],['1.9','Funktionskontroll/justering koordinator och armsystem.'],['1.10','Funktionskontroll impulsgivare (radar, armbågskontakter etc).'],['1.11','Sensorlister och säkerhetsanordningar.'],['1.12','Funktionskontroll låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],['1.13','Kontroll/justering uppställningsmagnet & dörrstopp.'],['1.14','Kontroll gummiupphängningar, fjädrar, tryckslangar & tätning.'],['1.15','Kontroll motor, pump, hydraulik och drivaxel.'],['1.16','Kontroll säkringar / programväljare / styrmodul.'],['1.17','Behovsrengöring dörrautomatik och sensorlister.'],['1.18','Mindre justering.']];
+const CHECK_HINTS={
+'1.11':'Påminnelse: Riskbedöm slag-, kläm- och skärpunkter enligt SS-EN 16005. Kontrollera sensor-/skyddstäckning och behov av kläm-/fingerskydd vid bakkant/gångjärnssida.',
+'1.13':'Påminnelse: Kontrollera öppningsvinkel och dörrstopp enligt automatiktillverkarens anvisning. För stor öppningsvinkel kan belasta arm, infästning och drivaxel.'
+};
 const COMMON_FAULTS={
+'1.1':['Nyttjaren uppger återkommande driftstörning','Nyttjaren uppger avvikande funktion','Användning eller förutsättningar har ändrats'],
 '1.2':['Skada/slitage i dörrmiljön','Lösa eller skadade delar','Dörrblad/karm behöver justeras'],
+'1.3':['Ombyggnad påverkar dörrmiljön','Ändrad dörrmiljö kräver ny riskbedömning','Ny eller ändrad utrustning behöver kontrolleras'],
 '1.4':['Infästning lös – efterdragning krävs','Skruvar saknas/lösa','Automatikhus/arm sitter löst'],
 '1.5':['För hög öppningskraft','Fel öppningshastighet','Dämpning behöver justeras','Dörr öppnar inte fullt'],
 '1.6':['För hög stängningskraft','Fel stängningshastighet','Dämpning behöver justeras','Dörr stänger inte helt'],
@@ -9,9 +15,9 @@ const COMMON_FAULTS={
 '1.8':['Nödöppning fungerar ej','Utrymningsfunktion behöver åtgärdas'],
 '1.9':['Armsystem behöver justeras','Koordinator fungerar ej korrekt','Glapp/slitage i armsystem'],
 '1.10':['Radar/impulsgivare fungerar ej','Armbågskontakt fungerar ej','Impulsgivare behöver justeras'],
-'1.11':['Sensor saknas – komplettering krävs enligt SS-EN 16005','Sensorlist fungerar ej','Säkerhetssensor behöver justeras','Sensor täcker inte riskområdet'],
+'1.11':['Säkerhetsanordning saknas eller är otillräcklig – riskbedöm mot SS-EN 16005','Säkerhetssensor/sensorlist fungerar ej','Sensor täcker inte hela riskområdet','Kläm-/skärpunkt vid bakkant eller gångjärnssida är inte tillräckligt skyddad','Kompletterande kläm-/fingerskydd behöver bedömas'],
 '1.12':['Elslutbleck fungerar ej korrekt','Lås släpper för sent/kort tid','Motorlås/ellås fungerar ej','Dörr/lås behöver justeras'],
-'1.13':['Dörrstopp behöver justeras','Uppställningsmagnet fungerar ej'],
+'1.13':['Dörrstopp saknas eller är felplacerat','Dörr öppnar för långt / fel öppningsvinkel','Uppställningsmagnet fungerar ej','Arm eller drivaxel belastas i öppet ändläge','Dörrstopp/öppningsvinkel behöver justeras enligt tillverkarens anvisning'],
 '1.14':['Gummiupphängning sliten','Fjäder behöver bytas/justeras','Tryckslang/tätning behöver åtgärdas'],
 '1.15':['Motor missljud/slitage','Pump/hydraulik läcker','Drivaxel glapp/slitage'],
 '1.16':['Programväljare fungerar ej','Styrmodul fel','Säkring/strömförsörjning behöver åtgärdas'],
