@@ -85,14 +85,17 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   }
   doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();backToDrawingButton();protocolTop();checkHeader();
   const ws=[10,99,15,25,27,10];
-  CHECKS.forEach(([n,title])=>{
-   const c=d.checks[n]||{},h=7.7;let x=left;
+  doorChecks(d).forEach(([n,title])=>{
+   doc.setFont('helvetica','normal');doc.setFontSize(7);
+   const titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.5),step=2.65,h=Math.max(7.7,titleLines.length*step+3);
+   if(y+h>250){doc.addPage();backToDrawingButton();continuationTop('Kontrollpunkter - fortsättning');checkHeader()}
+   const c=d.checks[n]||{};let x=left;
    const vals=[n,title,c.result==='na'?'–':'','',c.result==='remark'?'X':'',p.serviceSignature||d.signature||''];
    vals.forEach((v,i)=>{
     doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(x,y,ws[i],h,'FD');doc.setTextColor(0,0,0);
     if(i===1){
       doc.setFont('helvetica','normal');doc.setFontSize(7);
-      const lines=doc.splitTextToSize(String(v||''),ws[i]-3.5).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;
+      const lines=titleLines,startY=y+h/2-((lines.length-1)*step)/2+.85;
       doc.text(lines,x+1.7,startY,{lineHeightFactor:1});
     }else if(i===2&&c.result==='na'){
       const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineCap('round');doc.setLineWidth(.9);doc.line(cx-3.0,cy,cx+3.0,cy);doc.setLineCap('butt');
@@ -106,13 +109,14 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     x+=ws[i]
    });y+=h;
   });
-  function continuationTop(){
+  function continuationTop(section='Allmän Info - fortsättning'){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
    doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.1);doc.text('Dokumentnr: 2519-1',left+61,11.7);doc.setFontSize(8.9);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,17.3,{align:'center'});
-   doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.text('Allmän Info - fortsättning',112,22.4,{align:'center'});
+   doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.text(section,112,22.4,{align:'center'});
    y=31;cell('Id nummermaskin:',d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',p.projectOrder,left+124,y,62,8);y+=12;
   }
+  if(y>246){doc.addPage();backToDrawingButton();continuationTop('Allmän Info')}
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
   const remediationNote=isDoorRemediated(d)?'Åtgärdad '+d.remediationDate+' · Signatur: '+d.remediationSignature:'';
   const notes=[...doorProblems(d).map(([n,t])=>d.checks[n].note?.trim()||t),remediationNote,d.notes].filter(Boolean).join('\n');
@@ -133,3 +137,4 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);text([p.company,p.projectName||p.facilityNo].filter(Boolean).join(' · ')||'Dörrservice',left,289,7,false,[89,110,123]);text('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
  return doc;
 }
+

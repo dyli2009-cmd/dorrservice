@@ -1,4 +1,4 @@
-const CACHE='dorrservice-2.4.36';
+const CACHE='dorrservice-2.4.37';
 const CORE=['./','./index.html','./style.css','./app.js','./reports.js','./v2.js','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./security.html','./security.css','./security.js','./drawing-tools.html','./drawing-tools.css','./drawing-tools.js','./drawing-transfer.js'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('dorrservice-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
@@ -15,3 +15,4 @@ self.addEventListener('fetch',event=>{
  }
  event.respondWith(caches.match(event.request,{ignoreSearch:true}).then(cached=>cached||fetch(event.request).then(response=>{if(response&&(response.ok||response.type==='opaque'))caches.open(CACHE).then(cache=>cache.put(event.request,response.clone()));return response})));
 });
+

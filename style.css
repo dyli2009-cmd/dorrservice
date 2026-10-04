@@ -609,3 +609,10 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  .doorTarget{width:40px;height:40px;min-width:40px;min-height:40px}
  .doorTarget::after{width:13px;height:13px}
 }
+
+
+/* Custom door checks: editing controls stay in the app. */
+#protocolPanel .checktitle{align-items:flex-start}
+#protocolPanel .checktitle>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+#protocolPanel .doorRemoveCheck{flex:none;min-height:36px;padding:5px 8px;font-size:11px;color:#a6292e;background:#fff5f4;border-color:#efceca}
+#protocolPanel .doorAddCheck{width:100%;min-height:44px;margin:8px 0 14px;background:#e6eff4;border-color:#cbdde7}

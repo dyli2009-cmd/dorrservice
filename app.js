@@ -31,7 +31,30 @@ if(homeBtn)homeBtn.onclick=showAppHome;
 
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
-function normalize(d){d.checks=d.checks||{};CHECKS.forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
+function doorChecks(d){return [...CHECKS,...(Array.isArray(d.customChecks)?d.customChecks:[]).map(c=>[c.id,c.title])]}
+function normalizeDoorCustomChecks(d){
+ const used=new Set(CHECKS.map(([n])=>n));
+ d.customChecks=(Array.isArray(d.customChecks)?d.customChecks:[]).filter(c=>{
+  if(!c||typeof c.id!=='string'||!/^1\.\d+$/.test(c.id)||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;
+  used.add(c.id);return true;
+ });
+}
+function syncDoorCheckStatus(d){
+ const checks=doorChecks(d),remark=checks.some(([n])=>d.checks[n]?.result==='remark'),done=checks.length>0&&checks.every(([n])=>['ok','na','remark'].includes(d.checks[n]?.result));
+ if(d.status!=='fail')d.status=remark?'action':done?'ok':'untested';
+}
+function addDoorCustomCheck(d,title){
+ if(typeof title!=='string'||!title.trim())return false;
+ normalize(d);const used=new Set(doorChecks(d).map(([n])=>n));let next=CHECKS.length+1;
+ while(used.has('1.'+next))next++;
+ const id='1.'+next;d.customChecks.push({id,title:title.trim()});d.checks[id]={result:'',note:''};
+ d.remediationDate='';d.remediationSignature='';syncDoorCheckStatus(d);return true;
+}
+function removeDoorCustomCheck(d,id){
+ if(!d.customChecks?.some(c=>c.id===id))return false;
+ d.customChecks=d.customChecks.filter(c=>c.id!==id);delete d.checks[id];syncDoorCheckStatus(d);return true;
+}
+function normalize(d){d.checks=d.checks||{};normalizeDoorCustomChecks(d);doorChecks(d).forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
 let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){
@@ -278,7 +301,7 @@ wrap.addEventListener('touchend',endTouch,{passive:true});wrap.addEventListener(
 $('addBtn')&&($('addBtn').onclick=toggleAdd);$('mobileText')&&($('mobileText').onclick=toggleText);$('mobileAdd').onclick=toggleAdd;$('mobileFit').onclick=()=>{zoom=1;render(true)};$('mobileProtocol').onclick=()=>document.body.classList.add('protocolOpen');$('closeProtocol').onclick=()=>document.body.classList.remove('protocolOpen');
 
 const STATUS_LABELS={untested:'Ej provad',ok:'Godkänd',action:'Åtgärd krävs',fail:'Ej godkänd'};
-function doorProblems(d){return CHECKS.filter(([n])=>d.checks?.[n]?.result==='remark')}
+function doorProblems(d){return doorChecks(d).filter(([n])=>d.checks?.[n]?.result==='remark')}
 function hasRecordedDoorProblem(d){return d.status==='action'||d.status==='fail'||doorProblems(d).length>0}
 function isDoorRemediated(d){return hasRecordedDoorProblem(d)&&!!String(d.remediationDate||'').trim()&&!!String(d.remediationSignature||'').trim()}
 function hasDoorProblem(d){return hasRecordedDoorProblem(d)&&!isDoorRemediated(d)}
@@ -327,4 +350,5 @@ async function openOverviewDoor(uid){
 $('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;
 $('closeOverview').onclick=()=>$('overviewDialog').close();
 $('overviewFilter').onchange=renderOverview;$('overviewSearch').oninput=renderOverview;
+
 
