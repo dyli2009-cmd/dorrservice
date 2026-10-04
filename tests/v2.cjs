@@ -84,4 +84,5 @@ const drawing=require('./pdf-fixture.cjs');
 
   // Simplified Door form: shared project data is not duplicated per door.
   assert.equal(await page.locator('#generateId').count(),0);
-  for(const id of ['modelCode','model','machineId','location','ao','nextDate'])assert.equal(await page.locator('#'+id).count(),0,'Removed redundant field: '+id);
+  for(const id of ['modelCode','model','machineId','ao','nextDate'])assert.equal(await page.locator('#'+id).count(),0,'Removed redundant field: '+id);
+  assert.equal(await page.locator('#location').count(),1,'Placement stays in the compact Door form');
