@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.30">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.31">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
- <span class="version">v2.4.30</span>
+ <span class="version">v2.4.31</span>
 </header>
 
 <main class="toolShell">
@@ -28,6 +28,10 @@
  </section>
 
  <div id="toolMessage" role="status">Öppna en PDF för att börja.</div>
+ <section id="deepCleanInfo" class="deepCleanInfo" hidden>
+   <strong id="deepCleanTitle">Originalritning hittad</strong>
+   <span id="deepCleanText"></span>
+ </section>
 
  <section id="workspace" class="workspace" hidden>
   <aside class="toolPanel">
@@ -65,6 +69,12 @@
      <button id="removePage" type="button">Ta bort aktuell sida</button>
      <button id="undoPage" type="button" disabled>Ångra</button>
     </div>
+    <button id="selectPages" class="wideToolBtn" type="button" aria-pressed="false">Välj flera sidor</button>
+    <div id="bulkPageActions" class="bulkPageActions" hidden>
+      <button id="selectAllPages" type="button">Markera alla</button>
+      <button id="clearPageSelection" type="button">Avmarkera</button>
+      <button id="removeSelectedPages" type="button" class="dangerBtn">Ta bort valda</button>
+    </div>
     <div id="pageList" class="pageList"></div>
    </div>
   </aside>
@@ -92,7 +102,7 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="drawing-transfer.js?v=2.4.30"></script>
-<script src="drawing-tools.js?v=2.4.30"></script>
+<script src="drawing-transfer.js?v=2.4.31"></script>
+<script src="drawing-tools.js?v=2.4.31"></script>
 </body>
 </html>

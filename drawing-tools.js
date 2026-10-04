@@ -4,6 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const $=id=>document.getElementById(id);
 let pdf=null,sourceBytes=null,fileName='ritning.pdf',page=1,keep=[],undo=[],renderTask=null,lastOutput=null;
 let manualMasks={},eraseActive=false,dragStart=null;
+let selectPagesMode=false,selectedPages=new Set(),workSourceKind='';
 const QUALITY={
  light:{maxPixels:3500000,maxSide:3200,jpeg:.78,label:'Lätt'},
  balanced:{maxPixels:7000000,maxSide:4200,jpeg:.86,label:'Balans'},
@@ -14,6 +15,26 @@ function formatBytes(n){if(!Number.isFinite(n))return'';if(n<1024*1024)return Ma
 function cleanName(name){return String(name||'ritning.pdf').replace(/\.pdf$/i,'').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'ritning'}
 function keptPages(){return keep.map((v,i)=>v?i+1:null).filter(Boolean)}
 function pushUndo(){undo.push(keep.slice());if(undo.length>20)undo.shift();$('undoPage').disabled=false}
+async function inspectKnownWorkPdf(bytes){
+ if(!window.PDFLib)return null;
+ const {PDFDocument,PDFName,PDFDict,PDFRawStream,decodePDFRawStream}=PDFLib;
+ try{
+  const doc=await PDFDocument.load(bytes,{updateMetadata:false,ignoreEncryption:true});
+  for(const spec of [
+   {name:'DorrserviceWork',kind:'Dörrautomatik'},
+   {name:'SecurityServiceWork',kind:'Säkerhetsservice'}
+  ]){
+   const ref=doc.catalog.get(PDFName.of(spec.name));if(!ref)continue;
+   const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))continue;
+   const drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);if(!drawing)continue;
+   const drawingBytes=decodePDFRawStream(drawing).decode().slice();
+   const original=await PDFDocument.load(drawingBytes,{updateMetadata:false,ignoreEncryption:true});
+   if(!original.getPageCount())continue;
+   return {drawingBytes,kind:spec.kind,pageCount:original.getPageCount()};
+  }
+ }catch(error){console.warn('Djup PDF-kontroll kunde inte läsa arbetsdata',error)}
+ return null;
+}
 function masksFor(pageNo){return manualMasks[pageNo]||(manualMasks[pageNo]=[])}
 function updateEraseButtons(){
  const count=(manualMasks[page]||[]).length;
@@ -23,13 +44,31 @@ function updateEraseButtons(){
  $('eraseMode').textContent=eraseActive?'Radera område: PÅ':'Radera område';
  $('previewWrap').classList.toggle('eraseMode',eraseActive);
 }
+function updateBulkControls(){
+ $('selectPages').classList.toggle('active',selectPagesMode);
+ $('selectPages').setAttribute('aria-pressed',String(selectPagesMode));
+ $('selectPages').textContent=selectPagesMode?'Välj flera sidor: PÅ':'Välj flera sidor';
+ $('bulkPageActions').hidden=!selectPagesMode;
+}
 function renderPageList(){
  const box=$('pageList');box.replaceChildren();
- keep.forEach((yes,i)=>{const b=document.createElement('button');b.type='button';b.textContent=i+1;b.className=(i+1===page?'active ':'')+(yes?'':'removed');b.onclick=()=>{page=i+1;renderPageList();updateEraseButtons();renderPreview()};box.appendChild(b)});
+ keep.forEach((yes,i)=>{
+  const no=i+1,b=document.createElement('button');b.type='button';b.textContent=no;
+  b.className=(no===page?'active ':'')+(yes?'':'removed')+(selectedPages.has(no)?' selected':'');
+  b.onclick=()=>{
+   if(selectPagesMode){
+    selectedPages.has(no)?selectedPages.delete(no):selectedPages.add(no);
+    renderPageList();return;
+   }
+   page=no;renderPageList();updateEraseButtons();renderPreview()
+  };
+  box.appendChild(b)
+ });
  $('removePage').textContent=keep[page-1]?'Ta bort aktuell sida':'Återställ aktuell sida';
  $('pageInfo').textContent='Sida '+page+' / '+keep.length;
- const mc=(manualMasks[page]||[]).length;$('pageState').textContent=(keep[page-1]?'Tas med':'Tas bort')+(mc?' · '+mc+' manuella raderingar':'');
+ const mc=(manualMasks[page]||[]).length;$('pageState').textContent=(keep[page-1]?'Tas med':'Tas bort')+(mc?' · '+mc+' manuella raderingar':'')+(selectPagesMode&&selectedPages.size?' · '+selectedPages.size+' valda':'');
  $('prevPage').disabled=page<=1;$('nextPage').disabled=page>=keep.length;
+ updateBulkControls();
 }
 function previewScale(vp){const wrap=$('previewWrap'),maxW=Math.max(260,wrap.clientWidth-20),maxH=Math.max(330,Math.min(900,wrap.clientHeight||700)-20);return Math.max(.2,Math.min(1.6,maxW/vp.width,maxH/vp.height))}
 function stripColoredMarks(ctx,w,h){
@@ -83,11 +122,20 @@ async function renderPreview(){
 async function loadFile(file){
  if(!file)return;
  try{
-  message('Laddar ritningen…');const bytes=new Uint8Array(await file.arrayBuffer()),candidate=await pdfjsLib.getDocument({data:bytes.slice()}).promise;await candidate.getPage(1);
+  message('Läser PDF-strukturen…');
+  const uploadedBytes=new Uint8Array(await file.arrayBuffer()),embedded=await inspectKnownWorkPdf(uploadedBytes),drawingBytes=embedded?.drawingBytes||uploadedBytes,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;await candidate.getPage(1);
   if(pdf)try{await pdf.destroy()}catch(_){}
-  pdf=candidate;sourceBytes=bytes;fileName=file.name||'ritning.pdf';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};eraseActive=false;dragStart=null;lastOutput=null;
-  $('undoPage').disabled=true;$('workspace').hidden=false;$('outputActions').hidden=false;$('resultCard').hidden=true;renderPageList();updateEraseButtons();await renderPreview();
-  message('Ritningen är klar. '+pdf.numPages+' sidor · '+formatBytes(bytes.byteLength)+'. Originalfilen ändras inte.');
+  pdf=candidate;sourceBytes=drawingBytes;fileName=file.name||'ritning.pdf';workSourceKind=embedded?.kind||'';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};eraseActive=false;dragStart=null;selectPagesMode=false;selectedPages=new Set();lastOutput=null;
+  $('undoPage').disabled=true;$('workspace').hidden=false;$('outputActions').hidden=false;$('resultCard').hidden=true;
+  if(embedded){
+   $('deepCleanInfo').hidden=false;$('deepCleanTitle').textContent=embedded.kind+' arbets-PDF upptäckt';
+   $('deepCleanText').textContent='Originalritningen har plockats ut direkt ur filen. Gamla servicepilar, etiketter, protokollsidor och inbäddad arbetsdata används inte i den nya ritningen.';
+  }else{
+   $('deepCleanInfo').hidden=false;$('deepCleanTitle').textContent='Vanlig PDF';
+   $('deepCleanText').textContent='Den nya arbetskopian byggs om från synligt ritningsinnehåll. JavaScript, formulär, länkar, actions, bilagor och annan interaktiv PDF-data följer inte med.';
+  }
+  renderPageList();updateEraseButtons();await renderPreview();
+  message((embedded?'Originalritningen hittades och återställdes. ':'Ritningen är klar. ')+pdf.numPages+' sidor · '+formatBytes(drawingBytes.byteLength)+'. Originalfilen ändras inte.');
  }catch(e){console.error(e);message('Kunde inte öppna PDF-filen.',true)}
 }
 function rasterScale(base,q){
@@ -129,6 +177,15 @@ $('toolFile').onchange=e=>{const f=e.target.files?.[0];loadFile(f);e.target.valu
 $('prevPage').onclick=()=>{if(page>1){page--;renderPageList();updateEraseButtons();renderPreview()}};
 $('nextPage').onclick=()=>{if(page<keep.length){page++;renderPageList();updateEraseButtons();renderPreview()}};
 $('removePage').onclick=()=>{if(!pdf)return;if(keep[page-1]&&keptPages().length===1)return message('Du kan inte ta bort den sista sidan.',true);pushUndo();keep[page-1]=!keep[page-1];invalidate();renderPageList();renderPreview();message(keep[page-1]?'Sidan återställd.':'Sidan tas inte med i arbetskopian.')};
+$('selectPages').onclick=()=>{selectPagesMode=!selectPagesMode;if(!selectPagesMode)selectedPages.clear();renderPageList();message(selectPagesMode?'Klicka på alla sidor du vill välja. Tryck sedan “Ta bort valda”.':'Flervalsläget är avstängt.')};
+$('selectAllPages').onclick=()=>{selectedPages=new Set(keep.map((_,i)=>i+1));renderPageList()};
+$('clearPageSelection').onclick=()=>{selectedPages.clear();renderPageList()};
+$('removeSelectedPages').onclick=()=>{
+ if(!selectedPages.size)return message('Välj först vilka sidor som ska tas bort.',true);
+ const currentlyKept=keptPages(),toRemove=currentlyKept.filter(n=>selectedPages.has(n));
+ if(currentlyKept.length-toRemove.length<1)return message('Du måste lämna minst en sida kvar.',true);
+ pushUndo();toRemove.forEach(n=>keep[n-1]=false);selectedPages.clear();selectPagesMode=false;invalidate();renderPageList();renderPreview();message(toRemove.length+' sidor tas bort från arbetskopian.');
+};
 $('undoPage').onclick=()=>{if(!undo.length)return;keep=undo.pop();$('undoPage').disabled=!undo.length;invalidate();renderPageList();renderPreview();message('Senaste sidändringen ångrades.')};
 $('removeText').onchange=()=>{invalidate();renderPreview()};
 $('removeAnnotations').onchange=()=>{invalidate();renderPreview()};
