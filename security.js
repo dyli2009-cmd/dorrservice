@@ -78,6 +78,13 @@ const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
 const PROJECT_FIELDS=['secProjectName','secFacilityNo','secOrder','secDate','secNextDate','secCustomer','secAgreement','secContact','secPhone','secAddress','secCompany','secTechnician','secCompanyContact','secCompanyPhone','secCompanyAddress','secSignature'];
 function localToday(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
+function shiftedNextDate(previousDate,previousNextDate){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(previousDate||'')||!/^\d{4}-\d{2}-\d{2}$/.test(previousNextDate||''))return '';
+ const from=new Date(previousDate+'T12:00:00'),to=new Date(previousNextDate+'T12:00:00'),days=Math.round((to-from)/86400000);
+ if(!Number.isFinite(days)||days<1||days>730)return '';
+ const today=localToday(),base=new Date(today+'T12:00:00');base.setDate(base.getDate()+days);
+ const local=new Date(base.getTime()-base.getTimezoneOffset()*60000);return local.toISOString().slice(0,10);
+}
 function emptyProject(){return {projectName:'',facilityNo:'',order:'',date:localToday(),nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',technician:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',signature:''}}
 function hasSecurityRecordedProblem(o){return o.status==='action'||o.status==='fail'||Object.values(o.checks||{}).some(c=>c.result==='remark')}
 function isSecurityRemediated(o){return hasSecurityRecordedProblem(o)&&!!String(o.remediationDate||'').trim()&&!!String(o.remediationSignature||'').trim()}
@@ -394,7 +401,7 @@ $('secTechnician').oninput=()=>{
 function startNewSecurityService(requireConfirm=true){
  if(!pdf||!items.length){msg('Lägg till objekt innan du startar en ny service.',true);return false}
  if(requireConfirm&&!confirm('Starta en ny service med samma ritning och objekt? Dagens kontroller nollställs. Projekt, kontaktuppgifter, företag, logga, objektplaceringar och servicetekniker behålls.'))return false;
- const previousDate=project.date||'';
+ const previousDate=project.date||'',previousNextDate=project.nextDate||'',suggestedNextDate=shiftedNextDate(previousDate,previousNextDate);
  items.forEach(o=>{
   o.previousIssues=allChecks(o).filter(([n])=>o.checks?.[n]?.result==='remark').map(([n,title])=>({n,title,note:o.checks[n]?.note||''}));
   o.previousNotes=o.notes||'';
@@ -402,7 +409,7 @@ function startNewSecurityService(requireConfirm=true){
   o.previousServiceDate=previousDate;
   o.checks={};o.notes='';o.manualFail=false;o.status='untested';o.remediationDate='';o.remediationSignature='';normalize(o);
  });
- project.order='';project.date=localToday();project.nextDate='';project.signature='';
+ project.order='';project.date=localToday();project.nextDate=suggestedNextDate;project.signature='';
  selected=null;syncProjectInputs();save();drawMarkers();showSelected();showOverview();go('project');msg('Ny service startad. Grunduppgifter, logga, objekt och servicetekniker är kvar. Fyll i nytt ordernummer och nästa provningsdatum.');
  requestAnimationFrame(()=>$('secOrder')?.focus());
  return true;
