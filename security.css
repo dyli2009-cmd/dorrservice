@@ -208,3 +208,14 @@ body.secTextAdding #secViewer{cursor:crosshair}
   font-size:9.5px;
  }
 }
+
+
+/* Web 2.4.14: prevent iPhone auto-zoom while typing a custom Security remark. */
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #securityProtocol .secFault input.iosTyping{
+   font-size:16px!important;
+   line-height:1!important;
+  }
+ }
+}
