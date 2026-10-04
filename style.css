@@ -572,3 +572,20 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 @media(max-width:800px){
  .marker.markerTag{max-width:165px;font-size:7.6px;padding:0 6px}
 }
+
+
+/* Web 2.4.26: guided Door Automation work-file flow. */
+.doorOpenWorkDialog{width:min(430px,92vw);border:0;border-radius:12px;padding:0;background:#fff;box-shadow:0 18px 55px #0005}
+.doorOpenWorkDialog::backdrop{background:#0b1b24aa}
+.doorOpenWorkHead{display:flex;flex-direction:column;gap:2px;padding:13px 14px;background:#132b38;color:#fff}
+.doorOpenWorkHead strong{font-size:15px}.doorOpenWorkHead span{font-size:10px;color:#c6d8e2}
+.doorOpenWorkDialog>p{margin:0;padding:12px 14px 5px;font-size:10px;line-height:1.4;color:#40545f}
+.doorOpenWorkDialog>.muted{padding:7px 14px 13px;font-size:8.8px;color:#6c7f89}
+.doorOpenWorkActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px 14px 4px}
+.doorOpenWorkActions button{min-height:40px}
+@media(max-width:520px){
+ .doorOpenWorkDialog{width:min(390px,94vw)}
+ .doorOpenWorkActions{grid-template-columns:1fr;gap:5px;padding:7px 10px 3px}
+ .doorOpenWorkHead{padding:11px 12px}
+ .doorOpenWorkDialog>p{padding-left:11px;padding-right:11px}
+}
