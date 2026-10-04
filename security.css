@@ -152,44 +152,23 @@ body.secTextAdding #secViewer{cursor:crosshair}
  }
 }
 
-/* Security header v15: explicit rows, isolated from generic header flex rules */
+/* Compact actions below the title, aligned right. */
 .securityApp .secAppHeader{
- display:block!important;
- padding:6px 8px!important;
- min-height:0!important;
- overflow:visible!important;
+ display:flex!important;flex-direction:column;align-items:flex-start;gap:6px;
+ padding:6px 8px!important;min-height:0!important;overflow:visible!important;
  background:#132b38!important;
 }
-.securityApp .secHeaderTop,
-.securityApp .secHeaderActions{
- display:flex!important;
- align-items:center;
- width:100%;
- min-width:0;
+.securityApp .secHeaderTop,.securityApp .secHeaderActions{
+ display:flex!important;align-items:center;min-width:0;
 }
-.securityApp .secHeaderTop{gap:8px;margin-bottom:6px}
+.securityApp .secHeaderTop{flex:0 0 auto;width:100%;margin:0}
 .securityApp .secHeaderTop .brand{flex:1;min-width:0;margin:0!important}
 .securityApp .secHeaderTop .brand strong{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.securityApp .secHeaderTop>a.filebtn{flex:0 0 auto}
-.securityApp .secHeaderActions{gap:6px}
-.securityApp .secHeaderActions>label.filebtn,
-.securityApp .secHeaderActions>button{
- flex:1 1 0;
- min-width:0;
- min-height:34px;
- height:34px;
- padding:5px 6px;
- font-size:10.5px;
- white-space:nowrap;
- overflow:hidden;
- text-overflow:ellipsis;
+.securityApp .secHeaderActions{
+ flex:0 0 auto;width:auto;max-width:100%;justify-content:flex-end;margin-left:auto;gap:4px;
 }
-.securityApp #secFit,
-.securityApp #secFitMobile{display:none!important}
-@media(min-width:801px){
- .securityApp .secAppHeader{display:flex!important;align-items:center;gap:7px}
- .securityApp .secHeaderTop{display:flex!important;width:auto;flex:1;margin:0}
- .securityApp .secHeaderActions{display:flex!important;width:auto}
- .securityApp .secHeaderActions>label.filebtn,
- .securityApp .secHeaderActions>button{flex:0 0 auto;min-width:auto}
+.securityApp .secHeaderActions>button,.securityApp .secHeaderActions>.filebtn{
+ flex:0 0 auto;width:auto;min-width:0;min-height:32px;height:32px;
+ padding:5px 7px;font-size:10.5px;line-height:20px;white-space:nowrap;
 }
+.securityApp #secFit,.securityApp #secFitMobile{display:none!important}
