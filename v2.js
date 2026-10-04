@@ -332,8 +332,8 @@ $('exportBtn').onclick=async()=>{
 createProblemPdf=function(){if(!doors.some(hasRecordedDoorProblem))throw new Error('Inga registrerade anmärkningar.');return buildServiceReportDoc(structuredClone({doors,project,logoData}),false)};
 updateCompactUI();
 
-function doorDrawingLabel(d){const serial=String(d.serialNumber||'').replace(/^0+(?=\d)/,'')||'';const parts=[project.facilityNo?.trim(),d.modelCode||d.model,serial].filter(Boolean);return parts.length?parts.join(' · '):d.id}
-const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.querySelectorAll('.marker')).forEach((element,index)=>{const d=items[index];if(!d)return;const label=doorDrawingLabel(d);element.textContent=label;element.title=label;element.setAttribute('aria-label','Dörr '+label);element.className='marker markerTag '+displayStatus(d)+' '+(d.x<.18?'arrowLeft':'arrowRight')})};
+function doorDrawingLabel(d){return String(d.serialNumber||d.id).replace(/^D/,'').replace(/^0+(?=\d)/,'')}
+const baseDraw=draw;draw=function(){baseDraw();const items=doors.filter(d=>d.page===page);Array.from(markers.querySelectorAll('.marker')).forEach((element,index)=>{const d=items[index];if(!d)return;const label=doorDrawingLabel(d);element.textContent=label;element.title='Dörr '+label;element.setAttribute('aria-label','Dörr '+label);element.className='marker '+displayStatus(d)+' '+(d.x<.18?'arrowLeft':'arrowRight')})};
 
 let keyboardBaseline=Math.round(window.visualViewport?.height||window.innerHeight),keyboardTimer=null;
 function editableElement(){return document.activeElement?.matches?.('input,textarea,select,[contenteditable=true]')?document.activeElement:null}
