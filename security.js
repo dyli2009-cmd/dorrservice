@@ -381,21 +381,24 @@ function reportDoc(){
  doc.__protocolPages={};doc.__backLinks=[];
  function txt(value,x,y,size=8,bold=false,color=[25,40,48],opts){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||''),x,y,opts||{})}
  function addLogo(x,y,w,h){if(!logoData)return;try{const im=doc.getImageProperties(logoData),pad=2.5,sc=Math.min((w-pad*2)/im.width,(h-pad*2)/im.height),iw=im.width*sc,ih=im.height*sc;doc.addImage(logoData,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(_){}}
- function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(19,43,56);doc.rect(left,8,width,18,'F');doc.setDrawColor(255,255,255);doc.setLineWidth(.2);doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);else txt('SÄKERHETSSERVICE',left+29,18,7,true,[255,255,255],{align:'center'});txt(title,left+58+(width-58)/2,16.2,10.5,true,[255,255,255],{align:'center'});txt('Säkerhetsservice · kundrapport',left+58+(width-58)/2,21.7,7,false,[210,224,232],{align:'center'})}
+ function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25],{align:'center'});txt('SÄKERHETSSERVICE · KUNDRAPPORT',left+58+(width-58)/2,21.4,6.8,false,[70,82,90],{align:'center'})}
  summaryHeader();let y=32;
  const field=(label,value,x,yy,w)=>{doc.setFillColor(243,247,249);doc.rect(x,yy,w,13,'F');txt(label,x+2,yy+4,6.5,true,[89,110,123]);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(32,52,64);doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.5)};
  [['OBJEKT',project.projectName||project.facilityNo],['OBJEKTNUMMER',project.facilityNo],['ORDER',project.order]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=16;
  [['DATUM',project.date],['TEKNIKER',project.technician||project.company],['SIGNATUR',project.signature]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=18;
- const counts={ok:0,action:0,fail:0,untested:0};items.forEach(o=>counts[statusOf(o)]++);
- txt(items.length+' objekt · '+(counts.action+counts.fail)+' med fel/anmärkning · '+counts.untested+' ej klara',left,y,9,true);y+=8;
- [['Godkänd','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([label,key],i)=>{doc.setFillColor(...COLORS[key]);doc.circle(left+i*46+1,y-1,1.3,'F');txt(label,left+i*46+4,y,7)});y+=8;
- const problemItems=items.filter(o=>issues(o).length||statusOf(o)!=='ok').sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
+ const open=items.filter(hasSecurityProblem).length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>statusOf(o)==='ok').length;
+ const stats=[['TOTALT',items.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],COLORS.action],['ÅTGÄRDADE',done,[229,244,234],COLORS.ok],['KLARA',ready,[229,244,234],COLORS.ok]];
+ const gap=2,boxW=(width-gap*3)/4;
+ stats.forEach(([label,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,12,1.5,1.5,'FD');txt(label,x+2.5,y+4,5.8,true,[89,110,123]);txt(value,x+boxW-3,y+8.4,11,true,fg,{align:'right'})});y+=16;
+ [['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([label,key],i)=>{doc.setFillColor(...COLORS[key]);doc.circle(left+i*46+1,y-1,1.3,'F');txt(label,left+i*46+4,y,6.6)});y+=7;
+ txt('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;
+ const problemItems=items.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
  if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
  problemItems.forEach(o=>{
-  const st=statusOf(o),statusLabel=st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
-  const titleBase=o.id+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
-  const issueText=issues(o);
-  const bodySource=issueText.length?issueText.map(t=>'• '+t).join('\n'):(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel);
+  const st=statusOf(o),statusLabel=isSecurityRemediated(o)?'Åtgärdad':st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
+  const titleBase=securityDrawingLabel(o)+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
+  const issueText=issues(o),remediation=isSecurityRemediated(o)?'Åtgärdad: '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';
+  const bodyParts=issueText.length?issueText.map(t=>'• '+t):[(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel)];if(remediation)bodyParts.push('• '+remediation);const bodySource=bodyParts.join('\n');
   doc.setFont('helvetica','bold');doc.setFontSize(7.8);
   const titleLines=doc.splitTextToSize(titleBase,width-38);
   doc.setFont('helvetica','normal');doc.setFontSize(6.4);
@@ -474,7 +477,7 @@ function reportDoc(){
    });y+=h;
   });
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.rect(left,y,width,6,'FD');txt('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
-  const noteLines=[...issues(o),o.notes].filter(Boolean);
+  const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';const noteLines=[...issues(o),remediationNote,o.notes].filter(Boolean);
   const text=noteLines.join('\n'),boxH=Math.min(30,Math.max(18,276-y));doc.setFillColor(255,255,255);doc.rect(left,y,width,boxH,'FD');
   if(text){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);doc.text(doc.splitTextToSize(text,width-7).slice(0,Math.floor((boxH-5)/3.2)),left+3,y+5,{lineHeightFactor:1.15})}
  });
