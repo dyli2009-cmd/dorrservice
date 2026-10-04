@@ -18,3 +18,11 @@ assert(index.includes('drawing-transfer.js?v=2.4.29'),'Door Automation must acce
 assert(security.includes('drawing-transfer.js?v=2.4.29'),'Security Service must accept Drawing Tools transfer');
 assert(html.includes('Öppna i Dörrautomatik')&&html.includes('Öppna i Säkerhetsservice'),'Drawing Tools must route to both service modes');
 console.log('Drawing Tools regression checks passed.');
+
+assert(html.includes('id="aggressiveClean"'),'Aggressive cleanup control must exist');
+assert(html.includes('id="eraseMode"'),'Manual area eraser must exist');
+assert(html.includes('id="removeColors"'),'Colored-mark cleanup must exist');
+assert(js.includes('stripColoredMarks'),'Drawing Tools must remove colored marks when requested');
+assert(js.includes('applyManualMasks'),'Manual erased areas must be applied to output');
+assert(js.includes("addEventListener('pointerdown'"),'Area eraser must support direct pointer dragging');
+console.log('Aggressive cleanup regression checks passed.');

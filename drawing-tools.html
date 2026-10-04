@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.29">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.30">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
- <span class="version">v2.4.29</span>
+ <span class="version">v2.4.30</span>
 </header>
 
 <main class="toolShell">
@@ -35,6 +35,18 @@
     <h2>Rensa</h2>
     <label class="toggleRow"><input id="removeText" type="checkbox" checked><span><strong>Rensa all text</strong><small>Tar bort synlig text, rumsnamn, mått och gamla textanteckningar.</small></span></label>
     <label class="toggleRow"><input id="removeAnnotations" type="checkbox" checked><span><strong>Rensa kommentarer & anmärkningar</strong><small>PDF-kommentarer och annotations tas inte med i arbetskopian.</small></span></label>
+    <label class="toggleRow"><input id="removeColors" type="checkbox"><span><strong>Ta bort färgmarkeringar</strong><small>Tar bort färgade markeringar och behåller i första hand svart/grå linjer. Förhandsgranska noga.</small></span></label>
+    <button id="aggressiveClean" class="wideToolBtn" type="button">Aggressiv rensning</button>
+    <p class="hint">Aggressiv rensning slår på text, kommentarer och färgmarkeringar samtidigt.</p>
+   </div>
+   <div class="panelSection">
+    <h2>Radera sådant som är kvar</h2>
+    <button id="eraseMode" class="wideToolBtn" type="button" aria-pressed="false">Radera område</button>
+    <div class="rowBtns eraseActions">
+     <button id="undoErase" type="button" disabled>Ångra radering</button>
+     <button id="clearErases" type="button" disabled>Rensa markeringar</button>
+    </div>
+    <p class="hint">Tryck “Radera område” och dra en ruta över gammal text, symboler eller annat som ska bort. Det fungerar även på vektorobjekt och inbakade bilder.</p>
    </div>
    <div class="panelSection">
     <h2>Optimera</h2>
@@ -64,8 +76,8 @@
     <button id="nextPage" aria-label="Nästa sida">›</button>
     <span id="pageState"></span>
    </div>
-   <div id="previewWrap"><canvas id="previewCanvas"></canvas></div>
-   <p class="previewNote">Förhandsvisningen visar ungefär hur den rensade arbetskopian blir. Kontrollera särskilt mått och rumsnamn när “Rensa all text” är aktivt.</p>
+   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="eraseBox" hidden></div></div></div>
+   <p class="previewNote">Förhandsvisningen visar den rensade arbetskopian. Om något ligger kvar: använd “Radera område” och dra direkt över det. Kontrollera särskilt mått och rumsnamn innan du sparar.</p>
   </section>
  </section>
 
@@ -80,7 +92,7 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="drawing-transfer.js?v=2.4.29"></script>
-<script src="drawing-tools.js?v=2.4.29"></script>
+<script src="drawing-transfer.js?v=2.4.30"></script>
+<script src="drawing-tools.js?v=2.4.30"></script>
 </body>
 </html>
