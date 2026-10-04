@@ -41,6 +41,13 @@ const drawing=require('./pdf-fixture.cjs');
   await page.locator('#doorId').fill('216720-27-17-001');await page.locator('#doorId').blur();assert((await page.locator('#idMessage').textContent()).includes('redan'));
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-38-002');
   await page.locator('#doorId').fill('216720-27-38-010');await page.locator('#doorId').blur();
+
+  // Exported drawing labels stay compact: object number + sequence, rectangular marker, no model name.
+  const markerSource=await page.evaluate(()=>createWorkPdf.toString());
+  assert(markerSource.includes("const label=[snapshot.project?.facilityNo?.trim(),serial]"));
+  assert(markerSource.includes("page.drawRectangle"));
+  assert(!markerSource.includes("snapshot.project?.facilityNo?.trim(),(d.modelCode||d.model||'').trim(),serial"));
+
   // Export is a genuine PDF with original vector drawing pages first.
   const downloadPromise=page.waitForEvent('download');await page.locator('#exportBtn').tap();const download=await downloadPromise;
   const workFile=path.join(__dirname,'..','v2-arbetsfil.pdf');await download.saveAs(workFile);const bytes=fs.readFileSync(workFile);
