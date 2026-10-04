@@ -43,6 +43,8 @@ const drawing=require('./pdf-fixture.cjs');
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-38-002');
   await page.locator('#doorId').fill('216720-27-38-010');await page.locator('#doorId').blur();
 
+  // PDF label text stays visibly larger and the arrow point keeps an enlarged touch target.
+  assert(markerSource.includes("safeLabel.length>18?11.8:13.4"));
   // Exported drawing labels stay compact: object number + sequence, rectangular marker, no model name.
   // PDF Door label uses larger text while staying compact.
   assert(markerSource.includes("safeLabel.length>18?9.6:10.8"));
