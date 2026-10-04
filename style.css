@@ -623,3 +623,13 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  #protocolPanel .doorCheckActions{gap:3px;margin:3px 0 6px}
  #protocolPanel .doorCheckActions button{min-height:27px!important;padding:2px 6px!important;font-size:9.5px!important}
 }
+
+/* Drawing preparation is a utility beneath the two service choices. */
+.homeTools{margin-top:18px;padding-top:14px;border-top:1px solid #e1e9ee}
+.homeToolsLink{display:inline-flex;align-items:center;gap:10px;max-width:100%;min-height:48px;padding:6px 8px;border-radius:8px;color:#315466;text-decoration:none}
+.homeToolsLink:hover{background:#edf6fa}
+.homeToolsLink:focus-visible{outline:2px solid #116a99;outline-offset:3px;background:#edf6fa}
+.homeToolsIcon{display:flex;align-items:center;justify-content:center;flex:none;width:38px;height:38px;border-radius:10px;background:#e6eff4;color:#173f55}
+.homeToolsIcon svg{display:block}
+.homeToolsLink strong{display:block;font-size:13px}
+.homeToolsLink small{display:block;margin-top:3px;font-size:11px;line-height:1.4;color:#6b7f8b}
