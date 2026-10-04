@@ -1,7 +1,7 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 const SYSTEMS={
- alarm:{label:'Inbrottslarm',prefix:'I',checks:[
+ alarm:{label:'Inbrottslarm',markerLabel:'Inbrott',prefix:'I',checks:[
  ['1.1','Lägg anläggningen i serviceläge på larmcentral.'],
  ['1.2','Okulärbesiktning av anläggningen'],
  ['1.3','Pålarmning och stickkontroll detektor.'],
@@ -24,7 +24,7 @@ const SYSTEMS={
  '1.9':['Dekal saknas','Dekal behöver bytas'],
  '1.10':['Batteri svagt','Batteri behöver bytas']
  }},
- lock:{label:'Lås & Dörrmiljö',prefix:'L',checks:[
+ lock:{label:'Lås & Dörrmiljö',markerLabel:'Lås & Dörrmiljö',prefix:'L',checks:[
  ['1.1','Okulärbesiktning av dörrautomatik/dörrmiljö.'],
  ['1.2','Funktionskontroll av låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],
  ['1.3','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],
@@ -53,7 +53,7 @@ const SYSTEMS={
  '1.12':['Uppställningsmagnet fungerar inte','Dörrstopp behöver justeras'],
  '1.13':['Rengöring krävs']
  }},
- access:{label:'Passer',prefix:'P',checks:[
+ access:{label:'Passer',markerLabel:'Passer',prefix:'P',checks:[
  ['1.1','Okulärbesiktning av anläggningen'],
  ['1.2','Kontroll fastsättning.'],
  ['1.3','Kontroll av batteribackup.'],
@@ -78,8 +78,12 @@ const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
 const PROJECT_FIELDS=['secProjectName','secFacilityNo','secOrder','secDate','secNextDate','secCustomer','secAgreement','secContact','secPhone','secAddress','secCompany','secTechnician','secCompanyContact','secCompanyPhone','secCompanyAddress','secSignature'];
 function emptyProject(){return {projectName:'',facilityNo:'',order:'',date:'',nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',technician:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',signature:''}}
-function statusOf(o){if(o.status==='fail')return'fail';if(Object.values(o.checks||{}).some(c=>c.result==='remark'))return'action';if(o.status==='ok')return'ok';return'untested'}
-function normalize(o){o.checks=o.checks||{};const cfg=SYSTEMS[o.type];(cfg?.checks||[]).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.customChecks=o.customChecks||[];o.customChecks.forEach(c=>o.checks[c.id]=o.checks[c.id]||{result:'',note:''});o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
+function hasSecurityRecordedProblem(o){return o.status==='action'||o.status==='fail'||Object.values(o.checks||{}).some(c=>c.result==='remark')}
+function isSecurityRemediated(o){return hasSecurityRecordedProblem(o)&&!!String(o.remediationDate||'').trim()&&!!String(o.remediationSignature||'').trim()}
+function hasSecurityProblem(o){return hasSecurityRecordedProblem(o)&&!isSecurityRemediated(o)}
+function statusOf(o){if(isSecurityRemediated(o))return'ok';if(o.status==='fail')return'fail';if(Object.values(o.checks||{}).some(c=>c.result==='remark'))return'action';if(o.status==='ok')return'ok';return'untested'}
+function securityStatusText(o){if(isSecurityRemediated(o))return'Åtgärdad';return statusOf(o)==='fail'?'Ej godkänd':statusOf(o)==='action'?'Åtgärd krävs':statusOf(o)==='ok'?'Godkänd':'Ej klar'}
+function normalize(o){o.checks=o.checks||{};const cfg=SYSTEMS[o.type];(cfg?.checks||[]).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.customChecks=o.customChecks||[];o.customChecks.forEach(c=>o.checks[c.id]=o.checks[c.id]||{result:'',note:''});o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
@@ -96,7 +100,8 @@ function syncStatus(o){
  return o.status
 }
 function nextNumber(type){const nums=items.filter(x=>x.type===type).map(x=>Number(x.number)||0);return Math.max(0,...nums)+1}
-function createItem(type,x,y){const n=nextNumber(type),cfg=SYSTEMS[type],o=normalize({uid:crypto.randomUUID(),type,number:n,id:cfg.prefix+n,page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested'});items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');$('secHint').hidden=true;save();drawMarkers();showSelected();go('protocol')}
+function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return (cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1)}
+function createItem(type,x,y){const n=nextNumber(type),cfg=SYSTEMS[type],label=(cfg.markerLabel||cfg.label)+' '+n,o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');$('secHint').hidden=true;save();drawMarkers();showSelected();go('protocol')}
 function drawMarkers(){
  markers.replaceChildren();
  const pageItems=items.filter(o=>o.page===page).map(normalize);
@@ -123,7 +128,7 @@ function drawMarkers(){
  // tag connector lines after targets are known
  Array.from(svg.querySelectorAll('.secConnector')).forEach((line,i)=>line.setAttribute('data-uid',pageItems[i].uid));
  pageItems.forEach(o=>{
-  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=o.id;b.title='Dra etiketten. Pilen fortsätter peka på dörren.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
+  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
   b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId)};
   b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<5)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,(e.clientX-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(e.clientY-r.top)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
