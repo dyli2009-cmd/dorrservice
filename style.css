@@ -370,3 +370,19 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  }
  body.protocolReadable #protocolPanel .faultArea .faultBack{min-height:31px;height:31px}
 }
+
+
+/* Web 2.4.12: remark text matches checklist text size exactly on phones. */
+@media(max-width:800px){
+ #protocolPanel .faultArea select,
+ #protocolPanel .faultArea input{
+  font-size:10px;
+  line-height:1.18;
+  font-weight:400;
+ }
+ body.protocolReadable #protocolPanel .faultArea select,
+ body.protocolReadable #protocolPanel .faultArea input{
+  font-size:12px;
+  line-height:1.3;
+ }
+}

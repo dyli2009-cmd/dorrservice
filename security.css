@@ -181,3 +181,19 @@ body.secTextAdding #secViewer{cursor:crosshair}
  }
  .securityApp.protocolReadable #securityProtocol .secFault .secFaultBack{min-height:31px;height:31px}
 }
+
+
+/* Web 2.4.12: Security remark text matches checklist text size exactly on phones. */
+@media(max-width:800px){
+ #securityProtocol .secFault select,
+ #securityProtocol .secFault input{
+  font-size:10px;
+  line-height:1.18;
+  font-weight:400;
+ }
+ .securityApp.protocolReadable #securityProtocol .secFault select,
+ .securityApp.protocolReadable #securityProtocol .secFault input{
+  font-size:12px;
+  line-height:1.3;
+ }
+}
