@@ -153,8 +153,17 @@ $('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serial
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
 $('signature').oninput=()=>{};
 const DOOR_CHECK_RESULTS=[['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']];
-const protocolTextSizeButton=$('protocolTextSize');
-if(protocolTextSizeButton){protocolTextSizeButton.onclick=()=>{const large=document.body.classList.toggle('protocolReadable');protocolTextSizeButton.textContent=large?'A−':'A+';protocolTextSizeButton.setAttribute('aria-pressed',String(large))}}
+const protocolTextSmaller=$('protocolTextSmaller'),protocolTextLarger=$('protocolTextLarger');
+let protocolTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-protocol-size')||0)));
+function applyProtocolTextLevel(){
+ document.body.dataset.protocolSize=String(protocolTextLevel);
+ if(protocolTextSmaller)protocolTextSmaller.disabled=protocolTextLevel<=-1;
+ if(protocolTextLarger)protocolTextLarger.disabled=protocolTextLevel>=3;
+ localStorage.setItem('doorservice-protocol-size',String(protocolTextLevel));
+}
+if(protocolTextSmaller)protocolTextSmaller.onclick=()=>{protocolTextLevel=Math.max(-1,protocolTextLevel-1);applyProtocolTextLevel()};
+if(protocolTextLarger)protocolTextLarger.onclick=()=>{protocolTextLevel=Math.min(3,protocolTextLevel+1);applyProtocolTextLevel()};
+applyProtocolTextLevel();
 buildChecklist=function(d){
  const box=$('checklist');box.replaceChildren();
  const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{CHECKS.forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';$('status').value='ok';save();buildChecklist(d);$('status').value=d.status;draw();updateCompactUI()};box.appendChild(approveAll);
@@ -195,22 +204,44 @@ const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading'
  if(d.previousStatus){const p=document.createElement('p');p.textContent='Tidigare bedömning: '+(STATUS_LABELS[d.previousStatus]||d.previousStatus);$('previousIssues').appendChild(p)}
  updateCompactUI();goView('protocol');
 };
+function overviewPriority(d){
+ if(isDoorRemediated(d))return 3;
+ const state=displayStatus(d);
+ return state==='fail'?0:state==='action'?1:state==='untested'?2:4;
+}
+function setOverviewSummary(){
+ const target=$('overviewSummary');if(!target)return;
+ const open=doors.filter(hasDoorProblem).length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>displayStatus(d)==='ok').length;
+ target.replaceChildren();
+ [['Totalt',doors.length,'total'],['Öppna fel',open,'open'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
+  const box=document.createElement('span');box.className='overviewStat '+key;
+  const strong=document.createElement('strong');strong.textContent=String(value);
+  const small=document.createElement('small');small.textContent=label;
+  box.append(strong,small);target.appendChild(box);
+ });
+}
+function syncDoorOverviewCard(card,badge,d){
+ const state=displayStatus(d);
+ card.className='doorCard overviewRow status-'+state+(isDoorRemediated(d)?' status-remediated':'');
+ badge.className='doorStatus '+state;
+ badge.textContent=statusText(d);
+}
 renderOverview=function(){
- const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv'),problems=doors.filter(hasDoorProblem).length,remediated=doors.filter(isDoorRemediated).length,recorded=doors.filter(hasRecordedDoorProblem).length;
+ const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv'),recorded=doors.filter(hasRecordedDoorProblem).length;
  $('overviewProject').textContent=[project.projectName,project.facilityNo,project.inspectionDate].filter(Boolean).join(' · ');
- $('overviewSummary').textContent=doors.length+' dörrar · '+problems+' öppna fel · '+remediated+' åtgärdade · '+doors.filter(d=>completedChecks(d)<CHECKS.length||d.status==='untested').length+' ej klara';$('overviewPdf').disabled=!recorded;
- const visible=doors.filter(d=>(filter!=='problems'||hasDoorProblem(d))&&(filter!=='ok'||displayStatus(d)==='ok')&&(filter!=='untested'||completedChecks(d)<CHECKS.length||d.status==='untested')&&(!query||[d.id,d.model,d.location,d.machineId,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+d.checks[n].note)].join(' ').toLocaleLowerCase('sv').includes(query))).sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+ setOverviewSummary();$('overviewPdf').disabled=!recorded;
+ const visible=doors.filter(d=>(filter!=='problems'||hasDoorProblem(d))&&(filter!=='ok'||displayStatus(d)==='ok')&&(filter!=='untested'||completedChecks(d)<CHECKS.length||d.status==='untested')&&(!query||[d.id,d.model,d.location,d.machineId,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+(d.checks[n].note||''))].join(' ').toLocaleLowerCase('sv').includes(query))).sort((a,b)=>overviewPriority(a)-overviewPriority(b)||a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
  const list=$('overviewList');list.replaceChildren();if(!visible.length){const p=document.createElement('p');p.className='overviewEmpty';p.textContent=!doors.length?'Inga dörrar ännu. Markera automatikerna på ritningen.':query?'Inga dörrar matchar sökningen.':'Inga dörrar i det här urvalet.';list.appendChild(p);return}
  visible.forEach(d=>{
-  const card=document.createElement('article');card.className='doorCard overviewRow';card.dataset.uid=d.uid;
-  const header=document.createElement('div');header.className='doorCardHeader';const title=document.createElement('h3');title.textContent=d.id;const badge=document.createElement('span');badge.className='doorStatus '+displayStatus(d);badge.textContent=statusText(d);header.append(title,badge);card.appendChild(header);
-  const meta=document.createElement('p');meta.className='doorMeta';meta.textContent=[d.location,d.model,'Sida '+d.page,completedChecks(d)+'/'+CHECKS.length+' punkter'].filter(Boolean).join(' · ');card.appendChild(meta);
-  const issues=doorProblems(d);if(issues.length){const ul=document.createElement('ul');issues.forEach(([n,t])=>{const li=document.createElement('li');li.textContent=n+' '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.');ul.appendChild(li)});card.appendChild(ul)}
-  if(d.notes){const p=document.createElement('p');p.textContent=d.notes;card.appendChild(p)}
+  const card=document.createElement('article');card.dataset.uid=d.uid;
+  const header=document.createElement('div');header.className='doorCardHeader';const title=document.createElement('h3');title.textContent=d.id;const badge=document.createElement('span');header.append(title,badge);card.appendChild(header);syncDoorOverviewCard(card,badge,d);
+  const meta=document.createElement('p');meta.className='doorMeta';meta.textContent=[d.location?'Placering: '+d.location:'Placering saknas',d.model,'Sida '+d.page,completedChecks(d)+'/'+CHECKS.length+' punkter'].filter(Boolean).join(' · ');card.appendChild(meta);
+  const issues=doorProblems(d);if(issues.length){const ul=document.createElement('ul');ul.className='doorIssues';issues.forEach(([n,title])=>{const li=document.createElement('li');li.textContent=d.checks[n].note?.trim()||title;ul.appendChild(li)});card.appendChild(ul)}
+  if(d.notes){const p=document.createElement('p');p.className='generalRemark';p.textContent=d.notes;card.appendChild(p)}
   if(hasRecordedDoorProblem(d)){
-   const grid=document.createElement('div');grid.className='grid2';[['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.dataset.field=key;input.value=d[key]||'';input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true);badge.className='doorStatus '+displayStatus(d);badge.textContent=statusText(d);$('overviewSummary').textContent=doors.length+' dörrar · '+doors.filter(hasDoorProblem).length+' öppna fel · '+doors.filter(isDoorRemediated).length+' åtgärdade · '+doors.filter(x=>completedChecks(x)<CHECKS.length||x.status==='untested').length+' ej klara';draw()};label.appendChild(input);grid.appendChild(label)});card.appendChild(grid);
+   const grid=document.createElement('div');grid.className='grid2 remediationGrid';[['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.dataset.field=key;input.value=d[key]||'';input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true);syncDoorOverviewCard(card,badge,d);setOverviewSummary();draw()};input.onchange=()=>{save(true);renderOverview();draw()};label.appendChild(input);grid.appendChild(label)});card.appendChild(grid);
   }
-  const button=document.createElement('button');button.textContent='Öppna protokoll';button.onclick=()=>openOverviewDoor(d.uid);button.setAttribute('aria-label','Öppna protokoll för '+d.id);card.appendChild(button);list.appendChild(card);
+  const button=document.createElement('button');button.className='openProtocolBtn';button.textContent='Öppna protokoll';button.onclick=()=>openOverviewDoor(d.uid);button.setAttribute('aria-label','Öppna protokoll för '+d.id);card.appendChild(button);list.appendChild(card);
  });
 };
 openOverview=function(){renderOverview();goView('doors');$('overviewDialog').scrollTop=0};
