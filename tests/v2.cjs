@@ -16,13 +16,14 @@ const drawing=require('./pdf-fixture.cjs');
   for(const [id,value] of Object.entries({projectName:'Skola A',facilityNo:'216720-27',projectOrder:'AO-2026',technician:'Anna Andersson',company:'Serviceföretaget',serviceSignature:'AA',inspectionDate:'2026-10-03',projectNextDate:'2027-10-03'}))await page.locator('#'+id).fill(value);
   await page.screenshot({path:path.join(__dirname,'..','v2-project.png')});
   await page.locator('#navDrawing').tap();await page.locator('#mobileAdd').tap();await page.locator('#markers').tap({position:{x:100,y:180}});
-  assert.equal(await page.locator('body').getAttribute('data-view'),'protocol');
+  assert.equal(await page.locator('body').getAttribute('data-view'),'drawing');assert((await page.locator('#hint').textContent()).includes('Dra pilpunkten'));
+  await page.locator('#markers .marker').last().tap();assert.equal(await page.locator('body').getAttribute('data-view'),'protocol');
   await page.locator('#modelChoice').selectOption('17');await page.locator('#location').fill('Entré');
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-17-001');
   assert.equal(await page.locator('#signature').inputValue(),'AA');
   const sensor=page.locator('[data-check="1.11"]');await sensor.evaluate(el=>el.scrollIntoView({block:'center'}));await sensor.locator('[data-v=remark]').tap();await sensor.locator('.faultText').fill('Säkerhetssensorn fungerar inte.');
   await page.locator('#status').selectOption('fail');await page.locator('#navDrawing').tap();
-  await page.locator('#mobileAdd').tap();await page.locator('#markers').tap({position:{x:240,y:260}});await page.locator('#modelChoice').selectOption('38');
+  await page.locator('#mobileAdd').tap();await page.locator('#markers').tap({position:{x:240,y:260}});assert.equal(await page.locator('body').getAttribute('data-view'),'drawing');await page.locator('#markers .marker').last().tap();await page.locator('#modelChoice').selectOption('38');
   assert.equal(await page.locator('#doorId').inputValue(),'216720-27-38-002');
   await page.locator('#mobileOverview').tap();assert.equal(await page.locator('.doorCard').count(),2);
   for(const size of [{width:320,height:740},{width:390,height:844},{width:430,height:932}]){
