@@ -283,8 +283,58 @@ $('secAddCheck').onclick=()=>{const o=cur();if(!o)return;const title=prompt('Skr
 $('secApproveAll').onclick=()=>{const o=cur();if(!o)return;allChecks(o).forEach(([n])=>{o.checks[n]=o.checks[n]||{result:'',note:''};o.checks[n].result='ok';o.checks[n].note=''});o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};
 $('secDelete').onclick=()=>{const o=cur();if(o&&confirm('Ta bort '+o.id+'?')){items=items.filter(x=>x.uid!==o.uid);selected=null;save();drawMarkers();showSelected();go('drawing')}};
 function issues(o){const arr=[];allChecks(o).forEach(([n,t])=>{const c=o.checks[n];if(c?.result==='remark')arr.push(c.note?.trim()||t)});if(o.notes.trim())arr.push('Allmän anmärkning: '+o.notes.trim());return arr}
-function securityPriority(o){const s=statusOf(o);return s==='fail'?0:s==='action'?1:s==='untested'?2:3}
-function showOverview(){const list=$('secOverviewList');if(!list)return;list.replaceChildren();const counts={ok:0,action:0,fail:0,untested:0};items.forEach(o=>counts[statusOf(o)]++);$('secOverviewSummary').textContent=items.length+' objekt · '+(counts.action+counts.fail)+' med fel/anmärkning · '+counts.untested+' ej klara';items.slice().sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number).forEach((o,index)=>{const s=statusOf(o),card=document.createElement('article');card.className='secSummaryCard '+s+(index%2?' alternate':'');const h=document.createElement('h3');h.textContent=o.id+' · '+SYSTEMS[o.type].label;card.appendChild(h);const meta=document.createElement('p');meta.className='secSummaryMeta';meta.textContent=o.location?'Placering: '+o.location:'Placering saknas';card.appendChild(meta);const iss=issues(o);if(iss.length){const ul=document.createElement('ul');iss.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});card.appendChild(ul)}else{const p=document.createElement('p');p.textContent=s==='ok'?'Godkänd utan anmärkning':'Inga registrerade anmärkningar.';card.appendChild(p)}card.onclick=()=>{selected=o.uid;showSelected();$('securityOverview').close();go('protocol')};list.appendChild(card)})}
+function securityPriority(o){if(isSecurityRemediated(o))return 3;const s=statusOf(o);return s==='fail'?0:s==='action'?1:s==='untested'?2:4}
+function setSecurityOverviewSummary(){
+ const target=$('secOverviewSummary');if(!target)return;
+ const open=items.filter(hasSecurityProblem).length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>statusOf(o)==='ok').length;
+ target.replaceChildren();
+ [['Totalt',items.length,'total'],['Öppna fel',open,'open'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
+  const box=document.createElement('span');box.className='overviewStat '+key;
+  const strong=document.createElement('strong');strong.textContent=String(value);
+  const small=document.createElement('small');small.textContent=label;
+  box.append(strong,small);target.appendChild(box);
+ });
+}
+function syncSecurityOverviewCard(card,badge,o){
+ const st=statusOf(o);
+ card.className='secSummaryCard '+st+(isSecurityRemediated(o)?' remediated':'');
+ badge.className='secStatusBadge '+st;
+ badge.textContent=securityStatusText(o);
+}
+function showOverview(){
+ const list=$('secOverviewList');if(!list)return;list.replaceChildren();setSecurityOverviewSummary();
+ const filter=$('secOverviewFilter')?.value||'all',query=($('secOverviewSearch')?.value||'').trim().toLocaleLowerCase('sv');
+ const visible=items.filter(o=>{
+  const st=statusOf(o);
+  if(filter==='problems'&&!hasSecurityProblem(o))return false;
+  if(filter==='untested'&&st!=='untested')return false;
+  if(filter==='ok'&&st!=='ok')return false;
+  return !query||[o.id,securityDrawingLabel(o),SYSTEMS[o.type]?.label,o.location,o.notes,...issues(o)].join(' ').toLocaleLowerCase('sv').includes(query);
+ }).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
+ if(!visible.length){const p=document.createElement('p');p.className='overviewEmpty';p.textContent=query?'Inga objekt matchar sökningen.':filter==='problems'?'Inga objekt med öppna fel.':'Inga objekt i det här urvalet.';list.appendChild(p);return}
+ visible.forEach((o,index)=>{
+  const card=document.createElement('article');card.dataset.uid=o.uid;
+  const head=document.createElement('div');head.className='secSummaryHead';
+  const h=document.createElement('h3');h.textContent=securityDrawingLabel(o)+' · '+SYSTEMS[o.type].label;
+  const badge=document.createElement('span');head.append(h,badge);card.appendChild(head);syncSecurityOverviewCard(card,badge,o);
+  const meta=document.createElement('p');meta.className='secSummaryMeta';meta.textContent=o.location?'Placering: '+o.location:'Placering saknas';card.appendChild(meta);
+  const iss=issues(o);if(iss.length){const ul=document.createElement('ul');iss.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});card.appendChild(ul)}else{const p=document.createElement('p');p.textContent=statusOf(o)==='ok'?'Godkänd utan anmärkning':'Inga registrerade anmärkningar.';card.appendChild(p)}
+  if(hasSecurityRecordedProblem(o)){
+   const grid=document.createElement('div');grid.className='grid2 secRemediationGrid';
+   [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{
+    const label=document.createElement('label');label.textContent=title;
+    const input=document.createElement('input');input.type=type;input.value=o[key]||'';input.setAttribute('aria-label',title+' för '+securityDrawingLabel(o));
+    input.onclick=e=>e.stopPropagation();
+    input.oninput=e=>{e.stopPropagation();o[key]=input.value;save();syncSecurityOverviewCard(card,badge,o);setSecurityOverviewSummary();drawMarkers()};
+    input.onchange=e=>{e.stopPropagation();save();showOverview();drawMarkers()};
+    label.appendChild(input);grid.appendChild(label);
+   });card.appendChild(grid);
+  }
+  card.onclick=e=>{if(e.target.closest('input,select,textarea,button,label'))return;selected=o.uid;showSelected();$('securityOverview').close();go('protocol')};
+  list.appendChild(card);
+ })
+}
+$('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 $('secNavOverview').onclick=()=>{showOverview();$('securityOverview').showModal()};$('secCloseOverview').onclick=()=>$('securityOverview').close();$('secNavDrawing').onclick=()=>go('drawing');$('secNavProtocol').onclick=()=>go('protocol');$('secNavProject').onclick=()=>go('project');$('secCloseProtocol').onclick=$('secCloseProject').onclick=()=>go('drawing');
 function projectFieldMap(){return {secProjectName:'projectName',secFacilityNo:'facilityNo',secOrder:'order',secDate:'date',secNextDate:'nextDate',secCustomer:'customer',secAgreement:'agreement',secContact:'contact',secPhone:'phone',secAddress:'address',secPostalCode:'postalCode',secPostalCity:'postalCity',secCompany:'company',secCompanyContact:'companyContact',secCompanyPhone:'companyPhone',secCompanyAddress:'companyAddress',secCompanyPostalCode:'companyPostalCode',secCompanyPostalCity:'companyPostalCity',secTechnician:'technician',secSignature:'signature'}}
 function refreshLogoPreview(){
