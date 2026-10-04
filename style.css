@@ -327,3 +327,20 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  body.protocolReadable #protocolPanel .quickBtns button{font-size:10.5px;min-height:33px}
  body.protocolReadable #protocolPanel .checkHint{font-size:10.5px;line-height:1.35}
 }
+
+
+/* Web 2.4.9: keep remark controls visually as compact as the checklist on phones. */
+@media(max-width:800px){
+ #protocolPanel .faultArea select,
+ #protocolPanel .faultArea input{
+  min-height:28px;
+  padding:3px 5px;
+  font-size:10.5px;
+  line-height:1.2;
+ }
+ body.protocolReadable #protocolPanel .faultArea select,
+ body.protocolReadable #protocolPanel .faultArea input{
+  min-height:33px;
+  font-size:12px;
+ }
+}
