@@ -77,12 +77,11 @@ const drawing=require('./pdf-fixture.cjs');
   const nextBytes=await page.evaluate(async()=>Array.from(await createWorkPdf()));
   const reopened=await page.evaluate(async data=>{const result=await inspectWorkPdf(new Uint8Array(data));return {source:(await PDFLib.PDFDocument.load(result.drawingBytes)).getPageCount(),work:result.work}},nextBytes);
   assert.equal(reopened.source,2);assert.equal(reopened.work.project.technician,'Bertil Berg');assert.equal(reopened.work.doors[0].checks['1.11'].result,'');assert.equal(reopened.work.doors[0].previousIssues[0].n,'1.11');
-  assert.deepEqual(errors,[]);
-  console.log('PASS: 320/390/430px portrait layout, models/IDs, shared technician/signature, duplicates, real working PDF export, report order and fields, restoration without storage, next service and clean re-export');
- }finally{await browser.close()}
-})().catch(error=>{console.error(error);process.exitCode=1});
-
   // Simplified Door form: shared project data is not duplicated per door.
   assert.equal(await page.locator('#generateId').count(),0);
   for(const id of ['modelCode','model','machineId','ao','nextDate'])assert.equal(await page.locator('#'+id).count(),0,'Removed redundant field: '+id);
   assert.equal(await page.locator('#location').count(),1,'Placement stays in the compact Door form');
+  assert.deepEqual(errors,[]);
+  console.log('PASS: 320/390/430px portrait layout, models/IDs, shared technician/signature, duplicates, real working PDF export, report order and fields, restoration without storage, next service and clean re-export');
+ }finally{await browser.close()}
+})().catch(error=>{console.error(error);process.exitCode=1});
