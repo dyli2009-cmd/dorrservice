@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Ritningsverktyg · Dörrservice</title>
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.29">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+</head>
+<body>
+<header class="toolHeader">
+ <a href="./" class="backBtn">‹ Hem</a>
+ <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
+ <span class="version">v2.4.29</span>
+</header>
+
+<main class="toolShell">
+ <section class="toolIntro">
+  <div>
+   <span class="eyebrow">PDF / RITNING</span>
+   <h1>Gör en ren arbetsritning</h1>
+   <p>Originalfilen ändras aldrig. Verktyget skapar en ny, lättare PDF för servicearbete.</p>
+  </div>
+  <label class="openBtn" for="toolFile">Öppna PDF</label>
+  <input id="toolFile" type="file" accept="application/pdf" hidden>
+ </section>
+
+ <div id="toolMessage" role="status">Öppna en PDF för att börja.</div>
+
+ <section id="workspace" class="workspace" hidden>
+  <aside class="toolPanel">
+   <div class="panelSection">
+    <h2>Rensa</h2>
+    <label class="toggleRow"><input id="removeText" type="checkbox" checked><span><strong>Rensa all text</strong><small>Tar bort synlig text, rumsnamn, mått och gamla textanteckningar.</small></span></label>
+    <label class="toggleRow"><input id="removeAnnotations" type="checkbox" checked><span><strong>Rensa kommentarer & anmärkningar</strong><small>PDF-kommentarer och annotations tas inte med i arbetskopian.</small></span></label>
+   </div>
+   <div class="panelSection">
+    <h2>Optimera</h2>
+    <label>Kvalitet
+     <select id="quality">
+      <option value="light">Lätt / snabb</option>
+      <option value="balanced" selected>Balans</option>
+      <option value="clear">Tydlig</option>
+     </select>
+    </label>
+    <p class="hint">Ritningen flattenas till en lätt arbetskopia. Bra för tunga CAD-PDF:er och snabbare zoomning i appen.</p>
+   </div>
+   <div class="panelSection">
+    <h2>Sidor</h2>
+    <div class="rowBtns">
+     <button id="removePage" type="button">Ta bort aktuell sida</button>
+     <button id="undoPage" type="button" disabled>Ångra</button>
+    </div>
+    <div id="pageList" class="pageList"></div>
+   </div>
+  </aside>
+
+  <section class="previewPane">
+   <div class="previewToolbar">
+    <button id="prevPage" aria-label="Föregående sida">‹</button>
+    <strong id="pageInfo">Sida 1</strong>
+    <button id="nextPage" aria-label="Nästa sida">›</button>
+    <span id="pageState"></span>
+   </div>
+   <div id="previewWrap"><canvas id="previewCanvas"></canvas></div>
+   <p class="previewNote">Förhandsvisningen visar ungefär hur den rensade arbetskopian blir. Kontrollera särskilt mått och rumsnamn när “Rensa all text” är aktivt.</p>
+  </section>
+ </section>
+
+ <section id="outputActions" class="outputActions" hidden>
+  <button id="savePdf" class="primary" type="button">Spara ren PDF</button>
+  <button id="openDoor" type="button">Öppna i Dörrautomatik</button>
+  <button id="openSecurity" type="button">Öppna i Säkerhetsservice</button>
+ </section>
+
+ <section id="resultCard" class="resultCard" hidden>
+  <strong>Arbetskopia klar</strong>
+  <span id="resultInfo"></span>
+ </section>
+</main>
+<script src="drawing-transfer.js?v=2.4.29"></script>
+<script src="drawing-tools.js?v=2.4.29"></script>
+</body>
+</html>
