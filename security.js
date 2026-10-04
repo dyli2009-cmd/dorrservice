@@ -271,8 +271,17 @@ async function inspectSecurityWorkPdf(bytes){
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),drawingBytes=imported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
  if(pdf)try{await pdf.destroy()}catch(_){}
- pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=(record?.items||[]).map(normalize);textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
+ pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=(record?.items||[]).map(normalize);textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
+ if(imported&&items.length){
+  $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||'Security Service',items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
+  $('secOpenWorkDialog').showModal();
+  msg('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
+ }else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
+$('secOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
+$('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('Arbetsfilen är öppnad för fortsatt arbete/ändringar.')};
+$('secOpenNewService').onclick=()=>{if(startNewSecurityService(false))$('secOpenWorkDialog').close()};
+
 function changeSecurityPage(delta){
  if(!pdf)return false;
  const next=Math.max(1,Math.min(pdf.numPages,page+delta));if(next===page)return false;
@@ -376,9 +385,15 @@ function refreshLogoPreview(){
 }
 function syncProjectInputs(){for(const[id,key]of Object.entries(projectFieldMap()))$(id).value=project[key]||'';refreshLogoPreview()}
 for(const[id,key]of Object.entries(projectFieldMap()))$(id).oninput=()=>{project[key]=$(id).value;save()};
-$('secNewServiceBtn').onclick=()=>{
- if(!pdf||!items.length)return msg('Lägg till objekt innan du startar en ny service.',true);
- if(!confirm('Starta en ny service med samma ritning och objekt? Dagens kontroller nollställs. Projekt, kontaktuppgifter, företag, logga och objektplaceringar behålls. Spara först arbets-PDF:en om du vill behålla den färdiga rapporten.'))return;
+$('secTechnician').oninput=()=>{
+ const previous=project.technician||'',value=$('secTechnician').value;
+ project.technician=value;
+ if(!project.companyContact||project.companyContact===previous){project.companyContact=value;$('secCompanyContact').value=value}
+ save();
+};
+function startNewSecurityService(requireConfirm=true){
+ if(!pdf||!items.length){msg('Lägg till objekt innan du startar en ny service.',true);return false}
+ if(requireConfirm&&!confirm('Starta en ny service med samma ritning och objekt? Dagens kontroller nollställs. Projekt, kontaktuppgifter, företag, logga, objektplaceringar och servicetekniker behålls.'))return false;
  const previousDate=project.date||'';
  items.forEach(o=>{
   o.previousIssues=allChecks(o).filter(([n])=>o.checks?.[n]?.result==='remark').map(([n,title])=>({n,title,note:o.checks[n]?.note||''}));
@@ -387,9 +402,12 @@ $('secNewServiceBtn').onclick=()=>{
   o.previousServiceDate=previousDate;
   o.checks={};o.notes='';o.manualFail=false;o.status='untested';o.remediationDate='';o.remediationSignature='';normalize(o);
  });
- project.order='';project.date=new Date().toISOString().slice(0,10);project.technician='';project.signature='';
- selected=null;syncProjectInputs();save();drawMarkers();showSelected();showOverview();go('project');msg('Ny service startad. Projekt, kontaktuppgifter, logga och objekt är kvar. Checklistorna är nollställda.');
-};
+ project.order='';project.date=localToday();project.nextDate='';project.signature='';
+ selected=null;syncProjectInputs();save();drawMarkers();showSelected();showOverview();go('project');msg('Ny service startad. Grunduppgifter, logga, objekt och servicetekniker är kvar. Fyll i nytt ordernummer och nästa provningsdatum.');
+ requestAnimationFrame(()=>$('secOrder')?.focus());
+ return true;
+}
+$('secNewServiceBtn').onclick=()=>startNewSecurityService(true);
 async function prepareLogoFile(file){
  if(!file||!file.type.startsWith('image/'))throw new Error('Välj en bildfil.');
  const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(new Error('Kunde inte läsa bilden.'));r.readAsDataURL(file)});
