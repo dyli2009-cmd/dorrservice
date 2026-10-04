@@ -302,3 +302,52 @@ body.secTextAdding #secViewer{cursor:crosshair}
   }
  }
 }
+
+
+/* Web 2.4.19: Security drawing labels and Door-Automation-parity overview. */
+.secMarker{
+ width:auto!important;max-width:175px;min-width:42px!important;height:27px!important;min-height:27px!important;
+ padding:0 7px!important;border-radius:14px!important;font-size:8.5px!important;line-height:1!important;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#secOverviewSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:6px 0 8px}
+#secOverviewSummary .overviewStat{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;padding:5px 3px;border:1px solid #d6e0e5;border-radius:7px;background:#fff}
+#secOverviewSummary .overviewStat strong{font-size:15px;line-height:1;color:#203440}
+#secOverviewSummary .overviewStat small{margin-top:3px;font-size:8px;line-height:1.1;color:#667b87;text-align:center}
+#secOverviewSummary .overviewStat.open{background:#fff6e8;border-color:#ead1a5}
+#secOverviewSummary .overviewStat.done,#secOverviewSummary .overviewStat.ready{background:#edf7f1;border-color:#c9e2d3}
+.secOverviewFilters{margin-bottom:6px}
+.secSummaryHead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.secSummaryHead h3{min-width:0}
+.secStatusBadge{flex:none;font-size:9px;font-weight:700;padding:3px 5px;border-radius:5px;white-space:nowrap}
+.secStatusBadge.ok{background:#e1f0e7;color:#1d7047}.secStatusBadge.action{background:#fff0d5;color:#945800}.secStatusBadge.fail{background:#fbe3e3;color:#a02d35}.secStatusBadge.untested{background:#e8edf0;color:#596e7a}
+.secSummaryCard.remediated{background:#f1f8f4}
+.secRemediationGrid{margin-top:6px;padding:5px 6px;border-radius:6px;background:#eef3f6}
+@media(max-width:800px){
+ .secMarker{max-width:145px;font-size:7.6px!important;padding:0 6px!important}
+ #securityOverview{padding:7px}
+ #securityOverview .overviewHead{padding:3px 0;margin-bottom:4px}
+ #securityOverview .securityLegend{gap:4px;margin:4px 0 6px}
+ #securityOverview .securityLegend span{padding:2px 4px;font-size:8px}
+ #securityOverview .secOverviewFilters{gap:4px}
+ #securityOverview .secOverviewFilters label{font-size:8.5px;margin:2px 0}
+ #securityOverview .secOverviewFilters input,#securityOverview .secOverviewFilters select{min-height:28px;height:28px;padding:2px 4px;margin-top:1px;font-size:10px}
+ #secOverviewSummary{gap:3px;margin:4px 0 6px}
+ #secOverviewSummary .overviewStat{min-height:36px;padding:3px 2px;border-radius:5px}
+ #secOverviewSummary .overviewStat strong{font-size:12px}
+ #secOverviewSummary .overviewStat small{font-size:7px}
+ #secOverviewList .secSummaryCard{padding:6px 7px;margin:4px 0;border-radius:6px}
+ #secOverviewList .secSummaryCard h3{font-size:11px;margin:0}
+ #secOverviewList .secSummaryMeta{font-size:8.8px;line-height:1.3;margin:3px 0}
+ #secOverviewList .secSummaryCard ul{font-size:9px;line-height:1.3;margin:4px 0;padding-left:17px}
+ #secOverviewList .secSummaryCard p{font-size:9px;line-height:1.3}
+ #secOverviewList .secStatusBadge{font-size:8px;padding:2px 4px}
+ #secOverviewList .secRemediationGrid{gap:4px;padding:4px}
+ #secOverviewList .secRemediationGrid label{font-size:8px;margin:1px 0}
+ #secOverviewList .secRemediationGrid input{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;border-radius:5px}
+}
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #secOverviewList .secRemediationGrid input:focus{font-size:16px!important;min-height:32px}
+ }
+}

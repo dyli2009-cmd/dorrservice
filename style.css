@@ -560,3 +560,15 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
   }
  }
 }
+
+
+/* Web 2.4.19: Door Automation drawing label = object · model · sequence. */
+.marker.markerTag{
+ width:auto;max-width:190px;min-width:42px;height:26px;min-height:26px;
+ padding:0 7px;border-radius:13px;font-size:8.2px;line-height:1;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.marker.markerTag::before{inset:-8px -10px;border-radius:16px}
+@media(max-width:800px){
+ .marker.markerTag{max-width:165px;font-size:7.6px;padding:0 6px}
+}

@@ -1,7 +1,7 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 const SYSTEMS={
- alarm:{label:'Inbrottslarm',prefix:'I',checks:[
+ alarm:{label:'Inbrottslarm',markerLabel:'Inbrott',prefix:'I',checks:[
  ['1.1','Lägg anläggningen i serviceläge på larmcentral.'],
  ['1.2','Okulärbesiktning av anläggningen'],
  ['1.3','Pålarmning och stickkontroll detektor.'],
@@ -24,7 +24,7 @@ const SYSTEMS={
  '1.9':['Dekal saknas','Dekal behöver bytas'],
  '1.10':['Batteri svagt','Batteri behöver bytas']
  }},
- lock:{label:'Lås & Dörrmiljö',prefix:'L',checks:[
+ lock:{label:'Lås & Dörrmiljö',markerLabel:'Lås & Dörrmiljö',prefix:'L',checks:[
  ['1.1','Okulärbesiktning av dörrautomatik/dörrmiljö.'],
  ['1.2','Funktionskontroll av låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],
  ['1.3','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],
@@ -53,7 +53,7 @@ const SYSTEMS={
  '1.12':['Uppställningsmagnet fungerar inte','Dörrstopp behöver justeras'],
  '1.13':['Rengöring krävs']
  }},
- access:{label:'Passer',prefix:'P',checks:[
+ access:{label:'Passer',markerLabel:'Passer',prefix:'P',checks:[
  ['1.1','Okulärbesiktning av anläggningen'],
  ['1.2','Kontroll fastsättning.'],
  ['1.3','Kontroll av batteribackup.'],
@@ -78,8 +78,12 @@ const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
 const PROJECT_FIELDS=['secProjectName','secFacilityNo','secOrder','secDate','secNextDate','secCustomer','secAgreement','secContact','secPhone','secAddress','secCompany','secTechnician','secCompanyContact','secCompanyPhone','secCompanyAddress','secSignature'];
 function emptyProject(){return {projectName:'',facilityNo:'',order:'',date:'',nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',technician:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',signature:''}}
-function statusOf(o){if(o.status==='fail')return'fail';if(Object.values(o.checks||{}).some(c=>c.result==='remark'))return'action';if(o.status==='ok')return'ok';return'untested'}
-function normalize(o){o.checks=o.checks||{};const cfg=SYSTEMS[o.type];(cfg?.checks||[]).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.customChecks=o.customChecks||[];o.customChecks.forEach(c=>o.checks[c.id]=o.checks[c.id]||{result:'',note:''});o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
+function hasSecurityRecordedProblem(o){return o.status==='action'||o.status==='fail'||Object.values(o.checks||{}).some(c=>c.result==='remark')}
+function isSecurityRemediated(o){return hasSecurityRecordedProblem(o)&&!!String(o.remediationDate||'').trim()&&!!String(o.remediationSignature||'').trim()}
+function hasSecurityProblem(o){return hasSecurityRecordedProblem(o)&&!isSecurityRemediated(o)}
+function statusOf(o){if(isSecurityRemediated(o))return'ok';if(o.status==='fail')return'fail';if(Object.values(o.checks||{}).some(c=>c.result==='remark'))return'action';if(o.status==='ok')return'ok';return'untested'}
+function securityStatusText(o){if(isSecurityRemediated(o))return'Åtgärdad';return statusOf(o)==='fail'?'Ej godkänd':statusOf(o)==='action'?'Åtgärd krävs':statusOf(o)==='ok'?'Godkänd':'Ej klar'}
+function normalize(o){o.checks=o.checks||{};const cfg=SYSTEMS[o.type];(cfg?.checks||[]).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.customChecks=o.customChecks||[];o.customChecks.forEach(c=>o.checks[c.id]=o.checks[c.id]||{result:'',note:''});o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';const legacyId=(cfg?.prefix||'')+(Number(o.number)||1);if(!o.id||o.id===legacyId)o.id=(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1);if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
@@ -96,7 +100,8 @@ function syncStatus(o){
  return o.status
 }
 function nextNumber(type){const nums=items.filter(x=>x.type===type).map(x=>Number(x.number)||0);return Math.max(0,...nums)+1}
-function createItem(type,x,y){const n=nextNumber(type),cfg=SYSTEMS[type],o=normalize({uid:crypto.randomUUID(),type,number:n,id:cfg.prefix+n,page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested'});items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');$('secHint').hidden=true;save();drawMarkers();showSelected();go('protocol')}
+function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return (cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1)}
+function createItem(type,x,y){const n=nextNumber(type),cfg=SYSTEMS[type],label=(cfg.markerLabel||cfg.label)+' '+n,o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');$('secHint').hidden=true;save();drawMarkers();showSelected();go('protocol')}
 function drawMarkers(){
  markers.replaceChildren();
  const pageItems=items.filter(o=>o.page===page).map(normalize);
@@ -123,7 +128,7 @@ function drawMarkers(){
  // tag connector lines after targets are known
  Array.from(svg.querySelectorAll('.secConnector')).forEach((line,i)=>line.setAttribute('data-uid',pageItems[i].uid));
  pageItems.forEach(o=>{
-  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=o.id;b.title='Dra etiketten. Pilen fortsätter peka på dörren.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
+  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
   b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId)};
   b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<5)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,(e.clientX-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(e.clientY-r.top)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
@@ -271,15 +276,65 @@ if(secProtocolTextLarger)secProtocolTextLarger.onclick=()=>{secProtocolTextLevel
 applySecProtocolTextLevel();
 function buildChecklist(o){const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o);checks.forEach(([n,title])=>{const c=o.checks[n]||{result:'',note:''},row=document.createElement('section');row.className='secCheck'+(c.result?' result-'+c.result:'');const head=document.createElement('div');head.className='secCheckHead';head.innerHTML='<strong>'+n+'</strong><span></span>';head.querySelector('span').textContent=title;if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge';badge.textContent='Egen';head.appendChild(badge);const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCustom';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;o.customChecks=o.customChecks.filter(x=>x.id!==n);delete o.checks[n];o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};head.appendChild(remove)}row.appendChild(head);const choices=document.createElement('div');choices.className='secChoices';[['na','Ingår ej'],['ok','Klart utan anm.'],['remark','Klart med anm.']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.classList.toggle('active',c.result===value);b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};choices.appendChild(b)});row.appendChild(choices);if(c.result==='remark'){const fault=document.createElement('div');fault.className='secFault';const faults=SYSTEMS[o.type].faults[n]||[];const select=document.createElement('select');select.setAttribute('aria-label','Vanlig anmärkning '+n);select.innerHTML='<option value="">Välj anmärkning…</option>';for(const f of faults){const op=document.createElement('option');op.value=f;op.textContent=f;select.appendChild(op)}const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);const input=document.createElement('input');input.placeholder='Beskriv felet…';input.setAttribute('aria-label','Egen anmärkning '+n);const back=document.createElement('button');back.type='button';back.className='secFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');const known=faults.includes(c.note||'');select.value=known?c.note:'';input.value=known?'':(c.note||'');const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};showCustom(!!c.note&&!known);select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();showOverview();return}c.note=select.value||'';save();showOverview()};input.oninput=()=>{c.note=input.value;save();showOverview()};input.onblur=()=>input.classList.remove('iosTyping');back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();showOverview();select.focus()};fault.append(select,input,back);row.appendChild(fault)}box.appendChild(row)});updateProgress(o)}
 function updateProgress(o){const checks=allChecks(o),done=checks.filter(([n])=>['na','ok','remark'].includes(o.checks[n]?.result)).length;$('secProgress').textContent=done+' / '+checks.length+' kontrollerade'}
-function showSelected(){const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;if(!o)return;const cfg=SYSTEMS[o.type];$('secProtocolType').textContent='CHECKLISTA REVISION AV '+cfg.label;$('secProtocolTitle').textContent=o.id+' · '+(o.location||'Placering ej angiven');$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;syncStatus(o);$('secStatus').value=o.status;buildChecklist(o)}
+function showSelected(){const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;if(!o)return;const cfg=SYSTEMS[o.type];$('secProtocolType').textContent='CHECKLISTA REVISION AV '+cfg.label;$('secProtocolTitle').textContent=securityDrawingLabel(o)+' · '+(o.location||'Placering ej angiven');$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;syncStatus(o);$('secStatus').value=isSecurityRemediated(o)?'ok':o.status;buildChecklist(o)}
 ['secLocation','secId','secNotes'].forEach(id=>$(id).oninput=()=>{const o=cur();if(!o)return;if(id==='secLocation')o.location=$(id).value;if(id==='secId')o.id=$(id).value;if(id==='secNotes')o.notes=$(id).value;save();drawMarkers();showOverview()});
 $('secStatus').onchange=()=>{const o=cur();if(!o)return;o.manualFail=$('secStatus').value==='fail';syncStatus(o);$('secStatus').value=o.status;save();drawMarkers();showOverview()};
 $('secAddCheck').onclick=()=>{const o=cur();if(!o)return;const title=prompt('Skriv den extra kontrollpunkten:','');if(!title?.trim())return;const used=new Set(allChecks(o).map(([n])=>n));let next=SYSTEMS[o.type].checks.length+1;while(used.has('1.'+next))next++;const id='1.'+next;o.customChecks.push({id,title:title.trim()});o.checks[id]={result:'',note:''};o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers()};
 $('secApproveAll').onclick=()=>{const o=cur();if(!o)return;allChecks(o).forEach(([n])=>{o.checks[n]=o.checks[n]||{result:'',note:''};o.checks[n].result='ok';o.checks[n].note=''});o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};
 $('secDelete').onclick=()=>{const o=cur();if(o&&confirm('Ta bort '+o.id+'?')){items=items.filter(x=>x.uid!==o.uid);selected=null;save();drawMarkers();showSelected();go('drawing')}};
 function issues(o){const arr=[];allChecks(o).forEach(([n,t])=>{const c=o.checks[n];if(c?.result==='remark')arr.push(c.note?.trim()||t)});if(o.notes.trim())arr.push('Allmän anmärkning: '+o.notes.trim());return arr}
-function securityPriority(o){const s=statusOf(o);return s==='fail'?0:s==='action'?1:s==='untested'?2:3}
-function showOverview(){const list=$('secOverviewList');if(!list)return;list.replaceChildren();const counts={ok:0,action:0,fail:0,untested:0};items.forEach(o=>counts[statusOf(o)]++);$('secOverviewSummary').textContent=items.length+' objekt · '+(counts.action+counts.fail)+' med fel/anmärkning · '+counts.untested+' ej klara';items.slice().sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number).forEach((o,index)=>{const s=statusOf(o),card=document.createElement('article');card.className='secSummaryCard '+s+(index%2?' alternate':'');const h=document.createElement('h3');h.textContent=o.id+' · '+SYSTEMS[o.type].label;card.appendChild(h);const meta=document.createElement('p');meta.className='secSummaryMeta';meta.textContent=o.location?'Placering: '+o.location:'Placering saknas';card.appendChild(meta);const iss=issues(o);if(iss.length){const ul=document.createElement('ul');iss.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});card.appendChild(ul)}else{const p=document.createElement('p');p.textContent=s==='ok'?'Godkänd utan anmärkning':'Inga registrerade anmärkningar.';card.appendChild(p)}card.onclick=()=>{selected=o.uid;showSelected();$('securityOverview').close();go('protocol')};list.appendChild(card)})}
+function securityPriority(o){if(isSecurityRemediated(o))return 3;const s=statusOf(o);return s==='fail'?0:s==='action'?1:s==='untested'?2:4}
+function setSecurityOverviewSummary(){
+ const target=$('secOverviewSummary');if(!target)return;
+ const open=items.filter(hasSecurityProblem).length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>statusOf(o)==='ok').length;
+ target.replaceChildren();
+ [['Totalt',items.length,'total'],['Öppna fel',open,'open'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
+  const box=document.createElement('span');box.className='overviewStat '+key;
+  const strong=document.createElement('strong');strong.textContent=String(value);
+  const small=document.createElement('small');small.textContent=label;
+  box.append(strong,small);target.appendChild(box);
+ });
+}
+function syncSecurityOverviewCard(card,badge,o){
+ const st=statusOf(o);
+ card.className='secSummaryCard '+st+(isSecurityRemediated(o)?' remediated':'');
+ badge.className='secStatusBadge '+st;
+ badge.textContent=securityStatusText(o);
+}
+function showOverview(){
+ const list=$('secOverviewList');if(!list)return;list.replaceChildren();setSecurityOverviewSummary();
+ const filter=$('secOverviewFilter')?.value||'all',query=($('secOverviewSearch')?.value||'').trim().toLocaleLowerCase('sv');
+ const visible=items.filter(o=>{
+  const st=statusOf(o);
+  if(filter==='problems'&&!hasSecurityProblem(o))return false;
+  if(filter==='untested'&&st!=='untested')return false;
+  if(filter==='ok'&&st!=='ok')return false;
+  return !query||[o.id,securityDrawingLabel(o),SYSTEMS[o.type]?.label,o.location,o.notes,...issues(o)].join(' ').toLocaleLowerCase('sv').includes(query);
+ }).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
+ if(!visible.length){const p=document.createElement('p');p.className='overviewEmpty';p.textContent=query?'Inga objekt matchar sökningen.':filter==='problems'?'Inga objekt med öppna fel.':'Inga objekt i det här urvalet.';list.appendChild(p);return}
+ visible.forEach((o,index)=>{
+  const card=document.createElement('article');card.dataset.uid=o.uid;
+  const head=document.createElement('div');head.className='secSummaryHead';
+  const h=document.createElement('h3');h.textContent=securityDrawingLabel(o)+' · '+SYSTEMS[o.type].label;
+  const badge=document.createElement('span');head.append(h,badge);card.appendChild(head);syncSecurityOverviewCard(card,badge,o);
+  const meta=document.createElement('p');meta.className='secSummaryMeta';meta.textContent=o.location?'Placering: '+o.location:'Placering saknas';card.appendChild(meta);
+  const iss=issues(o);if(iss.length){const ul=document.createElement('ul');iss.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});card.appendChild(ul)}else{const p=document.createElement('p');p.textContent=statusOf(o)==='ok'?'Godkänd utan anmärkning':'Inga registrerade anmärkningar.';card.appendChild(p)}
+  if(hasSecurityRecordedProblem(o)){
+   const grid=document.createElement('div');grid.className='grid2 secRemediationGrid';
+   [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{
+    const label=document.createElement('label');label.textContent=title;
+    const input=document.createElement('input');input.type=type;input.value=o[key]||'';input.setAttribute('aria-label',title+' för '+securityDrawingLabel(o));
+    input.onclick=e=>e.stopPropagation();
+    input.oninput=e=>{e.stopPropagation();o[key]=input.value;save();syncSecurityOverviewCard(card,badge,o);setSecurityOverviewSummary();drawMarkers()};
+    input.onchange=e=>{e.stopPropagation();save();showOverview();drawMarkers()};
+    label.appendChild(input);grid.appendChild(label);
+   });card.appendChild(grid);
+  }
+  card.onclick=e=>{if(e.target.closest('input,select,textarea,button,label'))return;selected=o.uid;showSelected();$('securityOverview').close();go('protocol')};
+  list.appendChild(card);
+ })
+}
+$('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 $('secNavOverview').onclick=()=>{showOverview();$('securityOverview').showModal()};$('secCloseOverview').onclick=()=>$('securityOverview').close();$('secNavDrawing').onclick=()=>go('drawing');$('secNavProtocol').onclick=()=>go('protocol');$('secNavProject').onclick=()=>go('project');$('secCloseProtocol').onclick=$('secCloseProject').onclick=()=>go('drawing');
 function projectFieldMap(){return {secProjectName:'projectName',secFacilityNo:'facilityNo',secOrder:'order',secDate:'date',secNextDate:'nextDate',secCustomer:'customer',secAgreement:'agreement',secContact:'contact',secPhone:'phone',secAddress:'address',secPostalCode:'postalCode',secPostalCity:'postalCity',secCompany:'company',secCompanyContact:'companyContact',secCompanyPhone:'companyPhone',secCompanyAddress:'companyAddress',secCompanyPostalCode:'companyPostalCode',secCompanyPostalCity:'companyPostalCity',secTechnician:'technician',secSignature:'signature'}}
 function refreshLogoPreview(){
@@ -326,21 +381,24 @@ function reportDoc(){
  doc.__protocolPages={};doc.__backLinks=[];
  function txt(value,x,y,size=8,bold=false,color=[25,40,48],opts){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||''),x,y,opts||{})}
  function addLogo(x,y,w,h){if(!logoData)return;try{const im=doc.getImageProperties(logoData),pad=2.5,sc=Math.min((w-pad*2)/im.width,(h-pad*2)/im.height),iw=im.width*sc,ih=im.height*sc;doc.addImage(logoData,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(_){}}
- function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(19,43,56);doc.rect(left,8,width,18,'F');doc.setDrawColor(255,255,255);doc.setLineWidth(.2);doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);else txt('SÄKERHETSSERVICE',left+29,18,7,true,[255,255,255],{align:'center'});txt(title,left+58+(width-58)/2,16.2,10.5,true,[255,255,255],{align:'center'});txt('Säkerhetsservice · kundrapport',left+58+(width-58)/2,21.7,7,false,[210,224,232],{align:'center'})}
+ function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25],{align:'center'});txt('SÄKERHETSSERVICE · KUNDRAPPORT',left+58+(width-58)/2,21.4,6.8,false,[70,82,90],{align:'center'})}
  summaryHeader();let y=32;
  const field=(label,value,x,yy,w)=>{doc.setFillColor(243,247,249);doc.rect(x,yy,w,13,'F');txt(label,x+2,yy+4,6.5,true,[89,110,123]);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(32,52,64);doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.5)};
  [['OBJEKT',project.projectName||project.facilityNo],['OBJEKTNUMMER',project.facilityNo],['ORDER',project.order]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=16;
  [['DATUM',project.date],['TEKNIKER',project.technician||project.company],['SIGNATUR',project.signature]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=18;
- const counts={ok:0,action:0,fail:0,untested:0};items.forEach(o=>counts[statusOf(o)]++);
- txt(items.length+' objekt · '+(counts.action+counts.fail)+' med fel/anmärkning · '+counts.untested+' ej klara',left,y,9,true);y+=8;
- [['Godkänd','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([label,key],i)=>{doc.setFillColor(...COLORS[key]);doc.circle(left+i*46+1,y-1,1.3,'F');txt(label,left+i*46+4,y,7)});y+=8;
- const problemItems=items.filter(o=>issues(o).length||statusOf(o)!=='ok').sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
+ const open=items.filter(hasSecurityProblem).length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>statusOf(o)==='ok').length;
+ const stats=[['TOTALT',items.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],COLORS.action],['ÅTGÄRDADE',done,[229,244,234],COLORS.ok],['KLARA',ready,[229,244,234],COLORS.ok]];
+ const gap=2,boxW=(width-gap*3)/4;
+ stats.forEach(([label,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,12,1.5,1.5,'FD');txt(label,x+2.5,y+4,5.8,true,[89,110,123]);txt(value,x+boxW-3,y+8.4,11,true,fg,{align:'right'})});y+=16;
+ [['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([label,key],i)=>{doc.setFillColor(...COLORS[key]);doc.circle(left+i*46+1,y-1,1.3,'F');txt(label,left+i*46+4,y,6.6)});y+=7;
+ txt('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;
+ const problemItems=items.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
  if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
  problemItems.forEach(o=>{
-  const st=statusOf(o),statusLabel=st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
-  const titleBase=o.id+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
-  const issueText=issues(o);
-  const bodySource=issueText.length?issueText.map(t=>'• '+t).join('\n'):(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel);
+  const st=statusOf(o),statusLabel=isSecurityRemediated(o)?'Åtgärdad':st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
+  const titleBase=securityDrawingLabel(o)+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
+  const issueText=issues(o),remediation=isSecurityRemediated(o)?'Åtgärdad: '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';
+  const bodyParts=issueText.length?issueText.map(t=>'• '+t):[(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel)];if(remediation)bodyParts.push('• '+remediation);const bodySource=bodyParts.join('\n');
   doc.setFont('helvetica','bold');doc.setFontSize(7.8);
   const titleLines=doc.splitTextToSize(titleBase,width-38);
   doc.setFont('helvetica','normal');doc.setFontSize(6.4);
@@ -419,14 +477,14 @@ function reportDoc(){
    });y+=h;
   });
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.rect(left,y,width,6,'FD');txt('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
-  const noteLines=[...issues(o),o.notes].filter(Boolean);
+  const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';const noteLines=[...issues(o),remediationNote,o.notes].filter(Boolean);
   const text=noteLines.join('\n'),boxH=Math.min(30,Math.max(18,276-y));doc.setFillColor(255,255,255);doc.rect(left,y,width,boxH,'FD');
   if(text){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);doc.text(doc.splitTextToSize(text,width-7).slice(0,Math.floor((boxH-5)/3.2)),left+3,y+5,{lineHeightFactor:1.15})}
  });
  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([project.company,project.projectName||project.facilityNo].filter(Boolean).join(' · ')||'Säkerhetsservice',left,289,7,false,[89,110,123]);txt('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
  return doc
 }
-async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning först.',true);try{msg('Skapar PDF…');const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib,src=await PDFDocument.load(sourceBytes,{updateMetadata:false}),out=await PDFDocument.create(),copied=await out.copyPages(src,src.getPageIndices());copied.forEach(p=>out.addPage(p));const font=await out.embedFont(StandardFonts.HelveticaBold),links=[];for(let i=0;i<copied.length;i++){const pg=copied[i],p=await pdf.getPage(i+1),vp=p.getViewport({scale:1});items.filter(o=>o.page===i+1).forEach(o=>{const[x,y]=vp.convertToPdfPoint(o.x*vp.width,o.y*vp.height),[lx,ly]=vp.convertToPdfPoint(o.labelX*vp.width,o.labelY*vp.height),label=o.id,size=7,tw=font.widthOfTextAtSize(label,size),s=statusOf(o),sc=COLORS[s]||COLORS.untested,c=rgb(sc[0]/255,sc[1]/255,sc[2]/255),angle=pg.getRotation().angle,rad=angle*Math.PI/180,r=Math.max(8,tw/2+4.5),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,startX=lx+ux*(r+1.5),startY=ly+uy*(r+1.5),endX=x-ux*2,endY=y-uy*2;pg.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:1.05,color:c,opacity:.9});const ah=5,aw=2.8,px=-uy,py=ux;pg.drawLine({start:{x,y},end:{x:x-ux*ah+px*aw,y:y-uy*ah+py*aw},thickness:1.05,color:c});pg.drawLine({start:{x,y},end:{x:x-ux*ah-px*aw,y:y-uy*ah-py*aw},thickness:1.05,color:c});pg.drawCircle({x,y,size:2.2,color:c,borderColor:rgb(1,1,1),borderWidth:.7});pg.drawCircle({x:lx,y:ly,size:r,color:c,borderColor:rgb(1,1,1),borderWidth:1.2});const tx=-tw/2,ty=-size/3,textX=lx+tx*Math.cos(rad)-ty*Math.sin(rad),textY=ly+tx*Math.sin(rad)+ty*Math.cos(rad);pg.drawText(label,{x:textX,y:textY,size,font,color:rgb(1,1,1),rotate:degrees(angle)});links.push({pageIndex:i,uid:o.uid,x:lx,y:ly,radius:r})});
+async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning först.',true);try{msg('Skapar PDF…');const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib,src=await PDFDocument.load(sourceBytes,{updateMetadata:false}),out=await PDFDocument.create(),copied=await out.copyPages(src,src.getPageIndices());copied.forEach(p=>out.addPage(p));const font=await out.embedFont(StandardFonts.HelveticaBold),links=[];for(let i=0;i<copied.length;i++){const pg=copied[i],p=await pdf.getPage(i+1),vp=p.getViewport({scale:1});items.filter(o=>o.page===i+1).forEach(o=>{const[x,y]=vp.convertToPdfPoint(o.x*vp.width,o.y*vp.height),[lx,ly]=vp.convertToPdfPoint(o.labelX*vp.width,o.labelY*vp.height),label=securityDrawingLabel(o),size=Math.min(7,Math.max(5,15/Math.max(2,securityDrawingLabel(o).length)*1.8)),tw=font.widthOfTextAtSize(label,size),s=statusOf(o),sc=COLORS[s]||COLORS.untested,c=rgb(sc[0]/255,sc[1]/255,sc[2]/255),angle=pg.getRotation().angle,rad=angle*Math.PI/180,r=Math.max(8,tw/2+4.5),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,startX=lx+ux*(r+1.5),startY=ly+uy*(r+1.5),endX=x-ux*2,endY=y-uy*2;pg.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:1.05,color:c,opacity:.9});const ah=5,aw=2.8,px=-uy,py=ux;pg.drawLine({start:{x,y},end:{x:x-ux*ah+px*aw,y:y-uy*ah+py*aw},thickness:1.05,color:c});pg.drawLine({start:{x,y},end:{x:x-ux*ah-px*aw,y:y-uy*ah-py*aw},thickness:1.05,color:c});pg.drawCircle({x,y,size:2.2,color:c,borderColor:rgb(1,1,1),borderWidth:.7});pg.drawCircle({x:lx,y:ly,size:r,color:c,borderColor:rgb(1,1,1),borderWidth:1.2});const tx=-tw/2,ty=-size/3,textX=lx+tx*Math.cos(rad)-ty*Math.sin(rad),textY=ly+tx*Math.sin(rad)+ty*Math.cos(rad);pg.drawText(label,{x:textX,y:textY,size,font,color:rgb(1,1,1),rotate:degrees(angle)});links.push({pageIndex:i,uid:o.uid,x:lx,y:ly,radius:r})});
  const noteFont=await out.embedFont(StandardFonts.Helvetica);
  (textNotes||[]).filter(n=>n.page===i+1&&n.text).forEach(n=>{const[x,y]=vp.convertToPdfPoint(n.x*vp.width,n.y*vp.height),[lx,ly]=vp.convertToPdfPoint(n.labelX*vp.width,n.labelY*vp.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,180),size=7,maxW=Math.min(145,vp.width*.3),lines=[];let line='';safe.split(/\s+/).forEach(word=>{const t=line?line+' '+word:word;if(noteFont.widthOfTextAtSize(t,size)<=maxW)line=t;else{if(line)lines.push(line);line=word}});if(line)lines.push(line);const shown=lines.slice(0,4),pad=4,lineH=9,w=Math.max(34,...shown.map(t=>noteFont.widthOfTextAtSize(t,size)))+pad*2,h=shown.length*lineH+pad*2,dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,startX=lx+ux*(Math.min(w,h)/2+2),startY=ly+uy*(Math.min(w,h)/2+2),endX=x-ux*2,endY=y-uy*2,c=rgb(.09,.25,.33);pg.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:.9,color:c});const ah=4,aw=2.2,px=-uy,py=ux;pg.drawLine({start:{x,y},end:{x:x-ux*ah+px*aw,y:y-uy*ah+py*aw},thickness:.9,color:c});pg.drawLine({start:{x,y},end:{x:x-ux*ah-px*aw,y:y-uy*ah-py*aw},thickness:.9,color:c});pg.drawCircle({x,y,size:1.8,color:c});pg.drawRectangle({x:lx-w/2,y:ly-h/2,width:w,height:h,color:rgb(1,1,.94),borderColor:c,borderWidth:.7,opacity:.96});shown.forEach((t,k)=>pg.drawText(t,{x:lx-w/2+pad,y:ly+h/2-pad-size-k*lineH,size,font:noteFont,color:rgb(.05,.12,.16)}))})
 }const report=reportDoc(),map=report.__protocolPages||{},backs=report.__backLinks||[],rpdf=await PDFDocument.load(report.output('arraybuffer')),rpages=await out.copyPages(rpdf,rpdf.getPageIndices());rpages.forEach(p=>out.addPage(p));function addLink(sp,tp,rect){const ref=out.context.register(out.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:out.context.obj([tp.ref,PDFName.of('Fit')])}));const ex=sp.node.get(PDFName.of('Annots'));if(ex)sp.node.lookup(PDFName.of('Annots'),PDFArray).push(ref);else sp.node.set(PDFName.of('Annots'),out.context.obj([ref]))}links.forEach(l=>{const n=map[l.uid];if(n){const hit=Math.max(14,l.radius||12);addLink(out.getPage(l.pageIndex),out.getPage(src.getPageCount()+n-1),[l.x-hit,l.y-hit,l.x+hit,l.y+hit])}});backs.forEach(b=>{const spi=src.getPageCount()+b.pageNo-1,tpi=b.drawingPage-1;if(spi>=out.getPageCount()||tpi<0)return;const sp=out.getPage(spi),tp=out.getPage(tpi),sz=sp.getSize(),sx=sz.width/210,sy=sz.height/297,[mx,my,mw,mh]=b.rect;addLink(sp,tp,[mx*sx,sz.height-(my+mh)*sy,(mx+mw)*sx,sz.height-my*sy])});const bytes=await out.save(),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download='sakerhetsservice-'+(project.projectName||'projekt').replace(/\s+/g,'-')+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg('PDF skapad med ritning, sammanfattning och protokoll.')}catch(e){console.error(e);msg('Kunde inte skapa PDF.',true)}}
