@@ -219,3 +219,86 @@ body.secTextAdding #secViewer{cursor:crosshair}
   }
  }
 }
+
+
+/* Web 2.4.16: compact Security surfaces and stepped protocol sizing. */
+#secOverviewList .secSummaryCard.alternate{background:#f7fafb}
+#secOverviewList .secSummaryMeta{margin:2px 0 4px;font-size:9px;color:#60717d}
+#secOverviewList .secSummaryCard.fail{border-left-color:#bd3f46}
+#secOverviewList .secSummaryCard.action{border-left-color:#c77c13}
+#secOverviewList .secSummaryCard.ok{border-left-color:#238354}
+#secOverviewList .secSummaryCard.untested{border-left-color:#77858e}
+
+@media(max-width:800px){
+ #securityProtocol .protocolHeadActions{gap:2px}
+ #securityProtocol .protocolHeadActions button{min-width:27px;width:auto;padding:2px 5px}
+ #securityProtocol>.grid2,#securityProtocol #secForm>.grid2{gap:3px 5px}
+ #securityProtocol #secForm>.grid2 label{font-size:8.8px;line-height:1.1;margin:2px 0}
+ #securityProtocol #secForm>.grid2 input{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;border-radius:5px}
+ #securityProtocol #secForm>label{font-size:9px;margin:4px 0}
+ #securityProtocol #secStatus{min-height:28px;height:28px;padding:2px 4px;margin-top:2px;font-size:10px;border-radius:5px}
+ #securityProtocol #secNotes{min-height:46px;padding:4px;font-size:10px;line-height:1.25;border-radius:5px}
+ #securityProtocol #secDelete{min-height:29px;padding:3px 7px;margin:7px 0;font-size:9px}
+
+ #securityProject{padding-top:5px}
+ #securityProject .sheetHead{padding:3px 0;margin-bottom:4px;top:-5px}
+ #securityProject .sheetHead h2{font-size:13px}
+ #securityProject .projectSections{gap:6px;margin-top:6px}
+ #securityProject .projectCard{padding:6px;border-radius:7px}
+ #securityProject .projectCardHead{gap:6px;padding-bottom:4px}
+ #securityProject .projectCardHead>span{width:21px;height:21px;font-size:9px}
+ #securityProject .projectCardHead h3{font-size:10.5px}
+ #securityProject .projectCardHead p{font-size:8px;margin-top:1px}
+ #securityProject .projectCard .grid2{gap:3px 5px;margin-top:2px}
+ #securityProject .projectCard label,#securityProject .secLogoLabel{font-size:8.5px;line-height:1.1;margin:2px 0 0}
+ #securityProject .projectCard input{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;border-radius:5px}
+ #securityProject .secLogoActions{gap:4px}
+ #securityProject .secLogoActions .filebtn,#securityProject .secLogoActions button{min-height:28px;padding:3px 6px;font-size:8.5px}
+ #securityProject #secLogoStatus{font-size:8px}
+ #securityProject #secLogoPreview{min-height:30px;padding:3px}
+ #securityProject #secLogoPreview img{max-height:36px}
+
+ body[data-protocol-size="-1"] #securityProtocol .secCheckHead{font-size:8.8px}
+ body[data-protocol-size="-1"] #securityProtocol .secChoices button{font-size:7.8px;min-height:25px}
+ body[data-protocol-size="-1"] #securityProtocol #secForm>.grid2 label,
+ body[data-protocol-size="-1"] #securityProtocol #secForm>label{font-size:8px}
+ body[data-protocol-size="-1"] #securityProtocol #secForm>.grid2 input,
+ body[data-protocol-size="-1"] #securityProtocol #secStatus,
+ body[data-protocol-size="-1"] #securityProtocol #secNotes{font-size:9px}
+
+ body[data-protocol-size="1"] #securityProtocol .secCheckHead{font-size:11px;line-height:1.25}
+ body[data-protocol-size="1"] #securityProtocol .secChoices button{font-size:9.5px;min-height:30px}
+ body[data-protocol-size="1"] #securityProtocol #secForm>.grid2 label,
+ body[data-protocol-size="1"] #securityProtocol #secForm>label{font-size:9.8px}
+ body[data-protocol-size="1"] #securityProtocol #secForm>.grid2 input,
+ body[data-protocol-size="1"] #securityProtocol #secStatus,
+ body[data-protocol-size="1"] #securityProtocol #secNotes{font-size:11px;min-height:30px;height:auto}
+
+ body[data-protocol-size="2"] #securityProtocol .secCheckHead{font-size:12.5px;line-height:1.3}
+ body[data-protocol-size="2"] #securityProtocol .secChoices button{font-size:10.5px;min-height:34px}
+ body[data-protocol-size="2"] #securityProtocol #secForm>.grid2 label,
+ body[data-protocol-size="2"] #securityProtocol #secForm>label{font-size:11px}
+ body[data-protocol-size="2"] #securityProtocol #secForm>.grid2 input,
+ body[data-protocol-size="2"] #securityProtocol #secStatus,
+ body[data-protocol-size="2"] #securityProtocol #secNotes{font-size:12.5px;min-height:33px;height:auto}
+
+ body[data-protocol-size="3"] #securityProtocol .secCheckHead{font-size:14px;line-height:1.35}
+ body[data-protocol-size="3"] #securityProtocol .secChoices button{font-size:11.5px;min-height:38px}
+ body[data-protocol-size="3"] #securityProtocol #secForm>.grid2 label,
+ body[data-protocol-size="3"] #securityProtocol #secForm>label{font-size:12px}
+ body[data-protocol-size="3"] #securityProtocol #secForm>.grid2 input,
+ body[data-protocol-size="3"] #securityProtocol #secStatus,
+ body[data-protocol-size="3"] #securityProtocol #secNotes{font-size:14px;min-height:36px;height:auto}
+}
+
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #securityProtocol #secForm>.grid2 input:focus,
+  #securityProtocol #secStatus:focus,
+  #securityProtocol #secNotes:focus,
+  #securityProject .projectCard input:focus{
+   font-size:16px!important;
+   min-height:32px;
+  }
+ }
+}
