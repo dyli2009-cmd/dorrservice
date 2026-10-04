@@ -35,3 +35,10 @@ assert(html.includes('id="removeSelectedPages"'),'Bulk page removal control must
 assert(js.includes("selectedPages=new Set"),'Multi-page selection state must exist');
 assert(js.includes("toRemove.forEach"),'Selected pages must be removable in one action');
 console.log('Structural PDF cleanup regression checks passed.');
+
+assert(html.includes('id="analyzeSize"'),'Drawing Tools must allow measuring optimization before save');
+assert(html.includes('id="sizeOriginal"')&&html.includes('id="sizeNew"'),'Size comparison must show original and new sizes');
+assert(html.includes('id="sizePercent"')&&html.includes('id="sizeVerdict"'),'Size comparison must show reduction percentage and verdict');
+assert(js.includes('function updateSizeComparison'),'Drawing Tools must calculate before/after size results');
+assert(js.includes("Stor förbättring")&&js.includes("Filen blev större"),'Size result must explain whether optimization is worthwhile');
+console.log('PDF size comparison regression checks passed.');
