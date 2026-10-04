@@ -589,3 +589,23 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  .doorOpenWorkHead{padding:11px 12px}
  .doorOpenWorkDialog>p{padding-left:11px;padding-right:11px}
 }
+
+
+/* Web 2.4.35: easier Door arrow-point dragging without a larger visible dot. */
+.doorTarget{
+ width:34px;height:34px;min-width:34px;min-height:34px;
+ border:0;box-shadow:none;background:transparent!important;
+ display:flex;align-items:center;justify-content:center;
+ cursor:grab;
+}
+.doorTarget:active{cursor:grabbing}
+.doorTarget::after{
+ content:"";display:block;width:12px;height:12px;border-radius:50%;
+ background:var(--marker-color,#77858e);
+ border:2px solid #fff;box-shadow:0 1px 4px #0005;
+ pointer-events:none;
+}
+@media(max-width:800px){
+ .doorTarget{width:40px;height:40px;min-width:40px;min-height:40px}
+ .doorTarget::after{width:13px;height:13px}
+}
