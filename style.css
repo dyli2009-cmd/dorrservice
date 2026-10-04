@@ -572,3 +572,25 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 @media(max-width:800px){
  .marker.markerTag{max-width:165px;font-size:7.6px;padding:0 6px}
 }
+
+
+/* Web 2.4.22: shared PDF source chooser. */
+.pageOpenPdf{min-height:28px!important;height:28px!important;padding:3px 7px!important;font-size:9px!important;white-space:nowrap}
+.cloudFileDialog{width:min(440px,92vw);border:0;border-radius:12px;padding:0;background:#fff;box-shadow:0 18px 55px #0005}
+.cloudFileDialog::backdrop{background:#0b1b24aa}
+.cloudFileHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#132b38;color:#fff}
+.cloudFileHead>div{display:flex;flex-direction:column;gap:2px}.cloudFileHead strong{font-size:15px}.cloudFileHead small{font-size:10px;color:#c6d8e2}
+.cloudFileHead button{width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border-color:#496574;background:#294554;color:#fff;font-size:20px}
+.cloudFileSources{display:grid;gap:7px;padding:12px}
+.cloudFileSources button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:3px;min-height:58px;padding:10px 12px;border:1px solid #cbd7df;border-radius:9px;background:#f8fbfc;color:#203440}
+.cloudFileSources button b{font-size:12px}.cloudFileSources button span{font-size:9.5px;color:#60717d;line-height:1.25}
+.cloudFileSources button:hover{background:#edf5f8;border-color:#9fb9c7}
+.cloudFileSources button.needsSetup{border-style:dashed;background:#fafbfc}
+.cloudFileSources button.needsSetup b::after{content:' · ej kopplad';font-weight:500;color:#8a6a32}
+.cloudFileNote{margin:0;padding:0 12px 12px;font-size:9px;line-height:1.35;color:#60717d}
+@media(max-width:520px){
+ .cloudFileDialog{width:min(390px,94vw)}
+ .cloudFileSources{gap:5px;padding:9px}
+ .cloudFileSources button{min-height:52px;padding:8px 10px}
+ .cloudFileHead{padding:10px 11px}
+}
