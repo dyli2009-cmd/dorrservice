@@ -408,3 +408,155 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
   }
  }
 }
+
+
+/* Web 2.4.16: compact work surfaces, priority overview and stepped text sizing. */
+#overviewSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:6px 0 8px}
+#overviewSummary .overviewStat{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;padding:5px 3px;border:1px solid #d6e0e5;border-radius:7px;background:#fff}
+#overviewSummary .overviewStat strong{font-size:15px;line-height:1;color:#203440}
+#overviewSummary .overviewStat small{margin-top:3px;font-size:8px;line-height:1.1;color:#667b87;text-align:center}
+#overviewSummary .overviewStat.open{background:#fff6e8;border-color:#ead1a5}
+#overviewSummary .overviewStat.done,#overviewSummary .overviewStat.ready{background:#edf7f1;border-color:#c9e2d3}
+#overviewList .doorCard{border-left:4px solid #b8c6ce}
+#overviewList .doorCard:nth-child(even){background:#f7fafb}
+#overviewList .doorCard.status-fail{border-left-color:#bd3f46}
+#overviewList .doorCard.status-action{border-left-color:#c77c13}
+#overviewList .doorCard.status-untested{border-left-color:#77858e}
+#overviewList .doorCard.status-ok{border-left-color:#238354}
+#overviewList .doorCard.status-remediated{background:#f1f8f4}
+#overviewList .doorIssues{margin:4px 0 5px;padding-left:17px}
+#overviewList .doorIssues li{margin:3px 0}
+#overviewList .generalRemark{margin:4px 0;padding:5px 7px;border-radius:5px;background:#eef3f6}
+#overviewList .remediationGrid{padding:5px 6px;border-radius:6px;background:#eef3f6}
+#overviewList .openProtocolBtn{margin-top:5px}
+
+@media(max-width:800px){
+ #protocolPanel .protocolHeadActions{gap:2px}
+ #protocolPanel .protocolHeadActions button{min-width:27px;width:auto;padding:2px 5px}
+ #protocolPanel .doorDetails{padding:5px 6px;margin-bottom:5px;border-radius:6px}
+ #protocolPanel .doorDetails summary{font-size:9.5px;line-height:1.2}
+ #protocolPanel .doorDetails .grid2{gap:3px 5px;margin-top:3px}
+ #protocolPanel .doorDetails label{font-size:8.8px;line-height:1.1;margin:2px 0}
+ #protocolPanel .doorDetails input,
+ #protocolPanel .doorDetails select{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;line-height:1.05;border-radius:5px}
+ #protocolPanel #generateId{min-height:27px;padding:2px 5px;margin-top:2px;font-size:8.8px;line-height:1.1}
+ #protocolPanel #idMessage{font-size:8px;line-height:1.2;margin:1px 0}
+ #protocolPanel #form>label{font-size:9px;margin:4px 0}
+ #protocolPanel #status,#protocolPanel #signature{min-height:28px;height:28px;padding:2px 4px;margin-top:2px;font-size:10px;border-radius:5px}
+ #protocolPanel #notes{min-height:46px;padding:4px;font-size:10px;line-height:1.25;border-radius:5px}
+ #protocolPanel #serviceBy{font-size:9px;margin:3px 0}
+ #protocolPanel #deleteBtn{min-height:29px;padding:3px 7px;margin:7px 0;font-size:9px}
+ #protocolPanel .previousPanel{padding:5px 6px;font-size:9px;margin-bottom:5px}
+ #protocolPanel .previousPanel summary{font-size:9.5px}
+
+ #overviewDialog{padding-top:5px}
+ #overviewDialog .overviewHead{padding:3px 0;margin-bottom:4px;top:-5px}
+ #overviewDialog .overviewHead h2{font-size:13px}
+ #overviewDialog .overviewProject{font-size:9px}
+ #overviewDialog .overviewFilters{gap:4px}
+ #overviewDialog .overviewFilters label{font-size:8.5px;margin:2px 0}
+ #overviewDialog .overviewFilters input,#overviewDialog .overviewFilters select{min-height:28px;height:28px;padding:2px 4px;margin-top:1px;font-size:10px}
+ #overviewDialog .overviewActions{margin:4px 0}
+ #overviewDialog .overviewActions button{min-height:28px;padding:3px 6px;font-size:9px}
+ #overviewDialog .doorCard{padding:6px 7px;margin:4px 0;border-radius:6px}
+ #overviewDialog .doorCard h3{font-size:11px}
+ #overviewDialog .doorMeta{font-size:8.8px;line-height:1.3;margin:3px 0}
+ #overviewDialog .doorStatus{font-size:8px;padding:2px 4px}
+ #overviewDialog .doorIssues{font-size:9px;line-height:1.3}
+ #overviewDialog .doorCard>p{font-size:9px;line-height:1.3}
+ #overviewDialog .remediationGrid{gap:4px;padding:4px}
+ #overviewDialog .remediationGrid label{font-size:8px;margin:1px 0}
+ #overviewDialog .remediationGrid input{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;border-radius:5px}
+ #overviewDialog .openProtocolBtn{min-height:28px;padding:3px 6px;font-size:9px}
+ #overviewSummary{gap:3px;margin:4px 0 6px}
+ #overviewSummary .overviewStat{min-height:36px;padding:3px 2px;border-radius:5px}
+ #overviewSummary .overviewStat strong{font-size:12px}
+ #overviewSummary .overviewStat small{font-size:7px}
+
+ #projectPanel{padding-top:5px}
+ #projectPanel .sheetHead{padding:3px 0;margin-bottom:4px;top:-5px}
+ #projectPanel .sheetHead h2{font-size:13px}
+ #projectPanel #drawingInfo,#projectPanel #workFileInfo{font-size:8.5px;line-height:1.25;padding:5px;margin:4px 0}
+ #projectPanel .securityLaunch{padding:6px 8px;margin:5px 0 7px;border-radius:6px}
+ #projectPanel .securityLaunch strong{font-size:10px}
+ #projectPanel .securityLaunch span,#projectPanel .securityLaunch b{font-size:8px}
+ #projectPanel .previewToolbar{gap:5px;margin:5px 0}
+ #projectPanel .previewToolbar button{min-height:28px;padding:3px 6px;font-size:8.5px}
+ #projectPanel .previewToolbar span{font-size:8px}
+ #projectPanel .projectSections{gap:6px;margin-top:6px}
+ #projectPanel .projectCard{padding:6px;border-radius:7px}
+ #projectPanel .projectCardHead{gap:6px;padding-bottom:4px}
+ #projectPanel .projectCardHead>span{width:21px;height:21px;font-size:9px}
+ #projectPanel .projectCardHead h3{font-size:10.5px}
+ #projectPanel .projectCardHead p{font-size:8px;margin-top:1px}
+ #projectPanel .projectCard .grid2{gap:3px 5px;margin-top:2px}
+ #projectPanel .projectCard label{font-size:8.5px;line-height:1.1;margin:2px 0 0}
+ #projectPanel .projectCard input{min-height:27px;height:27px;padding:2px 4px;margin-top:1px;font-size:10px;border-radius:5px}
+ #projectPanel #logoPreview{min-height:28px}
+ #projectPanel #logoPreview img{max-height:34px}
+ #projectPanel #newServiceBtn{min-height:29px;padding:3px 6px;margin-top:7px;font-size:9px}
+ #projectPanel>.muted,#projectPanel .projectEditor>.muted{font-size:8px;line-height:1.3}
+
+ body[data-protocol-size="-1"] #protocolPanel .checktitle{font-size:8.8px}
+ body[data-protocol-size="-1"] #protocolPanel .quickBtns button{font-size:7.8px;min-height:25px}
+ body[data-protocol-size="-1"] #protocolPanel .checkGroup summary{font-size:9px}
+ body[data-protocol-size="-1"] #protocolPanel .doorDetails summary{font-size:8.8px}
+ body[data-protocol-size="-1"] #protocolPanel .doorDetails label,
+ body[data-protocol-size="-1"] #protocolPanel #form>label{font-size:8px}
+ body[data-protocol-size="-1"] #protocolPanel .doorDetails input,
+ body[data-protocol-size="-1"] #protocolPanel .doorDetails select,
+ body[data-protocol-size="-1"] #protocolPanel #status,
+ body[data-protocol-size="-1"] #protocolPanel #signature,
+ body[data-protocol-size="-1"] #protocolPanel #notes{font-size:9px}
+
+ body[data-protocol-size="1"] #protocolPanel .checktitle{font-size:11px;line-height:1.25}
+ body[data-protocol-size="1"] #protocolPanel .quickBtns button{font-size:9.5px;min-height:30px}
+ body[data-protocol-size="1"] #protocolPanel .checkGroup summary{font-size:11px}
+ body[data-protocol-size="1"] #protocolPanel .doorDetails summary{font-size:10.5px}
+ body[data-protocol-size="1"] #protocolPanel .doorDetails label,
+ body[data-protocol-size="1"] #protocolPanel #form>label{font-size:9.8px}
+ body[data-protocol-size="1"] #protocolPanel .doorDetails input,
+ body[data-protocol-size="1"] #protocolPanel .doorDetails select,
+ body[data-protocol-size="1"] #protocolPanel #status,
+ body[data-protocol-size="1"] #protocolPanel #signature,
+ body[data-protocol-size="1"] #protocolPanel #notes{font-size:11px;min-height:30px;height:auto}
+
+ body[data-protocol-size="2"] #protocolPanel .checktitle{font-size:12.5px;line-height:1.3}
+ body[data-protocol-size="2"] #protocolPanel .quickBtns button{font-size:10.5px;min-height:34px}
+ body[data-protocol-size="2"] #protocolPanel .checkGroup summary{font-size:12.5px}
+ body[data-protocol-size="2"] #protocolPanel .doorDetails summary{font-size:12px}
+ body[data-protocol-size="2"] #protocolPanel .doorDetails label,
+ body[data-protocol-size="2"] #protocolPanel #form>label{font-size:11px}
+ body[data-protocol-size="2"] #protocolPanel .doorDetails input,
+ body[data-protocol-size="2"] #protocolPanel .doorDetails select,
+ body[data-protocol-size="2"] #protocolPanel #status,
+ body[data-protocol-size="2"] #protocolPanel #signature,
+ body[data-protocol-size="2"] #protocolPanel #notes{font-size:12.5px;min-height:33px;height:auto}
+
+ body[data-protocol-size="3"] #protocolPanel .checktitle{font-size:14px;line-height:1.35}
+ body[data-protocol-size="3"] #protocolPanel .quickBtns button{font-size:11.5px;min-height:38px}
+ body[data-protocol-size="3"] #protocolPanel .checkGroup summary{font-size:14px}
+ body[data-protocol-size="3"] #protocolPanel .doorDetails summary{font-size:13.5px}
+ body[data-protocol-size="3"] #protocolPanel .doorDetails label,
+ body[data-protocol-size="3"] #protocolPanel #form>label{font-size:12px}
+ body[data-protocol-size="3"] #protocolPanel .doorDetails input,
+ body[data-protocol-size="3"] #protocolPanel .doorDetails select,
+ body[data-protocol-size="3"] #protocolPanel #status,
+ body[data-protocol-size="3"] #protocolPanel #signature,
+ body[data-protocol-size="3"] #protocolPanel #notes{font-size:14px;min-height:36px;height:auto}
+}
+
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #protocolPanel .doorDetails input:focus,
+  #protocolPanel .doorDetails select:focus,
+  #protocolPanel #status:focus,
+  #protocolPanel #signature:focus,
+  #protocolPanel #notes:focus,
+  #overviewDialog .remediationGrid input:focus,
+  #projectPanel .projectCard input:focus{
+   font-size:16px!important;
+   min-height:32px;
+  }
+ }
+}
