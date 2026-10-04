@@ -5,12 +5,12 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  const sorted=ds.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
  const status=d=>isDoorRemediated(d)?'ok':d.status==='fail'?'fail':hasDoorProblem(d)?'action':d.status==='ok'?'ok':'untested';
  const label=d=>isDoorRemediated(d)?'Åtgärdad':({ok:'Godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',fail:'Ej godkänd',untested:'Ej kontrollerad'})[status(d)];
- function text(value,x,y,size=9,bold=false,color=[32,52,64]){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||'-'),x,y)}
+ function text(value,x,y,size=9,bold=false,color=[32,52,64],opts){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||'-'),x,y,opts||{})}
  function header(title,subtitle){
   doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);
   if(logo){try{const image=doc.getImageProperties(logo),pad=2.5,scale=Math.min((58-pad*2)/image.width,(18-pad*2)/image.height),iw=image.width*scale,ih=image.height*scale;doc.addImage(logo,left+(58-iw)/2,8+(18-ih)/2,iw,ih)}catch(e){}}
-  else text('DORRSERVICE',left+29,18,7,true,[25,25,25]);
-  text(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25]);text(subtitle,left+58+(width-58)/2,21.4,6.8,false,[70,82,90]);
+  else text('DÖRRSERVICE',left+29,18,7,true,[25,25,25],{align:'center'});
+  text(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25],{align:'center'});text(subtitle,left+58+(width-58)/2,21.4,6.8,false,[70,82,90],{align:'center'});
   y=32;doc.setDrawColor(204,215,223);doc.setLineWidth(.2);
  }
  function field(label,value,x,y,w){doc.setFillColor(243,247,249);doc.rect(x,y,w,13,'F');text(label,x+2,y+4,6.5,true,[89,110,123]);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(32,52,64);doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,y+8.5)}
