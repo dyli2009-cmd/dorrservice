@@ -195,3 +195,34 @@ header button,header .filebtn{
  padding:5px 7px;font-size:10.5px;line-height:20px;
  white-space:nowrap;border-radius:7px;margin-top:0;margin-bottom:0;
 }
+
+/* Shared web header: title and actions share a row; details sit below. */
+body header.appHeader{
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;gap:4px 8px;padding:7px 8px!important;
+ min-height:0;overflow:visible;
+}
+body header.appHeader .brand{
+ display:block;min-width:0;margin:0;white-space:normal;
+}
+body header.appHeader .brand strong{
+ display:block;font-size:13px;line-height:1.2;white-space:normal;
+}
+body header.appHeader .headerActions{
+ display:flex;align-items:center;justify-content:flex-end;gap:4px;
+}
+body header.appHeader .headerActions>button,
+body header.appHeader .headerActions>.filebtn{
+ flex:0 0 auto;width:auto;min-width:0;height:32px;min-height:32px;
+ padding:5px 7px;font-size:10.5px;line-height:20px;margin:0;
+}
+body header.appHeader .headerDetails{
+ grid-column:1 / -1;display:flex;align-items:baseline;gap:8px;min-width:0;
+}
+body header.appHeader .headerSubtitle{
+ font-size:10px;line-height:1.4;font-weight:400;color:#bfd0d9;
+}
+body header.appHeader .appVersion{
+ flex:none;margin-left:auto;font-size:10px;line-height:1.4;color:#bfd0d9;
+ font-variant-numeric:tabular-nums;white-space:nowrap;
+}
