@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.21">
-<link rel="stylesheet" href="security.css?v=2.4.21">
+<link rel="stylesheet" href="style.css?v=2.4.22">
+<link rel="stylesheet" href="security.css?v=2.4.22">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Säkerhetsservice</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.21">v2.4.21</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.22">v2.4.22</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
@@ -27,14 +27,14 @@
 <main>
 <section id="securityDrawing" class="view">
   <div class="pagebar">
-    <button id="secPrev" aria-label="Föregående sida">‹</button><span id="secPage">Ingen ritning</span><span class="mobileSwipeHint" aria-hidden="true">↔ Svep</span><button id="secNext" aria-label="Nästa sida">›</button>
+    <button id="secPrev" aria-label="Föregående sida">‹</button><span id="secPage">Ingen ritning</span><button type="button" class="pageOpenPdf" data-cloud-file-open data-file-input="securityFile">Öppna</button><span class="mobileSwipeHint" aria-hidden="true">↔ Svep</span><button id="secNext" aria-label="Nästa sida">›</button>
     <button id="secZoomOut">−</button><span id="secZoom">100%</span><button id="secZoomIn">+</button>
     <button id="secFit" hidden style="display:none!important">Passa</button>
   </div>
   <div id="secHint" hidden>Tryck på ritningen där objektet finns.</div>
   <section id="secViewer">
     <div id="secStage"><canvas id="secCanvas"></canvas><div id="secMarkers"></div></div>
-    <div id="secEmpty"><h1>Säkerhetsservice</h1><p>En ritning för Inbrottslarm, Lås & Dörrmiljö och Passer.</p><label class="filebtn primary" for="securityFile">Öppna PDF</label></div>
+    <div id="secEmpty"><h1>Säkerhetsservice</h1><p>En ritning för Inbrottslarm, Lås & Dörrmiljö och Passer.</p><button type="button" class="filebtn primary" data-cloud-file-open data-file-input="securityFile">Öppna PDF</button></div>
   </section>
   <div class="securityTools">
     <button data-add="alarm">＋ Inbrott</button>
@@ -126,5 +126,7 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="security.js?v=2.4.21"></script>
+<script src="cloud-config.js?v=2.4.22"></script>
+<script src="cloud-files.js?v=2.4.22"></script>
+<script src="security.js?v=2.4.22"></script>
 </body></html>
