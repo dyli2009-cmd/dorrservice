@@ -26,14 +26,14 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  const widths=[33,115,38];
  function tableHead(){let x=left;['Dörr / placering','Anmärkning','Åtgärdat / signatur'].forEach((title,i)=>{doc.setFillColor(232,239,244);doc.rect(x,y,widths[i],9,'F');doc.rect(x,y,widths[i],9);text(title,x+2,y+5.5,7.5,true);x+=widths[i]});y+=9}
  function overviewPage(){doc.addPage();overviewHeader()}
- overviewHeader();const problems=sorted.filter(hasRecordedDoorProblem);
+ overviewHeader();const problems=sorted.filter(hasRecordedDoorProblem).sort((a,b)=>{const rank=d=>isDoorRemediated(d)?2:status(d)==='fail'?0:1;return rank(a)-rank(b)||a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true})});
  if(!problems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');text('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);text('Se protokollen för vilka kontrollpunkter som är genomförda.',left+3,y+12,8);y+=20}
  problems.forEach(d=>{
-  const issues=doorProblems(d).map(([n,t])=>n+' '+t+' – '+(d.checks[n].note?.trim()||'Fel markerat, beskrivning saknas.'));
+  const issues=doorProblems(d).map(([n,t])=>d.checks[n].note?.trim()||t);
   if(!issues.length)issues.push(label(d));if(d.notes?.trim())issues.push('Allmän anmärkning: '+d.notes.trim());
   doc.setFont('helvetica','normal');doc.setFontSize(8);
   const remediation=isDoorRemediated(d)?['Åtgärdad: '+d.remediationDate,'Signatur: '+d.remediationSignature].join('\n'):[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n');
-  const columns=[d.id+'\n'+(d.location||'')+'\n'+label(d),issues.join('\n'),remediation].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
+  const columns=[d.id+'\nPlacering: '+(d.location||'-')+'\n'+label(d),issues.join('\n'),remediation].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
   let offset=0,total=Math.max(...columns.map(c=>c.length),1);
   while(offset<total){
    const capacity=Math.floor((bottom-y-5)/line);if(capacity<1||bottom-y<12){overviewPage();continue}
@@ -61,7 +61,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   function protocolTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
-   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+61,12.4);doc.setFontSize(9.6);doc.text('CHECKLISTA REVION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
+   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+61,12.4);doc.setFontSize(9.6);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
    doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.setTextColor(25,25,25);doc.text('SERVICE',left+1.5,34.5);
    y=39;
    cell('Bokat besök datum:',p.inspectionDate,left,y,93);cell('Nästa provning datum:',d.nextDate||p.projectNextDate,left+93,y,93);y+=7;
@@ -110,13 +110,13 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   function continuationTop(){
    doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);
    if(logo){try{const im=doc.getImageProperties(logo),boxX=left,boxY=8,boxW=58,boxH=18,pad=2.5,maxW=boxW-pad*2,maxH=boxH-pad*2,sc=Math.min(maxW/im.width,maxH/im.height),imgW=im.width*sc,imgH=im.height*sc,imgX=boxX+(boxW-imgW)/2,imgY=boxY+(boxH-imgH)/2;doc.addImage(logo,imgX,imgY,imgW,imgH)}catch(e){}}
-   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.1);doc.text('Dokumentnr: 2519-1',left+61,11.7);doc.setFontSize(8.9);doc.text('CHECKLISTA REVION AV DÖRRAUTOMATIK',left+58+(width-58)/2,17.3,{align:'center'});
+   doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.1);doc.text('Dokumentnr: 2519-1',left+61,11.7);doc.setFontSize(8.9);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,17.3,{align:'center'});
    doc.setFont('helvetica','normal');doc.setFontSize(6.6);doc.text('Allmän Info - fortsättning',112,22.4,{align:'center'});
    y=31;cell('Id nummermaskin:',d.machineId||d.id,left,y,62,8);cell('Placering/Dörrlittra:',d.location,left+62,y,62,8);cell('Ao nummer:',d.ao||p.projectOrder,left+124,y,62,8);y+=12;
   }
   y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,6,'FD');text('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
   const remediationNote=isDoorRemediated(d)?'Åtgärdad '+d.remediationDate+' · Signatur: '+d.remediationSignature:'';
-  const notes=[...doorProblems(d).map(([n,t])=>n+' '+t+' - '+(d.checks[n].note?.trim()||'Beskrivning saknas.')),remediationNote,d.notes].filter(Boolean).join('\n');
+  const notes=[...doorProblems(d).map(([n,t])=>d.checks[n].note?.trim()||t),remediationNote,d.notes].filter(Boolean).join('\n');
   const lines=doc.splitTextToSize(notes||'',width-7),boxH=Math.min(30,Math.max(18,276-y)),lineH=3.2,firstMax=Math.max(1,Math.floor((boxH-5)/lineH));
   doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
   if(lines.length){
