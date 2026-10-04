@@ -20,7 +20,7 @@ const COMMON_FAULTS={
 '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
-let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1,suppressPageSwipeUntil=0;
+let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1,suppressPageSwipeUntil=0,newlyPlacedDoorUid='',newlyPlacedDoorUntil=0;
 function doorLocalToday(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
 const appHome=$('appHome'),enterDoorMode=$('enterDoorMode'),homeBtn=$('homeBtn');
@@ -192,7 +192,7 @@ markers.addEventListener('click',e=>{
  }
  if(!addMode)return;
  const ids=new Set(doors.map(d=>d.id));let n=1;while(ids.has('D'+n))n++;
- const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x,y,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;addMode=false;document.body.classList.remove('placing');save();draw();show();document.body.classList.remove('protocolOpen');$('hint').textContent='Dörren är tillagd. Dra pilpunkten och etiketten till rätt läge. Tryck sedan på etiketten för att öppna protokollet.';$('hint').style.display='block'
+ const d=normalize({uid:Date.now()+''+Math.random(),id:'D'+n,page,x,y,model:'',status:'untested',notes:''});d.serialNumber=nextSerial();d.id='D'+Number(d.serialNumber);d.idMode='auto';doors.push(d);selected=d.uid;newlyPlacedDoorUid=d.uid;newlyPlacedDoorUntil=Date.now()+900;addMode=false;document.body.classList.remove('placing');save();draw();show();if(typeof goView==='function')goView('drawing');else{document.body.dataset.view='drawing';document.body.classList.remove('protocolOpen')}$('hint').textContent='Dörren är tillagd. Dra pilpunkten och etiketten till rätt läge. Tryck sedan på etiketten för att öppna protokollet.';$('hint').style.display='block'
 });
 function draw(){
  markers.replaceChildren();
@@ -216,7 +216,7 @@ function draw(){
   el.addEventListener('pointerup',ev=>{if(!drag||drag.pointer!==ev.pointerId)return;suppressPageSwipeUntil=Date.now()+700;if(drag.moved){ignoreClickUntil=Date.now()+900;ev.preventDefault();ev.stopPropagation();save()}drag=null});
   el.addEventListener('pointercancel',()=>{suppressPageSwipeUntil=Date.now()+700;if(drag){d.labelX=drag.originalX;d.labelY=drag.originalY;el.style.left=d.labelX*100+'%';el.style.top=d.labelY*100+'%'}drag=null;ignoreClickUntil=Date.now()+300});
   el.addEventListener('click',ev=>{if(Date.now()<ignoreClickUntil){ev.preventDefault();ev.stopImmediatePropagation()}},true);
-  el.onclick=ev=>{ev.stopPropagation();if(Date.now()<ignoreClickUntil){ev.preventDefault();return}$('hint').style.display='none';selected=d.uid;show();if(innerWidth<=800)document.body.classList.add('protocolOpen')};markers.appendChild(el)
+  el.onclick=ev=>{ev.stopPropagation();if(Date.now()<ignoreClickUntil||d.uid===newlyPlacedDoorUid&&Date.now()<newlyPlacedDoorUntil){ev.preventDefault();return}newlyPlacedDoorUid='';newlyPlacedDoorUntil=0;$('hint').style.display='none';selected=d.uid;show();if(typeof goView==='function')goView('protocol');else{document.body.dataset.view='protocol';if(innerWidth<=800)document.body.classList.add('protocolOpen')}};markers.appendChild(el)
  })
  drawingNotes.replaceChildren();
  textNotes.filter(n=>n.page===page).forEach(n=>{
