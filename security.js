@@ -254,8 +254,10 @@ function endTouch(e){
 viewer.addEventListener('touchend',endTouch,{passive:true});
 viewer.addEventListener('touchcancel',endTouch,{passive:true});
 
-$('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),key=await fingerprint(bytes),candidate=await pdfjsLib.getDocument({data:bytes.slice()}).promise,saved=loadSaved(key);if(pdf)try{await pdf.destroy()}catch(_){}
-pdf=candidate;sourceBytes=bytes;activeKey=key;items=(saved?.items||[]).map(normalize);textNotes=Array.isArray(saved?.textNotes)?saved.textNotes:[];project={...emptyProject(),...(saved?.project||{})};logoData=saved?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg('Ritningen är klar. Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')}catch(err){msg('Kunde inte öppna PDF-filen.',true)}};
+async function loadSecurityServicePdfFile(f){if(!f)return;try{msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),key=await fingerprint(bytes),candidate=await pdfjsLib.getDocument({data:bytes.slice()}).promise,saved=loadSaved(key);if(pdf)try{await pdf.destroy()}catch(_){}
+pdf=candidate;sourceBytes=bytes;activeKey=key;items=(saved?.items||[]).map(normalize);textNotes=Array.isArray(saved?.textNotes)?saved.textNotes:[];project={...emptyProject(),...(saved?.project||{})};logoData=saved?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;msg('Ritningen är klar. Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')}catch(err){msg('Kunde inte öppna PDF-filen.',true);throw err}}
+window.SecurityServiceOpenPdfFile=loadSecurityServicePdfFile;
+$('securityFile').onchange=async e=>{const f=e.target.files[0];try{await loadSecurityServicePdfFile(f)}finally{e.target.value=''}};
 function changeSecurityPage(delta){
  if(!pdf)return false;
  const next=Math.max(1,Math.min(pdf.numPages,page+delta));if(next===page)return false;

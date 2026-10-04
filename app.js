@@ -82,8 +82,8 @@ async function stripLegacyReportPages(bytes){
   const src=await PDFLib.PDFDocument.load(bytes,{updateMetadata:false}),out=await PDFLib.PDFDocument.create(),pages=await out.copyPages(src,Array.from({length:cut},(_,i)=>i));pages.forEach(p=>out.addPage(p));return new Uint8Array(await out.save());
  }catch(e){return bytes}
 }
-$('file').onchange=async e=>{
- const f=e.target.files[0];if(!f)return;if(exporting){notice('Vänta tills PDF-exporten är klar innan du byter ritning.');e.target.value='';return}const version=++loadVersion;let candidate;
+async function loadDoorServicePdfFile(f){
+ if(!f)return;if(exporting){notice('Vänta tills PDF-exporten är klar innan du byter ritning.');return}const version=++loadVersion;let candidate;
  notice('Laddar ritning…');$('exportBtn').disabled=true;$('viewerWrap').setAttribute('aria-busy','true');
  try{
   const bytes=new Uint8Array(await f.arrayBuffer()),key=await drawingFingerprint(bytes);
@@ -113,8 +113,11 @@ $('file').onchange=async e=>{
   const rendered=await render(true);wrap.scrollLeft=0;wrap.scrollTop=0;
   if(version===loadVersion&&rendered){const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'))}
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
- finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey;e.target.value=''}}
-};
+ finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey}}
+}
+window.DoorServiceOpenPdfFile=loadDoorServicePdfFile;
+$('file').onchange=async e=>{const f=e.target.files[0];try{await loadDoorServicePdfFile(f)}finally{e.target.value=''}};
+
 function render(fit=false,focus=null){
  if(!pdf)return Promise.resolve();const version=++renderVersion,documentPdf=pdf,pageNumber=page;
  if(renderTask)renderTask.cancel();
