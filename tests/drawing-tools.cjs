@@ -26,3 +26,12 @@ assert(js.includes('stripColoredMarks'),'Drawing Tools must remove colored marks
 assert(js.includes('applyManualMasks'),'Manual erased areas must be applied to output');
 assert(js.includes("addEventListener('pointerdown'"),'Area eraser must support direct pointer dragging');
 console.log('Aggressive cleanup regression checks passed.');
+
+assert(js.includes("DorrserviceWork"),'Drawing Tools must recognize Dörrservice work PDFs');
+assert(js.includes("SecurityServiceWork"),'Drawing Tools must recognize Säkerhetsservice work PDFs');
+assert(js.includes("decodePDFRawStream"),'Drawing Tools must extract embedded original drawing bytes');
+assert(html.includes('id="selectPages"'),'Multi-page selection control must exist');
+assert(html.includes('id="removeSelectedPages"'),'Bulk page removal control must exist');
+assert(js.includes("selectedPages=new Set"),'Multi-page selection state must exist');
+assert(js.includes("toRemove.forEach"),'Selected pages must be removable in one action');
+console.log('Structural PDF cleanup regression checks passed.');
