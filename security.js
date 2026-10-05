@@ -127,10 +127,10 @@ function drawMarkers(){
  pageItems.forEach(o=>{
   const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';
   let targetDrag=null;
-  target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;targetDrag={id:e.pointerId};target.setPointerCapture(e.pointerId)};
-  target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId)return;const r=markers.getBoundingClientRect();o.x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));o.y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
-  target.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag?.id===e.pointerId)save();targetDrag=null};
-  target.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;targetDrag=null};markers.appendChild(target);
+  target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold:markerDragThreshold(zoom)};target.setPointerCapture(e.pointerId)};
+  target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
+  target.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag?.id===e.pointerId&&targetDrag.moved)save();targetDrag=null};
+  target.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY}targetDrag=null;drawMarkers()};markers.appendChild(target);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
  });
  // tag connector lines after targets are known
@@ -138,10 +138,10 @@ function drawMarkers(){
  pageItems.forEach(o=>{
   const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
-  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};b.setPointerCapture(e.pointerId)};
-  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<5)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,(e.clientX-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(e.clientY-r.top)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
+  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false,originalX:o.labelX,originalY:o.labelY,threshold:markerDragThreshold(zoom)};b.setPointerCapture(e.pointerId)};
+  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
   b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
-  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;drag=null};
+  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
   b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;selected=o.uid;showSelected();go('protocol')};
   markers.appendChild(b)
  })
@@ -603,6 +603,21 @@ const DOOR_WORDING=[
  'Dörren stänger för hårt',
  'Dörrbladet hänger snett'
 ];
+
+function doorWordingVariants(problem){
+ const alternatives={
+  'Dörrbladet tar i karmen':['Dörrbladet går emot karmen','Dörrbladet kommer i kontakt med karmen'],
+  'Dörrbladet tar i det andra dörrbladet':['Dörrbladen tar i varandra','Dörrbladet går emot det andra dörrbladet'],
+  'Dörrbladet tar i golvet':['Dörrbladet går emot golvet','Dörrbladet kommer i kontakt med golvet'],
+  'Dörren kärvar vid öppning':['Dörren går trögt att öppna','Dörren öppnas med motstånd'],
+  'Dörren kärvar vid stängning':['Dörren går trögt att stänga','Dörren stängs med motstånd'],
+  'Dörren går inte att stänga helt':['Dörren stänger inte helt','Dörren når inte helt stängt läge'],
+  'Dörren stänger för hårt':['Dörrens stängning är för hård'],
+  'Dörrbladet hänger snett':['Dörrbladet har en sned hängning']
+ };
+ return [problem,...(alternatives[problem]||[])];
+}
+
 function doorWordingSentence(problem,frequency,action){
  const sentence=s=>s.trim().replace(/[.!?]+$/,'')+'.';
  return [problem?sentence(problem+(frequency?' '+frequency:'')):'',action?sentence(action):''].filter(Boolean).join(' ');
@@ -621,13 +636,18 @@ function openDoorWording({title,original,choices,apply,actions=['Fortsatt felsö
  const preview=document.createElement('textarea');preview.rows=4;preview.value=original;preview.id='doorWordingPreview';
  const status=document.createElement('p');status.setAttribute('role','status');
  const make=document.createElement('button');make.type='button';make.textContent='Skapa förslag';
- make.onclick=()=>{if(!problem.value){status.textContent='Välj en beskrivning. Du kan också redigera texten direkt nedan.';return}preview.value=doorWordingSentence(problem.value,frequency.value,action.value);status.textContent='Förslaget är klart. Kontrollera att texten stämmer.'};
+ let variant=0;
+ const another=document.createElement('button');another.type='button';another.textContent='Annan formulering';another.disabled=true;
+ const generate=()=>{if(!problem.value){status.textContent='Välj en beskrivning. Du kan också redigera texten direkt nedan.';return}const options=doorWordingVariants(problem.value);preview.value=doorWordingSentence(options[variant%options.length],frequency.value,action.value);another.disabled=options.length<2;status.textContent=options.length>1?'Förslag '+((variant%options.length)+1)+' av '+options.length+'. Kontrollera att texten stämmer.':'Förslaget är klart. Du kan redigera texten nedan.'};
+ make.onclick=()=>{variant=0;generate()};
+ another.onclick=()=>{variant++;generate()};
+ problem.onchange=()=>{variant=0;another.disabled=true};
  const buttons=document.createElement('div');buttons.className='doorWordingActions';
  const use=document.createElement('button');use.type='button';use.className='primary';use.textContent='Använd texten';
  use.onclick=()=>{if(!preview.value.trim()){status.textContent='Skriv eller skapa ett förslag först.';return}apply(preview.value.trim());dialog.close()};
  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Avbryt';cancel.onclick=()=>dialog.close();
  buttons.append(cancel,use);
- dialog.append(h,context,help,old,field('Beskrivning',problem),field('När händer det?',frequency),field('Behov av åtgärd – välj bara om det är bedömt',action),make,field('Förslag – kan redigeras',preview),status,buttons);
+ dialog.append(h,context,help,old,field('Beskrivning',problem),field('När händer det?',frequency),field('Behov av åtgärd – välj bara om det är bedömt',action),make,another,field('Förslag – kan redigeras',preview),status,buttons);
  const previous=document.activeElement;
  dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});
  document.body.appendChild(dialog);dialog.showModal();problem.focus();
@@ -643,3 +663,6 @@ function securityWordingActions(o){
 const generalWording=document.createElement('button');generalWording.type='button';generalWording.className='doorWordingButton';generalWording.textContent='Hjälp med formulering';
 $('secNotes').parentElement.insertAdjacentElement('afterend',generalWording);
 generalWording.onclick=()=>{const o=cur();if(!o)return;openDoorWording({title:SYSTEMS[o.type].label+' – Allmän anmärkning',original:$('secNotes').value,choices:securityWordingChoices(o),actions:securityWordingActions(o),apply:text=>{if(cur()!==o)return;$('secNotes').value=text;$('secNotes').dispatchEvent(new Event('input',{bubbles:true}))}})};
+
+/* Movement measured in screen pixels: deliberate at overview, precise when zoomed. */
+function markerDragThreshold(z){return z<=1.1?22:z<1.8?12:5}
