@@ -48,6 +48,8 @@ function injectStyle(){
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
 .serviceToolActive svg{stroke:#fff!important}
+.serviceInlineTextEditor{position:absolute;z-index:9;min-width:90px;width:min(220px,42%);height:34px;box-sizing:border-box;padding:5px 8px;border:2px solid #1480ad;border-radius:6px;background:#fff;color:#172b35;font:600 13px system-ui,-apple-system,sans-serif;box-shadow:0 4px 14px #0b253533;outline:none;transform:translate(-4px,-55%);touch-action:manipulation}
+.serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
 @media(max-width:520px){
  .serviceToolLauncher{width:36px!important;min-width:36px!important;height:36px!important}
  .serviceToolsMenu{position:absolute;right:0;left:auto;top:calc(100% + 4px);bottom:auto;width:max-content;max-width:calc(100vw - 10px);padding:4px;overflow:visible}
@@ -66,7 +68,27 @@ function create(cfg){
  const current=()=>items().find(x=>x.uid===selected);
  function notify(text){if(text)cfg.message?.(text)}
  function changed(text){cfg.onChange?.();render(page,w,h);if(text)notify(text)}
+ let activeTextEditor=null;
+ function closeInlineEditor(commit=true){
+  if(!activeTextEditor)return;
+  const {input,item,isNew}=activeTextEditor;activeTextEditor=null;
+  const value=String(input.value||'').trim();input.remove();
+  if(commit&&value){item.text=value;selected=item.uid;cfg.onChange?.();render(page,w,h);updateMenu();notify(isNew?'Texten är tillagd. Dra den om du vill flytta den.':'Texten är uppdaterad.')}
+  else if(isNew||!value){cfg.setItems?.(items().filter(x=>x.uid!==item.uid));selected=null;render(page,w,h);updateMenu()}
+ }
+ function editTextInline(item,isNew=false){
+  if(!item)return;closeInlineEditor(true);
+  cfg.activateDrawing?.();selected=item.uid;render(page,w,h);updateMenu();
+  const input=document.createElement('input');input.type='text';input.className='serviceInlineTextEditor';input.value=item.text||'';input.placeholder='Skriv text…';input.autocomplete='off';input.spellcheck=true;
+  input.style.left=(clamp(Number(item.x)||.05,.01,.96)*100)+'%';input.style.top=(clamp(Number(item.y)||.05,.02,.98)*100)+'%';
+  input.addEventListener('pointerdown',e=>e.stopPropagation());input.addEventListener('click',e=>e.stopPropagation());input.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeInlineEditor(true)}else if(e.key==='Escape'){e.preventDefault();closeInlineEditor(false)}});
+  input.addEventListener('blur',()=>setTimeout(()=>{if(activeTextEditor?.input===input)closeInlineEditor(true)},0));
+  stage.appendChild(input);activeTextEditor={input,item,isNew};
+  requestAnimationFrame(()=>{input.focus({preventScroll:true});input.setSelectionRange(input.value.length,input.value.length)});
+ }
  function setMode(next){
+  if(activeTextEditor)closeInlineEditor(true);
   mode=mode===next?null:next;draft=null;selected=null;svg.classList.toggle('placing',!!mode);
   if(toolBtn)toolBtn.classList.toggle('serviceToolActive',!!mode);
   updateMenu();
@@ -132,7 +154,11 @@ function create(cfg){
   const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1);
   if(mode==='line'||mode==='arrow'){draft={uid:uid(),type:mode,page,x1:x,y1:y,x2:x,y2:y};drag={id:e.pointerId,item:draft,kind:'placing'};try{svg.setPointerCapture(e.pointerId)}catch(_){};render(page,w,h);return}
   if(mode==='door-single'||mode==='door-double'){const item={uid:uid(),type:mode,page,x,y,size:.075,angle:0,flip:false};items().push(item);selected=item.uid;setMode(null);changed('Dörrsymbol tillagd. Dra symbolen för att flytta. Dra den blå punkten för att rotera och ändra storlek.');return}
-  if(mode==='text'||mode==='text-arrow'){const value=prompt('Skriv texten:','');if(value?.trim()){const item={uid:uid(),type:mode,page,x:mode==='text-arrow'?clamp(x+(x>.72?-.14:.10),.02,.92):x,y:mode==='text-arrow'?clamp(y-.05,.04,.96):y,text:value.trim()};if(mode==='text-arrow'){item.targetX=x;item.targetY=y}items().push(item);selected=item.uid;setMode(null);changed('Texten är tillagd. Dra den för att flytta.')}else setMode(null)}
+  if(mode==='text'||mode==='text-arrow'){
+   const item={uid:uid(),type:mode,page,x:mode==='text-arrow'?clamp(x+(x>.72?-.14:.10),.02,.92):x,y:mode==='text-arrow'?clamp(y-.05,.04,.96):y,text:''};
+   if(mode==='text-arrow'){item.targetX=x;item.targetY=y}
+   items().push(item);setMode(null);selected=item.uid;render(page,w,h);editTextInline(item,true);return
+  }
  });
  svg.addEventListener('pointermove',e=>{
   if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
@@ -195,7 +221,7 @@ function create(cfg){
    iconAction('flip','Spegelvänd',()=>editSelected(s=>{if(s.type.startsWith('door-'))s.flip=!s.flip})),
    iconAction('smaller','Mindre',()=>editSelected(s=>{if(s.type.startsWith('door-'))s.size=clamp((s.size||.08)*.88,.02,.3)})),
    iconAction('larger','Större',()=>editSelected(s=>{if(s.type.startsWith('door-'))s.size=clamp((s.size||.08)*1.12,.02,.3)})),
-   iconAction('edit','Ändra text',()=>{const s=current();if(!s||!s.type.startsWith('text'))return;const v=prompt('Ändra text:',s.text||'');if(v!==null&&v.trim()){s.text=v.trim();changed()}}),
+   iconAction('edit','Ändra text',()=>{const s=current();if(!s||!s.type.startsWith('text'))return;menu.hidden=true;editTextInline(s,false)}),
    iconAction('delete','Ta bort',()=>{const s=current();if(!s)return;cfg.setItems?.(items().filter(x=>x.uid!==s.uid));selected=null;changed('Ritobjektet är borttaget.')},'dangerTool')
   );
   menu.appendChild(selectedBox);wrap.append(toolBtn,menu);
