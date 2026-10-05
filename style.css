@@ -941,3 +941,6 @@ body.securityApp:not(.secHasPdf) #securityDrawing .pagebar{display:none!importan
  #protocolPanel .doorCheckActions .protocolInlineAction,
  #securityProtocol .secProgressActions .protocolInlineAction{flex-basis:26px!important;width:26px!important}
 }
+
+body:not(.hasDrawing):not(.securityApp)>.sessionHistoryBar{display:none!important}
+body.securityApp:not(.secHasPdf)>.sessionHistoryBar{display:none!important}
