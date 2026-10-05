@@ -1,4 +1,4 @@
-const REPORT_COLORS={ok:{rgb:[35,131,84],light:[229,244,234]},action:{rgb:[170,102,0],light:[255,242,216]},fail:{rgb:[179,48,57],light:[252,229,231]},untested:{rgb:[97,117,131],light:[235,241,244]}};
+const REPORT_COLORS={ok:{rgb:[35,131,84],light:[225,240,231]},action:{rgb:[199,124,19],light:[255,240,213]},fail:{rgb:[189,63,70],light:[251,227,227]},untested:{rgb:[119,133,142],light:[232,237,240]}};
 function buildServiceReportDoc(snapshot,includeProtocols){
  const {project:p,doors:ds,logoData:logo}=snapshot,doc=new jspdf.jsPDF('p','mm','a4');
  const left=12,width=186,bottom=277,line=4;let y=0;
