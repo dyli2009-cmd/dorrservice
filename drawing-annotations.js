@@ -221,6 +221,12 @@ function create(cfg){
     if(it&&Math.hypot(it.x2-it.x1,it.y2-it.y1)>.008){if(it.type==='arrow')snapArrowStart(it);items().push(it);selected=it.uid;setMode(null);changed(it.type==='arrow'?'Pil tillagd. Starten lägger sig automatiskt mot kanten på en närliggande textruta.':'Linje tillagd. Dra ändpunkterna om du vill justera den.')}else{setMode(null);render(page,w,h)}
     return;
   }
+  if(drag.kind==='text-move'){
+   const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1),moved=Math.hypot(x-drag.start.x,y-drag.start.y),item=drag.item,original=drag.original;
+   if(moved<.012){
+    Object.assign(item,original);drag=null;render(page,w,h);editTextInline(item,false);return;
+   }
+  }
   drag=null;cfg.onChange?.();render(page,w,h);
  });
  svg.addEventListener('pointercancel',()=>{if(drag?.original)Object.assign(drag.item,drag.original);draft=null;drag=null;render(page,w,h)});
