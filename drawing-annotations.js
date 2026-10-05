@@ -280,7 +280,7 @@ function create(cfg){
    iconAction('delete','Ta bort',()=>{const s=current();if(!s)return;cfg.setItems?.(items().filter(x=>x.uid!==s.uid));selected=null;changed('Ritobjektet är borttaget.')},'dangerTool')
   );
   menu.appendChild(selectedBox);wrap.append(toolBtn,menu);
-  target.appendChild(wrap);
+  const addButton=target.querySelector('.historyAddButton');addButton?target.insertBefore(wrap,addButton):target.appendChild(wrap);
   document.addEventListener('pointerdown',e=>{if(menu&&!menu.hidden&&!wrap.contains(e.target))menu.hidden=true});
  }
  function editSelected(fn){const s=current();if(!s)return;fn(s);changed()}
