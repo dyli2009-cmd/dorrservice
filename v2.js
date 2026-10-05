@@ -125,13 +125,21 @@ function goView(view){
  document.body.classList.toggle('protocolOpen',view==='protocol');
  const ids={drawing:'navDrawing',doors:'mobileOverview',protocol:'mobileProtocol',project:'settingsBtn'};
  Object.entries(ids).forEach(([name,id])=>{const button=$(id),active=name===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
+ if(view==='protocol'||view==='project')notice('');
+ updateCompactUI();
 }
 function completedChecks(d){return doorChecks(d).filter(([n])=>['ok','na','remark'].includes(d.checks?.[n]?.result)).length}
 function displayStatus(d){if(isDoorRemediated(d))return 'ok';if(d.status==='fail')return 'fail';if(hasDoorProblem(d))return 'action';return d.status==='ok'?'ok':'untested'}
 function statusText(d){if(isDoorRemediated(d))return 'Åtgärdad';return {ok:'Godkänd',fail:'Ej godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',untested:'Ej klar'}[displayStatus(d)]}
-function doorProtocolTitle(){const name=project.projectName||project.facilityNo||'Dörrservice';return name+' – Dörrprotokoll'}
+function doorWorkspaceTitle(view=document.body.dataset.view){
+ const name=project.projectName||project.facilityNo||activeDrawingName||'Välj en ritning';
+ if(view==='protocol'&&pdf)return name+' – Dörrprotokoll';
+ if(view==='project'&&pdf)return 'Aktuell ritning: '+name;
+ return name;
+}
+function doorProtocolTitle(){return doorWorkspaceTitle('protocol')}
 function updateCompactUI(){
- document.body.classList.toggle('hasDrawing',!!pdf);$('objectLabel').textContent=project.projectName||project.facilityNo||activeDrawingName||'Välj en ritning';
+ document.body.classList.toggle('hasDrawing',!!pdf);$('objectLabel').textContent=doorWorkspaceTitle();
  if($('changeDrawingBtn'))$('changeDrawingBtn').hidden=!pdf;
  $('newServiceBtn').disabled=!pdf;$('mobileAdd').disabled=!pdf;
  if($('protocolHeading'))$('protocolHeading').textContent=doorProtocolTitle();
