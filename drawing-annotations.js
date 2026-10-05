@@ -101,6 +101,7 @@ function create(cfg){
  }
  function itemPoint(item,key){return pt(item[key+'X'],item[key+'Y'],w,h)}
  function bindMove(node,item,kind){
+  node.dataset.drawUid=item.uid;
   node.addEventListener('pointerdown',e=>{
    if(mode||e.button!==0)return;e.preventDefault();e.stopPropagation();selected=item.uid;
    const r=svg.getBoundingClientRect(),p={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
@@ -152,11 +153,6 @@ function create(cfg){
   }
   updateMenu();
  }
- stage.addEventListener('pointerdown',e=>{
-  if(mode||activeTextEditor||!selected)return;
-  if(e.target.closest?.('.drawHit,.drawDoorHit,.drawHandle,.drawTextHit,.serviceInlineTextEditor'))return;
-  selected=null;render(page,w,h);updateMenu();
- });
  svg.addEventListener('pointerdown',e=>{
   if(!mode||e.button!==0)return;e.preventDefault();e.stopPropagation();
   const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1);
@@ -242,7 +238,13 @@ function create(cfg){
   if(toolBtn){toolBtn.classList.toggle('serviceToolActive',!!mode);toolBtn.setAttribute('aria-pressed',String(!!mode));toolBtn.title=mode?'Avsluta ritverktyg':'Ritverktyg'}
  }
  attachToolbar();
- return {render,stop(){setMode(null)},deselect(){selected=null;render(page,w,h)},attachToolbar};
+ document.addEventListener('pointerdown',e=>{
+  if(!selected||mode||activeTextEditor)return;
+  const own=e.target.closest?.('[data-draw-uid]');
+  if(own?.dataset?.drawUid===selected)return;
+  selected=null;render(page,w,h);updateMenu();
+ },true);
+ return {render,stop(){setMode(null)},deselect(){selected=null;render(page,w,h);updateMenu()},attachToolbar};
 }
 function pdfPoint(x,y,w,h){return{x:x*w,y:h-y*h}}
 function drawArrow(pdfPage,a,b,color,thickness=1.15){
