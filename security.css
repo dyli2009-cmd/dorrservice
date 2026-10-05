@@ -754,3 +754,18 @@ body.securityApp:not(.secHasPdf) .securityTools{display:none}
   flex-basis:25px!important;width:25px!important;min-width:25px!important;max-width:25px!important;
  }
 }
+
+
+/* Web 2.4.85: prevent iOS focus zoom in custom Security remarks. */
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  #securityProtocol .secFault select:focus,
+  #securityProtocol .secFault input:focus,
+  #securityProtocol .secFault input.iosTyping{
+   font-size:16px!important;
+   line-height:1.05!important;
+   min-height:30px!important;
+   height:30px!important;
+  }
+ }
+}
