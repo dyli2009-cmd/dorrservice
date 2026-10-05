@@ -228,7 +228,7 @@ viewer.addEventListener('wheel',e=>{
 },{passive:false});
 
 viewer.addEventListener('pointerdown',e=>{
- if(!pdf||addType||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget'))return;
+ if(!pdf||addType||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:viewer.scrollLeft,top:viewer.scrollTop};
  viewer.classList.add('mousePanning');viewer.setPointerCapture(e.pointerId);e.preventDefault();
 });
@@ -246,11 +246,11 @@ viewer.addEventListener('pointercancel',endMousePan);
 viewer.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;viewer.classList.remove('mousePanning')}});
 
 viewer.addEventListener('touchstart',e=>{
- if(e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
+ if(e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
  if(e.touches.length===2){
   e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect();
   pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}};
- }else if(e.touches.length===1&&!addType&&!textMode&&!e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget')){
+ }else if(e.touches.length===1&&!addType&&!textMode&&!e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){
   const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:viewer.scrollLeft,top:viewer.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02};
  }
 },{passive:false});
