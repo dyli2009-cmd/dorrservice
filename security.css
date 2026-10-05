@@ -387,3 +387,13 @@ body.secTextAdding #secViewer{cursor:crosshair}
 .securityApp .secFault{flex-wrap:wrap}
 .securityApp .secFault .doorWordingButton,
 .securityApp .doorWordingButton{flex:none;width:auto;min-height:36px;height:auto;padding:5px 8px;font-size:11px;line-height:1.3}
+
+/* Web 2.4.45: edit/remove checklist points per Security object. */
+.secCheckHead .secEditActions{display:flex;gap:4px;align-items:center;margin-left:auto}
+.secCheckHead .secEditActions button{flex:0 0 auto;min-height:28px;padding:3px 7px;font-size:10px}
+.secCheckHead .secEditCheck{background:#eef5f8;border-color:#c9dae4;color:#285b73}
+.secCheckHead .secRemoveCheck{background:#fff5f4;border-color:#efceca;color:#a6292e}
+@media(max-width:800px){
+ .secCheckHead .secEditActions{gap:2px}
+ .secCheckHead .secEditActions button{min-height:24px;padding:2px 5px;font-size:8.5px}
+}
