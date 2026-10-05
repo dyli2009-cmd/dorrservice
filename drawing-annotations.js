@@ -50,7 +50,7 @@ function injectStyle(){
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
 .serviceToolActive svg{stroke:#fff!important}
-.serviceDoorToolIcon{stroke-width:2.35!important}
+.serviceDoorToolIcon{stroke-width:2.6!important}
 .serviceDoorToolIcon path{stroke-linecap:round;stroke-linejoin:round}
 .serviceInlineTextEditor{position:absolute;z-index:9;min-width:58px;max-width:min(260px,55%);height:29px;box-sizing:border-box;padding:2px 6px;border:2px solid #000;border-radius:4px;background:#fff;color:#000;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 2px 8px #0b253522;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
@@ -241,8 +241,8 @@ function create(cfg){
   const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const icons={
    tools:`<svg ${common}><path d="M4 20l6.2-6.2"/><path d="M13.5 5.5l5 5"/><path d="M15 3l6 6-2.5 2.5-6-6z"/><path d="M3.5 16.5l4 4L3 21z"/></svg>`,
-   'door-single':`<svg ${common} class="serviceDoorToolIcon"><path d="M5 19L5 5"/><path d="M5 5L18 18"/><path d="M5 18A13 13 0 0 1 18 5"/></svg>`,
-   'door-double':`<svg ${common} class="serviceDoorToolIcon"><path d="M3 18L3 6"/><path d="M3 6L11.5 14.5"/><path d="M3 14.5A8.5 8.5 0 0 1 11.5 6"/><path d="M21 18L21 6"/><path d="M21 6L12.5 14.5"/><path d="M21 14.5A8.5 8.5 0 0 0 12.5 6"/></svg>`,
+   'door-single':`<svg ${common} class="serviceDoorToolIcon" viewBox="0 0 24 24"><path d="M6 18V5"/><path d="M19 18A13 13 0 0 0 6 5"/></svg>`,
+   'door-double':`<svg ${common} class="serviceDoorToolIcon" viewBox="0 0 24 24"><path d="M3 18V9"/><path d="M21 18V9"/><path d="M12 18A9 9 0 0 0 3 9"/><path d="M12 18A9 9 0 0 1 21 9"/></svg>`,
    line:`<svg ${common}><path d="M4 18L20 6"/></svg>`,
    arrow:`<svg ${common}><path d="M4 18L19 7"/><path d="M13 7h6v6"/></svg>`,
    text:`<svg ${common}><path d="M5 6h14"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>`,
