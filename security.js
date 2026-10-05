@@ -625,7 +625,7 @@ function reportDoc(){
   txt('Dokumentnr: 2519-1',left+61,12.4,6.3,true,[25,25,25]);
   txt('CHECKLISTA REVISION AV '+SYSTEMS[o.type].label,left+58+(width-58)/2,18.7,9.4,true,[25,25,25],{align:'center'});
   if(continuation){txt('fortsättning',left+58+(width-58)/2,23,6,false,[70,70,70],{align:'center'});y=31;cell('Objekt:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=12;return}
-  txt('SERVICE',left+1.5,34.5,8.2,true,[25,25,25]);y=39;
+  doc.setDrawColor(155,155,155);doc.setLineWidth(.22);doc.line(left,36.2,left+width,36.2);doc.setFillColor(255,255,255);doc.rect(left,31.8,28,7,'F');txt('SERVICE',left+1.5,36.7,9.4,true,[25,25,25]);y=40;
   cell('Bokat datum:',project.date,left,y,93);cell('Nästa provning:',project.nextDate,left+93,y,93);y+=7;
   cell('ANLÄGGNING:',project.projectName,left,y,93,7,true);cell('Anläggningsnr:',project.facilityNo,left+93,y,93,7,true);y+=7;
   cell('SERVICEFÖRETAG:',project.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',project.customer,left+93,y,93,7,true);y+=7;
@@ -633,7 +633,7 @@ function reportDoc(){
   cell('Telefon:',project.companyPhone,left,y,93);cell('Telefon:',project.phone,left+93,y,93);y+=7;
   cell('Adress:',project.companyAddress,left,y,93);cell('Adress:',project.address,left+93,y,93);y+=7;
   cell('Postnummer / Postadress:',[project.companyPostalCode,project.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[project.postalCode,project.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
-  cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('AO / Order:',project.order,left+120,y,66,8,true);y+=8;
+  cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('AO nummer:',project.order,left+120,y,66,8,true);y+=8;
  }
  function checkHeader(){
   const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
