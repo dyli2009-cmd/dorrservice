@@ -63,7 +63,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   while(offset<total){
    const capacity=Math.floor((bottom-y-5)/line);if(capacity<1||bottom-y<12){overviewPage();continue}
    const count=Math.min(capacity,total-offset),height=Math.max(12,count*line+5),color=REPORT_COLORS[status(d)];let x=left;
-   columns.forEach((lines,i)=>{const bg=i===0?[246,246,246]:i===2?color.light:[255,255,255];doc.setFillColor(...bg);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,y,widths[i],height,'FD');const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length){doc.setFont('helvetica',i===0||i===2?'bold':'normal');doc.setFontSize(i===2?7.6:8);doc.setTextColor(...(i===2?color.rgb:[30,30,30]));doc.text(chunk,x+2.5,y+4.5,{lineHeightFactor:line/(8*.3528)})}x+=widths[i]});doc.setFillColor(...color.rgb);doc.rect(left,y,2.2,height,'F');y+=height;offset+=count;
+   columns.forEach((lines,i)=>{const bg=(i===0||i===2)?color.light:[255,255,255];doc.setFillColor(...bg);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,y,widths[i],height,'FD');const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length){doc.setFont('helvetica',i===0||i===2?'bold':'normal');doc.setFontSize(i===2?7.6:8);doc.setTextColor(...(i===2?color.rgb:[30,30,30]));doc.text(chunk,x+2.5,y+4.5,{lineHeightFactor:line/(8*.3528)})}x+=widths[i]});doc.setFillColor(...color.rgb);doc.rect(left,y,2.2,height,'F');y+=height;offset+=count;
    if(offset<total)overviewPage();
   }
  });
@@ -79,7 +79,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   }
   function pdfProtocolMark(kind,cx,cy,size=8.2){
    doc.setFontSize(size);doc.setTextColor(20,20,20);
-   if(kind==='na'){doc.setFont('symbol','normal');doc.text(String.fromCharCode(45),cx,cy+size*.08,{align:'center'});return}
+   if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(4.8);doc.text('-',cx,cy+1.05,{align:'center'});return}
    doc.setFont('zapfdingbats','normal');
    doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+size*.12,{align:'center'});
   }
