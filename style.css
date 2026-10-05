@@ -701,3 +701,12 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  .simpleDoorDetails .doorTypeField{width:88%}
  .simpleDoorDetails .compactDoorMeta label{font-size:10px}
 }
+/* 2.4.53: smaller Door overview counters. */
+#overviewSummary .overviewStat{min-height:40px;padding:4px 3px}
+#overviewSummary .overviewStat strong{font-size:14px}
+#overviewSummary .overviewStat small{font-size:7.5px;margin-top:2px}
+@media(max-width:800px){
+ #overviewSummary .overviewStat{min-height:32px;padding:2px}
+ #overviewSummary .overviewStat strong{font-size:11px}
+ #overviewSummary .overviewStat small{font-size:6.5px}
+}
