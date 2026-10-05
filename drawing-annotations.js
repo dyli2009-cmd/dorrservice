@@ -28,10 +28,10 @@ function injectStyle(){
 .serviceDrawingOverlay.placing{pointer-events:auto;cursor:crosshair}
 .serviceDrawingOverlay .drawHit,.serviceDrawingOverlay .drawDoorHit,.serviceDrawingOverlay .drawHandle,.serviceDrawingOverlay .drawTextHit{pointer-events:all}
 .serviceDrawingOverlay .drawHit{stroke:transparent;stroke-width:18;fill:none}\n.serviceDrawingOverlay .drawDoorHit{fill:transparent;stroke:none}
-.serviceDrawingOverlay .drawVisible{stroke:#000;stroke-width:2;fill:none;vector-effect:non-scaling-stroke}
+.serviceDrawingOverlay .drawVisible{stroke:#000;stroke-width:var(--drawing-line-width,2px);fill:none;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .drawSelected{stroke:#1480ad;stroke-dasharray:5 3;stroke-width:1.5;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
-.serviceDrawingOverlay .drawTextBox{fill:#fff;fill-opacity:1;stroke:#000;stroke-opacity:1;stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
+.serviceDrawingOverlay .drawTextBox{fill:#fff;fill-opacity:1;stroke:#000;stroke-opacity:1;stroke-width:var(--drawing-box-stroke,1.5px);vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawText{font-family:system-ui,-apple-system,sans-serif;font-weight:600;fill:#000;stroke:none;pointer-events:none}
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
 .serviceToolsWrap{position:relative;display:inline-flex;flex:none}
