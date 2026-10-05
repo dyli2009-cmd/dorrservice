@@ -28,10 +28,11 @@ function injectStyle(){
 .serviceDrawingOverlay.placing{pointer-events:auto;cursor:crosshair}
 .serviceDrawingOverlay .drawHit,.serviceDrawingOverlay .drawDoorHit,.serviceDrawingOverlay .drawHandle,.serviceDrawingOverlay .drawTextHit{pointer-events:all}
 .serviceDrawingOverlay .drawHit{stroke:transparent;stroke-width:18;fill:none}\n.serviceDrawingOverlay .drawDoorHit{fill:transparent;stroke:none}
-.serviceDrawingOverlay .drawVisible{stroke:#173f55;stroke-width:2;fill:none;vector-effect:non-scaling-stroke}
+.serviceDrawingOverlay .drawVisible{stroke:#000;stroke-width:2;fill:none;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .drawSelected{stroke:#1480ad;stroke-dasharray:5 3;stroke-width:1.5;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
-.serviceDrawingOverlay .drawText{font:600 13px system-ui,-apple-system,sans-serif;fill:#172b35;paint-order:stroke;stroke:#fff;stroke-width:4;stroke-linejoin:round;pointer-events:none}
+.serviceDrawingOverlay .drawTextBox{fill:#fff;stroke:#000;stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
+.serviceDrawingOverlay .drawText{font:600 13px system-ui,-apple-system,sans-serif;fill:#000;stroke:none;pointer-events:none}
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
 .serviceToolsWrap{position:relative;display:inline-flex;flex:none}
 .serviceToolLauncher,.serviceIconButton{display:inline-grid!important;place-items:center!important;padding:0!important}
@@ -96,7 +97,7 @@ function create(cfg){
  }
  function addArrowMarker(defs,id){
   const m=el('marker',{id,viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:7,markerHeight:7,orient:'auto'});
-  m.appendChild(el('path',{d:'M0,0 L8,4 L0,8 z',fill:'#173f55'}));defs.appendChild(m);
+  m.appendChild(el('path',{d:'M0,0 L8,4 L0,8 z',fill:'#000'}));defs.appendChild(m);
  }
  function itemPoint(item,key){return pt(item[key+'X'],item[key+'Y'],w,h)}
  function bindMove(node,item,kind){
@@ -132,14 +133,16 @@ function create(cfg){
       const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle');svg.appendChild(handle);
     }
    }else if(item.type==='text'||item.type==='text-arrow'){
-    const label=pt(item.x,item.y,w,h);
+    const label=pt(item.x,item.y,w,h),ww=Math.max(45,String(item.text||'').length*8),box={x:label.x-5,y:label.y-18,w:ww,h:25};
     if(item.type==='text-arrow'){
-      const target=pt(item.targetX,item.targetY,w,h),ln=el('line',{x1:label.x,y1:label.y,x2:target.x,y2:target.y,class:'drawVisible','marker-end':'url(#drawToolArrow)'});svg.appendChild(ln);
+      const target=pt(item.targetX,item.targetY,w,h),cx=box.x+box.w/2,cy=box.y+box.h/2,dx=target.x-cx,dy=target.y-cy,scale=Math.min(Math.abs(dx)>.001?(box.w/2)/Math.abs(dx):Infinity,Math.abs(dy)>.001?(box.h/2)/Math.abs(dy):Infinity),start={x:cx+dx*scale,y:cy+dy*scale};
+      const ln=el('line',{x1:start.x,y1:start.y,x2:target.x,y2:target.y,class:'drawVisible','marker-end':'url(#drawToolArrow)'});svg.appendChild(ln);
       if(item.uid===selected){const hnd=el('circle',{cx:target.x,cy:target.y,r:8,class:'drawHandle'});bindMove(hnd,item,'text-target');svg.appendChild(hnd)}
     }
+    svg.appendChild(el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,rx:4,ry:4,class:'drawTextBox'}));
     const text=el('text',{x:label.x,y:label.y,class:'drawText'});text.textContent=String(item.text||'');svg.appendChild(text);
-    const ww=Math.max(45,String(item.text||'').length*8),hit=el('rect',{x:label.x-5,y:label.y-18,width:ww,height:25,class:'drawTextHit'});bindMove(hit,item,'text-move');svg.appendChild(hit);
-    if(item.uid===selected)svg.appendChild(el('rect',{x:label.x-6,y:label.y-20,width:ww+2,height:28,class:'drawSelected'}));
+    const hit=el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,class:'drawTextHit'});bindMove(hit,item,'text-move');svg.appendChild(hit);
+    if(item.uid===selected)svg.appendChild(el('rect',{x:box.x-1,y:box.y-2,width:box.w+2,height:box.h+3,rx:5,ry:5,class:'drawSelected'}));
    }
   }
   if(draft){
@@ -244,7 +247,7 @@ function drawArrow(pdfPage,a,b,color,thickness=1.15){
  pdfPage.drawLine({start:b,end:{x:b.x-ux*head-px*wing,y:b.y-uy*head-py*wing},thickness,color});
 }
 function drawToPdf(pdfPage,pageNo,w,h,items,font){
- if(!window.PDFLib)return;const color=PDFLib.rgb(.09,.25,.33),list=(items||[]).filter(x=>x?.page===pageNo);
+ if(!window.PDFLib)return;const color=PDFLib.rgb(0,0,0),white=PDFLib.rgb(1,1,1),list=(items||[]).filter(x=>x?.page===pageNo);
  for(const item of list){
   if(item.type==='line'||item.type==='arrow'){const a=pdfPoint(item.x1,item.y1,w,h),b=pdfPoint(item.x2,item.y2,w,h);item.type==='arrow'?drawArrow(pdfPage,a,b,color):pdfPage.drawLine({start:a,end:b,thickness:1.1,color});continue}
   if(item.type==='door-single'||item.type==='door-double'){
@@ -254,9 +257,15 @@ function drawToPdf(pdfPage,pageNo,w,h,items,font){
    g.arcs.forEach(ar=>{for(let i=1;i<ar.length;i++)pdfPage.drawLine({start:conv(ar[i-1]),end:conv(ar[i]),thickness:.9,color})});continue
   }
   if((item.type==='text'||item.type==='text-arrow')&&font){
-   const p=pdfPoint(item.x,item.y,w,h);
-   if(item.type==='text-arrow')drawArrow(pdfPage,p,pdfPoint(item.targetX,item.targetY,w,h),color,.9);
-   const safe=String(item.text||'').replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,140);if(safe)pdfPage.drawText(safe,{x:p.x+2,y:p.y+2,size:8,font,color});
+   const p=pdfPoint(item.x,item.y,w,h),safe=String(item.text||'').replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,140);
+   if(!safe)continue;
+   const size=8,pad=4,textW=font.widthOfTextAtSize(safe,size),boxW=Math.max(34,textW+pad*2),boxH=15,boxX=p.x-3,boxY=p.y-5;
+   if(item.type==='text-arrow'){
+    const target=pdfPoint(item.targetX,item.targetY,w,h),cx=boxX+boxW/2,cy=boxY+boxH/2,dx=target.x-cx,dy=target.y-cy,scale=Math.min(Math.abs(dx)>.001?(boxW/2)/Math.abs(dx):Infinity,Math.abs(dy)>.001?(boxH/2)/Math.abs(dy):Infinity),start={x:cx+dx*scale,y:cy+dy*scale};
+    drawArrow(pdfPage,start,target,color,.9);
+   }
+   pdfPage.drawRectangle({x:boxX,y:boxY,width:boxW,height:boxH,color:white,borderColor:color,borderWidth:.8});
+   pdfPage.drawText(safe,{x:boxX+pad,y:boxY+4,size,font,color});
   }
  }
 }
