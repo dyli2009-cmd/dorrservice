@@ -248,16 +248,16 @@ function create(cfg){
       svg.appendChild(el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(18,g.radius*.9),class:'drawSelected'}));
       const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle',g.handle);svg.appendChild(handle);
       if(document.body.classList.contains('precisionMode')){
-       const dir=g.center.y>h*.72?-1:1,offset=Math.min(78,Math.max(58,h*.12)),gy=clamp(g.center.y+dir*offset,16,h-16);
+       const dir=g.center.y>h*.70?-1:1,offset=Math.min(112,Math.max(88,h*.17)),gy=clamp(g.center.y+dir*offset,22,h-22);
        svg.appendChild(el('line',{x1:g.center.x,y1:g.center.y,x2:g.center.x,y2:gy,class:'precisionDrawStem'}));
-       const moveGrip=el('circle',{cx:g.center.x,cy:gy,r:14,class:'precisionDrawGrip precisionMoveGrip'});bindMove(moveGrip,item,'door-move',g.center);svg.appendChild(moveGrip);
+       const moveGrip=el('circle',{cx:g.center.x,cy:gy,r:19,class:'precisionDrawGrip precisionMoveGrip'});bindMove(moveGrip,item,'door-move',g.center);svg.appendChild(moveGrip);
        const vx=g.handle.x-g.center.x,vy=g.handle.y-g.center.y,len=Math.max(1,Math.hypot(vx,vy)),ux=vx/len,uy=vy/len;
-       let rx=g.handle.x+ux*58,ry=g.handle.y+uy*58;
-       if(rx<18||rx>w-18||ry<18||ry>h-18){rx=g.handle.x-ux*58;ry=g.handle.y-uy*58}
-       rx=clamp(rx,18,w-18);ry=clamp(ry,18,h-18);
+       let rx=g.handle.x+ux*92,ry=g.handle.y+uy*92;
+       if(rx<24||rx>w-24||ry<24||ry>h-24){rx=g.handle.x-ux*92;ry=g.handle.y-uy*92}
+       rx=clamp(rx,24,w-24);ry=clamp(ry,24,h-24);
        svg.appendChild(el('line',{x1:g.handle.x,y1:g.handle.y,x2:rx,y2:ry,class:'precisionDrawStem precisionRotateStem'}));
-       const rotateGrip=el('circle',{cx:rx,cy:ry,r:14,class:'precisionDrawGrip precisionRotateGrip'});bindMove(rotateGrip,item,'door-size-angle',g.handle);svg.appendChild(rotateGrip);
-       const rotateMark=el('path',{d:`M ${rx-6} ${ry+1} A 7 7 0 1 1 ${rx+4} ${ry-5} M ${rx+4} ${ry-5} L ${rx+4} ${ry+1} M ${rx+4} ${ry-5} L ${rx-2} ${ry-5}`,class:'precisionRotateMark'});svg.appendChild(rotateMark);
+       const rotateGrip=el('circle',{cx:rx,cy:ry,r:19,class:'precisionDrawGrip precisionRotateGrip'});bindMove(rotateGrip,item,'door-size-angle',g.handle);svg.appendChild(rotateGrip);
+       const rotateMark=el('path',{d:`M ${rx-8} ${ry+1} A 9 9 0 1 1 ${rx+5} ${ry-7} M ${rx+5} ${ry-7} L ${rx+5} ${ry+1} M ${rx+5} ${ry-7} L ${rx-3} ${ry-7}`,class:'precisionRotateMark'});svg.appendChild(rotateMark);
       }
     }
    }else if(item.type==='text'||item.type==='text-arrow'){
