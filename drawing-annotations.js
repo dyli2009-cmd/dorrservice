@@ -46,6 +46,8 @@ function injectStyle(){
 .serviceToolsMenu .toolSelected[hidden]{display:none!important}
 .serviceIconButton{width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;border-radius:7px!important;background:#f8fafb!important;color:#173f55!important;border:1px solid #d5e0e6!important}
 .serviceIconButton:hover,.serviceIconButton:focus-visible{background:#eaf2f6!important;border-color:#aac3d0!important}
+.serviceIconButton.precisionToolButton.active{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
+.serviceIconButton.precisionToolButton.active svg{stroke:#fff!important}
 .serviceIconButton:active{transform:translateY(1px)}
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
@@ -256,7 +258,8 @@ function create(cfg){
    smaller:`<svg ${common}><circle cx="10" cy="10" r="6"/><path d="M6.5 10h7"/><path d="M14.5 14.5L20 20"/></svg>`,
    larger:`<svg ${common}><circle cx="10" cy="10" r="6"/><path d="M6.5 10h7"/><path d="M10 6.5v7"/><path d="M14.5 14.5L20 20"/></svg>`,
    edit:`<svg ${common}><path d="M5 6h8"/><path d="M9 6v12"/><path d="M6 18h6"/><path d="M15 15l5-5 2 2-5 5-3 1z"/></svg>`,
-   delete:`<svg ${common}><path d="M4 7h16"/><path d="M9 3h6l1 4H8z"/><path d="M7 7l1 14h8l1-14"/><path d="M10 11v6M14 11v6"/></svg>`
+   delete:`<svg ${common}><path d="M4 7h16"/><path d="M9 3h6l1 4H8z"/><path d="M7 7l1 14h8l1-14"/><path d="M10 11v6M14 11v6"/></svg>`,
+   precision:`<svg ${common}><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="1.6"/></svg>`
   };
   return icons[name]||icons.tools;
  };
@@ -273,6 +276,13 @@ function create(cfg){
   menu=document.createElement('div');menu.className='serviceToolsMenu';menu.hidden=true;menu.setAttribute('role','toolbar');menu.setAttribute('aria-label','Ritverktyg');
   const choices=document.createElement('div');choices.className='serviceToolChoices';
   [['door-single','Enkeldörr'],['door-double','Dubbeldörr'],['line','Linje / vägg'],['arrow','Pil'],['text','Text'],['text-arrow','Text med pil']].forEach(([key,label])=>choices.appendChild(iconAction(key,label,()=>{menu.hidden=true;setMode(key)})));
+  const precisionButton=document.getElementById('precisionMode')||document.getElementById('secPrecision');
+  if(precisionButton){
+   precisionButton.classList.add('serviceIconButton','precisionToolButton');
+   precisionButton.innerHTML=iconSvg('precision');
+   precisionButton.title='Precision';precisionButton.setAttribute('aria-label','Precision');
+   choices.appendChild(precisionButton);
+  }
   menu.appendChild(choices);
   selectedBox=document.createElement('div');selectedBox.className='toolSelected';selectedBox.hidden=true;selectedBox.setAttribute('aria-label','Redigera markerat ritobjekt');
   selectedBox.append(
