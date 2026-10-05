@@ -546,3 +546,16 @@ function openDoorWording({title,original,choices,apply}){
 const generalWording=document.createElement('button');generalWording.type='button';generalWording.className='doorWordingButton';generalWording.textContent='Hjälp med formulering';
 $('notes').parentElement.insertAdjacentElement('afterend',generalWording);
 generalWording.onclick=()=>{const d=cur();if(!d)return;openDoorWording({title:'Allmän anmärkning',original:$('notes').value,choices:DOOR_WORDING,apply:text=>{if(cur()?.uid!==d.uid)return;$('notes').value=text;$('notes').dispatchEvent(new Event('input',{bubbles:true}))}})};
+
+/* Session undo/redo: shared behavior with Security Service. */
+const doorSessionHistory=installServiceHistory({
+ scope:()=>pdf,
+ capture:()=>({data:JSON.parse(JSON.stringify({doors,textNotes,project,logoData})),selected}),
+ restore:state=>{
+  ({doors,textNotes,project,logoData}=state.data);
+  selected=doors.some(d=>d.uid===state.selected)?state.selected:null;
+  refreshDrawingUI();draw();show();renderOverview();save();persist();
+ },
+ wrapSave:record=>{const previous=save;save=function(...args){const result=previous(...args);record();return result}},
+ blocked:()=>exporting||wrap.getAttribute('aria-busy')==='true'
+});
