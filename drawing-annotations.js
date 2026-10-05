@@ -32,7 +32,7 @@ function injectStyle(){
 .serviceDrawingOverlay .drawSelected{stroke:#1480ad;stroke-dasharray:5 3;stroke-width:1.5;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .drawTextBox{fill:#fff;fill-opacity:1;stroke:#000;stroke-opacity:1;stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
-.serviceDrawingOverlay .drawText{font:600 13px system-ui,-apple-system,sans-serif;fill:#000;stroke:none;pointer-events:none}
+.serviceDrawingOverlay .drawText{font-family:system-ui,-apple-system,sans-serif;font-weight:600;fill:#000;stroke:none;pointer-events:none}
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
 .serviceToolsWrap{position:relative;display:inline-flex;flex:none}
 .serviceToolLauncher,.serviceIconButton{display:inline-grid!important;place-items:center!important;padding:0!important}
@@ -70,9 +70,13 @@ function create(cfg){
  const el=(name,attrs={})=>{const e=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));return e};
  const items=()=>{const v=cfg.getItems?.();return Array.isArray(v)?v:[]};
  const current=()=>items().find(x=>x.uid===selected);
+ function drawingUiScale(){
+  const value=parseFloat(getComputedStyle(stage).getPropertyValue('--drawing-ui-scale'));
+  return Number.isFinite(value)?clamp(value,.5,1):1;
+ }
  function textBoxGeometry(item,width=w,height=h){
-  const label=pt(item.x,item.y,width,height),boxW=Math.max(45,String(item.text||'').length*8);
-  return {x:label.x-5,y:label.y-18,w:boxW,h:25,label};
+  const scale=drawingUiScale(),label=pt(item.x,item.y,width,height),boxW=Math.max(28,String(item.text||'').length*8*scale);
+  return {x:label.x-5*scale,y:label.y-18*scale,w:boxW,h:25*scale,label,fontSize:13*scale};
  }
  function snapArrowStart(item){
   if(!item||item.type!=='arrow')return item;
@@ -185,7 +189,7 @@ function create(cfg){
       if(item.uid===selected){const hnd=el('circle',{cx:target.x,cy:target.y,r:8,class:'drawHandle'});bindMove(hnd,item,'text-target');svg.appendChild(hnd)}
     }
     svg.appendChild(el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,rx:4,ry:4,class:'drawTextBox'}));
-    const text=el('text',{x:label.x,y:label.y,class:'drawText'});text.textContent=String(item.text||'');svg.appendChild(text);
+    const text=el('text',{x:label.x,y:label.y,class:'drawText','font-size':box.fontSize});text.textContent=String(item.text||'');svg.appendChild(text);
     const hit=el('rect',{x:box.x,y:box.y,width:box.w,height:box.h,class:'drawTextHit'});bindMove(hit,item,'text-move');svg.appendChild(hit);
     if(item.uid===selected)svg.appendChild(el('rect',{x:box.x-1,y:box.y-2,width:box.w+2,height:box.h+3,rx:5,ry:5,class:'drawSelected'}));
    }
