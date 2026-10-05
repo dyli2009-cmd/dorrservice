@@ -1101,3 +1101,14 @@ body.doorMarkersHidden #stage #markers{display:none!important}
   }
  }
 }
+
+
+/* Web 2.4.86: stable, anchored pinch zoom like a native PDF/map viewer. */
+#viewerWrap.pinching #stage,
+#secViewer.pinching #secStage{
+ will-change:transform;
+ backface-visibility:hidden;
+ -webkit-backface-visibility:hidden;
+}
+#viewerWrap.pinching,
+#secViewer.pinching{overscroll-behavior:none!important}
