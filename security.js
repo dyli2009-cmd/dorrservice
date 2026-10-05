@@ -436,7 +436,7 @@ function showOverview(){
     const label=document.createElement('label');label.textContent=title;
     const input=document.createElement('input');input.type=type;input.value=o[key]||'';input.setAttribute('aria-label',title+' för '+securityDrawingLabel(o));
     input.onclick=e=>e.stopPropagation();
-    input.oninput=e=>{e.stopPropagation();o[key]=input.value;if(key==='remediationSignature'&&input.value.trim()&&!o.remediationDate){o.remediationDate=localToday();const dateInput=grid.querySelector('input[type="date"]');if(dateInput)dateInput.value=o.remediationDate}save();syncSecurityOverviewCard(card,badge,o);setSecurityOverviewSummary();drawMarkers()};
+    input.oninput=e=>{e.stopPropagation();o[key]=input.value;save();syncSecurityOverviewCard(card,badge,o);setSecurityOverviewSummary();drawMarkers()};
     input.onchange=e=>{e.stopPropagation();save();showOverview();drawMarkers()};
     label.appendChild(input);grid.appendChild(label);
    });card.appendChild(grid);
