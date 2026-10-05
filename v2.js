@@ -247,7 +247,7 @@ function setOverviewSummary(){
  const target=$('overviewSummary');if(!target)return;
  const open=doors.filter(d=>displayStatus(d)==='action').length,failed=doors.filter(d=>displayStatus(d)==='fail').length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length,untested=doors.filter(d=>displayStatus(d)==='untested').length;
  target.replaceChildren();
- [['Totalt',doors.length,'total','Alla dörrar'],['Öppna fel',open,'open','Åtgärd krävs'],['Ej godkända',failed,'fail','Ej godkänd'],['Åtgärdade',done,'done','Godkänd / åtgärdad'],['Klara',ready,'ready','Godkänd'],['Ej kontrollerade',untested,'untested','Ej kontrollerad']].forEach(([label,value,key,meaning])=>{
+ [['Totalt',doors.length,'total','Alla dörrar'],['Klara',ready,'ready','Godkänd'],['Åtgärdade',done,'done','Godkänd / åtgärdad'],['Öppna fel',open,'open','Åtgärd krävs'],['Ej godkända',failed,'fail','Ej godkänd'],['Ej kontrollerade',untested,'untested','Ej kontrollerad']].forEach(([label,value,key,meaning])=>{
   const box=document.createElement('span');box.className='overviewStat '+key;
   const strong=document.createElement('strong');strong.textContent=String(value);
   const small=document.createElement('small');small.textContent=label;
