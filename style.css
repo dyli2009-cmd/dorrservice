@@ -1070,3 +1070,19 @@ body.doorMarkersHidden #stage #markers{display:none!important}
  .sessionHistoryBar .doorMarkerToggle{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important}
  .sessionHistoryBar .doorMarkerToggle svg{width:16px;height:16px}
 }
+
+
+/* Web 2.4.83: restore readable full Door Automation labels; eye filter remains. */
+#stage .marker.markerTag{
+ width:auto!important;max-width:210px!important;min-width:48px!important;
+ height:29px!important;min-height:29px!important;padding:0 8px!important;
+ border-radius:7px!important;font-size:9px!important;line-height:1!important;
+ white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+#stage .marker.markerTag::before{inset:-8px -11px!important;border-radius:10px!important}
+@media(max-width:800px){
+ #stage .marker.markerTag{
+  max-width:185px!important;min-width:46px!important;height:28px!important;min-height:28px!important;
+  padding:0 7px!important;font-size:8.3px!important;
+ }
+}
