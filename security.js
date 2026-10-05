@@ -753,7 +753,8 @@ const securityDrawingTools=ServiceDrawingTools.create({
  getItems:()=>drawingExtras,
  setItems:value=>{drawingExtras=value},
  onChange:()=>save(),
- message:msg
+ message:msg,
+ activateDrawing:()=>go('drawing')
 });
 const drawMarkersBeforeDrawingTools=drawMarkers;
 drawMarkers=function(){drawMarkersBeforeDrawingTools();securityDrawingTools?.render(page,pageWidth,pageHeight)};
