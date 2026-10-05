@@ -48,7 +48,7 @@ function injectStyle(){
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
 .serviceToolActive svg{stroke:#fff!important}
-.serviceInlineTextEditor{position:absolute;z-index:9;min-width:90px;width:min(220px,42%);height:34px;box-sizing:border-box;padding:5px 8px;border:2px solid #1480ad;border-radius:6px;background:#fff;color:#172b35;font:600 13px system-ui,-apple-system,sans-serif;box-shadow:0 4px 14px #0b253533;outline:none;transform:translate(-4px,-55%);touch-action:manipulation}
+.serviceInlineTextEditor{position:absolute;z-index:9;min-width:90px;width:min(220px,42%);height:40px;box-sizing:border-box;padding:6px 8px;border:2px solid #1480ad;border-radius:6px;background:#fff;color:#172b35;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 4px 14px #0b253533;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
 @media(max-width:520px){
  .serviceToolLauncher{width:36px!important;min-width:36px!important;height:36px!important}
