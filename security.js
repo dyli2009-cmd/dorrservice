@@ -213,6 +213,8 @@ function render(fit=false,focus=null){
   canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';$('secStage').style.width=pageWidth+'px';$('secStage').style.height=pageHeight+'px';
   const drawingUiScale=Math.max(.52,Math.min(1,Math.sqrt(Math.max(.01,baseScale*zoom))));
   $('secStage').style.setProperty('--drawing-ui-scale',drawingUiScale.toFixed(3));
+  $('secStage').style.setProperty('--drawing-line-width',Math.max(.9,2*drawingUiScale).toFixed(2)+'px');
+  $('secStage').style.setProperty('--drawing-box-stroke',Math.max(.8,1.5*drawingUiScale).toFixed(2)+'px');
   $('secStage').style.setProperty('--security-marker-size',(30*drawingUiScale).toFixed(1)+'px');
   $('secStage').style.setProperty('--security-marker-font',Math.max(6.5,10*drawingUiScale).toFixed(1)+'px');
   $('secStage').style.setProperty('--security-point-size',Math.max(7,12*drawingUiScale).toFixed(1)+'px');
