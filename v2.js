@@ -494,6 +494,21 @@ const DOOR_WORDING=[
  'Dörren stänger för hårt',
  'Dörrbladet hänger snett'
 ];
+
+function doorWordingVariants(problem){
+ const alternatives={
+  'Dörrbladet tar i karmen':['Dörrbladet går emot karmen','Dörrbladet kommer i kontakt med karmen'],
+  'Dörrbladet tar i det andra dörrbladet':['Dörrbladen tar i varandra','Dörrbladet går emot det andra dörrbladet'],
+  'Dörrbladet tar i golvet':['Dörrbladet går emot golvet','Dörrbladet kommer i kontakt med golvet'],
+  'Dörren kärvar vid öppning':['Dörren går trögt att öppna','Dörren öppnas med motstånd'],
+  'Dörren kärvar vid stängning':['Dörren går trögt att stänga','Dörren stängs med motstånd'],
+  'Dörren går inte att stänga helt':['Dörren stänger inte helt','Dörren når inte helt stängt läge'],
+  'Dörren stänger för hårt':['Dörrens stängning är för hård'],
+  'Dörrbladet hänger snett':['Dörrbladet har en sned hängning']
+ };
+ return [problem,...(alternatives[problem]||[])];
+}
+
 function doorWordingSentence(problem,frequency,action){
  const sentence=s=>s.trim().replace(/[.!?]+$/,'')+'.';
  return [problem?sentence(problem+(frequency?' '+frequency:'')):'',action?sentence(action):''].filter(Boolean).join(' ');
@@ -512,13 +527,18 @@ function openDoorWording({title,original,choices,apply}){
  const preview=document.createElement('textarea');preview.rows=4;preview.value=original;preview.id='doorWordingPreview';
  const status=document.createElement('p');status.setAttribute('role','status');
  const make=document.createElement('button');make.type='button';make.textContent='Skapa förslag';
- make.onclick=()=>{if(!problem.value){status.textContent='Välj en beskrivning. Du kan också redigera texten direkt nedan.';return}preview.value=doorWordingSentence(problem.value,frequency.value,action.value);status.textContent='Förslaget är klart. Kontrollera att texten stämmer.'};
+ let variant=0;
+ const another=document.createElement('button');another.type='button';another.textContent='Annan formulering';another.disabled=true;
+ const generate=()=>{if(!problem.value){status.textContent='Välj en beskrivning. Du kan också redigera texten direkt nedan.';return}const options=doorWordingVariants(problem.value);preview.value=doorWordingSentence(options[variant%options.length],frequency.value,action.value);another.disabled=options.length<2;status.textContent=options.length>1?'Förslag '+((variant%options.length)+1)+' av '+options.length+'. Kontrollera att texten stämmer.':'Förslaget är klart. Du kan redigera texten nedan.'};
+ make.onclick=()=>{variant=0;generate()};
+ another.onclick=()=>{variant++;generate()};
+ problem.onchange=()=>{variant=0;another.disabled=true};
  const buttons=document.createElement('div');buttons.className='doorWordingActions';
  const use=document.createElement('button');use.type='button';use.className='primary';use.textContent='Använd texten';
  use.onclick=()=>{if(!preview.value.trim()){status.textContent='Skriv eller skapa ett förslag först.';return}apply(preview.value.trim());dialog.close()};
  const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Avbryt';cancel.onclick=()=>dialog.close();
  buttons.append(cancel,use);
- dialog.append(h,context,help,old,field('Beskrivning',problem),field('När händer det?',frequency),field('Behov av åtgärd – välj bara om det är bedömt',action),make,field('Förslag – kan redigeras',preview),status,buttons);
+ dialog.append(h,context,help,old,field('Beskrivning',problem),field('När händer det?',frequency),field('Behov av åtgärd – välj bara om det är bedömt',action),make,another,field('Förslag – kan redigeras',preview),status,buttons);
  const previous=document.activeElement;
  dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});
  document.body.appendChild(dialog);dialog.showModal();problem.focus();
