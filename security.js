@@ -666,3 +666,16 @@ generalWording.onclick=()=>{const o=cur();if(!o)return;openDoorWording({title:SY
 
 /* Movement measured in screen pixels: deliberate at overview, precise when zoomed. */
 function markerDragThreshold(z){return z<=1.1?22:z<1.8?12:5}
+
+/* Session undo/redo: shared behavior with Door Automation. */
+const securitySessionHistory=installServiceHistory({
+ scope:()=>pdf,
+ capture:()=>({data:JSON.parse(JSON.stringify({items,textNotes,project,logoData})),selected}),
+ restore:state=>{
+  ({items,textNotes,project,logoData}=state.data);
+  selected=items.some(o=>o.uid===state.selected)?state.selected:null;
+  syncProjectInputs();drawMarkers();showSelected();showOverview();save();
+ },
+ wrapSave:record=>{const previous=save;save=function(...args){const result=previous(...args);record();return result}},
+ blocked:()=>document.body.classList.contains('exporting')||viewer.getAttribute('aria-busy')==='true'
+});
