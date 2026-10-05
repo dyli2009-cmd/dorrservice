@@ -26,8 +26,8 @@ function injectStyle(){
  const style=document.createElement('style');style.id='serviceDrawingToolsStyle';style.textContent=`
 .serviceDrawingOverlay{position:absolute;inset:0;width:100%;height:100%;z-index:6;overflow:visible;pointer-events:none;touch-action:none}
 .serviceDrawingOverlay.placing{pointer-events:auto;cursor:crosshair}
-.serviceDrawingOverlay .drawHit,.serviceDrawingOverlay .drawHandle,.serviceDrawingOverlay .drawTextHit{pointer-events:all}
-.serviceDrawingOverlay .drawHit{stroke:transparent;stroke-width:18;fill:none}
+.serviceDrawingOverlay .drawHit,.serviceDrawingOverlay .drawDoorHit,.serviceDrawingOverlay .drawHandle,.serviceDrawingOverlay .drawTextHit{pointer-events:all}
+.serviceDrawingOverlay .drawHit{stroke:transparent;stroke-width:18;fill:none}\n.serviceDrawingOverlay .drawDoorHit{fill:transparent;stroke:none}
 .serviceDrawingOverlay .drawVisible{stroke:#173f55;stroke-width:2;fill:none;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .drawSelected{stroke:#1480ad;stroke-dasharray:5 3;stroke-width:1.5;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
@@ -59,7 +59,7 @@ function create(cfg){
   mode=mode===next?null:next;draft=null;selected=null;svg.classList.toggle('placing',!!mode);
   if(toolBtn)toolBtn.classList.toggle('serviceToolActive',!!mode);
   updateMenu();
-  if(mode)notify(({line:'Dra ett streck där väggen/linjen ska vara.',arrow:'Dra från start till den punkt pilen ska peka på.','door-single':'Tryck där enkeldörren ska placeras.','door-double':'Tryck där dubbeldörren ska placeras.',text:'Tryck där texten ska ligga.','text-arrow':'Tryck där pilen ska peka; texten placeras bredvid.'})[mode]);
+  if(mode){cfg.activateDrawing?.();notify(({line:'Dra ett streck där väggen/linjen ska vara.',arrow:'Dra från start till den punkt pilen ska peka på.','door-single':'Tryck där enkeldörren ska placeras.','door-double':'Tryck där dubbeldörren ska placeras.',text:'Tryck där texten ska ligga.','text-arrow':'Tryck där pilen ska peka; texten placeras bredvid.'})[mode]);
  }
  function addArrowMarker(defs,id){
   const m=el('marker',{id,viewBox:'0 0 8 8',refX:7,refY:4,markerWidth:7,markerHeight:7,orient:'auto'});
@@ -93,7 +93,7 @@ function create(cfg){
     g.segments.forEach(([a,b])=>pathParts.push(`M ${a.x} ${a.y} L ${b.x} ${b.y}`));
     g.arcs.forEach(ar=>{if(ar.length){pathParts.push('M '+ar[0].x+' '+ar[0].y);for(let i=1;i<ar.length;i++)pathParts.push('L '+ar[i].x+' '+ar[i].y)}});
     svg.appendChild(el('path',{d:pathParts.join(' '),class:'drawVisible'}));
-    const hit=el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(22,g.radius*.75),fill:'transparent',stroke:'transparent','stroke-width':2,class:'drawHit'});bindMove(hit,item,'door-move');svg.appendChild(hit);
+    const hit=el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(22,g.radius*.75),fill:'transparent',stroke:'transparent','stroke-width':2,class:'drawDoorHit'});bindMove(hit,item,'door-move');svg.appendChild(hit);
     if(item.uid===selected){
       svg.appendChild(el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(18,g.radius*.9),class:'drawSelected'}));
       const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle');svg.appendChild(handle);
