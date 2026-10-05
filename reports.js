@@ -30,19 +30,26 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  function overviewHeader(){
   header('ANMÄRKNINGSÖVERSIKT','DÖRRAUTOMATIK · KUNDRAPPORT');projectFields();
   const open=ds.filter(d=>status(d)==='action').length,failed=ds.filter(d=>status(d)==='fail').length,done=ds.filter(isDoorRemediated).length,ready=ds.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length,untested=ds.filter(d=>status(d)==='untested').length;
-  const stats=[['TOTALT',ds.length,'Alla dörrar'],['KLARA',ready,'Godkända'],['ÅTGÄRDADE',done,'Klarmarkerade'],['ÖPPNA FEL',open,'Åtgärd krävs'],['EJ GODKÄNDA',failed,'Underkända'],['EJ KONTROLL.',untested,'Ej kontrollerade']];
+  const stats=[
+   ['TOTALT',ds.length,'Alla dörrar',[243,247,249],[45,69,82]],
+   ['KLARA',ready,'Godkända',REPORT_COLORS.ok.light,REPORT_COLORS.ok.rgb],
+   ['ÅTGÄRDADE',done,'Klarmarkerade',REPORT_COLORS.ok.light,REPORT_COLORS.ok.rgb],
+   ['ÖPPNA FEL',open,'Åtgärd krävs',REPORT_COLORS.action.light,REPORT_COLORS.action.rgb],
+   ['EJ GODKÄNDA',failed,'Underkända',REPORT_COLORS.fail.light,REPORT_COLORS.fail.rgb],
+   ['EJ KONTROLL.',untested,'Ej kontrollerade',REPORT_COLORS.untested.light,REPORT_COLORS.untested.rgb]
+  ];
   const boxW=width/6;
-  stats.forEach(([title,value,meaning],i)=>{
-   const x=left+i*boxW,fill=i%2?[250,250,250]:[244,244,244];
-   doc.setFillColor(...fill);doc.setDrawColor(150,150,150);doc.setLineWidth(.3);doc.rect(x,y,boxW,16,'FD');
-   text(title,x+boxW/2,y+4.6,6.5,true,[55,55,55],{align:'center'});
-   text(value,x+boxW/2,y+10.3,11.3,true,[15,15,15],{align:'center'});
-   text(meaning,x+boxW/2,y+14.1,5.2,false,[95,95,95],{align:'center'});
+  stats.forEach(([title,value,meaning,bg,fg],i)=>{
+   const x=left+i*boxW;
+   doc.setFillColor(...bg);doc.setDrawColor(185,195,201);doc.setLineWidth(.25);doc.rect(x,y,boxW,15.4,'FD');
+   text(title,x+boxW/2,y+4.25,6.25,true,[65,75,82],{align:'center'});
+   text(value,x+boxW/2,y+9.65,11.4,true,fg,{align:'center'});
+   text(meaning,x+boxW/2,y+13.55,5.8,true,fg,{align:'center'});
   });
-  y+=18;text('Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.0,false,[95,95,95]);y+=5;tableHead()
+  y+=17.2;tableHead()
  }
- const widths=[33,115,38];
- function tableHead(){let x=left;['Dörr / placering','Anmärkning','Åtgärdat / signatur'].forEach((title,i)=>{doc.setFillColor(232,239,244);doc.rect(x,y,widths[i],9,'F');doc.rect(x,y,widths[i],9);text(title,x+2,y+5.5,7.5,true);x+=widths[i]});y+=9}
+ const widths=[42,102,42];
+ function tableHead(){let x=left;['Dörr / placering','Anmärkning','Status / åtgärd'].forEach((title,i)=>{doc.setFillColor(232,236,239);doc.setDrawColor(150,158,164);doc.setLineWidth(.22);doc.rect(x,y,widths[i],8.5,'FD');text(title,x+2,y+5.35,7.2,true,[45,45,45]);x+=widths[i]});y+=8.5}
  function overviewPage(){doc.addPage();overviewHeader()}
  overviewHeader();const problems=sorted.filter(hasRecordedDoorProblem).sort((a,b)=>{const rank=d=>isDoorRemediated(d)?2:status(d)==='fail'?0:1;return rank(a)-rank(b)||a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true})});
  if(!problems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');text('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);text('Se protokollen för vilka kontrollpunkter som är genomförda.',left+3,y+12,8);y+=20}
@@ -50,13 +57,13 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   const issues=doorProblems(d).map(([n,t])=>d.checks[n].note?.trim()||t);
   if(!issues.length)issues.push(label(d));if(d.notes?.trim())issues.push('Allmän anmärkning: '+d.notes.trim());
   doc.setFont('helvetica','normal');doc.setFontSize(8);
-  const remediation=isDoorRemediated(d)?['Åtgärdad: '+d.remediationDate,'Signatur: '+d.remediationSignature].join('\n'):[d.remediationDate,d.remediationSignature].filter(Boolean).join('\n');
-  const columns=[d.id+'\nPlacering: '+(d.location||'-')+'\n'+label(d),issues.join('\n'),remediation].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
+  const statusText=label(d),remediation=isDoorRemediated(d)?[statusText+(d.remediationDate?' '+d.remediationDate:''),d.remediationSignature?'Signatur: '+d.remediationSignature:''].filter(Boolean).join('\n'):statusText;
+  const columns=[d.id+'\nPlacering: '+(d.location||'-'),issues.join('\n'),remediation].map((value,i)=>doc.splitTextToSize(value,widths[i]-5));
   let offset=0,total=Math.max(...columns.map(c=>c.length),1);
   while(offset<total){
    const capacity=Math.floor((bottom-y-5)/line);if(capacity<1||bottom-y<12){overviewPage();continue}
    const count=Math.min(capacity,total-offset),height=Math.max(12,count*line+5),color=REPORT_COLORS[status(d)];let x=left;
-   columns.forEach((lines,i)=>{doc.setFillColor(...(i===0?[246,246,246]:[255,255,255]));doc.setDrawColor(145,145,145);doc.setLineWidth(.2);doc.rect(x,y,widths[i],height,'FD');const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length){doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(8);doc.setTextColor(30,30,30);doc.text(chunk,x+2.5,y+4.5,{lineHeightFactor:line/(8*.3528)})}x+=widths[i]});y+=height;offset+=count;
+   columns.forEach((lines,i)=>{const bg=i===0?[246,246,246]:i===2?color.light:[255,255,255];doc.setFillColor(...bg);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,y,widths[i],height,'FD');const chunk=i===0&&offset>=lines.length?lines.slice(0,count):lines.slice(offset,offset+count);if(chunk.length){doc.setFont('helvetica',i===0||i===2?'bold':'normal');doc.setFontSize(i===2?7.6:8);doc.setTextColor(...(i===2?color.rgb:[30,30,30]));doc.text(chunk,x+2.5,y+4.5,{lineHeightFactor:line/(8*.3528)})}x+=widths[i]});y+=height;offset+=count;
    if(offset<total)overviewPage();
   }
  });
