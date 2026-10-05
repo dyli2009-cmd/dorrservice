@@ -583,7 +583,8 @@ const doorDrawingTools=ServiceDrawingTools.create({
  getItems:()=>drawingExtras,
  setItems:value=>{drawingExtras=value},
  onChange:()=>save(),
- message:notice
+ message:notice,
+ activateDrawing:()=>goView('drawing')
 });
 const drawBeforeDrawingTools=draw;
 draw=function(){drawBeforeDrawingTools();doorDrawingTools?.render(page,pageWidth,pageHeight)};
