@@ -136,7 +136,7 @@ function updateCompactUI(){
 }
 const baseSave=save;save=function(skip=false){baseSave(skip);updateCompactUI()};
 const baseRefresh=refreshDrawingUI;refreshDrawingUI=function(){baseRefresh();updateCompactUI()};
-function nextSerial(){const largest=Math.max(0,...doors.map(d=>Number(d.serialNumber)||Number(/^D(\d+)$/.exec(d.id)?.[1])||0));const n=Math.max(Number(project.nextDoorNumber)||1,largest+1);project.nextDoorNumber=n+1;return String(n)}
+function nextSerial(){const largest=Math.max(0,...doors.map(d=>Number(d.serialNumber)||Number(/^D(\d+)$/.exec(d.id)?.[1])||0));const n=largest+1;project.nextDoorNumber=n+1;return String(n)}
 function proposedId(d){return project.facilityNo&&d.modelCode&&d.serialNumber?[project.facilityNo.trim(),d.modelCode,d.serialNumber].join('-'):null}
 function setDoorId(d,value,mode){
  const id=String(value||'').trim();if(!id){$('idMessage').textContent='Märkningen får inte vara tom.';return false}
