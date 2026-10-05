@@ -245,7 +245,7 @@ function overviewPriority(d){
 }
 function setOverviewSummary(){
  const target=$('overviewSummary');if(!target)return;
- const open=doors.filter(hasDoorProblem).length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>displayStatus(d)==='ok').length;
+ const open=doors.filter(hasDoorProblem).length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length;
  target.replaceChildren();
  [['Totalt',doors.length,'total'],['Öppna fel',open,'open'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
   const box=document.createElement('span');box.className='overviewStat '+key;
@@ -264,7 +264,7 @@ renderOverview=function(){
  const filter=$('overviewFilter').value,query=$('overviewSearch').value.trim().toLocaleLowerCase('sv'),recorded=doors.filter(hasRecordedDoorProblem).length;
  $('overviewProject').textContent=[project.projectName,project.facilityNo,project.inspectionDate].filter(Boolean).join(' · ');
  setOverviewSummary();$('overviewPdf').disabled=!recorded;
- const visible=doors.filter(d=>(filter!=='problems'||hasDoorProblem(d))&&(filter!=='ok'||displayStatus(d)==='ok')&&(filter!=='untested'||completedChecks(d)<doorChecks(d).length||d.status==='untested')&&(!query||[d.id,d.model,d.location,d.machineId,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+(d.checks[n].note||''))].join(' ').toLocaleLowerCase('sv').includes(query))).sort((a,b)=>overviewPriority(a)-overviewPriority(b)||a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+ const visible=doors.filter(d=>(filter!=='problems'||hasDoorProblem(d))&&(filter!=='ok'||(d.status==='ok'&&!hasRecordedDoorProblem(d)))&&(filter!=='untested'||completedChecks(d)<doorChecks(d).length||d.status==='untested')&&(!query||[d.id,d.model,d.location,d.machineId,d.notes,...doorProblems(d).map(([n,t])=>n+' '+t+' '+(d.checks[n].note||''))].join(' ').toLocaleLowerCase('sv').includes(query))).sort((a,b)=>overviewPriority(a)-overviewPriority(b)||a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
  const list=$('overviewList');list.replaceChildren();if(!visible.length){const p=document.createElement('p');p.className='overviewEmpty';p.textContent=!doors.length?'Inga dörrar ännu. Markera automatikerna på ritningen.':query?'Inga dörrar matchar sökningen.':'Inga dörrar i det här urvalet.';list.appendChild(p);return}
  visible.forEach(d=>{
   const card=document.createElement('article');card.dataset.uid=d.uid;
@@ -273,7 +273,7 @@ renderOverview=function(){
   const issues=doorProblems(d);if(issues.length){const ul=document.createElement('ul');ul.className='doorIssues';issues.forEach(([n,title])=>{const li=document.createElement('li');li.textContent=d.checks[n].note?.trim()||title;ul.appendChild(li)});card.appendChild(ul)}
   if(d.notes){const p=document.createElement('p');p.className='generalRemark';p.textContent=d.notes;card.appendChild(p)}
   if(hasRecordedDoorProblem(d)){
-   const grid=document.createElement('div');grid.className='grid2 remediationGrid';[['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.dataset.field=key;input.value=d[key]||'';input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;save(true);syncDoorOverviewCard(card,badge,d);setOverviewSummary();draw()};input.onchange=()=>{save(true);renderOverview();draw()};label.appendChild(input);grid.appendChild(label)});card.appendChild(grid);
+   const grid=document.createElement('div');grid.className='grid2 remediationGrid';[['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{const label=document.createElement('label');label.textContent=title;const input=document.createElement('input');input.type=type;input.dataset.field=key;input.value=d[key]||'';input.setAttribute('aria-label',title+' för '+d.id);input.oninput=()=>{d[key]=input.value;if(key==='remediationSignature'&&input.value.trim()&&!d.remediationDate){d.remediationDate=doorLocalToday();const dateInput=grid.querySelector('input[data-field="remediationDate"]');if(dateInput)dateInput.value=d.remediationDate}save(true);syncDoorOverviewCard(card,badge,d);setOverviewSummary();draw()};input.onchange=()=>{save(true);renderOverview();draw()};label.appendChild(input);grid.appendChild(label)});card.appendChild(grid);
   }
   const button=document.createElement('button');button.className='openProtocolBtn';button.textContent='Öppna protokoll';button.onclick=()=>openOverviewDoor(d.uid);button.setAttribute('aria-label','Öppna protokoll för '+d.id);card.appendChild(button);list.appendChild(card);
  });
@@ -449,27 +449,35 @@ function customerPreviewDoor(){
 async function renderCustomerPreview(){
  const pane=$('customerPreviewPane');if(!pane||pane.hidden)return;
  const token=++customerPreviewToken,status=$('customerPreviewStatus'),canvas=$('customerPreviewCanvas'),holder=$('customerPreviewCanvasWrap');
+ const overviewMode=document.body.dataset.view==='doors';
  status.textContent='Uppdaterar…';
  try{
-  const door=customerPreviewDoor();normalize(door);
-  const snapshot=structuredClone({project,logoData,doors:[door]});
-  const report=buildServiceReportDoc(snapshot,true);
+  let report,startPage=1,previewLabel='';
+  if(overviewMode){
+   const snapshot=structuredClone({project,logoData,doors});snapshot.doors.forEach(normalize);
+   report=buildServiceReportDoc(snapshot,false);previewLabel='Dörrar och anmärkningar';
+  }else{
+   const door=customerPreviewDoor();normalize(door);
+   const snapshot=structuredClone({project,logoData,doors:[door]});
+   report=buildServiceReportDoc(snapshot,true);previewLabel=door.id||'Provningsprotokoll';startPage=2;
+  }
   const bytes=new Uint8Array(report.output('arraybuffer'));
   const preview=await pdfjsLib.getDocument({data:bytes}).promise;
   if(token!==customerPreviewToken){await preview.destroy();return}
   if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
-  const firstProtocolPage=preview.numPages>=2?2:1,first=await preview.getPage(firstProtocolPage),base=first.getViewport({scale:1});
+  if(startPage>preview.numPages)startPage=1;
+  const first=await preview.getPage(startPage),base=first.getViewport({scale:1});
   const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
-  const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-firstProtocolPage+1;
+  const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-startPage+1;
   canvas.width=renderW;canvas.height=renderH*pageCount+renderGap*Math.max(0,pageCount-1);canvas.style.width=cssW+'px';canvas.style.height=(cssH*pageCount+cssGap*Math.max(0,pageCount-1))+'px';
   const out=canvas.getContext('2d');out.imageSmoothingEnabled=true;out.imageSmoothingQuality='high';out.clearRect(0,0,canvas.width,canvas.height);
-  for(let pageNo=firstProtocolPage,i=0;pageNo<=preview.numPages;pageNo++,i++){
+  for(let pageNo=startPage,i=0;pageNo<=preview.numPages;pageNo++,i++){
    if(token!==customerPreviewToken)return;
-   const pg=pageNo===firstProtocolPage?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
+   const pg=pageNo===startPage?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
    tmp.width=Math.ceil(viewport.width);tmp.height=Math.ceil(viewport.height);await pg.render({canvasContext:tmp.getContext('2d'),viewport}).promise;
    out.drawImage(tmp,0,i*(renderH+renderGap));tmp.width=tmp.height=0;
   }
-  if(token===customerPreviewToken)status.textContent='Visar '+(door.id||'provningsprotokoll')+' · '+pageCount+' sida'+(pageCount===1?'':'or')+' · uppdateras automatiskt';
+  if(token===customerPreviewToken)status.textContent='Visar '+previewLabel+' · '+pageCount+' sida'+(pageCount===1?'':'or')+' · uppdateras automatiskt';
  }catch(e){if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
 }
 function scheduleCustomerPreview(){if($('customerPreviewPane')?.hidden)return;clearTimeout(customerPreviewTimer);customerPreviewTimer=setTimeout(renderCustomerPreview,220)}
