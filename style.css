@@ -1140,3 +1140,26 @@ body.precisionMode .marker{
 @media(max-width:800px){
  .precisionButton{font-size:9.5px!important;min-height:30px!important;padding:3px 7px!important}
 }
+
+
+/* Web 2.4.96: stylus-like offset grip for precise touch placement. */
+.precisionPointGrab{
+ display:none;position:absolute;z-index:12;width:64px;height:92px;min-width:64px;min-height:92px;
+ padding:0;border:0;background:transparent!important;box-shadow:none!important;border-radius:0;
+ transform:translate(-50%,0);touch-action:none;overflow:visible;
+}
+body.precisionMode .precisionPointGrab{display:block}
+.precisionPointGrab::before{
+ content:"";position:absolute;left:50%;top:3px;bottom:19px;border-left:1.5px dashed #173f55;
+ opacity:.42;transform:translateX(-50%);pointer-events:none;
+}
+.precisionPointGrab::after{
+ content:"";position:absolute;left:50%;bottom:2px;width:22px;height:22px;transform:translateX(-50%);
+ border:2px solid #173f55;border-radius:50%;background:#ffffffd9;box-shadow:0 2px 7px #0b253533;
+ pointer-events:none;
+}
+.precisionPointGrab.precisionGrabUp{transform:translate(-50%,-100%)}
+.precisionPointGrab.precisionGrabUp::after{top:2px;bottom:auto}
+.precisionPointGrab.precisionGrabUp::before{top:19px;bottom:3px}
+body.precisionMode .doorTarget::before{box-shadow:0 0 0 2px #173f5522}
+body.precisionMode .secTarget{outline:2px solid #173f5533;outline-offset:4px}
