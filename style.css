@@ -1051,3 +1051,22 @@ body.securityApp:not(.secHasPdf)>.sessionHistoryBar{display:none!important}
   gap:5px!important;
  }
 }
+
+
+/* Web 2.4.82: temporary door-marker visibility filter. */
+.sessionHistoryBar .doorMarkerToggle{
+ width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;
+ display:inline-grid!important;place-items:center!important;padding:0!important;border-radius:7px!important;
+ background:#fff!important;color:#315466!important;border:1px solid #cbd7df!important;
+}
+.sessionHistoryBar .doorMarkerToggle svg{
+ width:17px;height:17px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+}
+.sessionHistoryBar .doorMarkerToggle.markersHidden{
+ background:#173f55!important;color:#fff!important;border-color:#173f55!important;
+}
+body.doorMarkersHidden #stage #markers{display:none!important}
+@media(max-width:800px){
+ .sessionHistoryBar .doorMarkerToggle{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important}
+ .sessionHistoryBar .doorMarkerToggle svg{width:16px;height:16px}
+}
