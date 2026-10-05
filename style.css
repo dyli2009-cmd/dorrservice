@@ -262,8 +262,8 @@ body header.appHeader .appVersion{
  #protocolPanel .faultArea{grid-column:1 / -1}
 }
 
-/* Web 2.4.6: keep mobile navigation at the current viewport's bottom. */
-@media(max-width:800px){
+/* Web 2.4.48: phone-only bottom navigation; tablets keep approved spacing. */
+@media(max-width:599px){
  @supports(height:100dvh){
   body{height:100dvh}
  }
@@ -275,8 +275,8 @@ body header.appHeader .appVersion{
 }
 
 
-/* Web 2.4.7 test: lower, tighter mobile bottom navigation without touching app logic. */
-@media(max-width:800px){
+/* Web 2.4.48: tighter bottom navigation only on phones, not iPad/tablet. */
+@media(max-width:599px){
  #mobileBar{
   gap:2px;
   padding-top:1px;
