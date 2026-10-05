@@ -632,7 +632,7 @@ function reportDoc(){
   cell('Kontaktperson på objektet:',project.companyContact,left,y,93);cell('Kontaktperson:',project.contact,left+93,y,93);y+=7;
   cell('Telefon:',project.companyPhone,left,y,93);cell('Telefon:',project.phone,left+93,y,93);y+=7;
   cell('Adress:',project.companyAddress,left,y,93);cell('Adress:',project.address,left+93,y,93);y+=7;
-  cell('Postnummer / Ort:',[project.companyPostalCode,project.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Ort:',[project.postalCode,project.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+  cell('Postnummer / Postadress:',[project.companyPostalCode,project.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[project.postalCode,project.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
   cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('AO / Order:',project.order,left+120,y,66,8,true);y+=8;
  }
  function checkHeader(){
