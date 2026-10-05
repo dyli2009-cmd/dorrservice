@@ -1112,3 +1112,15 @@ body.doorMarkersHidden #stage #markers{display:none!important}
 }
 #viewerWrap.pinching,
 #secViewer.pinching{overscroll-behavior:none!important}
+
+
+/* Web 2.4.91: prevent Safari from zooming the whole app when compact form controls receive focus. */
+@supports (-webkit-touch-callout:none){
+ @media(max-width:800px){
+  input:not([type="file"]):focus,
+  select:focus,
+  textarea:focus{
+   font-size:16px!important;
+  }
+ }
+}
