@@ -167,7 +167,7 @@ $('file').onchange=async e=>{
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
  finally{if(version===loadVersion){wrap.setAttribute('aria-busy','false');$('exportBtn').disabled=!activeDrawingKey;e.target.value=''}}
 };
-function render(fit=false,focus=null){
+function render(fit=false,focus=null,anchor=null){
  if(!pdf)return Promise.resolve();const version=++renderVersion,documentPdf=pdf,pageNumber=page;
  if(renderTask)renderTask.cancel();
  renderQueue=renderQueue.catch(()=>{}).then(async()=>{
@@ -195,7 +195,14 @@ function render(fit=false,focus=null){
   $('stage').style.setProperty('--drawing-note-font',Math.max(7,10*drawingUiScale).toFixed(1)+'px');
   $('stage').style.setProperty('--drawing-note-max',Math.max(100,190*drawingUiScale).toFixed(0)+'px');
   $('pageInfo').textContent='Sida '+pageNumber+' / '+documentPdf.numPages;$('zoomInfo').textContent=Math.round(zoom*100)+'%';draw();
-  if(focus){wrap.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;wrap.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y}
+  if(anchor&&focus){
+   const stage=$('stage'),left=stage.offsetLeft||0,top=stage.offsetTop||0;
+   wrap.scrollLeft=left+anchor.x*pageWidth-focus.x;
+   wrap.scrollTop=top+anchor.y*pageHeight-focus.y;
+  }else if(focus&&oldW>0&&oldH>0){
+   wrap.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;
+   wrap.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y;
+  }
   return true;
  }).catch(error=>{if(error.name!=='RenderingCancelledException'&&version===renderVersion)notice('Kunde inte visa sidan. Prova Passa eller välj en annan sida.',true);return false});
  return renderQueue;
@@ -304,17 +311,46 @@ wrap.addEventListener('pointerup',endMousePan);
 wrap.addEventListener('pointercancel',endMousePan);
 wrap.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;wrap.classList.remove('mousePanning')}});
 
+function beginDoorPinch(e){
+ const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect(),stage=$('stage');
+ const focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
+ const anchor={
+  x:Math.max(0,Math.min(1,(wrap.scrollLeft+focus.x-(stage.offsetLeft||0))/Math.max(1,pageWidth))),
+  y:Math.max(0,Math.min(1,(wrap.scrollTop+focus.y-(stage.offsetTop||0))/Math.max(1,pageHeight)))
+ };
+ pinch={
+  dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),
+  zoom,focus,currentFocus:focus,anchor,targetZoom:zoom,
+  stageLeft:stage.offsetLeft||0,stageTop:stage.offsetTop||0
+ };
+ panTouch=null;visualZoom=1;stage.style.transformOrigin='0 0';wrap.classList.add('pinching');suppressPageSwipeUntil=Date.now()+900;
+}
+function commitDoorPinch(p){
+ const target=Math.max(.5,Math.min(8,p.targetZoom||p.zoom)),focus=p.currentFocus||p.focus;
+ visualZoom=1;$('stage').style.transform='';$('stage').style.transformOrigin='0 0';wrap.classList.remove('pinching');
+ zoom=target;return render(false,focus,p.anchor);
+}
 wrap.addEventListener('touchstart',e=>{
+ if(e.touches.length===2){e.preventDefault();beginDoorPinch(e);return}
  if(e.target.closest('.marker,.doorTarget,.drawingNote,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
- if(e.touches.length===2){e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect();pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}}}
- else if(e.touches.length===1&&!addMode&&!textMode&&!e.target.closest('.marker,.doorTarget,.drawingNote,.serviceDrawingOverlay')){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02}}
+ if(e.touches.length===1&&!addMode&&!textMode){const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:wrap.scrollLeft,top:wrap.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02}}
 },{passive:false});
 wrap.addEventListener('touchmove',e=>{
- if(e.touches.length===2&&pinch){e.preventDefault();const a=e.touches[0],b=e.touches[1];visualZoom=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist))/pinch.zoom;$('stage').style.transform='scale('+visualZoom+')';$('stage').style.transformOrigin=(wrap.scrollLeft+pinch.focus.x)+'px '+(wrap.scrollTop+pinch.focus.y)+'px';$('zoomInfo').textContent=Math.round(pinch.zoom*visualZoom*100)+'%'}
- else if(e.touches.length===1&&panTouch&&!addMode&&!textMode&&!pinch){e.preventDefault();const t=e.touches[0];wrap.scrollLeft=panTouch.left-(t.clientX-panTouch.x);wrap.scrollTop=panTouch.top-(t.clientY-panTouch.y)}
+ if(e.touches.length===2){
+  e.preventDefault();if(!pinch){beginDoorPinch(e);return}
+  const a=e.touches[0],b=e.touches[1],r=wrap.getBoundingClientRect(),focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
+  const target=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist));
+  visualZoom=target/pinch.zoom;pinch.targetZoom=target;pinch.currentFocus=focus;
+  const stage=$('stage');stage.style.transformOrigin='0 0';stage.style.transform='scale('+visualZoom+')';
+  wrap.scrollLeft=pinch.stageLeft+pinch.anchor.x*pageWidth*visualZoom-focus.x;
+  wrap.scrollTop=pinch.stageTop+pinch.anchor.y*pageHeight*visualZoom-focus.y;
+  $('zoomInfo').textContent=Math.round(target*100)+'%';
+ }else if(e.touches.length===1&&panTouch&&!addMode&&!textMode&&!pinch){
+  e.preventDefault();const t=e.touches[0];wrap.scrollLeft=panTouch.left-(t.clientX-panTouch.x);wrap.scrollTop=panTouch.top-(t.clientY-panTouch.y);
+ }
 },{passive:false});
 function endTouch(e){
- if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus);return}
+ if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;suppressPageSwipeUntil=Date.now()+500;commitDoorPinch(p);return}
  if(e.touches.length===0&&panTouch){
   const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
   if(Date.now()<suppressPageSwipeUntil)return;
