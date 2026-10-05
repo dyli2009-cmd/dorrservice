@@ -721,3 +721,36 @@ body.securityApp:not(.secHasPdf) .securityTools{display:none}
   padding:0 7px!important;font-size:8.3px!important;
  }
 }
+
+
+/* Web 2.4.84: align Security checklist number + text like 1.1 Text. */
+#securityProtocol .secCheckHead{
+ display:flex!important;
+ align-items:flex-start!important;
+ justify-content:flex-start!important;
+ gap:5px!important;
+ width:100%!important;
+}
+#securityProtocol .secCheckHead .checkNumber{
+ flex:0 0 27px!important;
+ width:27px!important;
+ min-width:27px!important;
+ max-width:27px!important;
+ text-align:left!important;
+}
+#securityProtocol .secCheckHead .secCheckText{
+ flex:1 1 auto!important;
+ width:auto!important;
+ min-width:0!important;
+ text-align:left!important;
+ margin:0!important;
+ overflow-wrap:anywhere;
+}
+#securityProtocol .secCheckHead .secCustomBadge{flex:0 0 auto!important}
+#securityProtocol .secCheckHead .secEditActions{flex:0 0 auto!important;margin-left:auto!important}
+@media(max-width:800px){
+ #securityProtocol .secCheckHead{gap:4px!important}
+ #securityProtocol .secCheckHead .checkNumber{
+  flex-basis:25px!important;width:25px!important;min-width:25px!important;max-width:25px!important;
+ }
+}
