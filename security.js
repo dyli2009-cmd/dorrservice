@@ -298,7 +298,7 @@ $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  if(pdf)try{await pdf.destroy()}catch(_){}
  pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=(record?.items||[]).map(normalize);textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
  if(imported&&items.length){
-  $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||'Security Service',items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
+  $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||'Säkerhetsservice',items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
   $('secOpenWorkDialog').showModal();
   msg('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
  }else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
@@ -326,10 +326,56 @@ if(secProtocolTextSmaller)secProtocolTextSmaller.onclick=()=>{secProtocolTextLev
 if(secProtocolTextLarger)secProtocolTextLarger.onclick=()=>{secProtocolTextLevel=Math.min(3,secProtocolTextLevel+1);applySecProtocolTextLevel()};
 applySecProtocolTextLevel();
 let securityCheckEditUid=null;
-function buildChecklist(o){const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o),editing=securityCheckEditUid===o.uid;checks.forEach(([n,title])=>{const c=o.checks[n]||{result:'',note:''};o.checks[n]=c;const row=document.createElement('section');row.className='secCheck'+(c.result?' result-'+c.result:'');const head=document.createElement('div');head.className='secCheckHead';head.innerHTML='<strong>'+n+'</strong><span></span>';head.querySelector('span').textContent=title;if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge';badge.textContent='Egen';head.appendChild(badge)}if(editing){const actions=document.createElement('span');actions.className='secEditActions';const change=document.createElement('button');change.type='button';change.className='secEditCheck';change.textContent='Ändra';change.setAttribute('aria-label','Ändra kontrollpunkt '+n);change.onclick=e=>{e.stopPropagation();const value=prompt('Ändra kontrollpunkt:',title);if(value===null)return;if(!value.trim()){alert('Kontrollpunkten måste ha text. Använd Ta bort om den inte ska finnas kvar.');return}if(!editSecurityCheck(o,n,value))return;save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCheck';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;if(!removeSecurityCheck(o,n))return;save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};actions.append(change,remove);head.appendChild(actions)}row.appendChild(head);const choices=document.createElement('div');choices.className='secChoices';[['na','Ingår ej'],['ok','Klart utan anm.'],['remark','Klart med anm.']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.classList.toggle('active',c.result===value);b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};choices.appendChild(b)});row.appendChild(choices);if(c.result==='remark'){const fault=document.createElement('div');fault.className='secFault';const faults=SYSTEMS[o.type].faults[n]||[];const select=document.createElement('select');select.setAttribute('aria-label','Vanlig anmärkning '+n);select.innerHTML='<option value="">Välj anmärkning…</option>';for(const f of faults){const op=document.createElement('option');op.value=f;op.textContent=f;select.appendChild(op)}const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);const input=document.createElement('input');input.placeholder='Beskriv felet…';input.setAttribute('aria-label','Egen anmärkning '+n);const back=document.createElement('button');back.type='button';back.className='secFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');const known=faults.includes(c.note||'');select.value=known?c.note:'';input.value=known?'':(c.note||'');const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};showCustom(!!c.note&&!known);select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();showOverview();return}c.note=select.value||'';save();showOverview()};input.oninput=()=>{c.note=input.value;save();showOverview()};input.onblur=()=>input.classList.remove('iosTyping');back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();showOverview();select.focus()};fault.append(select,input,back);
-const wording=document.createElement('button');wording.type='button';wording.className='doorWordingButton';wording.textContent='Formulera';wording.setAttribute('aria-label','Hjälp med formulering för kontrollpunkt '+n);
-wording.onclick=()=>openDoorWording({title:SYSTEMS[o.type].label+' – '+n+' '+title,original:c.note||'',choices:securityWordingChoices(o,n),actions:securityWordingActions(o),apply:text=>{if(cur()!==o||o.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}))}});
-fault.appendChild(wording);row.appendChild(fault)}box.appendChild(row)});updateProgress(o)}
+function buildChecklist(o){
+ const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o),editing=securityCheckEditUid===o.uid;
+ const group=document.createElement('details');group.className='checkGroup secCheckGroup';group.open=true;
+ const summary=document.createElement('summary');summary.textContent='Kontrollpunkter';const count=document.createElement('span');summary.appendChild(count);group.appendChild(summary);
+ checks.forEach(([n,title])=>{
+  const c=o.checks[n]||{result:'',note:''};o.checks[n]=c;
+  const row=document.createElement('div');row.className='checkrow secCheck'+(c.result?' result-'+c.result:'');
+  const head=document.createElement('div');head.className='checktitle secCheckHead';
+  const nr=document.createElement('span');nr.className='checkNumber';nr.textContent=n;
+  const titleEl=document.createElement('span');titleEl.className='secCheckText';titleEl.textContent=title;
+  head.append(nr,titleEl);
+  if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge doorCustomBadge';badge.textContent='Egen';head.appendChild(badge)}
+  if(editing){
+   const actions=document.createElement('span');actions.className='secEditActions checkEditActions';
+   const change=document.createElement('button');change.type='button';change.className='secEditCheck doorEditCheck';change.textContent='Ändra';change.setAttribute('aria-label','Ändra kontrollpunkt '+n);
+   change.onclick=e=>{e.stopPropagation();const value=prompt('Ändra kontrollpunkt:',title);if(value===null)return;if(!value.trim()){alert('Kontrollpunkten måste ha text. Använd Ta bort om den inte ska finnas kvar.');return}if(!editSecurityCheck(o,n,value))return;save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};
+   const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCheck doorRemoveCheck';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);
+   remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;if(!removeSecurityCheck(o,n))return;save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};
+   actions.append(change,remove);head.appendChild(actions)
+  }
+  row.appendChild(head);
+  const choices=document.createElement('div');choices.className='quickBtns secChoices';
+  [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']].forEach(([value,label])=>{
+   const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.v=value;b.classList.toggle('active',c.result===value);
+   b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};
+   choices.appendChild(b)
+  });
+  row.appendChild(choices);
+  if(c.result==='remark'){
+   const fault=document.createElement('div');fault.className='faultArea secFault';
+   const faults=SYSTEMS[o.type].faults[n]||[];
+   const select=document.createElement('select');select.className='faultSelect';select.setAttribute('aria-label','Vanlig anmärkning '+n);select.innerHTML='<option value="">Välj anmärkning…</option>';
+   for(const f of faults){const op=document.createElement('option');op.value=f;op.textContent=f;select.appendChild(op)}
+   const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);
+   const input=document.createElement('input');input.className='faultText';input.placeholder='Beskriv felet…';input.setAttribute('aria-label','Egen anmärkning '+n);
+   const back=document.createElement('button');back.type='button';back.className='faultBack secFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');
+   const known=faults.includes(c.note||'');select.value=known?c.note:'';input.value=known?'':(c.note||'');
+   const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};showCustom(!!c.note&&!known);
+   select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();showOverview();return}c.note=select.value||'';save();showOverview()};
+   input.oninput=()=>{c.note=input.value;save();showOverview()};input.onblur=()=>input.classList.remove('iosTyping');
+   back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();showOverview();select.focus()};
+   fault.append(select,input,back);
+   const wording=document.createElement('button');wording.type='button';wording.className='doorWordingButton';wording.textContent='Formulera';wording.setAttribute('aria-label','Hjälp med formulering för kontrollpunkt '+n);
+   wording.onclick=()=>openDoorWording({title:SYSTEMS[o.type].label+' – '+n+' '+title,original:c.note||'',choices:securityWordingChoices(o,n),actions:securityWordingActions(o),apply:text=>{if(cur()!==o||o.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}))}});
+   fault.appendChild(wording);row.appendChild(fault)
+  }
+  group.appendChild(row)
+ });
+ box.appendChild(group);count.textContent=checks.filter(([n])=>!!o.checks[n]?.result).length+' / '+checks.length;updateProgress(o)
+}
 function updateProgress(o){const checks=allChecks(o),done=checks.filter(([n])=>['na','ok','remark'].includes(o.checks[n]?.result)).length;$('secProgress').textContent=done+' / '+checks.length+' kontrollerade'}
 function renderSecurityPrevious(o){
  const panel=$('secPreviousPanel'),box=$('secPreviousIssues');if(!panel||!box)return;
@@ -339,7 +385,7 @@ function renderSecurityPrevious(o){
  if(o.previousStatus||o.previousServiceDate){const meta=document.createElement('div');meta.className='previousIssue';const strong=document.createElement('strong');strong.textContent=[o.previousServiceDate,o.previousStatus].filter(Boolean).join(' · ');meta.appendChild(strong);box.appendChild(meta)}
  rows.forEach(issue=>{const row=document.createElement('div');row.className='previousIssue';const strong=document.createElement('strong');strong.textContent=[issue.n,issue.title].filter(Boolean).join(' · ');const text=document.createElement('span');text.textContent=issue.note?.trim()||issue.title||'Tidigare anmärkning';row.append(strong,text);box.appendChild(row)});
 }
-function showSelected(){const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;if(!o)return;const cfg=SYSTEMS[o.type];$('secProtocolType').textContent='CHECKLISTA REVISION AV '+cfg.label;$('secProtocolTitle').textContent=securityDrawingLabel(o)+' · '+(o.location||'Placering ej angiven');$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;syncStatus(o);$('secStatus').value=isSecurityRemediated(o)?'ok':o.status;$('secEditChecks').textContent=securityCheckEditUid===o.uid?'Klar':'Redigera kontrollpunkter';renderSecurityPrevious(o);buildChecklist(o)}
+function showSelected(){const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;if(!o)return;const cfg=SYSTEMS[o.type];$('secProtocolType').textContent=cfg.label.toUpperCase();$('secProtocolTitle').textContent=securityDrawingLabel(o);$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;syncStatus(o);$('secStatus').value=isSecurityRemediated(o)?'ok':o.status;$('secEditChecks').textContent=securityCheckEditUid===o.uid?'Klar':'Redigera kontrollpunkter';renderSecurityPrevious(o);buildChecklist(o)}
 ['secLocation','secId','secNotes'].forEach(id=>$(id).oninput=()=>{const o=cur();if(!o)return;if(id==='secLocation')o.location=$(id).value;if(id==='secId')o.id=$(id).value;if(id==='secNotes')o.notes=$(id).value;save();drawMarkers();showOverview()});
 $('secStatus').onchange=()=>{const o=cur();if(!o)return;o.manualFail=$('secStatus').value==='fail';syncStatus(o);$('secStatus').value=o.status;save();drawMarkers();showOverview()};
 $('secAddCheck').onclick=()=>{const o=cur();if(!o)return;const title=prompt('Skriv den extra kontrollpunkten:','');if(!title?.trim())return;const used=new Set(allChecks(o).map(([n])=>n));let next=SYSTEMS[o.type].checks.length+1;while(used.has('1.'+next))next++;const id='1.'+next;o.customChecks.push({id,title:title.trim()});o.checks[id]={result:'',note:''};o.manualFail=false;o.remediationDate='';o.remediationSignature='';syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers()};
