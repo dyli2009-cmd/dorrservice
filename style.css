@@ -944,3 +944,110 @@ body.securityApp:not(.secHasPdf) #securityDrawing .pagebar{display:none!importan
 
 body:not(.hasDrawing):not(.securityApp)>.sessionHistoryBar{display:none!important}
 body.securityApp:not(.secHasPdf)>.sessionHistoryBar{display:none!important}
+
+
+/* Web 2.4.81: keep drawing overlays proportional when viewing the whole plan. */
+#stage .marker{
+ width:var(--door-marker-size,26px)!important;
+ min-width:var(--door-marker-size,26px)!important;
+ height:var(--door-marker-size,26px)!important;
+ min-height:var(--door-marker-size,26px)!important;
+ font-size:var(--door-marker-font,8px)!important;
+}
+#stage .doorTarget::before{
+ width:calc(var(--door-point-size,15px) + 10px)!important;
+ height:calc(var(--door-point-size,15px) + 10px)!important;
+}
+#stage .doorTarget::after{
+ width:var(--door-point-size,15px)!important;
+ height:var(--door-point-size,15px)!important;
+}
+#stage .drawingNoteLabel{
+ max-width:var(--drawing-note-max,190px)!important;
+ font-size:var(--drawing-note-font,10px)!important;
+ padding:2px 4px!important;
+}
+#stage .drawingNoteDot{
+ width:max(5px,calc(var(--drawing-note-font,10px) * .7))!important;
+ height:max(5px,calc(var(--drawing-note-font,10px) * .7))!important;
+}
+
+/* Project: remove repeated information and keep fields compact. */
+#projectPanel #drawingInfo,
+#projectPanel #workFileInfo,
+#projectPanel .securityLaunch,
+#projectPanel .previewToolbar{display:none!important}
+#projectPanel .sheetHead .eyebrow,
+#securityProject .sheetHead .eyebrow{display:none!important}
+#projectPanel .sheetHead,
+#securityProject .sheetHead{
+ padding:3px 0!important;
+ margin-bottom:4px!important;
+}
+#projectPanel .projectSections,
+#securityProject .projectSections{
+ gap:5px!important;
+ margin-top:4px!important;
+}
+#projectPanel .projectCard,
+#securityProject .projectCard{
+ padding:6px 7px!important;
+ border-radius:7px!important;
+}
+#projectPanel .projectCardHead,
+#securityProject .projectCardHead{
+ gap:5px!important;
+ padding-bottom:3px!important;
+ margin-bottom:1px!important;
+}
+#projectPanel .projectCardHead>span,
+#securityProject .projectCardHead>span{
+ width:20px!important;height:20px!important;font-size:8.5px!important;
+}
+#projectPanel .projectCardHead h3,
+#securityProject .projectCardHead h3{font-size:10.5px!important}
+#projectPanel .projectCardHead p,
+#securityProject .projectCardHead p{display:none!important}
+#projectPanel .projectCard .grid2,
+#securityProject .projectCard .grid2{
+ display:grid!important;
+ grid-template-columns:1fr!important;
+ gap:2px!important;
+ margin-top:2px!important;
+}
+#projectPanel .projectCard label,
+#securityProject .projectCard label{
+ display:grid!important;
+ grid-template-columns:minmax(88px,auto) minmax(110px,1fr)!important;
+ align-items:center!important;
+ gap:6px!important;
+ margin:1px 0!important;
+ font-size:8.5px!important;
+ line-height:1.1!important;
+}
+#projectPanel .projectCard label input,
+#securityProject .projectCard label input{
+ min-height:27px!important;
+ height:27px!important;
+ margin:0!important;
+ padding:2px 5px!important;
+ font-size:10px!important;
+ border-radius:5px!important;
+}
+#projectPanel #logoPreview,
+#securityProject #secLogoPreview{margin-top:2px!important}
+#projectPanel #newServiceBtn,
+#securityProject #secNewServiceBtn{
+ min-height:29px!important;
+ margin-top:5px!important;
+ padding:3px 7px!important;
+ font-size:9px!important;
+}
+@media(max-width:520px){
+ #projectPanel,#securityProject{padding-top:4px!important}
+ #projectPanel .projectCard label,
+ #securityProject .projectCard label{
+  grid-template-columns:minmax(82px,auto) minmax(105px,1fr)!important;
+  gap:5px!important;
+ }
+}
