@@ -241,8 +241,8 @@ function create(cfg){
   const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const icons={
    tools:`<svg ${common}><path d="M4 20l6.2-6.2"/><path d="M13.5 5.5l5 5"/><path d="M15 3l6 6-2.5 2.5-6-6z"/><path d="M3.5 16.5l4 4L3 21z"/></svg>`,
-   'door-single':`<svg ${common} class="serviceDoorToolIcon"><path d="M4.5 20V4.5H13"/><path d="M4.5 4.5L15.5 15.5"/><path d="M4.5 15.5A11 11 0 0 1 15.5 4.5"/><circle cx="4.5" cy="4.5" r="1.15" fill="currentColor" stroke="none"/></svg>`,
-   'door-double':`<svg ${common} class="serviceDoorToolIcon"><path d="M3.5 20V5H10"/><path d="M20.5 20V5H14"/><path d="M3.5 5L11 15.5"/><path d="M20.5 5L13 15.5"/><path d="M3.5 14.5A9.5 9.5 0 0 1 11 5"/><path d="M20.5 14.5A9.5 9.5 0 0 0 13 5"/><circle cx="3.5" cy="5" r="1.05" fill="currentColor" stroke="none"/><circle cx="20.5" cy="5" r="1.05" fill="currentColor" stroke="none"/></svg>`,
+   'door-single':`<svg ${common} class="serviceDoorToolIcon"><path d="M5 19L5 5"/><path d="M5 5L18 18"/><path d="M5 18A13 13 0 0 1 18 5"/></svg>`,
+   'door-double':`<svg ${common} class="serviceDoorToolIcon"><path d="M3 18L3 6"/><path d="M3 6L11.5 14.5"/><path d="M3 14.5A8.5 8.5 0 0 1 11.5 6"/><path d="M21 18L21 6"/><path d="M21 6L12.5 14.5"/><path d="M21 14.5A8.5 8.5 0 0 0 12.5 6"/></svg>`,
    line:`<svg ${common}><path d="M4 18L20 6"/></svg>`,
    arrow:`<svg ${common}><path d="M4 18L19 7"/><path d="M13 7h6v6"/></svg>`,
    text:`<svg ${common}><path d="M5 6h14"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>`,
