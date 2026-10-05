@@ -275,7 +275,7 @@ function draw(){
  })
 }
 function cur(){return doors.find(d=>d.uid===selected)}
-function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);$('formTitle').textContent=d.id+' – Sida '+d.page;['doorId','location','status','notes','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','location','status','notes','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show();if(typeof goView==='function')goView('drawing');else document.body.classList.remove('protocolOpen')}};
+function show(){const d=cur();$('empty').hidden=!!d;$('form').hidden=!d;if(!d)return;normalize(d);['doorId','location','status','notes','signature'].forEach(id=>$(id).value=d[id==='doorId'?'id':id]||'');buildChecklist(d)}['doorId','location','status','notes','signature'].forEach(id=>$(id).oninput=()=>{const d=cur();if(!d)return;d[id==='doorId'?'id':id]=$(id).value;save();if(id==='doorId'||id==='status')draw()});$('deleteBtn').onclick=()=>{const d=cur();if(d&&confirm('Ta bort '+d.id+'?')){doors=doors.filter(x=>x.uid!==d.uid);selected=null;save();draw();show();if(typeof goView==='function')goView('drawing');else document.body.classList.remove('protocolOpen')}};
 wrap.addEventListener('pointerdown',e=>{
  if(!pdf||addMode||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.marker,.doorTarget,.drawingNote,.serviceDrawingOverlay'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:wrap.scrollLeft,top:wrap.scrollTop};
