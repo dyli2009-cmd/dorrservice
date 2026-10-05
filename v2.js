@@ -217,11 +217,11 @@ buildChecklist=function(d){
    const known=faults.includes(c.note||'');input.value=known?'':(c.note||'');select.value=known?c.note:'';showCustom(!!c.note&&!known);
    area.append(select,input,back);
    const wording=document.createElement('button');wording.type='button';wording.className='doorWordingButton';wording.textContent='Formulera';wording.setAttribute('aria-label','Hjälp med formulering för kontrollpunkt '+n);
-   wording.onclick=()=>openDoorWording({title:n+' '+title,original:c.note||'',choices:[...(['1.2','1.5','1.6','1.9','1.12','1.18'].includes(n)?DOOR_WORDING:[]),...faults],apply:text=>{if(cur()?.uid!==d.uid||d.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}))}});
+   wording.onclick=()=>openDoorWording({title:n+' '+title,original:c.note||'',choices:[...(['1.2','1.5','1.6','1.9','1.12','1.18'].includes(n)?DOOR_WORDING:[]),...faults],apply:text=>{if(cur()?.uid!==d.uid||d.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=cleanRemarkText(text);input.dispatchEvent(new Event('input',{bubbles:true}))}});
    area.appendChild(wording);
    DOOR_CHECK_RESULTS.forEach(([value,label])=>{const button=document.createElement('button');button.type='button';button.dataset.v=value;button.textContent=label;button.classList.toggle('active',c.result===value);button.onclick=()=>{c.result=c.result===value?'':value;if(c.result!=='remark'){c.note='';input.value='';select.value='';showCustom(false)}syncDoorCheckStatus(d);$('status').value=d.status;buttons.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===c.result));area.hidden=c.result!=='remark';update();save();draw()};buttons.appendChild(button)});
-   select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();draw();return}c.note=select.value||'';if(d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
-   input.oninput=()=>{c.note=input.value;if(c.result==='remark'&&d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};input.onblur=()=>input.classList.remove('iosTyping');
+   select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();draw();return}c.note=cleanRemarkText(select.value||'');if(d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
+   input.oninput=()=>{c.note=input.value;if(c.result==='remark'&&d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};input.onblur=()=>{input.classList.remove('iosTyping');c.note=cleanRemarkText(input.value);input.value=c.note;save();draw()};
    back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();draw();select.focus()};
    row.append(buttons,area);group.appendChild(row);
   });update();box.appendChild(group);
@@ -233,7 +233,7 @@ const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading'
  if(isDoorRemediated(d))$('status').value='ok';
  if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
  const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus;$('previousIssues').replaceChildren();
- if(prior.length){const ul=document.createElement('ul');prior.forEach(issue=>{const li=document.createElement('li');li.textContent=issue.n+' '+issue.title+' – '+(issue.note||'Beskrivning saknas');ul.appendChild(li)});$('previousIssues').appendChild(ul)}
+ if(prior.length){const ul=document.createElement('ul');prior.forEach(issue=>{const li=document.createElement('li');li.textContent=issue.n+' '+issue.title+': '+cleanRemarkText(issue.note||'Beskrivning saknas');ul.appendChild(li)});$('previousIssues').appendChild(ul)}
  if(d.previousNotes){const p=document.createElement('p');p.textContent=d.previousNotes;$('previousIssues').appendChild(p)}
  if(d.previousStatus){const p=document.createElement('p');p.textContent='Tidigare bedömning: '+(STATUS_LABELS[d.previousStatus]||d.previousStatus);$('previousIssues').appendChild(p)}
  updateCompactUI();goView('protocol');
