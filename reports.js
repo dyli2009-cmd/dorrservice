@@ -19,8 +19,8 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   const open=ds.filter(hasDoorProblem).length,done=ds.filter(isDoorRemediated).length,ready=ds.filter(d=>status(d)==='ok').length;
   const stats=[['TOTALT',ds.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],REPORT_COLORS.action.rgb],['ÅTGÄRDADE',done,[229,244,234],REPORT_COLORS.ok.rgb],['KLARA',ready,[229,244,234],REPORT_COLORS.ok.rgb]];
   const gap=2,boxW=(width-gap*3)/4;
-  stats.forEach(([title,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,12,1.5,1.5,'FD');text(title,x+2.5,y+4,5.8,true,[89,110,123]);text(value,x+boxW-3,y+8.4,11,true,fg,{align:'right'})});
-  y+=16;let x=left;[['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([title,key])=>{doc.setFillColor(...REPORT_COLORS[key].rgb);doc.circle(x+1,y-1,1.3,'F');text(title,x+4,y,6.6,false);x+=46});y+=7;text('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;tableHead()
+  stats.forEach(([title,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,9.5,1.3,1.3,'FD');text(title,x+2.2,y+3.3,5.1,true,[89,110,123]);text(value,x+boxW-2.7,y+6.9,9.5,true,fg,{align:'right'})});
+  y+=12.5;let x=left;[['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([title,key])=>{doc.setFillColor(...REPORT_COLORS[key].rgb);doc.circle(x+1,y-1,1.3,'F');text(title,x+4,y,6.6,false);x+=46});y+=7;text('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;tableHead()
  }
  const widths=[33,115,38];
  function tableHead(){let x=left;['Dörr / placering','Anmärkning','Åtgärdat / signatur'].forEach((title,i)=>{doc.setFillColor(232,239,244);doc.rect(x,y,widths[i],9,'F');doc.rect(x,y,widths[i],9);text(title,x+2,y+5.5,7.5,true);x+=widths[i]});y+=9}
