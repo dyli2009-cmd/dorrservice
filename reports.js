@@ -18,9 +18,9 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   header('ANMÄRKNINGSÖVERSIKT','DÖRRAUTOMATIK · KUNDRAPPORT');projectFields();
   const open=ds.filter(d=>status(d)==='action').length,failed=ds.filter(d=>status(d)==='fail').length,done=ds.filter(isDoorRemediated).length,ready=ds.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length,untested=ds.filter(d=>status(d)==='untested').length;
   const stats=[['TOTALT',ds.length,'Alla dörrar',[243,247,249],[45,69,82],REPORT_COLORS.untested.rgb],['KLARA',ready,'Godkänd',[229,244,234],REPORT_COLORS.ok.rgb,REPORT_COLORS.ok.rgb],['ÅTGÄRDADE',done,'Godkänd / åtgärdad',[229,244,234],REPORT_COLORS.ok.rgb,REPORT_COLORS.ok.rgb],['ÖPPNA FEL',open,'Åtgärd krävs',[255,242,216],REPORT_COLORS.action.rgb,REPORT_COLORS.action.rgb],['EJ GODKÄNDA',failed,'Ej godkänd',[252,229,231],REPORT_COLORS.fail.rgb,REPORT_COLORS.fail.rgb],['EJ KONTROLL.',untested,'Ej kontrollerad',[235,241,244],REPORT_COLORS.untested.rgb,REPORT_COLORS.untested.rgb]];
-  const gap=1.25,boxW=(width-gap*5)/6;
-  stats.forEach(([title,value,meaning,bg,fg,dot],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,11.2,1.2,1.2,'FD');text(title,x+1.5,y+3.1,4.35,true,[89,110,123]);text(value,x+boxW-1.8,y+6.8,9.2,true,fg,{align:'right'});doc.setFillColor(...dot);doc.circle(x+1.8,y+9.0,.75,'F');text(meaning,x+3.1,y+9.7,3.9,false,[89,110,123])});
-  y+=13.5;text('Åtgärdade anmärkningar ligger kvar som historik.',left,y,5.8,false,[89,110,123]);y+=5;tableHead()
+  const boxW=width/6;
+  stats.forEach(([title,value,meaning,bg,fg,dot],i)=>{const x=left+i*boxW;doc.setFillColor(...bg);doc.setDrawColor(198,210,218);doc.setLineWidth(.28);doc.rect(x,y,boxW,15.2,'FD');text(title,x+1.6,y+4.3,6.15,true,[70,88,99]);text(value,x+boxW-1.8,y+9.0,10.4,true,fg,{align:'right'});doc.setFillColor(...dot);doc.circle(x+2.0,y+12.4,.8,'F');text(meaning,x+3.5,y+13.2,5.0,false,[89,110,123])});
+  y+=17.2;text('Åtgärdade anmärkningar ligger kvar som historik.',left,y,5.8,false,[89,110,123]);y+=5;tableHead()
  }
  const widths=[33,115,38];
  function tableHead(){let x=left;['Dörr / placering','Anmärkning','Åtgärdat / signatur'].forEach((title,i)=>{doc.setFillColor(232,239,244);doc.rect(x,y,widths[i],9,'F');doc.rect(x,y,widths[i],9);text(title,x+2,y+5.5,7.5,true);x+=widths[i]});y+=9}
