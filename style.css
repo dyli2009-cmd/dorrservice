@@ -667,3 +667,15 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 .sessionHistoryBar span{font-size:11px;color:#526774}
 .homeMode>.sessionHistoryBar{display:none}
 @media(any-pointer:coarse){.sessionHistoryBar button{min-height:44px}}
+
+/* Web 2.4.45: edit/remove checklist points per door. */
+#protocolPanel .checkEditActions{display:flex;gap:4px;align-items:center;margin-left:auto}
+#protocolPanel .doorCustomBadge{font-size:9px;background:#e9f2f7;padding:2px 4px;border-radius:4px;font-style:normal}
+#protocolPanel .checkEditActions button{flex:none;width:auto!important;min-height:28px!important;padding:3px 7px!important;font-size:10px!important;margin:0!important}
+#protocolPanel .checkEditActions .doorEditCheck{background:#eef5f8;border-color:#c9dae4;color:#285b73}
+#protocolPanel .checkEditActions .doorRemoveCheck{background:#fff5f4;border-color:#efceca;color:#a6292e}
+@media(max-width:800px){
+ #protocolPanel .checkEditActions{gap:2px}
+ #protocolPanel .checkEditActions button{min-height:24px!important;padding:2px 5px!important;font-size:8.5px!important}
+ #protocolPanel .doorCustomBadge{font-size:8px;padding:1px 3px}
+}
