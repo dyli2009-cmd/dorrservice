@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.61">
-<link rel="stylesheet" href="security.css?v=2.4.61">
+<link rel="stylesheet" href="style.css?v=2.4.62">
+<link rel="stylesheet" href="security.css?v=2.4.62">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Säkerhetsservice</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.61">v2.4.61</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.62">v2.4.62</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span id="securityObject">Välj en ritning</span><span id="securityCount">0 objekt</span></div>
@@ -40,7 +40,7 @@
     <button data-add="alarm">＋ Inbrott</button>
     <button data-add="lock">＋ Lås & Dörrmiljö</button>
     <button data-add="access">＋ Passer</button>
-    <button id="secAddText">＋ Text</button>
+    <button id="secAddText" hidden>＋ Text</button>
     <button id="secChangeDrawing" type="button" hidden>Byt ritning</button>
     <button id="secFitMobile" hidden style="display:none!important">Passa</button>
   </div>
@@ -140,7 +140,8 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="session-history.js?v=2.4.61"></script>
-<script src="security.js?v=2.4.61"></script>
-<script src="drawing-transfer.js?v=2.4.61"></script>
+<script src="drawing-annotations.js?v=2.4.62"></script>
+<script src="session-history.js?v=2.4.62"></script>
+<script src="security.js?v=2.4.62"></script>
+<script src="drawing-transfer.js?v=2.4.62"></script>
 </body></html>
