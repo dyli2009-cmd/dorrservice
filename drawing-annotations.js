@@ -38,6 +38,7 @@ function injectStyle(){
 .serviceToolLauncher,.serviceIconButton{display:inline-grid!important;place-items:center!important;padding:0!important}
 .serviceToolLauncher{width:38px!important;min-width:38px!important;height:36px!important;min-height:36px!important}
 .serviceToolLauncher svg,.serviceIconButton svg{width:21px;height:21px;display:block;pointer-events:none}
+.serviceIconButton .serviceDoorToolIcon{width:23px;height:23px;stroke-width:2.3}
 .serviceToolsMenu{position:absolute;right:0;left:auto;top:calc(100% + 5px);z-index:120;width:max-content;max-width:calc(100vw - 12px);padding:5px;background:#fff;border:1px solid #cbd9e1;border-radius:9px;box-shadow:0 8px 24px #0b253544;display:flex;flex-direction:column;gap:5px}
 .serviceToolsMenu[hidden]{display:none!important}
 .serviceToolChoices,.serviceToolsMenu .toolSelected{display:flex;align-items:center;gap:4px}
@@ -236,8 +237,8 @@ function create(cfg){
   const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const icons={
    tools:`<svg ${common}><path d="M4 20l6.2-6.2"/><path d="M13.5 5.5l5 5"/><path d="M15 3l6 6-2.5 2.5-6-6z"/><path d="M3.5 16.5l4 4L3 21z"/></svg>`,
-   'door-single':`<svg ${common}><path d="M5 19V5h7"/><path d="M5 5l10 10"/><path d="M5 15a10 10 0 0 1 10-10"/></svg>`,
-   'door-double':`<svg ${common}><path d="M4 19V6h6"/><path d="M20 19V6h-6"/><path d="M4 6l7 9"/><path d="M20 6l-7 9"/><path d="M4 14a8 8 0 0 1 7-8"/><path d="M20 14a8 8 0 0 0-7-8"/></svg>`,
+   'door-single':`<svg ${common} class="serviceDoorToolIcon"><path d="M4.5 20V4.5H13"/><path d="M4.5 4.5L15.5 15.5"/><path d="M4.5 15.5A11 11 0 0 1 15.5 4.5"/><circle cx="4.5" cy="4.5" r="1.15" fill="currentColor" stroke="none"/></svg>`,
+   'door-double':`<svg ${common} class="serviceDoorToolIcon"><path d="M3.5 20V5H10"/><path d="M20.5 20V5H14"/><path d="M3.5 5L11 15.5"/><path d="M20.5 5L13 15.5"/><path d="M3.5 14.5A9.5 9.5 0 0 1 11 5"/><path d="M20.5 14.5A9.5 9.5 0 0 0 13 5"/><circle cx="3.5" cy="5" r="1.05" fill="currentColor" stroke="none"/><circle cx="20.5" cy="5" r="1.05" fill="currentColor" stroke="none"/></svg>`,
    line:`<svg ${common}><path d="M4 18L20 6"/></svg>`,
    arrow:`<svg ${common}><path d="M4 18L19 7"/><path d="M13 7h6v6"/></svg>`,
    text:`<svg ${common}><path d="M5 6h14"/><path d="M12 6v12"/><path d="M8 18h8"/></svg>`,
