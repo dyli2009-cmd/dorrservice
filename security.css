@@ -684,3 +684,25 @@ body.secTextAdding #secViewer{cursor:crosshair}
 
 /* Web 2.4.79: hide object actions until a drawing is loaded. */
 body.securityApp:not(.secHasPdf) .securityTools{display:none}
+
+
+/* Web 2.4.81: proportional Security markers at overview zoom. */
+#secStage .secMarker{
+ width:var(--security-marker-size,30px)!important;
+ min-width:var(--security-marker-size,30px)!important;
+ height:var(--security-marker-size,30px)!important;
+ min-height:var(--security-marker-size,30px)!important;
+ font-size:var(--security-marker-font,10px)!important;
+}
+#secStage .secTarget{
+ width:var(--security-point-size,12px)!important;
+ min-width:var(--security-point-size,12px)!important;
+ height:var(--security-point-size,12px)!important;
+ min-height:var(--security-point-size,12px)!important;
+}
+#secStage .secTextNote{
+ max-width:var(--security-note-max,180px)!important;
+ min-height:0!important;
+ padding:3px 5px!important;
+ font-size:var(--security-note-font,10px)!important;
+}
