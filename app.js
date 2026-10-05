@@ -187,6 +187,8 @@ function render(fit=false,focus=null){
   $('stage').style.width=pageWidth+'px';$('stage').style.height=pageHeight+'px';
   const drawingUiScale=Math.max(.52,Math.min(1,Math.sqrt(Math.max(.01,baseScale*zoom))));
   $('stage').style.setProperty('--drawing-ui-scale',drawingUiScale.toFixed(3));
+  $('stage').style.setProperty('--drawing-line-width',Math.max(.9,2*drawingUiScale).toFixed(2)+'px');
+  $('stage').style.setProperty('--drawing-box-stroke',Math.max(.8,1.5*drawingUiScale).toFixed(2)+'px');
   $('stage').style.setProperty('--door-marker-size',(26*drawingUiScale).toFixed(1)+'px');
   $('stage').style.setProperty('--door-marker-font',Math.max(6.2,8*drawingUiScale).toFixed(1)+'px');
   $('stage').style.setProperty('--door-point-size',Math.max(9,15*drawingUiScale).toFixed(1)+'px');
