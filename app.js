@@ -185,6 +185,13 @@ function render(fit=false,focus=null){
   pageWidth=logical.width;pageHeight=logical.height;
   canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';
   $('stage').style.width=pageWidth+'px';$('stage').style.height=pageHeight+'px';
+  const drawingUiScale=Math.max(.52,Math.min(1,Math.sqrt(Math.max(.01,baseScale*zoom))));
+  $('stage').style.setProperty('--drawing-ui-scale',drawingUiScale.toFixed(3));
+  $('stage').style.setProperty('--door-marker-size',(26*drawingUiScale).toFixed(1)+'px');
+  $('stage').style.setProperty('--door-marker-font',Math.max(6.2,8*drawingUiScale).toFixed(1)+'px');
+  $('stage').style.setProperty('--door-point-size',Math.max(9,15*drawingUiScale).toFixed(1)+'px');
+  $('stage').style.setProperty('--drawing-note-font',Math.max(7,10*drawingUiScale).toFixed(1)+'px');
+  $('stage').style.setProperty('--drawing-note-max',Math.max(100,190*drawingUiScale).toFixed(0)+'px');
   $('pageInfo').textContent='Sida '+pageNumber+' / '+documentPdf.numPages;$('zoomInfo').textContent=Math.round(zoom*100)+'%';draw();
   if(focus){wrap.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;wrap.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y}
   return true;
