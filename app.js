@@ -20,7 +20,7 @@ const COMMON_FAULTS={
 '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
-let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1,suppressPageSwipeUntil=0,newlyPlacedDoorUid='',newlyPlacedDoorUntil=0;
+let pdf,page=1,addMode=false,textMode=false,selected=null,doors=[],textNotes=[],drawingExtras=[],baseScale=1,zoom=1,pinch=null,dragging=null,panTouch=null,panMouse=null,project={},logoData='',visualZoom=1,suppressPageSwipeUntil=0,newlyPlacedDoorUid='',newlyPlacedDoorUntil=0;
 function doorLocalToday(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
 function cleanRemarkText(value){return String(value||'').replace(/\s+[–—-]\s+/g,', ').replace(/\s{2,}/g,' ').trim()}
 const $=x=>document.getElementById(x),canvas=$('pdfCanvas'),ctx=canvas.getContext('2d'),markers=$('markers'),drawingNotes=$('drawingNotes'),wrap=$('viewerWrap');
@@ -78,7 +78,7 @@ let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){
  clearTimeout(saveTimer);if(!activeDrawingKey)return true;
- try{localStorage.setItem(DRAWING_PREFIX+activeDrawingKey,JSON.stringify({version:1,name:activeDrawingName,doors,textNotes,project,logoData,updatedAt:new Date().toISOString()}));return true}
+ try{localStorage.setItem(DRAWING_PREFIX+activeDrawingKey,JSON.stringify({version:1,name:activeDrawingName,doors,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()}));return true}
  catch(e){notice('Kunde inte spara på enheten. Behåll appen öppen och exportera protokollet innan du byter ritning.',true);return false}
 }
 function legacyWork(){
@@ -149,7 +149,7 @@ $('file').onchange=async e=>{
   const record=savedDrawing(key)||imported?.work||legacyImported?.work;
   const nextDoors=(record?.doors||[]).map(normalize),nextTextNotes=Array.isArray(record?.textNotes)?record.textNotes.filter(n=>n&&Number.isInteger(n.page)&&n.page>0&&Number.isFinite(n.x)&&Number.isFinite(n.y)&&typeof n.text==='string'):[];
   pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
-  doors=nextDoors;textNotes=nextTextNotes;project=record?.project||{};if(!project.inspectionDate)project.inspectionDate=doorLocalToday();logoData=record?.logoData||'';
+  doors=nextDoors;textNotes=nextTextNotes;drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project=record?.project||{};if(!project.inspectionDate)project.inspectionDate=doorLocalToday();logoData=record?.logoData||'';
   page=1;zoom=1;selected=null;pinch=null;panTouch=null;
   canvas.width=canvas.height=0;canvas.style.width=canvas.style.height='0px';markers.replaceChildren();drawingNotes.replaceChildren();$('stage').style.width=$('stage').style.height='0px';pageWidth=pageHeight=1;$('pageInfo').textContent='Laddar sida…';
   $('overviewFilter').value='all';$('overviewSearch').value='';refreshDrawingUI();save();if($('overviewDialog').open)$('overviewDialog').close();$('projectPanel').hidden=true;
