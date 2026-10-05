@@ -50,6 +50,8 @@ function injectStyle(){
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
 .serviceToolActive svg{stroke:#fff!important}
+.serviceDoorToolIcon{stroke-width:2.35!important}
+.serviceDoorToolIcon path{stroke-linecap:round;stroke-linejoin:round}
 .serviceInlineTextEditor{position:absolute;z-index:9;min-width:58px;max-width:min(260px,55%);height:29px;box-sizing:border-box;padding:2px 6px;border:2px solid #000;border-radius:4px;background:#fff;color:#000;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 2px 8px #0b253522;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
 @media(max-width:520px){
@@ -123,7 +125,9 @@ function create(cfg){
   input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeInlineEditor(true)}else if(e.key==='Escape'){e.preventDefault();closeInlineEditor(false)}});
   input.addEventListener('blur',()=>setTimeout(()=>{if(activeTextEditor?.input===input)closeInlineEditor(true)},0));
   stage.appendChild(input);activeTextEditor={input,item,isNew};
-  requestAnimationFrame(()=>{input.focus({preventScroll:true});input.setSelectionRange(input.value.length,input.value.length)});
+  input.focus({preventScroll:true});
+  try{input.setSelectionRange(input.value.length,input.value.length)}catch(_){}
+  requestAnimationFrame(()=>{if(document.activeElement!==input)input.focus({preventScroll:true})});
  }
  function setMode(next){
   if(activeTextEditor)closeInlineEditor(true);
