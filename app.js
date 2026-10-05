@@ -366,7 +366,7 @@ function endTouch(e){
 wrap.addEventListener('touchend',endTouch,{passive:true});wrap.addEventListener('touchcancel',endTouch,{passive:true});
 function setPrecisionMode(on){
  precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
- const b=$('precisionMode');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
+ const b=$('precisionMode');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.title=precisionMode?'Precision på – tryck för att stänga av':'Precision';b.setAttribute('aria-label',b.title);if(!b.closest('.serviceToolsMenu'))b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
  if(precisionMode&&pdf){$('hint').textContent='Precision på: dra punkten eller etiketten längre med fingret. Den rör sig långsamt så du ser placeringen.';$('hint').style.display='block'}
  else if(!addMode&&!textMode)$('hint').style.display='none';
 }
