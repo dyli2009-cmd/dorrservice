@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.36">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.40">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
@@ -13,7 +13,7 @@
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
- <span class="version">v2.4.36</span>
+ <span class="version">v2.4.40</span>
 </header>
 
 <main class="toolShell">
@@ -86,7 +86,25 @@
     <button id="nextPage" aria-label="Nästa sida">›</button>
     <span id="pageState"></span>
    </div>
-   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="eraseBox" hidden></div></div></div>
+
+   <div class="drawingDoorTools">
+    <button id="addDrawingDoor" type="button" aria-pressed="false">＋ Rita dörr</button>
+    <button id="undoDrawingDoor" type="button" disabled>Ångra dörrändring</button>
+    <span id="drawingDoorCount" role="status"></span>
+   </div>
+   <div id="drawingDoorEditor" class="drawingDoorEditor" hidden>
+    <label>Storlek <output id="drawingDoorSizeValue"></output><input id="drawingDoorSize" type="range" min="15" max="450" step="1" value="100"></label>
+    <label>Vinkel <output id="drawingDoorAngleValue"></output><input id="drawingDoorAngle" type="range" min="0" max="359" step="1" value="0"></label>
+    <div class="drawingDoorButtons">
+     <button id="drawingDoorSmaller" type="button" aria-label="Gör dörrsymbolen mindre">−</button>
+     <button id="drawingDoorLarger" type="button" aria-label="Gör dörrsymbolen större">＋</button>
+     <button id="rotateDrawingDoor" type="button">Rotera 90°</button>
+     <button id="flipDrawingDoor" type="button" aria-pressed="false">Spegelvänd</button>
+     <button id="deleteDrawingDoor" type="button">Ta bort dörr</button>
+    </div>
+    <p>Dra symbolen för att flytta. Dra i det blå hörnet för storlek. Symbolen kompletterar ritningen och skapar inget serviceprotokoll.</p>
+   </div>
+   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><svg id="doorSymbolOverlay" xmlns="http://www.w3.org/2000/svg" aria-label="Dörrsymboler på ritningen"></svg><div id="eraseBox" hidden></div></div></div>
    <p class="previewNote">Förhandsvisningen visar den rensade arbetskopian. Om något ligger kvar: använd “Radera område” och dra direkt över det. Kontrollera särskilt mått och rumsnamn innan du sparar.</p>
   </section>
  </section>
@@ -114,7 +132,8 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="drawing-transfer.js?v=2.4.36"></script>
-<script src="drawing-tools.js?v=2.4.36"></script>
+<script src="drawing-transfer.js?v=2.4.40"></script>
+<script src="drawing-door-symbols.js?v=2.4.40"></script>
+<script src="drawing-tools.js?v=2.4.40"></script>
 </body>
 </html>
