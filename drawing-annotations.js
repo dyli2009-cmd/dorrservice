@@ -278,6 +278,7 @@ function create(cfg){
  attachToolbar();
  document.addEventListener('pointerdown',e=>{
   if(!selected||mode||activeTextEditor)return;
+  if(e.target.closest?.('.serviceToolsWrap,.serviceInlineTextEditor'))return;
   const own=e.target.closest?.('[data-draw-uid]');
   if(own?.dataset?.drawUid===selected)return;
   selected=null;render(page,w,h);updateMenu();
