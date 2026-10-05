@@ -411,10 +411,16 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 
 
 /* Web 2.4.16: compact work surfaces, priority overview and stepped text sizing. */
-#overviewSummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:6px 0 8px}
+#overviewSummary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin:6px 0 8px}
 #overviewSummary .overviewStat{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;padding:5px 3px;border:1px solid #d6e0e5;border-radius:7px;background:#fff}
 #overviewSummary .overviewStat strong{font-size:15px;line-height:1;color:#203440}
 #overviewSummary .overviewStat small{margin-top:3px;font-size:8px;line-height:1.1;color:#667b87;text-align:center}
+#overviewSummary .overviewMeaning{display:flex;align-items:center;gap:3px;margin-top:3px;font-size:7px;line-height:1.1;font-style:normal;color:#667b87;text-align:center}
+#overviewSummary .overviewMeaning::before{content:"";width:6px;height:6px;flex:none;border-radius:50%;background:#77858e}
+#overviewSummary .overviewStat.open .overviewMeaning::before{background:#c77c13}
+#overviewSummary .overviewStat.fail .overviewMeaning::before{background:#bd3f46}
+#overviewSummary .overviewStat.done .overviewMeaning::before,#overviewSummary .overviewStat.ready .overviewMeaning::before{background:#238354}
+#overviewSummary .overviewStat.untested .overviewMeaning::before{background:#77858e}
 #overviewSummary .overviewStat.open{background:#fff6e8;border-color:#ead1a5}
 #overviewSummary .overviewStat.fail{background:#fce9eb;border-color:#e7bcc1}
 #overviewSummary .overviewStat.done,#overviewSummary .overviewStat.ready{background:#edf7f1;border-color:#c9e2d3}
@@ -710,4 +716,10 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  #overviewSummary .overviewStat{min-height:32px;padding:2px}
  #overviewSummary .overviewStat strong{font-size:11px}
  #overviewSummary .overviewStat small{font-size:6.5px}
+}
+/* 2.4.57: six clear Door summary cards with meaning directly below each heading. */
+@media(max-width:800px){
+ #overviewSummary{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #overviewSummary .overviewMeaning{font-size:6.5px;gap:2px}
+ #overviewSummary .overviewMeaning::before{width:5px;height:5px}
 }
