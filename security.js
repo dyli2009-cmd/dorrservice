@@ -102,9 +102,15 @@ function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
 function loadSaved(key){try{return JSON.parse(localStorage.getItem('security-service:'+key)||'null')}catch(e){return null}}
-function securityProtocolTitle(){const name=project.projectName||project.facilityNo||'Säkerhetsservice';return name+' – Säkerhetsprotokoll'}
-function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||(pdf?'Ritning öppnad':'Välj en ritning');$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf;if($('secProtocolTitle'))$('secProtocolTitle').textContent=securityProtocolTitle()}
-function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project')}
+function securityWorkspaceTitle(view=document.body.dataset.view){
+ const name=project.projectName||$('securityFile').files?.[0]?.name||(pdf?'Ritning öppnad':'Välj en ritning');
+ if(view==='protocol'&&pdf)return name+' – Säkerhetsprotokoll';
+ if(view==='project'&&pdf)return 'Aktuell ritning: '+name;
+ return name;
+}
+function securityProtocolTitle(){return securityWorkspaceTitle('protocol')}
+function refreshTop(){$('securityObject').textContent=securityWorkspaceTitle();$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf;if($('secProtocolTitle'))$('secProtocolTitle').textContent=securityProtocolTitle()}
+function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project');if(view==='protocol'||view==='project')msg('');refreshTop()}
 function allChecks(o){normalizeSecurityCheckEdits(o);const base=(SYSTEMS[o.type]?.checks||[]).filter(([n])=>o.checkEdits[n]!==null).map(([n,title])=>[n,typeof o.checkEdits[n]==='string'?o.checkEdits[n]:title]);return [...base,...(Array.isArray(o.customChecks)?o.customChecks:[]).map(c=>[c.id,c.title])]}
 function editSecurityCheck(o,id,title){
  if(typeof title!=='string'||!title.trim())return false;
@@ -205,6 +211,13 @@ function render(fit=false,focus=null){
   canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
   pageWidth=logical.width;pageHeight=logical.height;
   canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';$('secStage').style.width=pageWidth+'px';$('secStage').style.height=pageHeight+'px';
+  const drawingUiScale=Math.max(.52,Math.min(1,Math.sqrt(Math.max(.01,baseScale*zoom))));
+  $('secStage').style.setProperty('--drawing-ui-scale',drawingUiScale.toFixed(3));
+  $('secStage').style.setProperty('--security-marker-size',(30*drawingUiScale).toFixed(1)+'px');
+  $('secStage').style.setProperty('--security-marker-font',Math.max(6.5,10*drawingUiScale).toFixed(1)+'px');
+  $('secStage').style.setProperty('--security-point-size',Math.max(7,12*drawingUiScale).toFixed(1)+'px');
+  $('secStage').style.setProperty('--security-note-font',Math.max(7,10*drawingUiScale).toFixed(1)+'px');
+  $('secStage').style.setProperty('--security-note-max',Math.max(100,180*drawingUiScale).toFixed(0)+'px');
   $('secPage').textContent='Sida '+pageNumber+' / '+documentPdf.numPages;$('secZoom').textContent=Math.round(zoom*100)+'%';drawMarkers();
   if(focus&&oldW>0&&oldH>0){viewer.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;viewer.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y}
   return true;
