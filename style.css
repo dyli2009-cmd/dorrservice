@@ -411,11 +411,12 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 
 
 /* Web 2.4.16: compact work surfaces, priority overview and stepped text sizing. */
-#overviewSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:6px 0 8px}
+#overviewSummary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:6px 0 8px}
 #overviewSummary .overviewStat{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px;padding:5px 3px;border:1px solid #d6e0e5;border-radius:7px;background:#fff}
 #overviewSummary .overviewStat strong{font-size:15px;line-height:1;color:#203440}
 #overviewSummary .overviewStat small{margin-top:3px;font-size:8px;line-height:1.1;color:#667b87;text-align:center}
 #overviewSummary .overviewStat.open{background:#fff6e8;border-color:#ead1a5}
+#overviewSummary .overviewStat.fail{background:#fce9eb;border-color:#e7bcc1}
 #overviewSummary .overviewStat.done,#overviewSummary .overviewStat.ready{background:#edf7f1;border-color:#c9e2d3}
 #overviewList .doorCard{border-left:4px solid #b8c6ce}
 #overviewList .doorCard:nth-child(even){background:#f7fafb}
