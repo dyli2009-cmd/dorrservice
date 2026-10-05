@@ -67,6 +67,41 @@ function create(cfg){
  const el=(name,attrs={})=>{const e=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));return e};
  const items=()=>{const v=cfg.getItems?.();return Array.isArray(v)?v:[]};
  const current=()=>items().find(x=>x.uid===selected);
+ function textBoxGeometry(item,width=w,height=h){
+  const label=pt(item.x,item.y,width,height),boxW=Math.max(45,String(item.text||'').length*8);
+  return {x:label.x-5,y:label.y-18,w:boxW,h:25,label};
+ }
+ function snapArrowStart(item){
+  if(!item||item.type!=='arrow')return item;
+  const sx=item.x1*w,sy=item.y1*h,ex=item.x2*w,ey=item.y2*h,threshold=Math.max(18,Math.min(w,h)*.025);
+  let best=null;
+  for(const textItem of items()){
+   if(!textItem||textItem.page!==item.page||(textItem.type!=='text'&&textItem.type!=='text-arrow')||!String(textItem.text||'').trim())continue;
+   const box=textBoxGeometry(textItem,w,h),left=box.x,right=box.x+box.w,top=box.y,bottom=box.y+box.h;
+   const inside=sx>=left&&sx<=right&&sy>=top&&sy<=bottom;
+   const nx=clamp(sx,left,right),ny=clamp(sy,top,bottom);
+   const outsideDistance=inside?0:Math.hypot(sx-nx,sy-ny);
+   if(!inside&&outsideDistance>threshold)continue;
+   let bx=nx,by=ny;
+   if(inside){
+    const dx=ex-sx,dy=ey-sy;
+    if(Math.abs(dx)+Math.abs(dy)>.001){
+     const tx=dx>0?(right-sx)/dx:dx<0?(left-sx)/dx:Infinity;
+     const ty=dy>0?(bottom-sy)/dy:dy<0?(top-sy)/dy:Infinity;
+     const candidates=[tx,ty].filter(v=>Number.isFinite(v)&&v>=0);
+     const t=candidates.length?Math.min(...candidates):0;
+     bx=sx+dx*t;by=sy+dy*t;
+    }else{
+     const edges=[[Math.abs(sx-left),left,sy],[Math.abs(right-sx),right,sy],[Math.abs(sy-top),sx,top],[Math.abs(bottom-sy),sx,bottom]].sort((a,b)=>a[0]-b[0]);
+     bx=edges[0][1];by=edges[0][2];
+    }
+   }
+   const dist=inside?0:outsideDistance;
+   if(!best||dist<best.dist)best={x:bx,y:by,dist};
+  }
+  if(best){item.x1=clamp(best.x/w,0,1);item.y1=clamp(best.y/h,0,1)}
+  return item;
+ }
  function notify(text){if(text)cfg.message?.(text)}
  function changed(text){cfg.onChange?.();render(page,w,h);if(text)notify(text)}
  let activeTextEditor=null;
@@ -134,7 +169,7 @@ function create(cfg){
       const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle');svg.appendChild(handle);
     }
    }else if(item.type==='text'||item.type==='text-arrow'){
-    const label=pt(item.x,item.y,w,h),ww=Math.max(45,String(item.text||'').length*8),box={x:label.x-5,y:label.y-18,w:ww,h:25};
+    const box=textBoxGeometry(item,w,h),label=box.label;
     if(item.type==='text-arrow'){
       const target=pt(item.targetX,item.targetY,w,h),cx=box.x+box.w/2,cy=box.y+box.h/2,dx=target.x-cx,dy=target.y-cy,scale=Math.min(Math.abs(dx)>.001?(box.w/2)/Math.abs(dx):Infinity,Math.abs(dy)>.001?(box.h/2)/Math.abs(dy):Infinity),start={x:cx+dx*scale,y:cy+dy*scale};
       const ln=el('line',{x1:start.x,y1:start.y,x2:target.x,y2:target.y,class:'drawVisible','marker-end':'url(#drawToolArrow)'});svg.appendChild(ln);
@@ -167,9 +202,9 @@ function create(cfg){
  svg.addEventListener('pointermove',e=>{
   if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
   const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1),it=drag.item,o=drag.original;
-  if(drag.kind==='placing'){it.x2=x;it.y2=y;draft=it;render(page,w,h);return}
+  if(drag.kind==='placing'){it.x2=x;it.y2=y;if(it.type==='arrow')snapArrowStart(it);draft=it;render(page,w,h);return}
   if(drag.kind==='whole-line'){const dx=x-drag.start.x,dy=y-drag.start.y;it.x1=clamp(o.x1+dx,0,1);it.y1=clamp(o.y1+dy,0,1);it.x2=clamp(o.x2+dx,0,1);it.y2=clamp(o.y2+dy,0,1)}
-  else if(drag.kind==='a'){it.x1=x;it.y1=y}else if(drag.kind==='b'){it.x2=x;it.y2=y}
+  else if(drag.kind==='a'){it.x1=x;it.y1=y;if(it.type==='arrow')snapArrowStart(it)}else if(drag.kind==='b'){it.x2=x;it.y2=y;if(it.type==='arrow')snapArrowStart(it)}
   else if(drag.kind==='door-move'){it.x=clamp(o.x+x-drag.start.x,.01,.99);it.y=clamp(o.y+y-drag.start.y,.01,.99)}
   else if(drag.kind==='door-size-angle'){const cx=it.x*w,cy=it.y*h,px=x*w,py=y*h,dx=px-cx,dy=py-cy;it.size=clamp(Math.hypot(dx,dy)/Math.min(w,h),.02,.3);it.angle=Math.round((Math.atan2(dy,dx)*180/Math.PI+90)/2)*2}
   else if(drag.kind==='text-move'){it.x=clamp(o.x+x-drag.start.x,.01,.98);it.y=clamp(o.y+y-drag.start.y,.02,.98)}
@@ -180,7 +215,7 @@ function create(cfg){
   if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
   if(drag.kind==='placing'){
     const it=draft;draft=null;drag=null;
-    if(it&&Math.hypot(it.x2-it.x1,it.y2-it.y1)>.008){items().push(it);selected=it.uid;setMode(null);changed(it.type==='arrow'?'Pil tillagd. Dra ändpunkterna om du vill justera den.':'Linje tillagd. Dra ändpunkterna om du vill justera den.')}else{setMode(null);render(page,w,h)}
+    if(it&&Math.hypot(it.x2-it.x1,it.y2-it.y1)>.008){if(it.type==='arrow')snapArrowStart(it);items().push(it);selected=it.uid;setMode(null);changed(it.type==='arrow'?'Pil tillagd. Starten lägger sig automatiskt mot kanten på en närliggande textruta.':'Linje tillagd. Dra ändpunkterna om du vill justera den.')}else{setMode(null);render(page,w,h)}
     return;
   }
   drag=null;cfg.onChange?.();render(page,w,h);
