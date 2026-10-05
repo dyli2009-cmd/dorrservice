@@ -178,22 +178,31 @@ function applyProtocolTextLevel(){
 if(protocolTextSmaller)protocolTextSmaller.onclick=()=>{protocolTextLevel=Math.max(-1,protocolTextLevel-1);applyProtocolTextLevel()};
 if(protocolTextLarger)protocolTextLarger.onclick=()=>{protocolTextLevel=Math.min(3,protocolTextLevel+1);applyProtocolTextLevel()};
 applyProtocolTextLevel();
+let doorCheckEditUid=null;
 buildChecklist=function(d){
- normalize(d);const box=$('checklist');box.replaceChildren();
+ normalize(d);const box=$('checklist');box.replaceChildren();const editing=doorCheckEditUid===d.uid;
  const actions=document.createElement('div');actions.className='doorCheckActions';box.appendChild(actions);
  const approveAll=document.createElement('button');approveAll.type='button';approveAll.className='approveAll';approveAll.textContent='✓ Godkänn alla';approveAll.onclick=()=>{doorChecks(d).forEach(([n])=>{d.checks[n].result='ok';d.checks[n].note=''});d.status='ok';$('status').value='ok';save();buildChecklist(d);$('status').value=d.status;draw();updateCompactUI()};actions.appendChild(approveAll);
- const groups=GROUPS.map(([title,indices])=>[title,indices.map(i=>CHECKS[i])]);
+ const editToggle=document.createElement('button');editToggle.type='button';editToggle.className='doorEditChecks';editToggle.textContent=editing?'Klar':'Redigera kontrollpunkter';editToggle.onclick=()=>{doorCheckEditUid=editing?null:d.uid;buildChecklist(d)};actions.appendChild(editToggle);
+ const add=document.createElement('button');add.type='button';add.className='doorAddCheck';add.textContent='＋ Egen kontrollpunkt';
+ add.onclick=()=>{const title=prompt('Skriv den extra kontrollpunkten:','');if(!addDoorCustomCheck(d,title))return;$('status').value=d.status;save();buildChecklist(d);draw();requestAnimationFrame(()=>{const rows=box.querySelectorAll('.checkrow');rows[rows.length-1]?.scrollIntoView({block:'nearest'})})};actions.appendChild(add);
+ const effective=new Map(doorChecks(d).map(entry=>[entry[0],entry])),groups=GROUPS.map(([title,indices])=>[title,indices.map(i=>effective.get(CHECKS[i][0])).filter(Boolean)]).filter(([,checks])=>checks.length);
  if(d.customChecks.length)groups.push(['Egna kontrollpunkter',d.customChecks.map(c=>[c.id,c.title])]);
  groups.forEach(([title,checks])=>{
   const group=document.createElement('details');group.className='checkGroup';group.open=true;
   const summary=document.createElement('summary');summary.textContent=title;const count=document.createElement('span');summary.appendChild(count);group.appendChild(summary);
-  const update=()=>{count.textContent=checks.filter(([n])=>!!d.checks[n].result).length+' / '+checks.length};
+  const update=()=>{count.textContent=checks.filter(([n])=>!!d.checks[n]?.result).length+' / '+checks.length};
   checks.forEach(([n,title])=>{
-   const c=d.checks[n],row=document.createElement('div');row.className='checkrow';row.dataset.check=n;
+   const c=d.checks[n]||{result:'',note:''};d.checks[n]=c;const row=document.createElement('div');row.className='checkrow';row.dataset.check=n;
    const heading=document.createElement('div');heading.className='checktitle';const nr=document.createElement('span');nr.className='checkNumber';nr.textContent=n;const text=document.createElement('span');text.textContent=title;heading.append(nr,text);
-   if(d.customChecks.some(c=>c.id===n)){
+   if(d.customChecks.some(c=>c.id===n)){const badge=document.createElement('em');badge.className='doorCustomBadge';badge.textContent='Egen';heading.appendChild(badge)}
+   if(editing){
+    const editActions=document.createElement('span');editActions.className='checkEditActions';
+    const change=document.createElement('button');change.type='button';change.className='doorEditCheck';change.textContent='Ändra';change.setAttribute('aria-label','Ändra kontrollpunkt '+n);
+    change.onclick=()=>{const value=prompt('Ändra kontrollpunkt:',title);if(value===null)return;if(!value.trim()){alert('Kontrollpunkten måste ha text. Använd Ta bort om den inte ska finnas kvar.');return}if(!editDoorCheck(d,n,value))return;$('status').value=d.status;save();buildChecklist(d);draw();updateCompactUI()};
     const remove=document.createElement('button');remove.type='button';remove.className='doorRemoveCheck';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);
-    remove.onclick=()=>{if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;removeDoorCustomCheck(d,n);$('status').value=d.status;save();buildChecklist(d);draw()};heading.appendChild(remove);
+    remove.onclick=()=>{if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;if(!removeDoorCheck(d,n))return;$('status').value=d.status;save();buildChecklist(d);draw();updateCompactUI()};
+    editActions.append(change,remove);heading.appendChild(editActions);
    }
    row.appendChild(heading);
    const buttons=document.createElement('div');buttons.className='quickBtns';const area=document.createElement('div');area.className='faultArea';area.hidden=c.result!=='remark';
@@ -217,8 +226,6 @@ buildChecklist=function(d){
    row.append(buttons,area);group.appendChild(row);
   });update();box.appendChild(group);
  });
- const add=document.createElement('button');add.type='button';add.className='doorAddCheck';add.textContent='＋ Egen kontrollpunkt';
- add.onclick=()=>{const title=prompt('Skriv den extra kontrollpunkten:','');if(!addDoorCustomCheck(d,title))return;$('status').value=d.status;save();buildChecklist(d);draw();requestAnimationFrame(()=>{const rows=box.querySelectorAll('.checkrow');rows[rows.length-1]?.scrollIntoView({block:'nearest'})})};actions.appendChild(add);
 };
 let lastShownDoor=null;
 const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;
