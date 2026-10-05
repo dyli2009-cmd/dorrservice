@@ -102,7 +102,7 @@ function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
 function loadSaved(key){try{return JSON.parse(localStorage.getItem('security-service:'+key)||'null')}catch(e){return null}}
-function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||'Säkerhetsservice';$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf)}
+function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||'Säkerhetsservice';$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf}
 function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project')}
 function allChecks(o){normalizeSecurityCheckEdits(o);const base=(SYSTEMS[o.type]?.checks||[]).filter(([n])=>o.checkEdits[n]!==null).map(([n,title])=>[n,typeof o.checkEdits[n]==='string'?o.checkEdits[n]:title]);return [...base,...(Array.isArray(o.customChecks)?o.customChecks:[]).map(c=>[c.id,c.title])]}
 function editSecurityCheck(o,id,title){
@@ -294,6 +294,7 @@ async function inspectSecurityWorkPdf(bytes){
  if(state.items.some(o=>o.page>source.getPageCount()))throw new Error('Objekten hör inte till arbetsfilens ritningssidor.');
  return {drawingBytes,work:{items:state.items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],project:state.project,logoData:state.logoData||''}};
 }
+if($('secChangeDrawing'))$('secChangeDrawing').onclick=()=>$('securityFile').click();
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),drawingBytes=imported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
  if(pdf)try{await pdf.destroy()}catch(_){}
