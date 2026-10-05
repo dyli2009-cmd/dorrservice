@@ -101,7 +101,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
    titles.forEach((t,i)=>{
     doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');
-    doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.9:6.6);doc.setTextColor(35,35,35);const lines=t.split('\\n');
+    doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.9:6.6);doc.setTextColor(35,35,35);const lines=t.split('\n');
     if(i===1)doc.text(lines,x+2,y+6.1,{lineHeightFactor:1});
     else doc.text(lines,x+ws[i]/2,y+3.7,{align:'center',lineHeightFactor:1});
     x+=ws[i];
