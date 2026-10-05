@@ -56,11 +56,33 @@ function injectStyle(){
 .serviceDoorToolIcon path{stroke-linecap:round;stroke-linejoin:round}
 .serviceInlineTextEditor{position:absolute;z-index:9;min-width:58px;max-width:min(260px,55%);height:29px;box-sizing:border-box;padding:2px 6px;border:2px solid #000;border-radius:4px;background:#fff;color:#000;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 2px 8px #0b253522;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
-@media(max-width:520px){
+@media(max-width:800px){
  .serviceToolLauncher{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important}
- .serviceToolsMenu{position:absolute;right:0;left:auto;top:calc(100% + 4px);bottom:auto;width:max-content;max-width:calc(100vw - 10px);padding:4px;overflow:visible}
- .serviceIconButton{width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important}
- .serviceToolLauncher svg,.serviceIconButton svg{width:17px;height:17px}
+ .serviceToolsMenu{
+  position:fixed!important;
+  left:50%!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:calc(70px + env(safe-area-inset-bottom))!important;
+  transform:translateX(-50%)!important;
+  width:min(360px,calc(100vw - 16px))!important;
+  max-width:calc(100vw - 16px)!important;
+  max-height:42vh!important;
+  padding:7px!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  z-index:1000!important;
+ }
+ .serviceToolChoices,.serviceToolsMenu .toolSelected{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:5px!important;
+ }
+ .serviceToolsMenu .toolSelected{padding-top:6px!important}
+ .serviceIconButton{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important}
+ .serviceToolLauncher svg,.serviceIconButton svg{width:18px;height:18px}
 }
 `;document.head.appendChild(style);
 }
