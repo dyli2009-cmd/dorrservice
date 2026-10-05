@@ -102,7 +102,7 @@ function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
 function loadSaved(key){try{return JSON.parse(localStorage.getItem('security-service:'+key)||'null')}catch(e){return null}}
-function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||'Säkerhetsservice';$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf}
+function refreshTop(){$('securityObject').textContent=project.projectName||$('securityFile').files?.[0]?.name||(pdf?'Ritning öppnad':'Välj en ritning');$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf}
 function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project')}
 function allChecks(o){normalizeSecurityCheckEdits(o);const base=(SYSTEMS[o.type]?.checks||[]).filter(([n])=>o.checkEdits[n]!==null).map(([n,title])=>[n,typeof o.checkEdits[n]==='string'?o.checkEdits[n]:title]);return [...base,...(Array.isArray(o.customChecks)?o.customChecks:[]).map(c=>[c.id,c.title])]}
 function editSecurityCheck(o,id,title){
@@ -306,7 +306,7 @@ $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  }else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
 $('secOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
-$('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('Arbetsfilen är öppnad för fortsatt arbete/ändringar.')};
+$('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('')};
 $('secOpenNewService').onclick=()=>{if(startNewSecurityService(false))$('secOpenWorkDialog').close()};
 
 function changeSecurityPage(delta){
