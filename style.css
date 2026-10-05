@@ -660,3 +660,10 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 .doorWordingDialog button{min-height:44px}
 .doorWordingOriginal{padding:8px;background:#edf3f6;border-radius:6px;white-space:pre-wrap}
 .doorWordingActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+
+/* Session actions stay outside the compact export header. */
+.sessionHistoryBar{display:flex;flex:none;align-items:center;gap:6px;padding:4px 10px;background:#edf3f6;border-bottom:1px solid var(--line)}
+.sessionHistoryBar button{min-height:36px;padding:5px 10px;font-size:12px}
+.sessionHistoryBar span{font-size:11px;color:#526774}
+.homeMode>.sessionHistoryBar{display:none}
+@media(any-pointer:coarse){.sessionHistoryBar button{min-height:44px}}
