@@ -194,7 +194,7 @@ markers.addEventListener('pointercancel',()=>{textPointerStart=null});
 markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(!addType)return;createItem(addType,x,y)}
 function setSecurityPrecisionMode(on){
  precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
- const b=$('secPrecision');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
+ const b=$('secPrecision');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.title=precisionMode?'Precision på – tryck för att stänga av':'Precision';b.setAttribute('aria-label',b.title);if(!b.closest('.serviceToolsMenu'))b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
  if(precisionMode&&pdf){$('secHint').textContent='Precision på: dra punkt eller etikett längre med fingret. Den rör sig långsamt så du ser placeringen.';$('secHint').hidden=false}
  else if(!addType&&!textMode)$('secHint').hidden=true;
 }
