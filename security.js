@@ -72,7 +72,7 @@ const SYSTEMS={
  }}
 };
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
-let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0;
+let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -154,7 +154,7 @@ function drawMarkers(){
   const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';
   let targetDrag=null;
   target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold:markerDragThreshold(zoom)};target.setPointerCapture(e.pointerId)};
-  target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
+  target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();const fine=precisionMode&&e.pointerType==='touch'?.4:1;o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)*fine/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)*fine/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
   target.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag?.id===e.pointerId&&targetDrag.moved)save();targetDrag=null};
   target.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY}targetDrag=null;drawMarkers()};markers.appendChild(target);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
@@ -165,7 +165,7 @@ function drawMarkers(){
   const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
   b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false,originalX:o.labelX,originalY:o.labelY,threshold:markerDragThreshold(zoom)};b.setPointerCapture(e.pointerId)};
-  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
+  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();const fine=precisionMode&&e.pointerType==='touch'?.4:1;o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)*fine/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)*fine/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
   b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
   b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
   b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;selected=o.uid;showSelected();go('protocol')};
@@ -192,6 +192,13 @@ markers.addEventListener('pointerdown',e=>{if(!textMode||e.target!==markers)retu
 markers.addEventListener('pointerup',e=>{if(!textMode||!textPointerStart||textPointerStart.id!==e.pointerId)return;const p=textPointerStart;textPointerStart=null;e.preventDefault();e.stopPropagation();if(Math.hypot(e.clientX-p.x,e.clientY-p.y)<18)placeSecurityText(e.clientX,e.clientY)});
 markers.addEventListener('pointercancel',()=>{textPointerStart=null});
 markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(!addType)return;createItem(addType,x,y)}
+function setSecurityPrecisionMode(on){
+ precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
+ const b=$('secPrecision');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
+ if(precisionMode&&pdf){$('secHint').textContent='Precision på: dra punkt eller etikett längre med fingret. Den rör sig långsamt så du ser placeringen.';$('secHint').hidden=false}
+ else if(!addType&&!textMode)$('secHint').hidden=true;
+}
+$('secPrecision')&&($('secPrecision').onclick=()=>setSecurityPrecisionMode(!precisionMode));
 document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);textMode=false;document.body.classList.remove('secTextAdding');addType=b.dataset.add;document.body.classList.add('secAdding');$('secHint').textContent='Tryck där '+SYSTEMS[addType].label+' ska markeras. Nyp för att zooma.';$('secHint').hidden=false;go('drawing')});
 $('secAddText').onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);addType=null;textMode=!textMode;document.body.classList.remove('secAdding');document.body.classList.toggle('secTextAdding',textMode);$('secAddText').classList.toggle('primary',textMode);$('secHint').textContent=textMode?'TEXTLÄGE: Tryck en gång på ritningen där pilen ska peka.':'Textläget avstängt.';$('secHint').hidden=!textMode;go('drawing')};
 function render(fit=false,focus=null,anchor=null){
@@ -210,7 +217,8 @@ function render(fit=false,focus=null,anchor=null){
   if(version!==renderVersion)return;
   canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
   pageWidth=logical.width;pageHeight=logical.height;
-  canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';$('secStage').style.width=pageWidth+'px';$('secStage').style.height=pageHeight+'px';
+  canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';const stage=$('secStage');stage.style.width=pageWidth+'px';stage.style.height=pageHeight+'px';
+  const centerGap=Math.max(0,(viewer.clientHeight-pageHeight)/2);stage.style.marginTop=centerGap+'px';stage.style.marginBottom=centerGap+'px';
   const drawingUiScale=Math.max(.52,Math.min(1,Math.sqrt(Math.max(.01,baseScale*zoom))));
   $('secStage').style.setProperty('--drawing-ui-scale',drawingUiScale.toFixed(3));
   $('secStage').style.setProperty('--drawing-line-width',Math.max(.9,2*drawingUiScale).toFixed(2)+'px');
@@ -222,7 +230,7 @@ function render(fit=false,focus=null,anchor=null){
   $('secStage').style.setProperty('--security-note-max',Math.max(100,180*drawingUiScale).toFixed(0)+'px');
   $('secPage').textContent='Sida '+pageNumber+' / '+documentPdf.numPages;$('secZoom').textContent=Math.round(zoom*100)+'%';drawMarkers();
   if(anchor&&focus){
-   const stage=$('secStage'),left=stage.offsetLeft||0,top=stage.offsetTop||0;
+   const left=stage.offsetLeft||0,top=stage.offsetTop||0;
    viewer.scrollLeft=left+anchor.x*pageWidth-focus.x;
    viewer.scrollTop=top+anchor.y*pageHeight-focus.y;
   }else if(focus&&oldW>0&&oldH>0){
