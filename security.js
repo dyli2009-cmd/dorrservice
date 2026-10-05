@@ -579,7 +579,7 @@ function reportDoc(){
  field('ORDER',project.order,left+120,y,66);y+=15;
  field('DATUM',project.date,left,y,42);field('NÄSTA PROVNING',project.nextDate,left+42,y,48);field('BESTÄLLARE',project.customer,left+90,y,48);field('SERVICEFÖRETAG',project.company,left+138,y,48);y+=17;
  const open=items.filter(o=>statusOf(o)==='action').length,failed=items.filter(o=>statusOf(o)==='fail').length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=items.filter(o=>statusOf(o)==='untested').length;
- const light={ok:[229,244,234],action:[255,242,216],fail:[252,229,231],untested:[235,241,244]};
+ const light={ok:[225,240,231],action:[255,240,213],fail:[251,227,227],untested:[232,237,240]};
  const stats=[
   ['TOTALT',items.length,'Alla objekt',[243,247,249],[45,69,82]],
   ['KLARA',ready,'Godkända',light.ok,COLORS.ok],
@@ -611,8 +611,8 @@ function reportDoc(){
    if(pageRoom<18||maxBody<1){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;maxBody=Math.max(1,Math.floor((bottom-y-fixedH-3)/3.15))}
    const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
    const cardH=Math.max(16,fixedH+chunk.length*3.15+3);
-   const stLight=st==='ok'?[229,244,234]:st==='action'?[255,242,216]:st==='fail'?[252,229,231]:[235,241,244];
-   doc.setFillColor(250,250,250);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
+   const stLight=light[st]||[243,247,249];
+   doc.setFillColor(...stLight);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
    doc.setFillColor(...COLORS[st]);doc.rect(left,y,2.4,cardH,'F');
    const badgeW=31;doc.setFillColor(...stLight);doc.setDrawColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.2,1.2,'FD');
    txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,COLORS[st],{align:'center'});
@@ -634,7 +634,7 @@ function reportDoc(){
  }
  function pdfProtocolMark(kind,cx,cy,size=8.2){
   doc.setFontSize(size);doc.setTextColor(20,20,20);
-  if(kind==='na'){doc.setFont('symbol','normal');doc.text(String.fromCharCode(45),cx,cy+size*.08,{align:'center'});return}
+  if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(4.8);doc.text('-',cx,cy+1.05,{align:'center'});return}
   doc.setFont('zapfdingbats','normal');
   doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+size*.12,{align:'center'});
  }
