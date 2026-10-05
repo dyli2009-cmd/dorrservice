@@ -1124,3 +1124,19 @@ body.doorMarkersHidden #stage #markers{display:none!important}
   }
  }
 }
+
+
+/* Web 2.4.93: centered drawing workspace + phone precision mode. */
+.precisionButton.active,
+body.precisionMode .precisionButton{
+ background:#173f55!important;
+ border-color:#173f55!important;
+ color:#fff!important;
+}
+body.precisionMode .doorTarget,
+body.precisionMode .marker{
+ box-shadow:0 0 0 3px rgba(23,63,85,.16),0 2px 5px #0005;
+}
+@media(max-width:800px){
+ .precisionButton{font-size:9.5px!important;min-height:30px!important;padding:3px 7px!important}
+}
