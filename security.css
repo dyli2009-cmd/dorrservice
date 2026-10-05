@@ -769,3 +769,10 @@ body.securityApp:not(.secHasPdf) .securityTools{display:none}
   }
  }
 }
+
+
+/* Web 2.4.93: visible precision handles on Security Service. */
+body.precisionMode .secTarget,
+body.precisionMode .secMarker{
+ box-shadow:0 0 0 3px rgba(23,63,85,.16),0 2px 5px #0005;
+}
