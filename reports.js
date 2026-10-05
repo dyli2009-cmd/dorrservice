@@ -21,11 +21,11 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  function projectFields(){
   field('ANLÄGGNING',p.projectName||p.facilityNo,left,y,70);
   field('ANLÄGGNINGSNUMMER',p.facilityNo,left+70,y,50);
-  field('BESTÄLLARE',p.customer,left+120,y,66);y+=15;
+  field('ORDER',p.projectOrder,left+120,y,66);y+=15;
   field('DATUM',p.inspectionDate,left,y,42);
-  field('ORDER',p.projectOrder,left+42,y,44);
-  field('TEKNIKER',p.technician||p.company,left+86,y,52);
-  field('SIGNATUR',p.serviceSignature,left+138,y,48,true);y+=17;
+  field('NÄSTA PROVNING',p.projectNextDate,left+42,y,48);
+  field('BESTÄLLARE',p.customer,left+90,y,48);
+  field('SERVICEFÖRETAG',p.company,left+138,y,48);y+=17;
  }
  function overviewHeader(){
   header('ANMÄRKNINGSÖVERSIKT','DÖRRAUTOMATIK · KUNDRAPPORT');projectFields();
@@ -84,12 +84,13 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    doc.line(left+58,8,left+58,26);doc.setTextColor(25,25,25);doc.setFont('helvetica','bold');doc.setFontSize(6.3);doc.text('Dokumentnr: 2519-1',left+61,12.4);doc.setFontSize(9.6);doc.text('CHECKLISTA REVISION AV DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,{align:'center'});
    doc.setFont('helvetica','bold');doc.setFontSize(8.2);doc.setTextColor(25,25,25);doc.text('SERVICE',left+1.5,34.5);
    y=39;
-   cell('Bokat datum:',p.inspectionDate,left,y,62);cell('Nästa provning:',p.projectNextDate,left+62,y,62);cell('AO / Order:',p.projectOrder,left+124,y,62);y+=7;
-   cell('ANLÄGGNING:',p.projectName,left,y,70,7,true);cell('Anläggningsnr:',p.facilityNo,left+70,y,46,7,true);cell('BESTÄLLARE:',p.customer,left+116,y,70,7,true);y+=7;
-   cell('Serviceföretag:',p.company,left,y,93);cell('Kontaktperson:',p.contact||p.companyContact,left+93,y,93);y+=7;
-   cell('Telefon:',p.companyPhone,left,y,62);cell('Kundtelefon:',p.phone,left+62,y,62);cell('Avtal:',p.agreementNo,left+124,y,62);y+=7;
-   cell('Adress:',[p.address,p.postalCode,p.postalCity].filter(Boolean).join(' '),left,y,124);cell('Tekniker:',p.technician,left+124,y,62);y+=7;
-   cell('ID / märkning:',d.id,left,y,54,8,true);cell('Placering:',d.location,left+54,y,66,8);cell('Signatur:',p.serviceSignature||d.signature,left+120,y,66,8,false,true);y+=8;
+   cell('Bokat datum:',p.inspectionDate,left,y,93);cell('Nästa provning:',p.projectNextDate,left+93,y,93);y+=7;
+   cell('ANLÄGGNING:',p.projectName,left,y,93,7,true);cell('Anläggningsnr:',p.facilityNo,left+93,y,93,7,true);y+=7;
+   cell('SERVICEFÖRETAG:',p.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',p.customer,left+93,y,93,7,true);y+=7;
+   cell('Kontaktman på objektet:',p.companyContact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
+   cell('Telefon:',p.companyPhone,left,y,93);cell('Telefon:',p.phone,left+93,y,93);y+=7;
+   cell('Adress:',[p.companyAddress,p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Adress:',[p.address,p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+   cell('ID / märkning:',d.id,left,y,54,8,true);cell('Placering:',d.location,left+54,y,66,8);cell('AO / Order:',p.projectOrder,left+120,y,66,8,true);y+=8;
   }
   function checkHeader(){
    const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
@@ -118,7 +119,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     }else if(i===4&&c.result==='remark'){
       const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.1,cy-2.1,cx+2.1,cy+2.1);doc.line(cx+2.1,cy-2.1,cx-2.1,cy+2.1);
     }else if(i===5&&String(v||'')){
-      doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(70,125,165);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'});
+      doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(60,60,60);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'});
     }else{
       doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.2);doc.setTextColor(25,25,25);doc.text(String(v||''),x+ws[i]/2,y+rowH/2+1,{align:'center'});
     }
