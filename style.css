@@ -679,3 +679,25 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
  #protocolPanel .checkEditActions button{min-height:24px!important;padding:2px 5px!important;font-size:8.5px!important}
  #protocolPanel .doorCustomBadge{font-size:8px;padding:1px 3px}
 }
+
+/* Web 2.4.49: compact approved door protocol header fields. */
+.simpleDoorDetails .compactDoorMeta{
+ display:grid;
+ grid-template-columns:minmax(78px,.65fr) minmax(0,1.35fr) minmax(0,1.4fr);
+ gap:5px 8px;
+ align-items:end;
+}
+.simpleDoorDetails .doorTypeField{grid-column:1 / -1;width:80%;max-width:520px;margin:2px 0}
+.simpleDoorDetails .doorSerialField{grid-column:1}
+.simpleDoorDetails .doorIdField{grid-column:2}
+.simpleDoorDetails .doorLocationField{grid-column:3}
+.simpleDoorDetails .doorIdMessage{grid-column:2 / 3;margin:0}
+.simpleDoorDetails .doorIdMessage:empty{display:none}
+.simpleDoorDetails .compactDoorMeta label{margin:2px 0}
+.simpleDoorDetails .compactDoorMeta input,
+.simpleDoorDetails .compactDoorMeta select{min-height:34px;padding:6px 7px;margin-top:2px}
+@media(max-width:360px){
+ .simpleDoorDetails .compactDoorMeta{grid-template-columns:minmax(70px,.7fr) minmax(0,1.15fr) minmax(0,1.15fr);gap:4px 5px}
+ .simpleDoorDetails .doorTypeField{width:88%}
+ .simpleDoorDetails .compactDoorMeta label{font-size:10px}
+}
