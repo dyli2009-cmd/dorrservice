@@ -1,6 +1,40 @@
 /* Shared drawing annotations for Door Automation and Security Service. */
 window.ServiceDrawingTools=(()=>{
 'use strict';
+window.ServicePrecisionPointer=window.ServicePrecisionPointer||(()=>{
+ let svg=null,line=null,tip=null,cross=null,finger=null;
+ function ensure(){
+  if(svg&&svg.isConnected)return svg;
+  const ns='http://www.w3.org/2000/svg';
+  svg=document.createElementNS(ns,'svg');svg.setAttribute('aria-hidden','true');
+  Object.assign(svg.style,{position:'fixed',inset:'0',width:'100vw',height:'100vh',zIndex:'5000',pointerEvents:'none',display:'none',overflow:'visible'});
+  const defs=document.createElementNS(ns,'defs'),marker=document.createElementNS(ns,'marker');
+  marker.setAttribute('id','servicePrecisionArrow');marker.setAttribute('viewBox','0 0 10 10');marker.setAttribute('refX','8.5');marker.setAttribute('refY','5');marker.setAttribute('markerWidth','7');marker.setAttribute('markerHeight','7');marker.setAttribute('orient','auto-start-reverse');
+  const path=document.createElementNS(ns,'path');path.setAttribute('d','M0 0 L10 5 L0 10 z');path.setAttribute('fill','#173f55');marker.appendChild(path);defs.appendChild(marker);svg.appendChild(defs);
+  line=document.createElementNS(ns,'line');line.setAttribute('stroke','#173f55');line.setAttribute('stroke-width','2');line.setAttribute('stroke-dasharray','5 4');line.setAttribute('opacity','.78');line.setAttribute('marker-end','url(#servicePrecisionArrow)');svg.appendChild(line);
+  finger=document.createElementNS(ns,'circle');finger.setAttribute('r','10');finger.setAttribute('fill','#fff');finger.setAttribute('fill-opacity','.82');finger.setAttribute('stroke','#173f55');finger.setAttribute('stroke-width','1.5');svg.appendChild(finger);
+  tip=document.createElementNS(ns,'circle');tip.setAttribute('r','10');tip.setAttribute('fill','#fff');tip.setAttribute('fill-opacity','.95');tip.setAttribute('stroke','#173f55');tip.setAttribute('stroke-width','2');svg.appendChild(tip);
+  cross=document.createElementNS(ns,'path');cross.setAttribute('stroke','#173f55');cross.setAttribute('stroke-width','1.8');cross.setAttribute('stroke-linecap','round');svg.appendChild(cross);
+  document.body.appendChild(svg);return svg;
+ }
+ function active(e){return !!(e&&e.pointerType==='touch'&&document.body.classList.contains('precisionMode'))}
+ function show(fx,fy,tx,ty){
+  ensure();svg.style.display='block';svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);
+  line.setAttribute('x1',fx);line.setAttribute('y1',fy);line.setAttribute('x2',tx);line.setAttribute('y2',ty);
+  finger.setAttribute('cx',fx);finger.setAttribute('cy',fy);tip.setAttribute('cx',tx);tip.setAttribute('cy',ty);
+  cross.setAttribute('d',`M ${tx-5} ${ty} L ${tx+5} ${ty} M ${tx} ${ty-5} L ${tx} ${ty+5}`);
+ }
+ function begin(e,anchorX,anchorY){
+  if(!active(e))return null;
+  const state={dx:anchorX-e.clientX,dy:anchorY-e.clientY};show(e.clientX,e.clientY,anchorX,anchorY);return state;
+ }
+ function point(e,state){
+  if(!state)return{x:e.clientX,y:e.clientY};
+  const p={x:e.clientX+state.dx,y:e.clientY+state.dy};show(e.clientX,e.clientY,p.x,p.y);return p;
+ }
+ function hide(){if(svg)svg.style.display='none'}
+ return {active,begin,point,show,hide};
+})();
 const NS='http://www.w3.org/2000/svg',clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function uid(){return 'draw-'+(crypto.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2))}
 function pt(x,y,w,h){return{x:x*w,y:y*h}}
@@ -31,6 +65,9 @@ function injectStyle(){
 .serviceDrawingOverlay .drawVisible{stroke:#000;stroke-width:var(--drawing-line-width,2px);fill:none;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .drawSelected{stroke:#1480ad;stroke-dasharray:5 3;stroke-width:1.5;fill:none;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
+.serviceDrawingOverlay .precisionDrawStem{stroke:#173f55;stroke-width:1.4;stroke-dasharray:4 4;opacity:.5;vector-effect:non-scaling-stroke;pointer-events:none}
+.serviceDrawingOverlay .precisionDrawGrip{fill:#fff;stroke:#173f55;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:all}
+body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawStem,body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawGrip{display:none}
 .serviceDrawingOverlay .drawTextBox{fill:#fff;fill-opacity:1;stroke:#000;stroke-opacity:1;stroke-width:var(--drawing-box-stroke,1.5px);vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawText{font-family:system-ui,-apple-system,sans-serif;font-weight:600;fill:#000;stroke:none;pointer-events:none}
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
@@ -169,12 +206,15 @@ function create(cfg){
   m.appendChild(el('path',{d:'M0,0 L8,4 L0,8 z',fill:'#000'}));defs.appendChild(m);
  }
  function itemPoint(item,key){return pt(item[key+'X'],item[key+'Y'],w,h)}
- function bindMove(node,item,kind){
+ function bindMove(node,item,kind,anchorPoint=null){
   node.dataset.drawUid=item.uid;
   node.addEventListener('pointerdown',e=>{
    if(mode||e.button!==0)return;e.preventDefault();e.stopPropagation();selected=item.uid;
-   const r=svg.getBoundingClientRect(),p={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
-   drag={id:e.pointerId,item,kind,start:p,original:structuredClone(item)};
+   const r=svg.getBoundingClientRect(),anchor=anchorPoint||{x:(e.clientX-r.left)/r.width*w,y:(e.clientY-r.top)/r.height*h};
+   const anchorClient={x:r.left+(anchor.x/w)*r.width,y:r.top+(anchor.y/h)*r.height};
+   const precision=window.ServicePrecisionPointer?.begin(e,anchorClient.x,anchorClient.y)||null;
+   const p={x:anchor.x/w,y:anchor.y/h};
+   drag={id:e.pointerId,item,kind,start:p,original:structuredClone(item),precision};
    try{svg.setPointerCapture(e.pointerId)}catch(_){}
    render(page,w,h);updateMenu();
   });
@@ -203,7 +243,12 @@ function create(cfg){
     const hit=el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(22,g.radius*.75),fill:'transparent',stroke:'transparent','stroke-width':2,class:'drawDoorHit'});bindMove(hit,item,'door-move');svg.appendChild(hit);
     if(item.uid===selected){
       svg.appendChild(el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(18,g.radius*.9),class:'drawSelected'}));
-      const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle');svg.appendChild(handle);
+      const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle',g.handle);svg.appendChild(handle);
+      if(document.body.classList.contains('precisionMode')){
+       const dir=g.center.y>h*.72?-1:1,gy=clamp(g.center.y+dir*Math.min(78,Math.max(58,h*.12)),16,h-16);
+       svg.appendChild(el('line',{x1:g.center.x,y1:g.center.y,x2:g.center.x,y2:gy,class:'precisionDrawStem'}));
+       const grip=el('circle',{cx:g.center.x,cy:gy,r:14,class:'precisionDrawGrip'});bindMove(grip,item,'door-move',g.center);svg.appendChild(grip);
+      }
     }
    }else if(item.type==='text'||item.type==='text-arrow'){
     const box=textBoxGeometry(item,w,h),label=box.label;
@@ -238,7 +283,7 @@ function create(cfg){
  });
  svg.addEventListener('pointermove',e=>{
   if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
-  const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1),it=drag.item,o=drag.original;
+  const r=svg.getBoundingClientRect(),pp=window.ServicePrecisionPointer?.point(e,drag.precision)||{x:e.clientX,y:e.clientY},x=clamp((pp.x-r.left)/r.width,0,1),y=clamp((pp.y-r.top)/r.height,0,1),it=drag.item,o=drag.original;
   if(drag.kind==='placing'){it.x2=x;it.y2=y;if(it.type==='arrow')snapArrowStart(it);draft=it;render(page,w,h);return}
   if(drag.kind==='whole-line'){const dx=x-drag.start.x,dy=y-drag.start.y;it.x1=clamp(o.x1+dx,0,1);it.y1=clamp(o.y1+dy,0,1);it.x2=clamp(o.x2+dx,0,1);it.y2=clamp(o.y2+dy,0,1)}
   else if(drag.kind==='a'){it.x1=x;it.y1=y;if(it.type==='arrow')snapArrowStart(it)}else if(drag.kind==='b'){it.x2=x;it.y2=y;if(it.type==='arrow')snapArrowStart(it)}
@@ -249,7 +294,7 @@ function create(cfg){
   render(page,w,h);
  });
  svg.addEventListener('pointerup',e=>{
-  if(!drag||drag.id!==e.pointerId)return;e.preventDefault();
+  if(!drag||drag.id!==e.pointerId)return;e.preventDefault();window.ServicePrecisionPointer?.hide();
   if(drag.kind==='placing'){
     const it=draft;draft=null;drag=null;
     if(it&&Math.hypot(it.x2-it.x1,it.y2-it.y1)>.008){if(it.type==='arrow')snapArrowStart(it);items().push(it);selected=it.uid;setMode(null);changed(it.type==='arrow'?'Pil tillagd. Starten lägger sig automatiskt mot kanten på en närliggande textruta.':'Linje tillagd. Dra ändpunkterna om du vill justera den.')}else{setMode(null);render(page,w,h)}
@@ -263,7 +308,7 @@ function create(cfg){
   }
   drag=null;cfg.onChange?.();render(page,w,h);
  });
- svg.addEventListener('pointercancel',()=>{if(drag?.original)Object.assign(drag.item,drag.original);draft=null;drag=null;render(page,w,h)});
+ svg.addEventListener('pointercancel',()=>{window.ServicePrecisionPointer?.hide();if(drag?.original)Object.assign(drag.item,drag.original);draft=null;drag=null;render(page,w,h)});
  let toolBtn=null,menu=null,selectedBox=null;
  const iconSvg=name=>{
   const common='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
