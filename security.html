@@ -49,13 +49,14 @@
   <div class="sheetHead"><div><span class="eyebrow" id="secProtocolType">PROTOKOLL</span><h2 id="secProtocolTitle">Välj ett objekt</h2></div><div class="protocolHeadActions"><button id="secProtocolTextSmaller" type="button" aria-label="Mindre text i protokollet">A−</button><button id="secProtocolTextLarger" type="button" aria-label="Större text i protokollet">A+</button><button id="secCloseProtocol">×</button></div></div>
   <div id="secNoSelection"><p>Välj en markering på ritningen eller i översikten.</p></div>
   <div id="secForm" hidden>
-    <div class="grid2">
-      <label>Nummer<input id="secNumber" readonly></label>
-      <label>Placering / Dörrlittra<input id="secLocation"></label>
-      <label class="wide">ID / märkning<input id="secId"></label>
-    </div>
+    <div class="doorDetails securityDetails"><div class="compactSecurityMeta">
+      <label class="secNumberField">Nummer<input id="secNumber" readonly></label>
+      <label class="secLocationField">Placering / Dörrlittra<input id="secLocation"></label>
+      <label class="secIdField">ID / märkning<input id="secId"></label>
+    </div></div>
     <details id="secPreviousPanel" class="previousPanel" hidden><summary>Tidigare service / anmärkningar</summary><div id="secPreviousIssues"></div><p>Kontrollera objektet på nytt och fyll i dagens resultat.</p></details>
-    <div class="progressLine"><strong id="secProgress"></strong><div class="secProgressActions"><button id="secApproveAll" class="primary">✓ Godkänn alla</button><button id="secEditChecks">Redigera kontrollpunkter</button><button id="secAddCheck">＋ Egen kontrollpunkt</button></div></div>
+    <div class="progressLine"><strong id="secProgress"></strong></div>
+    <div class="doorCheckActions secProgressActions"><button id="secApproveAll" class="approveAll">✓ Godkänn alla</button><button id="secEditChecks" class="doorEditChecks">Redigera kontrollpunkter</button><button id="secAddCheck" class="doorAddCheck">＋ Egen kontrollpunkt</button></div>
     <div id="secChecklist"></div>
     <label>Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
     <label>Slutbedömning<select id="secStatus"><option value="untested">Ej kontrollerad / pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label><p class="muted">Status räknas automatiskt från kontrollpunkterna. Välj “Ej godkänd” manuellt när objektet ska underkännas.</p>
@@ -72,7 +73,7 @@
 </dialog>
 
 <dialog id="secOpenWorkDialog" class="secOpenWorkDialog">
-  <div class="secOpenWorkHead"><strong>Sparad Security Service-fil</strong><span>Vad vill du göra?</span></div>
+  <div class="secOpenWorkHead"><strong>Sparad Säkerhetsservice-fil</strong><span>Vad vill du göra?</span></div>
   <p id="secOpenWorkMeta">Arbetsfilen innehåller tidigare serviceuppgifter.</p>
   <div class="secOpenWorkActions">
     <button id="secOpenNewService" type="button" class="primary">Ny service</button>
