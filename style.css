@@ -633,3 +633,16 @@ body.protocolReadable #protocolPanel .checkHint{font-size:11px;line-height:1.35}
 .homeToolsIcon svg{display:block}
 .homeToolsLink strong{display:block;font-size:13px}
 .homeToolsLink small{display:block;margin-top:3px;font-size:11px;line-height:1.4;color:#6b7f8b}
+
+/* Web 2.4.41: lower tablet controls below the safe area. */
+@media (min-width:600px) and (any-pointer:coarse){
+ body header.appHeader{
+  padding-top:calc(27px + env(safe-area-inset-top,0px))!important;
+ }
+ body header.appHeader .headerActions{gap:8px}
+ body header.appHeader .headerActions>button,
+ body header.appHeader .headerActions>.filebtn{
+  min-height:44px;height:44px;padding:8px 12px;font-size:12px;
+ }
+ .pagebar button{min-width:44px;min-height:44px}
+}
