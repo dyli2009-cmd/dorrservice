@@ -660,7 +660,7 @@ function reportDoc(){
  }
  function checkHeader(){
   const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
-  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.9:6.6);doc.setTextColor(35,35,35);const lines=t.split('\n');if(i===1)doc.text(lines,x+2,y+6.1);else doc.text(lines,x+ws[i]/2,y+3.7,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
+  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.9:6.6);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,headerY,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,headerY,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  }
 
  items.slice().sort((a,b)=>a.page-b.page||a.number-b.number).forEach(o=>{
@@ -681,7 +681,7 @@ function reportDoc(){
    });y+=rowH;
   });
   y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.setLineWidth(.2);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,6.7,true,[55,55,55]);y+=6;
-  const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';const noteLines=[...issues(o),remediationNote,o.notes].filter(Boolean);
+  const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';const protocolIssues=allChecks(o).flatMap(([n,t])=>{const check=o.checks[n];return check?.result==='remark'?[n+' – '+(check.note?.trim()||t)]:[]});const noteLines=[...protocolIssues,remediationNote,o.notes].filter(Boolean);
   const noteText=noteLines.join('  ·  '),boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
   if(noteText){let fs=6.8,lines=doc.splitTextToSize(noteText,width-7),maxLines=Math.max(1,Math.floor((boxH-4)/2.8));while(lines.length>maxLines&&fs>5.2){fs-=.3;doc.setFontSize(fs);lines=doc.splitTextToSize(noteText,width-7);maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)))}if(lines.length>maxLines){lines=lines.slice(0,maxLines);lines[maxLines-1]=String(lines[maxLines-1]).replace(/\s*$/,'')+' …'}doc.setFont('helvetica','normal');doc.setFontSize(fs);doc.setTextColor(35,35,35);doc.text(lines,left+3,y+4.5,{lineHeightFactor:1.1})}
  });
