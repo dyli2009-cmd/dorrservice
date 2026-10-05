@@ -706,3 +706,18 @@ body.securityApp:not(.secHasPdf) .securityTools{display:none}
  padding:3px 5px!important;
  font-size:var(--security-note-font,10px)!important;
 }
+
+
+/* Web 2.4.83: Security labels match the readable Door Automation tag style. */
+#secStage .secMarker{
+ width:auto!important;max-width:195px!important;min-width:48px!important;
+ height:29px!important;min-height:29px!important;padding:0 8px!important;
+ border-radius:7px!important;font-size:9px!important;line-height:1!important;
+ white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+}
+@media(max-width:800px){
+ #secStage .secMarker{
+  max-width:175px!important;min-width:46px!important;height:28px!important;min-height:28px!important;
+  padding:0 7px!important;font-size:8.3px!important;
+ }
+}
