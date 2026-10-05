@@ -245,9 +245,9 @@ function overviewPriority(d){
 }
 function setOverviewSummary(){
  const target=$('overviewSummary');if(!target)return;
- const open=doors.filter(hasDoorProblem).length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length;
+ const open=doors.filter(d=>displayStatus(d)==='action').length,failed=doors.filter(d=>displayStatus(d)==='fail').length,done=doors.filter(isDoorRemediated).length,ready=doors.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length;
  target.replaceChildren();
- [['Totalt',doors.length,'total'],['Öppna fel',open,'open'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
+ [['Totalt',doors.length,'total'],['Öppna fel',open,'open'],['Ej godkända',failed,'fail'],['Åtgärdade',done,'done'],['Klara',ready,'ready']].forEach(([label,value,key])=>{
   const box=document.createElement('span');box.className='overviewStat '+key;
   const strong=document.createElement('strong');strong.textContent=String(value);
   const small=document.createElement('small');small.textContent=label;
