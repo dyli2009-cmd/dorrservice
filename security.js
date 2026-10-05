@@ -284,11 +284,11 @@ async function inspectSecurityWorkPdf(bytes){
  if(!window.PDFLib)throw new Error('PDF-biblioteket är inte tillgängligt.');
  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib;
  const doc=await PDFDocument.load(bytes,{updateMetadata:false}),ref=doc.catalog.get(PDFName.of('SecurityServiceWork'));if(!ref)return null;
- const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error('Security Service-arbetsfilens uppgifter är skadade.');
- const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error('Security Service-arbetsfilen har en äldre dataversion.');
+ const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error('Säkerhetsservice-arbetsfilens uppgifter är skadade.');
+ const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error('Säkerhetsservice-arbetsfilen har en äldre dataversion.');
  const data=metadata.lookup(PDFName.of('Data'),PDFRawStream),drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);
  const state=JSON.parse(new TextDecoder().decode(decodePDFRawStream(data).decode()));
- if(state.app!=='security-service'||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error('Security Service-arbetsfilen innehåller ogiltiga objektuppgifter.');
+ if(state.app!=='security-service'||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error('Säkerhetsservice-arbetsfilen innehåller ogiltiga objektuppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.items.some(o=>o.page>source.getPageCount()))throw new Error('Objekten hör inte till arbetsfilens ritningssidor.');
  return {drawingBytes,work:{items:state.items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],project:state.project,logoData:state.logoData||''}};
