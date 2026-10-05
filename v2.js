@@ -129,10 +129,12 @@ function goView(view){
 function completedChecks(d){return doorChecks(d).filter(([n])=>['ok','na','remark'].includes(d.checks?.[n]?.result)).length}
 function displayStatus(d){if(isDoorRemediated(d))return 'ok';if(d.status==='fail')return 'fail';if(hasDoorProblem(d))return 'action';return d.status==='ok'?'ok':'untested'}
 function statusText(d){if(isDoorRemediated(d))return 'Åtgärdad';return {ok:'Godkänd',fail:'Ej godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',untested:'Ej klar'}[displayStatus(d)]}
+function doorProtocolTitle(){const name=project.projectName||project.facilityNo||'Dörrservice';return name+' – Dörrprotokoll'}
 function updateCompactUI(){
  document.body.classList.toggle('hasDrawing',!!pdf);$('objectLabel').textContent=project.projectName||project.facilityNo||activeDrawingName||'Välj en ritning';
  if($('changeDrawingBtn'))$('changeDrawingBtn').hidden=!pdf;
  $('newServiceBtn').disabled=!pdf;$('mobileAdd').disabled=!pdf;
+ if($('protocolHeading'))$('protocolHeading').textContent=doorProtocolTitle();
  const d=cur();if(d){$('checkProgress').textContent=completedChecks(d)+' / '+doorChecks(d).length+' kontrollerade';$('signature').value=project.serviceSignature||d.signature||'';$('serviceBy').textContent=[project.technician,project.company,project.inspectionDate].filter(Boolean).join(' · ')}
 }
 if($('changeDrawingBtn'))$('changeDrawingBtn').onclick=()=>$('file').click();
@@ -143,13 +145,13 @@ function proposedId(d){return project.facilityNo&&d.modelCode&&d.serialNumber?[p
 function setDoorId(d,value,mode){
  const id=String(value||'').trim();if(!id){$('idMessage').textContent='Märkningen får inte vara tom.';return false}
  if(doors.some(other=>other.uid!==d.uid&&other.id===id)){$('idMessage').textContent='Det ID-numret används redan av en annan dörr.';return false}
- d.id=id;d.idMode=mode;$('idMessage').textContent='';$('doorId').value=id;save();draw();$('protocolHeading').textContent=id;return true;
+ d.id=id;d.idMode=mode;$('idMessage').textContent='';$('doorId').value=id;save();draw();$('protocolHeading').textContent=doorProtocolTitle();return true;
 }
 
 function syncAutoDoorIds(){
  let changed=false;
  doors.forEach(d=>{if(d.idMode!=='auto')return;const id=proposedId(d);if(!id||doors.some(other=>other.uid!==d.uid&&other.id===id))return;if(d.id!==id){d.id=id;changed=true}});
- const current=cur();if(current&&current.idMode==='auto'){$('doorId').value=current.id;$('protocolHeading').textContent=current.id}
+ const current=cur();if(current&&current.idMode==='auto'){$('doorId').value=current.id;$('protocolHeading').textContent=doorProtocolTitle()}
  if(changed){save();draw()}
 }
 const baseFacilityInput=$('facilityNo').oninput;
@@ -169,7 +171,7 @@ $('serialNumber').onchange=()=>{const d=cur();if(!d)return;const value=$('serial
 $('doorId').oninput=()=>{};$('doorId').onchange=()=>{const d=cur();if(d&&!setDoorId(d,$('doorId').value,'manual'))$('doorId').value=d.id};
 $('signature').oninput=()=>{};
 const DOOR_CHECK_RESULTS=[['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']];
-const protocolTextSmaller=$('protocolTextSmaller'),protocolTextLarger=$('protocolTextLarger');
+const protocolTextSmaller=$('protocolTextSmaller'),protocolTextLarger=$('protocolTextLarger'),protocolClose=$('closeProtocol');
 let protocolTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-protocol-size')||0)));
 function applyProtocolTextLevel(){
  document.body.dataset.protocolSize=String(protocolTextLevel);
@@ -188,6 +190,7 @@ buildChecklist=function(d){
  const editToggle=document.createElement('button');editToggle.type='button';editToggle.className='doorEditChecks';editToggle.textContent=editing?'Klar':'Redigera kontrollpunkter';editToggle.onclick=()=>{doorCheckEditUid=editing?null:d.uid;buildChecklist(d)};actions.appendChild(editToggle);
  const add=document.createElement('button');add.type='button';add.className='doorAddCheck';add.textContent='＋ Egen kontrollpunkt';
  add.onclick=()=>{const title=prompt('Skriv den extra kontrollpunkten:','');if(!addDoorCustomCheck(d,title))return;$('status').value=d.status;save();buildChecklist(d);draw();requestAnimationFrame(()=>{const rows=box.querySelectorAll('.checkrow');rows[rows.length-1]?.scrollIntoView({block:'nearest'})})};actions.appendChild(add);
+ [protocolTextSmaller,protocolTextLarger,protocolClose].filter(Boolean).forEach(button=>{button.hidden=false;button.classList.add('protocolInlineAction');actions.appendChild(button)});
  const effective=new Map(doorChecks(d).map(entry=>[entry[0],entry])),groups=GROUPS.map(([title,indices])=>[title,indices.map(i=>effective.get(CHECKS[i][0])).filter(Boolean)]).filter(([,checks])=>checks.length);
  if(d.customChecks.length)groups.push(['Egna kontrollpunkter',d.customChecks.map(c=>[c.id,c.title])]);
  groups.forEach(([title,checks])=>{
@@ -218,9 +221,6 @@ buildChecklist=function(d){
    const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};
    const known=faults.includes(c.note||'');input.value=known?'':(c.note||'');select.value=known?c.note:'';showCustom(!!c.note&&!known);
    area.append(select,input,back);
-   const wording=document.createElement('button');wording.type='button';wording.className='doorWordingButton';wording.textContent='Formulera';wording.setAttribute('aria-label','Hjälp med formulering för kontrollpunkt '+n);
-   wording.onclick=()=>openDoorWording({title:n+' '+title,original:c.note||'',choices:[...(['1.2','1.5','1.6','1.9','1.12','1.18'].includes(n)?DOOR_WORDING:[]),...faults],apply:text=>{if(cur()?.uid!==d.uid||d.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=cleanRemarkText(text);input.dispatchEvent(new Event('input',{bubbles:true}))}});
-   area.appendChild(wording);
    DOOR_CHECK_RESULTS.forEach(([value,label])=>{const button=document.createElement('button');button.type='button';button.dataset.v=value;button.textContent=label;button.classList.toggle('active',c.result===value);button.onclick=()=>{c.result=c.result===value?'':value;if(c.result!=='remark'){c.note='';input.value='';select.value='';showCustom(false)}syncDoorCheckStatus(d);$('status').value=d.status;buttons.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v===c.result));area.hidden=c.result!=='remark';update();save();draw()};buttons.appendChild(button)});
    select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();draw();return}c.note=cleanRemarkText(select.value||'');if(d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};
    input.oninput=()=>{c.note=input.value;if(c.result==='remark'&&d.status!=='fail')d.status='action';$('status').value=d.status;save();draw()};input.onblur=()=>{input.classList.remove('iosTyping');c.note=cleanRemarkText(input.value);input.value=c.note;save();draw()};
@@ -230,7 +230,7 @@ buildChecklist=function(d){
  });
 };
 let lastShownDoor=null;
-const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=d?.id||'Välj en dörr';if(!d)return;
+const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading').textContent=doorProtocolTitle();if(!d)return;
  if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;lastShownDoor=d.uid}
  if(isDoorRemediated(d))$('status').value='ok';
  if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
@@ -285,7 +285,7 @@ openOverview=function(){renderOverview();goView('doors');$('overviewDialog').scr
 $('overviewBtn').onclick=openOverview;$('mobileOverview').onclick=openOverview;$('pickDoorBtn').onclick=openOverview;
 $('closeOverview').onclick=()=>goView('drawing');$('navDrawing').onclick=()=>goView('drawing');$('closeProtocol').onclick=()=>goView('drawing');$('closeProject').onclick=()=>goView('drawing');
 $('mobileProtocol').onclick=()=>{show();goView('protocol')};$('settingsBtn').onclick=()=>goView('project');
-$('nextDoorBtn').onclick=()=>{const sorted=doors.slice().sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));const next=sorted[(sorted.findIndex(d=>d.uid===selected)+1)%sorted.length];if(next)openOverviewDoor(next.uid)};
+
 function shiftedDoorNextDate(previousDate,previousNextDate){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(previousDate||'')||!/^\d{4}-\d{2}-\d{2}$/.test(previousNextDate||''))return '';
  const from=new Date(previousDate+'T12:00:00'),to=new Date(previousNextDate+'T12:00:00'),days=Math.round((to-from)/86400000);
