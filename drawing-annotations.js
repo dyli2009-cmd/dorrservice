@@ -49,7 +49,7 @@ function injectStyle(){
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
 .serviceToolActive{background:#173f55!important;color:#fff!important;border-color:#173f55!important}
 .serviceToolActive svg{stroke:#fff!important}
-.serviceInlineTextEditor{position:absolute;z-index:9;min-width:90px;width:min(220px,42%);height:40px;box-sizing:border-box;padding:6px 8px;border:2px solid #1480ad;border-radius:6px;background:#fff;color:#172b35;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 4px 14px #0b253533;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
+.serviceInlineTextEditor{position:absolute;z-index:9;min-width:58px;max-width:min(260px,55%);height:29px;box-sizing:border-box;padding:2px 6px;border:2px solid #000;border-radius:4px;background:#fff;color:#000;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 2px 8px #0b253522;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
 @media(max-width:520px){
  .serviceToolLauncher{width:36px!important;min-width:36px!important;height:36px!important}
@@ -117,6 +117,7 @@ function create(cfg){
   cfg.activateDrawing?.();selected=item.uid;render(page,w,h);updateMenu();
   const input=document.createElement('input');input.type='text';input.className='serviceInlineTextEditor';input.value=item.text||'';input.placeholder='Skriv text…';input.autocomplete='off';input.spellcheck=true;
   input.style.left=(clamp(Number(item.x)||.05,.01,.96)*100)+'%';input.style.top=(clamp(Number(item.y)||.05,.02,.98)*100)+'%';
+  const sizeInlineInput=()=>{input.style.width=Math.min(260,Math.max(58,(String(input.value||input.placeholder||'').length*9)+18))+'px'};sizeInlineInput();input.addEventListener('input',sizeInlineInput);
   input.addEventListener('pointerdown',e=>e.stopPropagation());input.addEventListener('click',e=>e.stopPropagation());input.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
   input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();closeInlineEditor(true)}else if(e.key==='Escape'){e.preventDefault();closeInlineEditor(false)}});
   input.addEventListener('blur',()=>setTimeout(()=>{if(activeTextEditor?.input===input)closeInlineEditor(true)},0));
@@ -283,8 +284,13 @@ function create(cfg){
  }
  attachToolbar();
  document.addEventListener('pointerdown',e=>{
-  if(!selected||mode||activeTextEditor)return;
-  if(e.target.closest?.('.serviceToolsWrap,.serviceInlineTextEditor'))return;
+  if(activeTextEditor){
+   if(e.target.closest?.('.serviceInlineTextEditor'))return;
+   activeTextEditor.input.blur();
+   return;
+  }
+  if(!selected||mode)return;
+  if(e.target.closest?.('.serviceToolsWrap'))return;
   const own=e.target.closest?.('[data-draw-uid]');
   if(own?.dataset?.drawUid===selected)return;
   selected=null;render(page,w,h);updateMenu();
