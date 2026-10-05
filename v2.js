@@ -131,9 +131,11 @@ function displayStatus(d){if(isDoorRemediated(d))return 'ok';if(d.status==='fail
 function statusText(d){if(isDoorRemediated(d))return 'Åtgärdad';return {ok:'Godkänd',fail:'Ej godkänd',action:d.status==='action'?'Åtgärd krävs':'Anmärkningar',untested:'Ej klar'}[displayStatus(d)]}
 function updateCompactUI(){
  document.body.classList.toggle('hasDrawing',!!pdf);$('objectLabel').textContent=project.projectName||project.facilityNo||activeDrawingName||'Välj en ritning';
+ if($('changeDrawingBtn'))$('changeDrawingBtn').hidden=!pdf;
  $('newServiceBtn').disabled=!pdf;$('mobileAdd').disabled=!pdf;
  const d=cur();if(d){$('checkProgress').textContent=completedChecks(d)+' / '+doorChecks(d).length+' kontrollerade';$('signature').value=project.serviceSignature||d.signature||'';$('serviceBy').textContent=[project.technician,project.company,project.inspectionDate].filter(Boolean).join(' · ')}
 }
+if($('changeDrawingBtn'))$('changeDrawingBtn').onclick=()=>$('file').click();
 const baseSave=save;save=function(skip=false){baseSave(skip);updateCompactUI()};
 const baseRefresh=refreshDrawingUI;refreshDrawingUI=function(){baseRefresh();updateCompactUI()};
 function nextSerial(){const largest=Math.max(0,...doors.map(d=>Number(d.serialNumber)||Number(/^D(\d+)$/.exec(d.id)?.[1])||0));const n=largest+1;project.nextDoorNumber=n+1;return String(n)}
