@@ -560,13 +560,15 @@ function reportDoc(){
  function addLogo(x,y,w,h){if(!logoData)return;try{const im=doc.getImageProperties(logoData),pad=2.5,sc=Math.min((w-pad*2)/im.width,(h-pad*2)/im.height),iw=im.width*sc,ih=im.height*sc;doc.addImage(logoData,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(_){}}
  function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,9.6,true,[25,25,25],{align:'center'});txt('SÄKERHETSSERVICE · KUNDRAPPORT',left+58+(width-58)/2,21.4,6.8,false,[70,82,90],{align:'center'})}
  summaryHeader();let y=32;
- const field=(label,value,x,yy,w)=>{doc.setFillColor(243,247,249);doc.rect(x,yy,w,13,'F');txt(label,x+2,yy+4,6.5,true,[89,110,123]);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(32,52,64);doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.5)};
- [['OBJEKT',project.projectName||project.facilityNo],['OBJEKTNUMMER',project.facilityNo],['ORDER',project.order]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=16;
- [['DATUM',project.date],['TEKNIKER',project.technician||project.company],['SIGNATUR',project.signature]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=18;
+ const field=(label,value,x,yy,w,signature=false)=>{doc.setFillColor(248,248,248);doc.setDrawColor(185,185,185);doc.setLineWidth(.22);doc.rect(x,yy,w,13,'FD');txt(label,x+2,yy+4,6.6,true,[82,82,82]);doc.setFont('helvetica',signature?'italic':'normal');doc.setFontSize(signature?8.8:8.2);doc.setTextColor(...(signature?[70,125,165]:[25,25,25]));doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.8,{lineHeightFactor:1.05})};
+ field('ANLÄGGNING',project.projectName||project.facilityNo,left,y,70);
+ field('ANLÄGGNINGSNUMMER',project.facilityNo,left+70,y,50);
+ field('BESTÄLLARE',project.customer,left+120,y,66);y+=15;
+ field('DATUM',project.date,left,y,42);field('ORDER',project.order,left+42,y,44);field('TEKNIKER',project.technician||project.company,left+86,y,52);field('SIGNATUR',project.signature,left+138,y,48,true);y+=17;
  const open=items.filter(o=>statusOf(o)==='action').length,failed=items.filter(o=>statusOf(o)==='fail').length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=items.filter(o=>statusOf(o)==='untested').length;
- const stats=[['TOTALT',items.length,'Alla objekt',[243,247,249],[45,69,82],COLORS.untested],['KLARA',ready,'Godkänd',[229,244,234],COLORS.ok,COLORS.ok],['ÅTGÄRDADE',done,'Godkänd / åtgärdad',[229,244,234],COLORS.ok,COLORS.ok],['ÖPPNA FEL',open,'Åtgärd krävs',[255,242,216],COLORS.action,COLORS.action],['EJ GODKÄNDA',failed,'Ej godkänd',[252,229,231],COLORS.fail,COLORS.fail],['EJ KONTROLL.',untested,'Ej kontrollerad',[235,241,244],COLORS.untested,COLORS.untested]];
+ const stats=[['TOTALT',items.length,'Alla objekt'],['KLARA',ready,'Godkända'],['ÅTGÄRDADE',done,'Klarmarkerade'],['ÖPPNA FEL',open,'Åtgärd krävs'],['EJ GODKÄNDA',failed,'Underkända'],['EJ KONTROLL.',untested,'Ej kontrollerade']];
  const boxW=width/6;
- stats.forEach(([label,value,meaning,bg,fg,dot],i)=>{const x=left+i*boxW;doc.setFillColor(...bg);doc.setDrawColor(198,210,218);doc.setLineWidth(.28);doc.rect(x,y,boxW,15.2,'FD');txt(label,x+1.6,y+4.3,6.15,true,[70,88,99]);txt(value,x+boxW-1.8,y+9.0,10.4,true,fg,{align:'right'});doc.setFillColor(...dot);doc.circle(x+2.0,y+12.4,.8,'F');txt(meaning,x+3.5,y+13.2,5.0,false,[89,110,123])});y+=17.2;
+ stats.forEach(([label,value,meaning],i)=>{const x=left+i*boxW,fill=i%2?[250,250,250]:[244,244,244];doc.setFillColor(...fill);doc.setDrawColor(150,150,150);doc.setLineWidth(.3);doc.rect(x,y,boxW,16,'FD');txt(label,x+boxW/2,y+4.6,6.5,true,[55,55,55],{align:'center'});txt(value,x+boxW/2,y+10.3,11.3,true,[15,15,15],{align:'center'});txt(meaning,x+boxW/2,y+14.1,5.2,false,[95,95,95],{align:'center'})});y+=18;
  txt('Åtgärdade anmärkningar ligger kvar som historik.',left,y,5.8,false,[89,110,123]);y+=5;
  const problemItems=items.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
  if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
@@ -589,10 +591,10 @@ function reportDoc(){
    if(pageRoom<18||maxBody<1){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;maxBody=Math.max(1,Math.floor((bottom-y-fixedH-3)/3.15))}
    const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
    const cardH=Math.max(16,fixedH+chunk.length*3.15+3);
-   doc.setFillColor(250,251,252);doc.setDrawColor(204,215,223);doc.setLineWidth(.18);doc.roundedRect(left,y,width,cardH,2,2,'FD');
-   doc.setFillColor(...COLORS[st]);doc.rect(left,y,3.2,cardH,'F');
-   const badgeW=31;doc.setFillColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.5,1.5,'F');
-   txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,[255,255,255],{align:'center'});
+   doc.setFillColor(250,250,250);doc.setDrawColor(165,165,165);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
+   doc.setFillColor(72,72,72);doc.rect(left,y,2.4,cardH,'F');
+   const badgeW=31;doc.setFillColor(232,232,232);doc.setDrawColor(145,145,145);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.2,1.2,'FD');
+   txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,[45,45,45],{align:'center'});
    doc.setFont('helvetica','bold');doc.setFontSize(7.8);doc.setTextColor(26,48,61);
    const shownTitle=first?titleLines.slice(0,2):[o.id+' · forts.'];doc.text(shownTitle,left+7,y+5.4,{lineHeightFactor:1.05});
    const bodyY=y+6.6+shownTitle.length*3.5;
@@ -603,11 +605,11 @@ function reportDoc(){
   }while(bodyOffset<bodyLines.length);
  });
 
- function cell(label,value,x,yy,w,h=7,bold=false){
-  doc.setDrawColor(25,25,25);doc.setLineWidth(.18);doc.rect(x,yy,w,h);
-  const labelText=String(label||'');doc.setFont('helvetica','bold');doc.setFontSize(6.2);doc.setTextColor(0,0,0);
-  const labelW=Math.min(w-6,doc.getTextWidth(labelText)+2);doc.text(labelText,x+1.5,yy+h/2+1);
-  if(value!==undefined&&value!==null&&String(value)!==''){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(6.8);doc.text(doc.splitTextToSize(String(value),Math.max(5,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1)}
+ function cell(label,value,x,yy,w,h=7,bold=false,signature=false){
+  doc.setFillColor(252,252,252);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,yy,w,h,'FD');
+  const labelText=String(label||'');doc.setFont('helvetica','bold');doc.setFontSize(5.9);doc.setTextColor(82,82,82);
+  const labelW=Math.min(w-7,doc.getTextWidth(labelText)+2.2);doc.text(labelText,x+1.5,yy+h/2+1);
+  if(value!==undefined&&value!==null&&String(value)!==''){doc.setFont('helvetica',signature?'italic':(bold?'bold':'normal'));doc.setFontSize(signature?7.2:6.7);doc.setTextColor(...(signature?[70,125,165]:[20,20,20]));doc.text(doc.splitTextToSize(String(value),Math.max(5,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1)}
  }
  function backButton(o){
   const bx=188,by=19.1,bw=8,bh=5.8;doc.setFillColor(19,43,56);doc.setDrawColor(19,43,56);doc.rect(bx,by,bw,bh,'FD');
@@ -620,42 +622,39 @@ function reportDoc(){
   txt('CHECKLISTA REVISION AV '+SYSTEMS[o.type].label,left+58+(width-58)/2,18.7,9.4,true,[25,25,25],{align:'center'});
   if(continuation){txt('fortsättning',left+58+(width-58)/2,23,6,false,[70,70,70],{align:'center'});y=31;cell('Objekt:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=12;return}
   txt('SERVICE',left+1.5,34.5,8.2,true,[25,25,25]);y=39;
-  cell('Bokat besök datum:',project.date,left,y,93);cell('Nästa provning datum:',project.nextDate,left+93,y,93);y+=7;
-  cell('ANLÄGGNING:',[project.projectName,'| Anläggningsnummer:',project.facilityNo].filter(Boolean).join(' '),left,y,93,7,true);
-  cell('BESTÄLLARE:',[project.customer,'| Avtalsnummer:',project.agreement].filter(Boolean).join(' '),left+93,y,93,7,true);y+=7;
-  cell('Företag:',project.company,left,y,93);cell('Företag:',project.customer,left+93,y,93);y+=7;
-  cell('Kontaktman på objektet:',project.companyContact,left,y,93);cell('Kontaktperson:',project.contact,left+93,y,93);y+=7;
-  cell('Telefonnummer:',project.companyPhone,left,y,93);cell('Telefonnummer:',project.phone,left+93,y,93);y+=7;
-  cell('Adress:',project.companyAddress,left,y,93);cell('Adress:',project.address,left+93,y,93);y+=7;
-  cell('Postnummer / Postadress:',[project.companyPostalCode,project.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[project.postalCode,project.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
-  cell('Id nummermaskin:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=8;
+  cell('Bokat datum:',project.date,left,y,62);cell('Nästa provning:',project.nextDate,left+62,y,62);cell('AO / Order:',project.order,left+124,y,62);y+=7;
+  cell('ANLÄGGNING:',project.projectName,left,y,70,7,true);cell('Anläggningsnr:',project.facilityNo,left+70,y,46,7,true);cell('BESTÄLLARE:',project.customer,left+116,y,70,7,true);y+=7;
+  cell('Serviceföretag:',project.company,left,y,93);cell('Kontaktperson:',project.contact||project.companyContact,left+93,y,93);y+=7;
+  cell('Telefon:',project.companyPhone,left,y,62);cell('Kundtelefon:',project.phone,left+62,y,62);cell('Avtal:',project.agreement,left+124,y,62);y+=7;
+  cell('Adress:',[project.address,project.postalCode,project.postalCity].filter(Boolean).join(' '),left,y,124);cell('Tekniker:',project.technician,left+124,y,62);y+=7;
+  cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('Signatur:',project.signature,left+120,y,66,8,false,true);y+=8;
  }
  function checkHeader(){
-  const ws=[10,99,15,25,27,10],titles=['Nr:','Benämning Kontroll','Ingår ej','Klart utan\nAnmärkning','Klart med\nAnmärkning','Signatur'];let x=left;
-  titles.forEach((t,i)=>{doc.setFillColor(244,244,244);doc.setDrawColor(0,0,0);doc.rect(x,y,ws[i],9,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.8:6.5);doc.setTextColor(0,0,0);const lines=t.split('\n');if(i===1)doc.text(lines,x+2,y+5.5);else doc.text(lines,x+ws[i]/2,y+3.4,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=9;
+  const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
+  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?5.9:6.6);doc.setTextColor(35,35,35);const lines=t.split('\n');if(i===1)doc.text(lines,x+2,y+6.1);else doc.text(lines,x+ws[i]/2,y+3.7,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  }
 
  items.slice().sort((a,b)=>a.page-b.page||a.number-b.number).forEach(o=>{
   doc.addPage();doc.__protocolPages[o.uid]=doc.getNumberOfPages();backButton(o);protocolTop(o);checkHeader();
-  const ws=[10,99,15,25,27,10];
-  allChecks(o).forEach(([n,title])=>{
-   const check=o.checks[n]||{},h=7.7;
-   if(y+h>250){doc.addPage();backButton(o);protocolTop(o,true);checkHeader()}
-   let x=left;const vals=[n,title,check.result==='na'?'–':'','',check.result==='remark'?'X':'',project.signature||''];
+  const ws=[9,91,16,24,28,18],checks=allChecks(o),notesReserve=31,rowH=Math.max(6.4,Math.min(8.0,(270-y-notesReserve)/Math.max(1,checks.length)));
+  checks.forEach(([n,title])=>{
+   const check=o.checks[n]||{},titleSize=rowH<7?5.9:6.3,step=rowH<7?2.1:2.3;let x=left;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);const titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.8).slice(0,2);
+   const vals=[n,title,check.result==='na'?'–':'','',check.result==='remark'?'X':'',project.signature||''];
    vals.forEach((v,i)=>{
-    doc.setFillColor(255,255,255);doc.setDrawColor(0,0,0);doc.setLineWidth(.18);doc.rect(x,y,ws[i],h,'FD');
-    if(i===1){doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(0,0,0);const lines=doc.splitTextToSize(String(v||''),ws[i]-3.5).slice(0,2),step=2.65,startY=y+h/2-((lines.length-1)*step)/2+.85;doc.text(lines,x+1.7,startY,{lineHeightFactor:1})}
-    else if(i===2&&check.result==='na'){const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineWidth(.9);doc.line(cx-3,cy,cx+3,cy)}
-    else if(i===3&&check.result==='ok'){const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineWidth(.75);doc.line(cx-2.4,cy-.1,cx-.8,cy+1.45);doc.line(cx-.8,cy+1.45,cx+2.4,cy-1.75)}
-    else if(i===4&&check.result==='remark'){const cx=x+ws[i]/2,cy=y+h/2;doc.setDrawColor(0,0,0);doc.setLineWidth(.75);doc.line(cx-2.15,cy-2.15,cx+2.15,cy+2.15);doc.line(cx+2.15,cy-2.15,cx-2.15,cy+2.15)}
-    else{doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.6);doc.setTextColor(0,0,0);doc.text(String(v||''),x+ws[i]/2,y+h/2+1.1,{align:'center'})}
+    doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(x,y,ws[i],rowH,'FD');
+    if(i===1){doc.setFont('helvetica','normal');doc.setFontSize(titleSize);doc.setTextColor(25,25,25);const startY=y+rowH/2-((titleLines.length-1)*step)/2+.7;doc.text(titleLines,x+1.7,startY,{lineHeightFactor:1})}
+    else if(i===2&&check.result==='na'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(45,45,45);doc.setLineWidth(.8);doc.line(cx-3,cy,cx+3,cy)}
+    else if(i===3&&check.result==='ok'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.4,cy-.1,cx-.8,cy+1.45);doc.line(cx-.8,cy+1.45,cx+2.4,cy-1.75)}
+    else if(i===4&&check.result==='remark'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.1,cy-2.1,cx+2.1,cy+2.1);doc.line(cx+2.1,cy-2.1,cx-2.1,cy+2.1)}
+    else if(i===5&&String(v||'')){doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(70,125,165);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
+    else{doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.2);doc.setTextColor(25,25,25);doc.text(String(v||''),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
     x+=ws[i];
-   });y+=h;
+   });y+=rowH;
   });
-  y+=4;doc.setFillColor(247,247,247);doc.setDrawColor(0,0,0);doc.rect(left,y,width,6,'FD');txt('Allmän Info:',left+2,y+4.2,7,true,[35,35,35]);y+=6;
+  y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.setLineWidth(.2);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,6.7,true,[55,55,55]);y+=6;
   const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';const noteLines=[...issues(o),remediationNote,o.notes].filter(Boolean);
-  const text=noteLines.join('\n'),boxH=Math.min(30,Math.max(18,276-y));doc.setFillColor(255,255,255);doc.rect(left,y,width,boxH,'FD');
-  if(text){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(30,30,30);doc.text(doc.splitTextToSize(text,width-7).slice(0,Math.floor((boxH-5)/3.2)),left+3,y+5,{lineHeightFactor:1.15})}
+  const noteText=noteLines.join('  ·  '),boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
+  if(noteText){let fs=6.8,lines=doc.splitTextToSize(noteText,width-7),maxLines=Math.max(1,Math.floor((boxH-4)/2.8));while(lines.length>maxLines&&fs>5.2){fs-=.3;doc.setFontSize(fs);lines=doc.splitTextToSize(noteText,width-7);maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)))}if(lines.length>maxLines){lines=lines.slice(0,maxLines);lines[maxLines-1]=String(lines[maxLines-1]).replace(/\s*$/,'')+' …'}doc.setFont('helvetica','normal');doc.setFontSize(fs);doc.setTextColor(35,35,35);doc.text(lines,left+3,y+4.5,{lineHeightFactor:1.1})}
  });
  const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([project.company,project.projectName||project.facilityNo].filter(Boolean).join(' · ')||'Säkerhetsservice',left,289,7,false,[89,110,123]);txt('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
  return doc
