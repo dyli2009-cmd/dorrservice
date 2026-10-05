@@ -16,10 +16,10 @@ function buildServiceReportDoc(snapshot,includeProtocols){
  function projectFields(){[['OBJEKT',p.projectName||p.facilityNo],['OBJEKTNUMMER',p.facilityNo],['ORDER',p.projectOrder]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=16;[['DATUM',p.inspectionDate],['TEKNIKER',p.technician||p.company],['SIGNATUR',p.serviceSignature]].forEach(([l,v],i)=>field(l,v,left+i*62,y,60));y+=17}
  function overviewHeader(){
   header('ANMÄRKNINGSÖVERSIKT','DÖRRAUTOMATIK · KUNDRAPPORT');projectFields();
-  const open=ds.filter(hasDoorProblem).length,done=ds.filter(isDoorRemediated).length,ready=ds.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length;
-  const stats=[['TOTALT',ds.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],REPORT_COLORS.action.rgb],['ÅTGÄRDADE',done,[229,244,234],REPORT_COLORS.ok.rgb],['KLARA',ready,[229,244,234],REPORT_COLORS.ok.rgb]];
-  const gap=2,boxW=(width-gap*3)/4;
-  stats.forEach(([title,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,8.2,1.2,1.2,'FD');text(title,x+2.1,y+2.9,4.7,true,[89,110,123]);text(value,x+boxW-2.5,y+6.1,8.6,true,fg,{align:'right'})});
+  const open=ds.filter(d=>status(d)==='action').length,failed=ds.filter(d=>status(d)==='fail').length,done=ds.filter(isDoorRemediated).length,ready=ds.filter(d=>d.status==='ok'&&!hasRecordedDoorProblem(d)).length;
+  const stats=[['TOTALT',ds.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],REPORT_COLORS.action.rgb],['EJ GODKÄNDA',failed,[252,229,231],REPORT_COLORS.fail.rgb],['ÅTGÄRDADE',done,[229,244,234],REPORT_COLORS.ok.rgb],['KLARA',ready,[229,244,234],REPORT_COLORS.ok.rgb]];
+  const gap=1.6,boxW=(width-gap*4)/5;
+  stats.forEach(([title,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,8.2,1.2,1.2,'FD');text(title,x+1.7,y+2.8,4.25,true,[89,110,123]);text(value,x+boxW-2.1,y+6.0,8.2,true,fg,{align:'right'})});
   y+=10.8;let x=left;[['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([title,key])=>{doc.setFillColor(...REPORT_COLORS[key].rgb);doc.circle(x+1,y-1,1.3,'F');text(title,x+4,y,6.6,false);x+=46});y+=7;text('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;tableHead()
  }
  const widths=[33,115,38];
