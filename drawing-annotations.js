@@ -67,7 +67,10 @@ function injectStyle(){
 .serviceDrawingOverlay .drawHandle{fill:#1480ad;stroke:#fff;stroke-width:2;vector-effect:non-scaling-stroke}
 .serviceDrawingOverlay .precisionDrawStem{stroke:#173f55;stroke-width:1.4;stroke-dasharray:4 4;opacity:.5;vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .precisionDrawGrip{fill:#fff;stroke:#173f55;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:all}
-body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawStem,body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawGrip{display:none}
+.serviceDrawingOverlay .precisionMoveGrip{fill:#edf6fa}
+.serviceDrawingOverlay .precisionRotateGrip{fill:#fff8e8;stroke:#c77c13}
+.serviceDrawingOverlay .precisionRotateMark{fill:none;stroke:#c77c13;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
+body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawStem,body:not(.precisionMode) .serviceDrawingOverlay .precisionDrawGrip,body:not(.precisionMode) .serviceDrawingOverlay .precisionRotateMark{display:none}
 .serviceDrawingOverlay .drawTextBox{fill:#fff;fill-opacity:1;stroke:#000;stroke-opacity:1;stroke-width:var(--drawing-box-stroke,1.5px);vector-effect:non-scaling-stroke;pointer-events:none}
 .serviceDrawingOverlay .drawText{font-family:system-ui,-apple-system,sans-serif;font-weight:600;fill:#000;stroke:none;pointer-events:none}
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
@@ -245,9 +248,16 @@ function create(cfg){
       svg.appendChild(el('circle',{cx:g.center.x,cy:g.center.y,r:Math.max(18,g.radius*.9),class:'drawSelected'}));
       const handle=el('circle',{cx:g.handle.x,cy:g.handle.y,r:9,class:'drawHandle'});bindMove(handle,item,'door-size-angle',g.handle);svg.appendChild(handle);
       if(document.body.classList.contains('precisionMode')){
-       const dir=g.center.y>h*.72?-1:1,gy=clamp(g.center.y+dir*Math.min(78,Math.max(58,h*.12)),16,h-16);
+       const dir=g.center.y>h*.72?-1:1,offset=Math.min(78,Math.max(58,h*.12)),gy=clamp(g.center.y+dir*offset,16,h-16);
        svg.appendChild(el('line',{x1:g.center.x,y1:g.center.y,x2:g.center.x,y2:gy,class:'precisionDrawStem'}));
-       const grip=el('circle',{cx:g.center.x,cy:gy,r:14,class:'precisionDrawGrip'});bindMove(grip,item,'door-move',g.center);svg.appendChild(grip);
+       const moveGrip=el('circle',{cx:g.center.x,cy:gy,r:14,class:'precisionDrawGrip precisionMoveGrip'});bindMove(moveGrip,item,'door-move',g.center);svg.appendChild(moveGrip);
+       const vx=g.handle.x-g.center.x,vy=g.handle.y-g.center.y,len=Math.max(1,Math.hypot(vx,vy)),ux=vx/len,uy=vy/len;
+       let rx=g.handle.x+ux*58,ry=g.handle.y+uy*58;
+       if(rx<18||rx>w-18||ry<18||ry>h-18){rx=g.handle.x-ux*58;ry=g.handle.y-uy*58}
+       rx=clamp(rx,18,w-18);ry=clamp(ry,18,h-18);
+       svg.appendChild(el('line',{x1:g.handle.x,y1:g.handle.y,x2:rx,y2:ry,class:'precisionDrawStem precisionRotateStem'}));
+       const rotateGrip=el('circle',{cx:rx,cy:ry,r:14,class:'precisionDrawGrip precisionRotateGrip'});bindMove(rotateGrip,item,'door-size-angle',g.handle);svg.appendChild(rotateGrip);
+       const rotateMark=el('path',{d:`M ${rx-6} ${ry+1} A 7 7 0 1 1 ${rx+4} ${ry-5} M ${rx+4} ${ry-5} L ${rx+4} ${ry+1} M ${rx+4} ${ry-5} L ${rx-2} ${ry-5}`,class:'precisionRotateMark'});svg.appendChild(rotateMark);
       }
     }
    }else if(item.type==='text'||item.type==='text-arrow'){
