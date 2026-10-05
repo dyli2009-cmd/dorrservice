@@ -522,7 +522,7 @@ function reportDoc(){
  const open=items.filter(hasSecurityProblem).length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>statusOf(o)==='ok').length;
  const stats=[['TOTALT',items.length,[243,247,249],[45,69,82]],['ÖPPNA FEL',open,[255,242,216],COLORS.action],['ÅTGÄRDADE',done,[229,244,234],COLORS.ok],['KLARA',ready,[229,244,234],COLORS.ok]];
  const gap=2,boxW=(width-gap*3)/4;
- stats.forEach(([label,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,12,1.5,1.5,'FD');txt(label,x+2.5,y+4,5.8,true,[89,110,123]);txt(value,x+boxW-3,y+8.4,11,true,fg,{align:'right'})});y+=16;
+ stats.forEach(([label,value,bg,fg],i)=>{const x=left+i*(boxW+gap);doc.setFillColor(...bg);doc.setDrawColor(214,224,230);doc.roundedRect(x,y,boxW,9.5,1.3,1.3,'FD');txt(label,x+2.2,y+3.3,5.1,true,[89,110,123]);txt(value,x+boxW-2.7,y+6.9,9.5,true,fg,{align:'right'})});y+=12.5;
  [['Godkänd/åtgärdad','ok'],['Åtgärd krävs','action'],['Ej godkänd','fail'],['Ej kontrollerad','untested']].forEach(([label,key],i)=>{doc.setFillColor(...COLORS[key]);doc.circle(left+i*46+1,y-1,1.3,'F');txt(label,left+i*46+4,y,6.6)});y+=7;
  txt('Ej godkänd prioriteras först. Åtgärdade anmärkningar ligger kvar som historik.',left,y,6.5,false,[89,110,123]);y+=6;
  const problemItems=items.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
