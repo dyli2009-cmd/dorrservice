@@ -324,12 +324,12 @@ async function inspectWorkPdf(bytes){
  if(state.app!=='dorrservice'||state.version<2||!Array.isArray(state.doors)||!state.project||typeof state.project!=='object'||state.doors.some(d=>!d||typeof d.uid!=='string'||typeof d.id!=='string'||!Number.isInteger(d.page)||d.page<1||!Number.isFinite(d.x)||!Number.isFinite(d.y)||d.x<0||d.x>1||d.y<0||d.y>1))throw new Error('Arbets-PDF:en innehåller ogiltiga dörruppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.doors.some(d=>d.page>source.getPageCount()))throw new Error('Dörrarna hör inte till arbets-PDF:ens ritningssidor.');
- return {drawingBytes,work:{version:1,doors:state.doors,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],project:state.project,logoData:state.logoData||''}};
+ return {drawingBytes,work:{version:1,doors:state.doors,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
 }
 async function createWorkPdf(){
  if(!pdf||!sourcePdfBytes)throw new Error('Öppna en PDF-ritning först.');
  if(!window.PDFLib||!window.jspdf?.jsPDF)throw new Error('PDF-biblioteken kunde inte laddas.');
- const snapshot=structuredClone({doors,textNotes,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
+ const snapshot=structuredClone({doors,textNotes,drawingExtras,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
  const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib;
  const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold),noteFont=await output.embedFont(StandardFonts.Helvetica),markerLinks=[];
  for(let index=0;index<copied.length;index++){
@@ -355,6 +355,7 @@ async function createWorkPdf(){
    page.drawRectangle({x:bx,y:by,width,height,color:rgb(1,1,.91),borderColor:rgb(.1,.25,.34),borderWidth:.8,opacity:.96});
    shown.forEach((t,i)=>page.drawText(t,{x:bx+padding,y:by+height-padding-size-i*lineH,size,font:noteFont,color:rgb(.05,.12,.16)}));
   });
+  ServiceDrawingTools.drawToPdf(page,index+1,viewport.width,viewport.height,snapshot.drawingExtras,noteFont);
  }
  const report=buildServiceReportDoc(snapshot,true),protocolPageMap=report.__doorProtocolPages||{},backLinks=report.__doorBackLinks||[],reportPdf=await PDFDocument.load(report.output('arraybuffer'));const reportPages=await output.copyPages(reportPdf,reportPdf.getPageIndices());reportPages.forEach(p=>output.addPage(p));
  function addInternalPdfLink(sourcePage,targetPage,rect){
@@ -568,12 +569,22 @@ generalWording.onclick=()=>{const d=cur();if(!d)return;openDoorWording({title:'A
 /* Session undo/redo: shared behavior with Security Service. */
 const doorSessionHistory=installServiceHistory({
  scope:()=>pdf,
- capture:()=>({data:JSON.parse(JSON.stringify({doors,textNotes,project,logoData})),selected}),
+ capture:()=>({data:JSON.parse(JSON.stringify({doors,textNotes,drawingExtras,project,logoData})),selected}),
  restore:state=>{
-  ({doors,textNotes,project,logoData}=state.data);
+  ({doors,textNotes,drawingExtras,project,logoData}=state.data);
   selected=doors.some(d=>d.uid===state.selected)?state.selected:null;
   refreshDrawingUI();draw();show();renderOverview();save();persist();
  },
  wrapSave:record=>{const previous=save;save=function(...args){const result=previous(...args);record();return result}},
  blocked:()=>exporting||wrap.getAttribute('aria-busy')==='true'
 });
+const doorDrawingTools=ServiceDrawingTools.create({
+ stageId:'stage',
+ getItems:()=>drawingExtras,
+ setItems:value=>{drawingExtras=value},
+ onChange:()=>save(),
+ message:notice
+});
+const drawBeforeDrawingTools=draw;
+draw=function(){drawBeforeDrawingTools();doorDrawingTools?.render(page,pageWidth,pageHeight)};
+
