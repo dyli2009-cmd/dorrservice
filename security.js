@@ -307,7 +307,10 @@ function applySecProtocolTextLevel(){
 if(secProtocolTextSmaller)secProtocolTextSmaller.onclick=()=>{secProtocolTextLevel=Math.max(-1,secProtocolTextLevel-1);applySecProtocolTextLevel()};
 if(secProtocolTextLarger)secProtocolTextLarger.onclick=()=>{secProtocolTextLevel=Math.min(3,secProtocolTextLevel+1);applySecProtocolTextLevel()};
 applySecProtocolTextLevel();
-function buildChecklist(o){const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o);checks.forEach(([n,title])=>{const c=o.checks[n]||{result:'',note:''},row=document.createElement('section');row.className='secCheck'+(c.result?' result-'+c.result:'');const head=document.createElement('div');head.className='secCheckHead';head.innerHTML='<strong>'+n+'</strong><span></span>';head.querySelector('span').textContent=title;if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge';badge.textContent='Egen';head.appendChild(badge);const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCustom';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;o.customChecks=o.customChecks.filter(x=>x.id!==n);delete o.checks[n];o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};head.appendChild(remove)}row.appendChild(head);const choices=document.createElement('div');choices.className='secChoices';[['na','Ingår ej'],['ok','Klart utan anm.'],['remark','Klart med anm.']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.classList.toggle('active',c.result===value);b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};choices.appendChild(b)});row.appendChild(choices);if(c.result==='remark'){const fault=document.createElement('div');fault.className='secFault';const faults=SYSTEMS[o.type].faults[n]||[];const select=document.createElement('select');select.setAttribute('aria-label','Vanlig anmärkning '+n);select.innerHTML='<option value="">Välj anmärkning…</option>';for(const f of faults){const op=document.createElement('option');op.value=f;op.textContent=f;select.appendChild(op)}const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);const input=document.createElement('input');input.placeholder='Beskriv felet…';input.setAttribute('aria-label','Egen anmärkning '+n);const back=document.createElement('button');back.type='button';back.className='secFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');const known=faults.includes(c.note||'');select.value=known?c.note:'';input.value=known?'':(c.note||'');const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};showCustom(!!c.note&&!known);select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();showOverview();return}c.note=select.value||'';save();showOverview()};input.oninput=()=>{c.note=input.value;save();showOverview()};input.onblur=()=>input.classList.remove('iosTyping');back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();showOverview();select.focus()};fault.append(select,input,back);row.appendChild(fault)}box.appendChild(row)});updateProgress(o)}
+function buildChecklist(o){const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o);checks.forEach(([n,title])=>{const c=o.checks[n]||{result:'',note:''},row=document.createElement('section');row.className='secCheck'+(c.result?' result-'+c.result:'');const head=document.createElement('div');head.className='secCheckHead';head.innerHTML='<strong>'+n+'</strong><span></span>';head.querySelector('span').textContent=title;if(o.customChecks.some(x=>x.id===n)){const badge=document.createElement('em');badge.className='secCustomBadge';badge.textContent='Egen';head.appendChild(badge);const remove=document.createElement('button');remove.type='button';remove.className='secRemoveCustom';remove.textContent='Ta bort';remove.setAttribute('aria-label','Ta bort kontrollpunkt '+n);remove.onclick=e=>{e.stopPropagation();if(!confirm('Ta bort kontrollpunkten '+n+'?'))return;o.customChecks=o.customChecks.filter(x=>x.id!==n);delete o.checks[n];o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();showOverview()};head.appendChild(remove)}row.appendChild(head);const choices=document.createElement('div');choices.className='secChoices';[['na','Ingår ej'],['ok','Klart utan anm.'],['remark','Klart med anm.']].forEach(([value,label])=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.classList.toggle('active',c.result===value);b.onclick=()=>{c.result=value;o.checks[n]=c;if(value==='remark'&&!c.note)c.note='';if(value!=='remark'&&c.note)c.note='';o.manualFail=false;syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers();updateProgress(o);showOverview()};choices.appendChild(b)});row.appendChild(choices);if(c.result==='remark'){const fault=document.createElement('div');fault.className='secFault';const faults=SYSTEMS[o.type].faults[n]||[];const select=document.createElement('select');select.setAttribute('aria-label','Vanlig anmärkning '+n);select.innerHTML='<option value="">Välj anmärkning…</option>';for(const f of faults){const op=document.createElement('option');op.value=f;op.textContent=f;select.appendChild(op)}const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);const input=document.createElement('input');input.placeholder='Beskriv felet…';input.setAttribute('aria-label','Egen anmärkning '+n);const back=document.createElement('button');back.type='button';back.className='secFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');const known=faults.includes(c.note||'');select.value=known?c.note:'';input.value=known?'':(c.note||'');const showCustom=show=>{select.hidden=show;input.hidden=!show;back.hidden=!show};showCustom(!!c.note&&!known);select.onchange=()=>{if(select.value==='__custom__'){c.note='';input.value='';showCustom(true);input.classList.add('iosTyping');requestAnimationFrame(()=>input.focus());save();showOverview();return}c.note=select.value||'';save();showOverview()};input.oninput=()=>{c.note=input.value;save();showOverview()};input.onblur=()=>input.classList.remove('iosTyping');back.onclick=()=>{c.note='';input.value='';select.value='';showCustom(false);save();showOverview();select.focus()};fault.append(select,input,back);
+const wording=document.createElement('button');wording.type='button';wording.className='doorWordingButton';wording.textContent='Formulera';wording.setAttribute('aria-label','Hjälp med formulering för kontrollpunkt '+n);
+wording.onclick=()=>openDoorWording({title:SYSTEMS[o.type].label+' – '+n+' '+title,original:c.note||'',choices:securityWordingChoices(o,n),actions:securityWordingActions(o),apply:text=>{if(cur()!==o||o.checks[n]!==c||c.result!=='remark')return;showCustom(true);input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}))}});
+fault.appendChild(wording);row.appendChild(fault)}box.appendChild(row)});updateProgress(o)}
 function updateProgress(o){const checks=allChecks(o),done=checks.filter(([n])=>['na','ok','remark'].includes(o.checks[n]?.result)).length;$('secProgress').textContent=done+' / '+checks.length+' kontrollerade'}
 function renderSecurityPrevious(o){
  const panel=$('secPreviousPanel'),box=$('secPreviousIssues');if(!panel||!box)return;
@@ -586,3 +589,57 @@ $('secPreviewDialog').addEventListener('close',()=>{if(previewRenderTask)try{pre
 window.addEventListener('resize',()=>{if($('secPreviewDialog').open)renderCustomerPreview()});
 $('securityExport').onclick=exportPdf;
 project=emptyProject();refreshTop();
+/* Offline wording: same review/apply flow as Door Automation. */
+
+const DOOR_WORDING=[
+ 'Dörrbladet tar i karmen',
+ 'Dörrbladet tar i det andra dörrbladet',
+ 'Dörrbladet tar i golvet',
+ 'Dörren kärvar vid öppning',
+ 'Dörren kärvar vid stängning',
+ 'Dörren går inte att stänga helt',
+ 'Dörren stannar under öppning',
+ 'Dörren stannar under stängning',
+ 'Dörren stänger för hårt',
+ 'Dörrbladet hänger snett'
+];
+function doorWordingSentence(problem,frequency,action){
+ const sentence=s=>s.trim().replace(/[.!?]+$/,'')+'.';
+ return [problem?sentence(problem+(frequency?' '+frequency:'')):'',action?sentence(action):''].filter(Boolean).join(' ');
+}
+function openDoorWording({title,original,choices,apply,actions=['Fortsatt felsökning krävs']}){
+ const dialog=document.createElement('dialog');dialog.className='doorWordingDialog';dialog.setAttribute('aria-labelledby','doorWordingTitle');
+ const h=document.createElement('h2');h.id='doorWordingTitle';h.textContent='Hjälp med formulering';
+ const context=document.createElement('p');context.textContent=title;
+ const help=document.createElement('p');help.textContent='Fungerar utan internet. Välj det du har observerat och granska förslaget. Befintlig text ersätts först när du väljer Använd texten.';
+ const old=document.createElement('p');old.className='doorWordingOriginal';old.textContent='Din text: '+(original||'Ingen text ännu.');
+ const field=(caption,element)=>{const l=document.createElement('label');l.append(document.createTextNode(caption),element);return l};
+ const select=(items,empty)=>{const el=document.createElement('select');for(const [value,label] of [['',empty],...items.map(x=>[x,x])]){const o=document.createElement('option');o.value=value;o.textContent=label;el.appendChild(o)}return el};
+ const problem=select([...new Set(choices)],'Välj beskrivning…');
+ const frequency=select(['ibland','vid varje manövrering','under sista delen av stängningen'],'Ingen uppgift om när');
+ const action=select(actions,'Ingen åtgärd angiven');
+ const preview=document.createElement('textarea');preview.rows=4;preview.value=original;preview.id='doorWordingPreview';
+ const status=document.createElement('p');status.setAttribute('role','status');
+ const make=document.createElement('button');make.type='button';make.textContent='Skapa förslag';
+ make.onclick=()=>{if(!problem.value){status.textContent='Välj en beskrivning. Du kan också redigera texten direkt nedan.';return}preview.value=doorWordingSentence(problem.value,frequency.value,action.value);status.textContent='Förslaget är klart. Kontrollera att texten stämmer.'};
+ const buttons=document.createElement('div');buttons.className='doorWordingActions';
+ const use=document.createElement('button');use.type='button';use.className='primary';use.textContent='Använd texten';
+ use.onclick=()=>{if(!preview.value.trim()){status.textContent='Skriv eller skapa ett förslag först.';return}apply(preview.value.trim());dialog.close()};
+ const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Avbryt';cancel.onclick=()=>dialog.close();
+ buttons.append(cancel,use);
+ dialog.append(h,context,help,old,field('Beskrivning',problem),field('När händer det?',frequency),field('Behov av åtgärd – välj bara om det är bedömt',action),make,field('Förslag – kan redigeras',preview),status,buttons);
+ const previous=document.activeElement;
+ dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});
+ document.body.appendChild(dialog);dialog.showModal();problem.focus();
+}
+
+function securityWordingChoices(o,n){
+ const faults=n?(SYSTEMS[o.type].faults[n]||[]):Object.values(SYSTEMS[o.type].faults).flat();
+ return [...new Set([...(o.type==='lock'?DOOR_WORDING:[]),...faults])];
+}
+function securityWordingActions(o){
+ return o.type==='lock'?['Justering av dörrbladet krävs','Justering av gångjärnen krävs','Justering av låsblecket krävs','Fortsatt felsökning krävs']:['Fortsatt felsökning krävs','Rengöring krävs','Byte av komponent krävs'];
+}
+const generalWording=document.createElement('button');generalWording.type='button';generalWording.className='doorWordingButton';generalWording.textContent='Hjälp med formulering';
+$('secNotes').parentElement.insertAdjacentElement('afterend',generalWording);
+generalWording.onclick=()=>{const o=cur();if(!o)return;openDoorWording({title:SYSTEMS[o.type].label+' – Allmän anmärkning',original:$('secNotes').value,choices:securityWordingChoices(o),actions:securityWordingActions(o),apply:text=>{if(cur()!==o)return;$('secNotes').value=text;$('secNotes').dispatchEvent(new Event('input',{bubbles:true}))}})};
