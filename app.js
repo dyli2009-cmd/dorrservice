@@ -31,12 +31,21 @@ if(homeBtn)homeBtn.onclick=showAppHome;
 
 let activeDrawingKey=null,activeDrawingName='',exporting=false,sourcePdfBytes=null;
 const DRAWING_PREFIX='doorservice-drawing-v1:';
-function doorChecks(d){return [...CHECKS,...(Array.isArray(d.customChecks)?d.customChecks:[]).map(c=>[c.id,c.title])]}
+function normalizeDoorCheckEdits(d){
+ const valid=new Set(CHECKS.map(([n])=>n)),raw=d.checkEdits&&typeof d.checkEdits==='object'&&!Array.isArray(d.checkEdits)?d.checkEdits:{},clean={};
+ Object.entries(raw).forEach(([id,value])=>{if(!valid.has(id))return;if(value===null)clean[id]=null;else if(typeof value==='string'&&value.trim())clean[id]=value.trim()});
+ d.checkEdits=clean;
+}
+function doorChecks(d){
+ normalizeDoorCheckEdits(d);
+ const base=CHECKS.filter(([n])=>d.checkEdits[n]!==null).map(([n,title])=>[n,typeof d.checkEdits[n]==='string'?d.checkEdits[n]:title]);
+ return [...base,...(Array.isArray(d.customChecks)?d.customChecks:[]).map(c=>[c.id,c.title])];
+}
 function normalizeDoorCustomChecks(d){
  const used=new Set(CHECKS.map(([n])=>n));
  d.customChecks=(Array.isArray(d.customChecks)?d.customChecks:[]).filter(c=>{
   if(!c||typeof c.id!=='string'||!/^1\.\d+$/.test(c.id)||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;
-  used.add(c.id);return true;
+  used.add(c.id);c.title=c.title.trim();return true;
  });
 }
 function syncDoorCheckStatus(d){
@@ -50,11 +59,20 @@ function addDoorCustomCheck(d,title){
  const id='1.'+next;d.customChecks.push({id,title:title.trim()});d.checks[id]={result:'',note:''};
  d.remediationDate='';d.remediationSignature='';syncDoorCheckStatus(d);return true;
 }
-function removeDoorCustomCheck(d,id){
- if(!d.customChecks?.some(c=>c.id===id))return false;
- d.customChecks=d.customChecks.filter(c=>c.id!==id);delete d.checks[id];syncDoorCheckStatus(d);return true;
+function editDoorCheck(d,id,title){
+ if(typeof title!=='string'||!title.trim())return false;
+ normalize(d);const next=title.trim(),custom=d.customChecks.find(c=>c.id===id),base=CHECKS.find(([n])=>n===id);
+ if(custom){if(custom.title===next)return false;custom.title=next}
+ else if(base){const current=typeof d.checkEdits[id]==='string'?d.checkEdits[id]:base[1];if(current===next)return false;if(next===base[1])delete d.checkEdits[id];else d.checkEdits[id]=next}
+ else return false;
+ d.checks[id]={result:'',note:''};d.remediationDate='';d.remediationSignature='';syncDoorCheckStatus(d);return true;
 }
-function normalize(d){d.checks=d.checks||{};normalizeDoorCustomChecks(d);doorChecks(d).forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
+function removeDoorCheck(d,id){
+ normalize(d);const custom=d.customChecks.some(c=>c.id===id),base=CHECKS.some(([n])=>n===id);
+ if(custom)d.customChecks=d.customChecks.filter(c=>c.id!==id);else if(base)d.checkEdits[id]=null;else return false;
+ delete d.checks[id];d.remediationDate='';d.remediationSignature='';syncDoorCheckStatus(d);return true;
+}
+function normalize(d){d.checks=d.checks||{};normalizeDoorCustomChecks(d);normalizeDoorCheckEdits(d);doorChecks(d).forEach(([n])=>d.checks[n]=d.checks[n]||{result:'',note:''});['machineId','location','ao','nextDate','signature','remediationDate','remediationSignature'].forEach(k=>d[k]=d[k]||'');if(!Number.isFinite(d.labelX))d.labelX=Math.max(.035,Math.min(.965,d.x+(d.x>.78?-.075:.075)));if(!Number.isFinite(d.labelY))d.labelY=Math.max(.035,Math.min(.965,d.y-.045));return d}doors.forEach(normalize);
 let saveTimer;
 function notice(message,error=false){$('appMessage').textContent=message;$('appMessage').classList.toggle('error',error)}
 function persist(){
