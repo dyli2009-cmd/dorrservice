@@ -382,3 +382,8 @@ body.secTextAdding #secViewer{cursor:crosshair}
  .secOpenWorkHead{padding:11px 12px}
  .secOpenWorkDialog>p{padding-left:11px;padding-right:11px}
 }
+
+/* Match Door Automation's offline wording controls. */
+.securityApp .secFault{flex-wrap:wrap}
+.securityApp .secFault .doorWordingButton,
+.securityApp .doorWordingButton{flex:none;width:auto;min-height:36px;height:auto;padding:5px 8px;font-size:11px;line-height:1.3}
