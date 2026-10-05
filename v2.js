@@ -594,6 +594,32 @@ const doorDrawingTools=ServiceDrawingTools.create({
  message:notice,
  activateDrawing:()=>goView('drawing')
 });
+let doorMarkersVisible=true;
+function doorMarkerIcon(hidden=false){
+ return hidden
+  ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9 5 9 5a16.7 16.7 0 0 1-2.2 2.7"/><path d="M6.6 6.6C4.3 8 3 10 3 10s3.5 5 9 5c1 0 2-.2 2.9-.5"/></svg>'
+  : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+}
+function setDoorMarkersVisible(visible){
+ doorMarkersVisible=visible!==false;
+ document.body.classList.toggle('doorMarkersHidden',!doorMarkersVisible);
+ const button=$('toggleDoorMarkers');
+ if(button){
+  button.innerHTML=doorMarkerIcon(!doorMarkersVisible);
+  button.title=doorMarkersVisible?'Dölj dörrmarkeringar':'Visa dörrmarkeringar';
+  button.setAttribute('aria-label',button.title);
+  button.setAttribute('aria-pressed',doorMarkersVisible?'false':'true');
+  button.classList.toggle('markersHidden',!doorMarkersVisible);
+ }
+}
+window.setDoorMarkersVisible=setDoorMarkersVisible;
+(function installDoorMarkerToggle(){
+ const center=document.querySelector('.sessionHistoryCenter');if(!center||$('toggleDoorMarkers'))return;
+ const button=document.createElement('button');button.id='toggleDoorMarkers';button.type='button';button.className='doorMarkerToggle';
+ button.onclick=()=>setDoorMarkersVisible(!doorMarkersVisible);
+ const add=center.querySelector('.historyAddButton');add?center.insertBefore(button,add):center.appendChild(button);
+ setDoorMarkersVisible(true);
+})();
 const drawBeforeDrawingTools=draw;
 draw=function(){drawBeforeDrawingTools();doorDrawingTools?.render(page,pageWidth,pageHeight)};
 
