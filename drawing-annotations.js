@@ -152,6 +152,11 @@ function create(cfg){
   }
   updateMenu();
  }
+ stage.addEventListener('pointerdown',e=>{
+  if(mode||activeTextEditor||!selected)return;
+  if(e.target.closest?.('.drawHit,.drawDoorHit,.drawHandle,.drawTextHit,.serviceInlineTextEditor'))return;
+  selected=null;render(page,w,h);updateMenu();
+ });
  svg.addEventListener('pointerdown',e=>{
   if(!mode||e.button!==0)return;e.preventDefault();e.stopPropagation();
   const r=svg.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1);
