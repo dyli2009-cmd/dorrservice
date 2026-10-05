@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Säkerhetsservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.79">
-<link rel="stylesheet" href="security.css?v=2.4.79">
+<link rel="stylesheet" href="style.css?v=2.4.80">
+<link rel="stylesheet" href="security.css?v=2.4.80">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Säkerhetsservice</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.79">v2.4.79</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">Inbrott · Lås &amp; dörrmiljö · Passer</small><small class="appVersion" aria-label="Webbversion 2.4.80">v2.4.80</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span class="objectTitle"><span id="securityObject">Välj en ritning</span><small>Öppna en ritning eller en tidigare arbets-PDF.</small></span><span id="securityCount">0 objekt</span></div>
@@ -47,21 +47,25 @@
 </section>
 
 <aside id="securityProtocol" class="view">
-  <div class="sheetHead"><div><span class="eyebrow" id="secProtocolType">PROTOKOLL</span><h2 id="secProtocolTitle">Välj ett objekt</h2></div><div class="protocolHeadActions"><button id="secProtocolTextSmaller" type="button" aria-label="Mindre text i protokollet">A−</button><button id="secProtocolTextLarger" type="button" aria-label="Större text i protokollet">A+</button><button id="secCloseProtocol">×</button></div></div>
+  <div class="compactProtocolTitle"><h2 id="secProtocolTitle">Säkerhetsprotokoll</h2></div>
   <div id="secNoSelection"><p>Välj en markering på ritningen eller i översikten.</p></div>
   <div id="secForm" hidden>
-    <div class="doorDetails securityDetails simpleDoorDetails"><div class="compactSecurityMeta compactDoorMeta">
-      <label class="secNumberField doorSerialField">Nummer<input id="secNumber" readonly></label>
-      <label class="secIdField doorIdField">ID / märkning<input id="secId"></label>
-      <label class="secLocationField doorLocationField">Placering / Dörrlittra<input id="secLocation"></label>
-    </div></div>
+    <details class="protocolMetaPanel" open><summary><span>Objektuppgifter</span><span class="protocolMetaHint">Visa / dölj</span></summary>
+      <div class="doorDetails securityDetails simpleDoorDetails"><div class="compactSecurityMeta compactDoorMeta">
+        <label class="secTypeField">Typ<input id="secType" readonly></label>
+        <label class="secNumberField doorSerialField">Nummer<input id="secNumber" readonly></label>
+        <label class="secIdField doorIdField">ID / märkning<input id="secId"></label>
+        <label class="secLocationField doorLocationField">Placering / Dörrlittra<input id="secLocation"></label>
+        <label class="doorStatusField">Slutbedömning<select id="secStatus"><option value="untested">Pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label>
+        <label class="doorSignatureField">Teknikerns signatur<input id="secProtocolSignature" readonly placeholder="Projekt"></label>
+        <button id="secDelete" class="danger compactDeleteButton">Ta bort objekt</button>
+      </div></div>
+    </details>
     <details id="secPreviousPanel" class="previousPanel" hidden><summary>Tidigare service / anmärkningar</summary><div id="secPreviousIssues"></div><p>Kontrollera objektet på nytt och fyll i dagens resultat.</p></details>
     <div class="progressLine"><strong id="secProgress"></strong></div>
-    <div class="doorCheckActions secProgressActions"><button id="secApproveAll" class="approveAll">✓ Godkänn alla</button><button id="secEditChecks" class="doorEditChecks">Redigera kontrollpunkter</button><button id="secAddCheck" class="doorAddCheck">＋ Egen kontrollpunkt</button></div>
+    <div class="doorCheckActions secProgressActions"><button id="secApproveAll" class="approveAll">✓ Godkänn alla</button><button id="secEditChecks" class="doorEditChecks">Redigera kontrollpunkter</button><button id="secAddCheck" class="doorAddCheck">＋ Egen kontrollpunkt</button><button id="secProtocolTextSmaller" type="button" class="protocolInlineAction" aria-label="Mindre text i protokollet">A−</button><button id="secProtocolTextLarger" type="button" class="protocolInlineAction" aria-label="Större text i protokollet">A+</button><button id="secCloseProtocol" type="button" class="protocolInlineAction" aria-label="Till ritningen">×</button></div>
     <div id="secChecklist"></div>
-    <label>Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
-    <label>Slutbedömning<select id="secStatus"><option value="untested">Ej kontrollerad / pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label><p class="muted">Status räknas automatiskt från kontrollpunkterna. Välj “Ej godkänd” manuellt när objektet ska underkännas.</p>
-    <button id="secDelete" class="danger">Ta bort objekt</button>
+    <label class="protocolNotes">Allmän anmärkning<textarea id="secNotes" rows="3"></textarea></label>
   </div>
 </aside>
 
@@ -74,8 +78,8 @@
 </dialog>
 
 <dialog id="secOpenWorkDialog" class="secOpenWorkDialog">
-  <div class="secOpenWorkHead"><strong>Sparad Säkerhetsservice-fil</strong><span>Vad vill du göra?</span></div>
-  <p id="secOpenWorkMeta">Arbetsfilen innehåller tidigare serviceuppgifter.</p>
+  <div class="secOpenWorkHead"><strong>Sparad servicefil hittad</strong></div>
+  <p id="secOpenWorkMeta">Den här filen innehåller tidigare serviceuppgifter.</p>
   <div class="secOpenWorkActions">
     <button id="secOpenNewService" type="button" class="primary">Ny service</button>
     <button id="secOpenContinue" type="button">Fortsätt / ändra</button>
@@ -140,8 +144,8 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="drawing-annotations.js?v=2.4.79"></script>
-<script src="session-history.js?v=2.4.79"></script>
-<script src="security.js?v=2.4.79"></script>
-<script src="drawing-transfer.js?v=2.4.79"></script>
+<script src="drawing-annotations.js?v=2.4.80"></script>
+<script src="session-history.js?v=2.4.80"></script>
+<script src="security.js?v=2.4.80"></script>
+<script src="drawing-transfer.js?v=2.4.80"></script>
 </body></html>
