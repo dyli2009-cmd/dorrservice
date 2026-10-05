@@ -563,8 +563,8 @@ function reportDoc(){
  const field=(label,value,x,yy,w,signature=false)=>{doc.setFillColor(248,248,248);doc.setDrawColor(185,185,185);doc.setLineWidth(.22);doc.rect(x,yy,w,13,'FD');txt(label,x+2,yy+4,6.6,true,[82,82,82]);doc.setFont('helvetica',signature?'italic':'normal');doc.setFontSize(signature?8.8:8.2);doc.setTextColor(...(signature?[70,125,165]:[25,25,25]));doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.8,{lineHeightFactor:1.05})};
  field('ANLÄGGNING',project.projectName||project.facilityNo,left,y,70);
  field('ANLÄGGNINGSNUMMER',project.facilityNo,left+70,y,50);
- field('BESTÄLLARE',project.customer,left+120,y,66);y+=15;
- field('DATUM',project.date,left,y,42);field('ORDER',project.order,left+42,y,44);field('TEKNIKER',project.technician||project.company,left+86,y,52);field('SIGNATUR',project.signature,left+138,y,48,true);y+=17;
+ field('ORDER',project.order,left+120,y,66);y+=15;
+ field('DATUM',project.date,left,y,42);field('NÄSTA PROVNING',project.nextDate,left+42,y,48);field('BESTÄLLARE',project.customer,left+90,y,48);field('SERVICEFÖRETAG',project.company,left+138,y,48);y+=17;
  const open=items.filter(o=>statusOf(o)==='action').length,failed=items.filter(o=>statusOf(o)==='fail').length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=items.filter(o=>statusOf(o)==='untested').length;
  const stats=[['TOTALT',items.length,'Alla objekt'],['KLARA',ready,'Godkända'],['ÅTGÄRDADE',done,'Klarmarkerade'],['ÖPPNA FEL',open,'Åtgärd krävs'],['EJ GODKÄNDA',failed,'Underkända'],['EJ KONTROLL.',untested,'Ej kontrollerade']];
  const boxW=width/6;
@@ -622,12 +622,13 @@ function reportDoc(){
   txt('CHECKLISTA REVISION AV '+SYSTEMS[o.type].label,left+58+(width-58)/2,18.7,9.4,true,[25,25,25],{align:'center'});
   if(continuation){txt('fortsättning',left+58+(width-58)/2,23,6,false,[70,70,70],{align:'center'});y=31;cell('Objekt:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=12;return}
   txt('SERVICE',left+1.5,34.5,8.2,true,[25,25,25]);y=39;
-  cell('Bokat datum:',project.date,left,y,62);cell('Nästa provning:',project.nextDate,left+62,y,62);cell('AO / Order:',project.order,left+124,y,62);y+=7;
-  cell('ANLÄGGNING:',project.projectName,left,y,70,7,true);cell('Anläggningsnr:',project.facilityNo,left+70,y,46,7,true);cell('BESTÄLLARE:',project.customer,left+116,y,70,7,true);y+=7;
-  cell('Serviceföretag:',project.company,left,y,93);cell('Kontaktperson:',project.contact||project.companyContact,left+93,y,93);y+=7;
-  cell('Telefon:',project.companyPhone,left,y,62);cell('Kundtelefon:',project.phone,left+62,y,62);cell('Avtal:',project.agreement,left+124,y,62);y+=7;
-  cell('Adress:',[project.address,project.postalCode,project.postalCity].filter(Boolean).join(' '),left,y,124);cell('Tekniker:',project.technician,left+124,y,62);y+=7;
-  cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('Signatur:',project.signature,left+120,y,66,8,false,true);y+=8;
+  cell('Bokat datum:',project.date,left,y,93);cell('Nästa provning:',project.nextDate,left+93,y,93);y+=7;
+  cell('ANLÄGGNING:',project.projectName,left,y,93,7,true);cell('Anläggningsnr:',project.facilityNo,left+93,y,93,7,true);y+=7;
+  cell('SERVICEFÖRETAG:',project.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',project.customer,left+93,y,93,7,true);y+=7;
+  cell('Kontaktman på objektet:',project.companyContact,left,y,93);cell('Kontaktperson:',project.contact,left+93,y,93);y+=7;
+  cell('Telefon:',project.companyPhone,left,y,93);cell('Telefon:',project.phone,left+93,y,93);y+=7;
+  cell('Adress:',[project.companyAddress,project.companyPostalCode,project.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Adress:',[project.address,project.postalCode,project.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+  cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('AO / Order:',project.order,left+120,y,66,8,true);y+=8;
  }
  function checkHeader(){
   const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
@@ -646,7 +647,7 @@ function reportDoc(){
     else if(i===2&&check.result==='na'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(45,45,45);doc.setLineWidth(.8);doc.line(cx-3,cy,cx+3,cy)}
     else if(i===3&&check.result==='ok'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.4,cy-.1,cx-.8,cy+1.45);doc.line(cx-.8,cy+1.45,cx+2.4,cy-1.75)}
     else if(i===4&&check.result==='remark'){const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.1,cy-2.1,cx+2.1,cy+2.1);doc.line(cx+2.1,cy-2.1,cx-2.1,cy+2.1)}
-    else if(i===5&&String(v||'')){doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(70,125,165);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
+    else if(i===5&&String(v||'')){doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(60,60,60);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
     else{doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.2);doc.setTextColor(25,25,25);doc.text(String(v||''),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
     x+=ws[i];
    });y+=rowH;
