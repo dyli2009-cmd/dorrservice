@@ -1133,10 +1133,7 @@ body.precisionMode .precisionButton{
  border-color:#173f55!important;
  color:#fff!important;
 }
-body.precisionMode .doorTarget,
-body.precisionMode .marker{
- box-shadow:0 0 0 3px rgba(23,63,85,.16),0 2px 5px #0005;
-}
+body.precisionMode .precisionPointGrab.selectedPrecision{filter:drop-shadow(0 2px 3px #173f5530)}
 @media(max-width:800px){
  .precisionButton{font-size:9.5px!important;min-height:30px!important;padding:3px 7px!important}
 }
@@ -1148,7 +1145,7 @@ body.precisionMode .marker{
  padding:0;border:0;background:transparent!important;box-shadow:none!important;border-radius:0;
  transform:translate(-50%,0);touch-action:none;overflow:visible;
 }
-body.precisionMode .precisionPointGrab{display:block}
+body.precisionMode .precisionPointGrab.selectedPrecision{display:block}
 .precisionPointGrab::before{
  content:"";position:absolute;left:50%;top:3px;bottom:19px;border-left:1.5px dashed #173f55;
  opacity:.42;transform:translateX(-50%);pointer-events:none;
@@ -1161,5 +1158,4 @@ body.precisionMode .precisionPointGrab{display:block}
 .precisionPointGrab.precisionGrabUp{transform:translate(-50%,-100%)}
 .precisionPointGrab.precisionGrabUp::after{top:2px;bottom:auto}
 .precisionPointGrab.precisionGrabUp::before{top:19px;bottom:3px}
-body.precisionMode .doorTarget::before{box-shadow:0 0 0 2px #173f5522}
-body.precisionMode .secTarget{outline:2px solid #173f5533;outline-offset:4px}
+
