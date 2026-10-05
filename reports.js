@@ -70,6 +70,10 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     doc.text(doc.splitTextToSize(String(value),Math.max(5,w-labelW-3)).slice(0,1),x+1.5+labelW,yy+h/2+1);
    }
   }
+  function pdfCheckmark(cx,cy,size=8){
+   doc.setFont('zapfdingbats','normal');doc.setFontSize(size);doc.setTextColor(20,20,20);
+   doc.text(String.fromCharCode(51),cx,cy+size*.12,{align:'center'});
+  }
   function backToDrawingButton(){
    const bx=188,by=19.1,bw=8,bh=5.8;
    doc.setFillColor(19,43,56);doc.setDrawColor(19,43,56);doc.setLineWidth(.18);doc.rect(bx,by,bw,bh,'FD');
@@ -87,9 +91,10 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    cell('Bokat datum:',p.inspectionDate,left,y,93);cell('Nästa provning:',p.projectNextDate,left+93,y,93);y+=7;
    cell('ANLÄGGNING:',p.projectName,left,y,93,7,true);cell('Anläggningsnr:',p.facilityNo,left+93,y,93,7,true);y+=7;
    cell('SERVICEFÖRETAG:',p.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',p.customer,left+93,y,93,7,true);y+=7;
-   cell('Kontaktman på objektet:',p.companyContact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
+   cell('Kontaktperson på objektet:',p.companyContact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
    cell('Telefon:',p.companyPhone,left,y,93);cell('Telefon:',p.phone,left+93,y,93);y+=7;
-   cell('Adress:',[p.companyAddress,p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Adress:',[p.address,p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+   cell('Adress:',p.companyAddress,left,y,93);cell('Adress:',p.address,left+93,y,93);y+=7;
+   cell('Postnummer / Ort:',[p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Ort:',[p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
    cell('ID / märkning:',d.id,left,y,54,8,true);cell('Placering:',d.location,left+54,y,66,8);cell('AO / Order:',p.projectOrder,left+120,y,66,8,true);y+=8;
   }
   function checkHeader(){
@@ -103,7 +108,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    });y+=10;
   }
   doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();backToDrawingButton();protocolTop();checkHeader();
-  const ws=[9,91,16,24,28,18],checks=doorChecks(d),notesReserve=31,rowH=Math.max(6.15,Math.min(7.25,(270-y-notesReserve)/Math.max(1,checks.length)));
+  const ws=[9,91,16,24,28,18],checks=doorChecks(d),notesReserve=29,rowH=Math.max(5.95,Math.min(7.1,(270-y-notesReserve)/Math.max(1,checks.length)));
   checks.forEach(([n,title])=>{
    const c=d.checks[n]||{},titleSize=rowH<6.7?5.7:6.15,step=rowH<6.7?2.05:2.25;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);
    const titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.8).slice(0,2);let x=left;
@@ -115,11 +120,11 @@ function buildServiceReportDoc(snapshot,includeProtocols){
     }else if(i===2&&c.result==='na'){
       const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(45,45,45);doc.setLineWidth(.8);doc.line(cx-3,cy,cx+3,cy);
     }else if(i===3&&c.result==='ok'){
-      const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.4,cy-.1,cx-.8,cy+1.45);doc.line(cx-.8,cy+1.45,cx+2.4,cy-1.75);
+      const cx=x+ws[i]/2,cy=y+rowH/2;pdfCheckmark(cx,cy,8.2);
     }else if(i===4&&c.result==='remark'){
       const cx=x+ws[i]/2,cy=y+rowH/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.7);doc.line(cx-2.1,cy-2.1,cx+2.1,cy+2.1);doc.line(cx+2.1,cy-2.1,cx-2.1,cy+2.1);
     }else if(i===5&&String(v||'')){
-      doc.setFont('helvetica','italic');doc.setFontSize(6.5);doc.setTextColor(60,60,60);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1,{align:'center'});
+      doc.setFont('times','italic');doc.setFontSize(7.2);doc.setTextColor(55,112,165);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1.15,{align:'center'});
     }else{
       doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.2);doc.setTextColor(25,25,25);doc.text(String(v||''),x+ws[i]/2,y+rowH/2+1,{align:'center'});
     }
