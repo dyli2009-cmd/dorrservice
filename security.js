@@ -151,12 +151,16 @@ function drawMarkers(){
  });
  markers.appendChild(svg);
  pageItems.forEach(o=>{
-  const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';
+  const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);
+  const grab=document.createElement('button');grab.type='button';grab.className='precisionPointGrab';grab.setAttribute('aria-label','Precisionsgrepp för '+o.id);grab.title='Precision – dra här med fingret så ser du träffpunkten';
   let targetDrag=null;
-  target.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold:markerDragThreshold(zoom)};target.setPointerCapture(e.pointerId)};
-  target.onpointermove=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();const fine=precisionMode&&e.pointerType==='touch'?.4:1;o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)*fine/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)*fine/r.height));target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
-  target.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag?.id===e.pointerId&&targetDrag.moved)save();targetDrag=null};
-  target.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY}targetDrag=null;drawMarkers()};markers.appendChild(target);
+  const syncTargetPosition=()=>{target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';grab.style.left=o.x*100+'%';grab.style.top=o.y*100+'%';grab.classList.toggle('precisionGrabUp',o.y>.72)};
+  const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null;targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold:markerDragThreshold(zoom),precision};try{node.setPointerCapture(e.pointerId)}catch(_){}};
+  const moveTargetDrag=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();if(targetDrag.precision){const p=window.ServicePrecisionPointer.point(e,targetDrag.precision);o.x=Math.max(0,Math.min(1,(p.x-r.left)/r.width));o.y=Math.max(0,Math.min(1,(p.y-r.top)/r.height))}else{o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height))}syncTargetPosition();const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
+  const endTargetDrag=e=>{suppressPageSwipeUntil=Date.now()+700;if(!targetDrag||targetDrag.id!==e.pointerId)return;window.ServicePrecisionPointer?.hide();if(targetDrag.moved)save();targetDrag=null};
+  const cancelTargetDrag=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY;syncTargetPosition()}targetDrag=null;drawMarkers()};
+  [target,grab].forEach(node=>{node.onpointerdown=e=>beginTargetDrag(e,node);node.onpointermove=moveTargetDrag;node.onpointerup=endTargetDrag;node.onpointercancel=cancelTargetDrag});
+  syncTargetPosition();markers.append(target,grab);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
  });
  // tag connector lines after targets are known
@@ -164,10 +168,10 @@ function drawMarkers(){
  pageItems.forEach(o=>{
   const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
-  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false,originalX:o.labelX,originalY:o.labelY,threshold:markerDragThreshold(zoom)};b.setPointerCapture(e.pointerId)};
-  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();const fine=precisionMode&&e.pointerType==='touch'?.4:1;o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)*fine/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)*fine/r.height));b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
-  b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
-  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
+  b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;const r=markers.getBoundingClientRect(),ax=r.left+o.labelX*r.width,ay=r.top+o.labelY*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false,originalX:o.labelX,originalY:o.labelY,threshold:markerDragThreshold(zoom),precision};b.setPointerCapture(e.pointerId)};
+  b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();if(drag.precision){const p=window.ServicePrecisionPointer.point(e,drag.precision);o.labelX=Math.max(.015,Math.min(.985,(p.x-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(p.y-r.top)/r.height))}else{o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)/r.height))}b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
+  b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
+  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
   b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;selected=o.uid;showSelected();go('protocol')};
   markers.appendChild(b)
  })
@@ -195,7 +199,7 @@ markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}i
 function setSecurityPrecisionMode(on){
  precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
  const b=$('secPrecision');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.title=precisionMode?'Precision på – tryck för att stänga av':'Precision';b.setAttribute('aria-label',b.title);if(!b.closest('.serviceToolsMenu'))b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
- if(precisionMode&&pdf){$('secHint').textContent='Precision på: dra punkt eller etikett längre med fingret. Den rör sig långsamt så du ser placeringen.';$('secHint').hidden=false}
+ if(precisionMode&&pdf){$('secHint').textContent='Precision på: dra i det lilla greppet en bit från pinnen. Pilspetsen visar exakt var träffpunkten hamnar.';$('secHint').hidden=false}
  else if(!addType&&!textMode)$('secHint').hidden=true;
 }
 $('secPrecision')&&($('secPrecision').onclick=()=>setSecurityPrecisionMode(!precisionMode));
