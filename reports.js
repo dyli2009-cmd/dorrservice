@@ -94,7 +94,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    cell('Kontaktperson på objektet:',p.companyContact,left,y,93);cell('Kontaktperson:',p.contact,left+93,y,93);y+=7;
    cell('Telefon:',p.companyPhone,left,y,93);cell('Telefon:',p.phone,left+93,y,93);y+=7;
    cell('Adress:',p.companyAddress,left,y,93);cell('Adress:',p.address,left+93,y,93);y+=7;
-   cell('Postnummer / Ort:',[p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Ort:',[p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+   cell('Postnummer / Postadress:',[p.companyPostalCode,p.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[p.postalCode,p.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
    cell('ID / märkning:',d.id,left,y,54,8,true);cell('Placering:',d.location,left+54,y,66,8);cell('AO / Order:',p.projectOrder,left+120,y,66,8,true);y+=8;
   }
   function checkHeader(){
