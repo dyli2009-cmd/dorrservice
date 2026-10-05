@@ -311,7 +311,7 @@ function startNewDoorService(requireConfirm=true){
 }
 $('newServiceBtn').onclick=()=>startNewDoorService(true);
 $('doorOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
-$('doorOpenContinue').onclick=()=>{$('doorOpenWorkDialog').close();goView('drawing');notice('Arbetsfilen är öppnad för fortsatt arbete/ändringar.')};
+$('doorOpenContinue').onclick=()=>{$('doorOpenWorkDialog').close();goView('drawing');notice('')};
 $('doorOpenNewService').onclick=()=>{if(startNewDoorService(false))$('doorOpenWorkDialog').close()};
 async function inspectWorkPdf(bytes){
  if(!window.PDFLib)throw new Error('PDF-biblioteket är inte tillgängligt. Ladda om appen med internetanslutning.');
