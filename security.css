@@ -1,5 +1,5 @@
 body.securityApp{--alarm:#8b5a2b;--lock:#176b93;--access:#6a4a9a}
-#securityMessage{flex:none;font-size:11px;padding:6px 12px;background:#e9f2f7;color:#426171}
+#securityMessage{flex:none;font-size:10px;padding:4px 10px;background:#e9f2f7;color:#426171}#securityMessage:empty{display:none}#securityMessage.error{display:block}
 #securityDrawing{padding:0;flex-direction:column;overflow:hidden}
 #secViewer{position:relative;flex:1;min-height:0;overflow:auto;background:#d8dfe3;touch-action:none}
 #secStage{position:relative;width:max-content;background:#fff;margin:auto}
@@ -7,8 +7,8 @@ body.securityApp{--alarm:#8b5a2b;--lock:#176b93;--access:#6a4a9a}
 #secMarkers{position:absolute;inset:0}
 #secEmpty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;color:#526774;background:#e7edf1}
 body.secHasPdf #secEmpty{display:none}
-.securityTools{display:flex;gap:6px;padding:7px;background:#fff;border-top:1px solid var(--line)}
-.securityTools button{flex:1;font-size:11px;padding:6px}
+.securityTools{display:flex;justify-content:center;gap:4px;padding:4px 6px;background:#fff;border-top:1px solid var(--line)}
+.securityTools button{flex:0 1 auto;min-height:32px;padding:3px 7px;font-size:9.5px}
 .secMarker{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;min-width:34px;min-height:34px;padding:0;border:2px solid #fff;border-radius:50%;color:#fff;font-size:10px;font-weight:800;box-shadow:0 2px 5px #0005;touch-action:none;overflow:hidden;background:var(--mc)}
 .secMarker.alarm,.secMarker.lock,.secMarker.access{--mc:#77858e}
 .secMarker.status-ok{--mc:#238354;background:#238354;box-shadow:0 2px 5px #0005}
@@ -27,7 +27,7 @@ body.secHasPdf #secEmpty{display:none}
 .securityLegend{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0 12px}.securityLegend span{padding:4px 7px;border-radius:12px;font-size:11px}.s-ok{background:#e5f4ea;color:#1d7047}.s-action{background:#fff2d8;color:#9b6200}.s-fail{background:#fce5e7;color:#a92f38}.s-untested{background:#ebf1f4;color:#617583}
 .secSummaryCard{border:1px solid var(--line);border-left:6px solid #77858e;border-radius:8px;background:#fff;padding:9px;margin:7px 0}.secSummaryCard.ok{border-left-color:#238354}.secSummaryCard.action{border-left-color:#c77c13}.secSummaryCard.fail{border-left-color:#bd3f46}.secSummaryCard.untested{border-left-color:#77858e}.secSummaryCard h3{margin:0 0 5px;font-size:14px}.secSummaryCard ul{margin:5px 0 0;padding-left:18px;font-size:12px}
 body[data-view=drawing] #securityDrawing{display:flex}body[data-view=protocol] #securityProtocol{display:block}body[data-view=project] #securityProject{display:block}
-@media(max-width:700px){.securityTools{overflow-x:auto}.securityTools button{flex:0 0 auto}.secChoices{grid-template-columns:1fr}.secMarker{font-size:9px}}
+@media(max-width:700px){.securityTools{overflow-x:auto;justify-content:flex-start;gap:3px;padding:3px 5px}.securityTools button{flex:0 0 auto;min-height:30px;padding:2px 6px;font-size:9px}.secChoices{grid-template-columns:1fr}.secMarker{font-size:9px}}
 #secViewer{cursor:grab}
 #secViewer.mousePanning{cursor:grabbing;user-select:none}
 body.secAdding #secViewer,body.secAdding #secMarkers{cursor:crosshair}
@@ -680,3 +680,7 @@ body.secTextAdding #secViewer{cursor:crosshair}
  body[data-protocol-size="3"] #securityProtocol #secNotes{font-size:14px;min-height:36px;height:auto}
 }
 
+
+
+/* Web 2.4.79: hide object actions until a drawing is loaded. */
+body.securityApp:not(.secHasPdf) .securityTools{display:none}
