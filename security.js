@@ -566,10 +566,17 @@ function reportDoc(){
  field('ORDER',project.order,left+120,y,66);y+=15;
  field('DATUM',project.date,left,y,42);field('NÄSTA PROVNING',project.nextDate,left+42,y,48);field('BESTÄLLARE',project.customer,left+90,y,48);field('SERVICEFÖRETAG',project.company,left+138,y,48);y+=17;
  const open=items.filter(o=>statusOf(o)==='action').length,failed=items.filter(o=>statusOf(o)==='fail').length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=items.filter(o=>statusOf(o)==='untested').length;
- const stats=[['TOTALT',items.length,'Alla objekt'],['KLARA',ready,'Godkända'],['ÅTGÄRDADE',done,'Klarmarkerade'],['ÖPPNA FEL',open,'Åtgärd krävs'],['EJ GODKÄNDA',failed,'Underkända'],['EJ KONTROLL.',untested,'Ej kontrollerade']];
+ const light={ok:[229,244,234],action:[255,242,216],fail:[252,229,231],untested:[235,241,244]};
+ const stats=[
+  ['TOTALT',items.length,'Alla objekt',[243,247,249],[45,69,82]],
+  ['KLARA',ready,'Godkända',light.ok,COLORS.ok],
+  ['ÅTGÄRDADE',done,'Klarmarkerade',light.ok,COLORS.ok],
+  ['ÖPPNA FEL',open,'Åtgärd krävs',light.action,COLORS.action],
+  ['EJ GODKÄNDA',failed,'Underkända',light.fail,COLORS.fail],
+  ['EJ KONTROLL.',untested,'Ej kontrollerade',light.untested,COLORS.untested]
+ ];
  const boxW=width/6;
- stats.forEach(([label,value,meaning],i)=>{const x=left+i*boxW,fill=i%2?[250,250,250]:[244,244,244];doc.setFillColor(...fill);doc.setDrawColor(150,150,150);doc.setLineWidth(.3);doc.rect(x,y,boxW,16,'FD');txt(label,x+boxW/2,y+4.6,6.5,true,[55,55,55],{align:'center'});txt(value,x+boxW/2,y+10.3,11.3,true,[15,15,15],{align:'center'});txt(meaning,x+boxW/2,y+14.1,5.2,false,[95,95,95],{align:'center'})});y+=18;
- txt('Åtgärdade anmärkningar ligger kvar som historik.',left,y,5.8,false,[89,110,123]);y+=5;
+ stats.forEach(([label,value,meaning,bg,fg],i)=>{const x=left+i*boxW;doc.setFillColor(...bg);doc.setDrawColor(185,195,201);doc.setLineWidth(.25);doc.rect(x,y,boxW,15.4,'FD');txt(label,x+boxW/2,y+4.25,6.25,true,[65,75,82],{align:'center'});txt(value,x+boxW/2,y+9.65,11.4,true,fg,{align:'center'});txt(meaning,x+boxW/2,y+13.55,5.8,true,fg,{align:'center'})});y+=17.2;
  const problemItems=items.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
  if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
  problemItems.forEach(o=>{
@@ -591,10 +598,11 @@ function reportDoc(){
    if(pageRoom<18||maxBody<1){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;maxBody=Math.max(1,Math.floor((bottom-y-fixedH-3)/3.15))}
    const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
    const cardH=Math.max(16,fixedH+chunk.length*3.15+3);
-   doc.setFillColor(250,250,250);doc.setDrawColor(165,165,165);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
-   doc.setFillColor(72,72,72);doc.rect(left,y,2.4,cardH,'F');
-   const badgeW=31;doc.setFillColor(232,232,232);doc.setDrawColor(145,145,145);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.2,1.2,'FD');
-   txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,[45,45,45],{align:'center'});
+   const stLight=st==='ok'?[229,244,234]:st==='action'?[255,242,216]:st==='fail'?[252,229,231]:[235,241,244];
+   doc.setFillColor(250,250,250);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
+   doc.setFillColor(...COLORS[st]);doc.rect(left,y,2.4,cardH,'F');
+   const badgeW=31;doc.setFillColor(...stLight);doc.setDrawColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.2,1.2,'FD');
+   txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,COLORS[st],{align:'center'});
    doc.setFont('helvetica','bold');doc.setFontSize(7.8);doc.setTextColor(26,48,61);
    const shownTitle=first?titleLines.slice(0,2):[o.id+' · forts.'];doc.text(shownTitle,left+7,y+5.4,{lineHeightFactor:1.05});
    const bodyY=y+6.6+shownTitle.length*3.5;
