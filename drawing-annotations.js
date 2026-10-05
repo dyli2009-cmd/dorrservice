@@ -36,15 +36,15 @@ function injectStyle(){
 .serviceDrawingOverlay .drawTextHit{fill:transparent;stroke:transparent}
 .serviceToolsWrap{position:relative;display:inline-flex;flex:none}
 .serviceToolLauncher,.serviceIconButton{display:inline-grid!important;place-items:center!important;padding:0!important}
-.serviceToolLauncher{width:38px!important;min-width:38px!important;height:36px!important;min-height:36px!important}
-.serviceToolLauncher svg,.serviceIconButton svg{width:21px;height:21px;display:block;pointer-events:none}
-.serviceIconButton .serviceDoorToolIcon{width:23px;height:23px;stroke-width:2.3}
+.serviceToolLauncher{width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important;border-radius:7px!important}
+.serviceToolLauncher svg,.serviceIconButton svg{width:18px;height:18px;display:block;pointer-events:none}
+.serviceIconButton .serviceDoorToolIcon{width:20px;height:20px;stroke-width:2.3}
 .serviceToolsMenu{position:absolute;right:0;left:auto;top:calc(100% + 5px);z-index:120;width:max-content;max-width:calc(100vw - 12px);padding:5px;background:#fff;border:1px solid #cbd9e1;border-radius:9px;box-shadow:0 8px 24px #0b253544;display:flex;flex-direction:column;gap:5px}
 .serviceToolsMenu[hidden]{display:none!important}
 .serviceToolChoices,.serviceToolsMenu .toolSelected{display:flex;align-items:center;gap:4px}
 .serviceToolsMenu .toolSelected{padding-top:5px;border-top:1px solid #e0e7eb}
 .serviceToolsMenu .toolSelected[hidden]{display:none!important}
-.serviceIconButton{width:38px!important;min-width:38px!important;height:38px!important;min-height:38px!important;border-radius:7px!important;background:#f8fafb!important;color:#173f55!important;border:1px solid #d5e0e6!important}
+.serviceIconButton{width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;border-radius:7px!important;background:#f8fafb!important;color:#173f55!important;border:1px solid #d5e0e6!important}
 .serviceIconButton:hover,.serviceIconButton:focus-visible{background:#eaf2f6!important;border-color:#aac3d0!important}
 .serviceIconButton:active{transform:translateY(1px)}
 .serviceIconButton.dangerTool{color:#a6292e!important;background:#fff6f5!important;border-color:#efceca!important}
@@ -55,10 +55,10 @@ function injectStyle(){
 .serviceInlineTextEditor{position:absolute;z-index:9;min-width:58px;max-width:min(260px,55%);height:29px;box-sizing:border-box;padding:2px 6px;border:2px solid #000;border-radius:4px;background:#fff;color:#000;font:600 16px system-ui,-apple-system,sans-serif;box-shadow:0 2px 8px #0b253522;outline:none;transform:translate(-4px,-55%);touch-action:manipulation;-webkit-text-size-adjust:100%}
 .serviceInlineTextEditor:focus{border-color:#0f719c;box-shadow:0 0 0 3px #1480ad22,0 4px 14px #0b253533}
 @media(max-width:520px){
- .serviceToolLauncher{width:36px!important;min-width:36px!important;height:36px!important}
+ .serviceToolLauncher{width:30px!important;min-width:30px!important;height:30px!important;min-height:30px!important}
  .serviceToolsMenu{position:absolute;right:0;left:auto;top:calc(100% + 4px);bottom:auto;width:max-content;max-width:calc(100vw - 10px);padding:4px;overflow:visible}
- .serviceIconButton{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important}
- .serviceToolLauncher svg,.serviceIconButton svg{width:20px;height:20px}
+ .serviceIconButton{width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important}
+ .serviceToolLauncher svg,.serviceIconButton svg{width:17px;height:17px}
 }
 `;document.head.appendChild(style);
 }
@@ -262,6 +262,7 @@ function create(cfg){
  }
  function attachToolbar(){
   const bar=document.querySelector('.sessionHistoryBar');if(!bar||toolBtn)return;
+  const target=bar.querySelector('.sessionHistoryCenter')||bar;
   const wrap=document.createElement('span');wrap.className='serviceToolsWrap';
   toolBtn=document.createElement('button');toolBtn.type='button';toolBtn.className='serviceToolLauncher';toolBtn.innerHTML=iconSvg('tools');toolBtn.title='Ritverktyg';toolBtn.setAttribute('aria-label','Ritverktyg');
   toolBtn.onclick=e=>{e.stopPropagation();if(mode){setMode(null);menu.hidden=true}else{menu.hidden=!menu.hidden;updateMenu()}};
@@ -279,7 +280,7 @@ function create(cfg){
    iconAction('delete','Ta bort',()=>{const s=current();if(!s)return;cfg.setItems?.(items().filter(x=>x.uid!==s.uid));selected=null;changed('Ritobjektet är borttaget.')},'dangerTool')
   );
   menu.appendChild(selectedBox);wrap.append(toolBtn,menu);
-  const status=bar.querySelector('span[role="status"]');status?bar.insertBefore(wrap,status):bar.appendChild(wrap);
+  target.appendChild(wrap);
   document.addEventListener('pointerdown',e=>{if(menu&&!menu.hidden&&!wrap.contains(e.target))menu.hidden=true});
  }
  function editSelected(fn){const s=current();if(!s)return;fn(s);changed()}
