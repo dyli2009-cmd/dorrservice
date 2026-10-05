@@ -28,7 +28,8 @@ window.installServiceHistory=function({scope,capture,restore,wrapSave,blocked}){
  const undo=document.createElement('button'),redo=document.createElement('button');
  undo.type=redo.type='button';undo.textContent='↶ Ångra';redo.textContent='↷ Gör om';
  const status=document.createElement('span');status.setAttribute('role','status');
- bar.append(undo,redo,status);document.querySelector('header.appHeader').insertAdjacentElement('afterend',bar);
+ const drawingButton=document.getElementById('changeDrawingBtn')||document.getElementById('secChangeDrawing');
+ bar.append(undo,redo);if(drawingButton)bar.appendChild(drawingButton);bar.appendChild(status);document.querySelector('header.appHeader').insertAdjacentElement('afterend',bar);
  let inputGroup=null;
  const history=ServiceSessionHistory({scope,capture,restore,changed:counts=>{undo.disabled=!counts.undo;redo.disabled=!counts.redo;undo.title=counts.undo+' ändringar att ångra';redo.title=counts.redo+' ändringar att göra om'}});
  document.addEventListener('input',event=>{
