@@ -749,3 +749,8 @@ body:not(.hasDrawing) #mobileAdd{display:none!important}
  .mobileSwipeHint{font-size:8px}
  #drawingView .drawingTools{display:none}
 }
+
+body:not(.hasDrawing) #doorCount{display:none}
+body.hasDrawing .objectTitle small{display:none}
+body.securityApp:not(.secHasPdf) #securityCount{display:none}
+body.securityApp.secHasPdf .objectTitle small{display:none}
