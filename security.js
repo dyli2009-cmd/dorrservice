@@ -636,11 +636,11 @@ function reportDoc(){
   doc.setFont('zapfdingbats','normal');doc.setFontSize(size);doc.setTextColor(20,20,20);
   doc.text(String.fromCharCode(51),cx,cy+size*.12,{align:'center'});
  }
- function pdfMinus(cx,cy,size=6){
-  const r=size/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.8);doc.setLineCap('round');doc.line(cx-r,cy,cx+r,cy);doc.setLineCap('butt');
+ function pdfMinus(cx,cy,size=3.2){
+  const r=size/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.55);doc.setLineCap('round');doc.line(cx-r,cy,cx+r,cy);doc.setLineCap('butt');
  }
- function pdfCross(cx,cy,size=6){
-  const r=size/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.8);doc.setLineCap('round');doc.line(cx-r,cy-r,cx+r,cy+r);doc.line(cx+r,cy-r,cx-r,cy+r);doc.setLineCap('butt');
+ function pdfCross(cx,cy,size=3.2){
+  const r=size/2;doc.setDrawColor(20,20,20);doc.setLineWidth(.55);doc.setLineCap('round');doc.line(cx-r,cy-r,cx+r,cy+r);doc.line(cx+r,cy-r,cx-r,cy+r);doc.setLineCap('butt');
  }
  function backButton(o){
   const bx=188,by=19.1,bw=8,bh=5.8;doc.setFillColor(19,43,56);doc.setDrawColor(19,43,56);doc.rect(bx,by,bw,bh,'FD');
@@ -676,9 +676,9 @@ function reportDoc(){
    vals.forEach((v,i)=>{
     doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(x,y,ws[i],rowH,'FD');
     if(i===1){doc.setFont('helvetica','normal');doc.setFontSize(titleSize);doc.setTextColor(25,25,25);const startY=y+rowH/2-((titleLines.length-1)*step)/2+.7;doc.text(titleLines,x+1.7,startY,{lineHeightFactor:1})}
-    else if(i===2&&check.result==='na'){const cx=x+ws[i]/2,cy=y+rowH/2;pdfMinus(cx,cy,6)}
+    else if(i===2&&check.result==='na'){const cx=x+ws[i]/2,cy=y+rowH/2;pdfMinus(cx,cy,3.2)}
     else if(i===3&&check.result==='ok'){const cx=x+ws[i]/2,cy=y+rowH/2;pdfCheckmark(cx,cy,8.2)}
-    else if(i===4&&check.result==='remark'){const cx=x+ws[i]/2,cy=y+rowH/2;pdfCross(cx,cy,6)}
+    else if(i===4&&check.result==='remark'){const cx=x+ws[i]/2,cy=y+rowH/2;pdfCross(cx,cy,3.2)}
     else if(i===5&&String(v||'')){doc.setFont('times','italic');doc.setFontSize(7.2);doc.setTextColor(55,112,165);doc.text(doc.splitTextToSize(String(v),ws[i]-2.5).slice(0,1),x+ws[i]/2,y+rowH/2+1.15,{align:'center'})}
     else{doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(6.2);doc.setTextColor(25,25,25);doc.text(String(v||''),x+ws[i]/2,y+rowH/2+1,{align:'center'})}
     x+=ws[i];
