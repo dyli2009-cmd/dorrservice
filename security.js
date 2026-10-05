@@ -194,7 +194,7 @@ markers.addEventListener('pointercancel',()=>{textPointerStart=null});
 markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(!addType)return;createItem(addType,x,y)}
 document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);textMode=false;document.body.classList.remove('secTextAdding');addType=b.dataset.add;document.body.classList.add('secAdding');$('secHint').textContent='Tryck där '+SYSTEMS[addType].label+' ska markeras. Nyp för att zooma.';$('secHint').hidden=false;go('drawing')});
 $('secAddText').onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);addType=null;textMode=!textMode;document.body.classList.remove('secAdding');document.body.classList.toggle('secTextAdding',textMode);$('secAddText').classList.toggle('primary',textMode);$('secHint').textContent=textMode?'TEXTLÄGE: Tryck en gång på ritningen där pilen ska peka.':'Textläget avstängt.';$('secHint').hidden=!textMode;go('drawing')};
-function render(fit=false,focus=null){
+function render(fit=false,focus=null,anchor=null){
  if(!pdf)return Promise.resolve();const version=++renderVersion,documentPdf=pdf,pageNumber=page;
  if(renderTask)renderTask.cancel();
  renderQueue=renderQueue.catch(()=>{}).then(async()=>{
@@ -221,7 +221,14 @@ function render(fit=false,focus=null){
   $('secStage').style.setProperty('--security-note-font',Math.max(7,10*drawingUiScale).toFixed(1)+'px');
   $('secStage').style.setProperty('--security-note-max',Math.max(100,180*drawingUiScale).toFixed(0)+'px');
   $('secPage').textContent='Sida '+pageNumber+' / '+documentPdf.numPages;$('secZoom').textContent=Math.round(zoom*100)+'%';drawMarkers();
-  if(focus&&oldW>0&&oldH>0){viewer.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;viewer.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y}
+  if(anchor&&focus){
+   const stage=$('secStage'),left=stage.offsetLeft||0,top=stage.offsetTop||0;
+   viewer.scrollLeft=left+anchor.x*pageWidth-focus.x;
+   viewer.scrollTop=top+anchor.y*pageHeight-focus.y;
+  }else if(focus&&oldW>0&&oldH>0){
+   viewer.scrollLeft=(oldSL+focus.x)/oldW*pageWidth-focus.x;
+   viewer.scrollTop=(oldST+focus.y)/oldH*pageHeight-focus.y;
+  }
   return true;
  }).catch(error=>{if(error.name!=='RenderingCancelledException'&&version===renderVersion)msg('Kunde inte visa sidan. Prova Passa eller välj en annan sida.',true);return false});
  return renderQueue;
@@ -261,28 +268,48 @@ viewer.addEventListener('pointerup',endMousePan);
 viewer.addEventListener('pointercancel',endMousePan);
 viewer.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;viewer.classList.remove('mousePanning')}});
 
+function beginSecurityPinch(e){
+ const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect(),stage=$('secStage');
+ const focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
+ const anchor={
+  x:Math.max(0,Math.min(1,(viewer.scrollLeft+focus.x-(stage.offsetLeft||0))/Math.max(1,pageWidth))),
+  y:Math.max(0,Math.min(1,(viewer.scrollTop+focus.y-(stage.offsetTop||0))/Math.max(1,pageHeight)))
+ };
+ pinch={
+  dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),
+  zoom,focus,currentFocus:focus,anchor,targetZoom:zoom,
+  stageLeft:stage.offsetLeft||0,stageTop:stage.offsetTop||0
+ };
+ panTouch=null;visualZoom=1;stage.style.transformOrigin='0 0';viewer.classList.add('pinching');suppressPageSwipeUntil=Date.now()+900;
+}
+function commitSecurityPinch(p){
+ const target=Math.max(.5,Math.min(8,p.targetZoom||p.zoom)),focus=p.currentFocus||p.focus;
+ visualZoom=1;$('secStage').style.transform='';$('secStage').style.transformOrigin='0 0';viewer.classList.remove('pinching');
+ zoom=target;return render(false,focus,p.anchor);
+}
 viewer.addEventListener('touchstart',e=>{
+ if(e.touches.length===2){e.preventDefault();beginSecurityPinch(e);return}
  if(e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
- if(e.touches.length===2){
-  e.preventDefault();panTouch=null;const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect();
-  pinch={dist:Math.max(1,Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)),zoom,focus:{x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top}};
- }else if(e.touches.length===1&&!addType&&!textMode&&!e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){
+ if(e.touches.length===1&&!addType&&!textMode){
   const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:viewer.scrollLeft,top:viewer.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02};
  }
 },{passive:false});
 viewer.addEventListener('touchmove',e=>{
- if(e.touches.length===2&&pinch){
-  e.preventDefault();const a=e.touches[0],b=e.touches[1];
-  visualZoom=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist))/pinch.zoom;
-  $('secStage').style.transform='scale('+visualZoom+')';
-  $('secStage').style.transformOrigin=(viewer.scrollLeft+pinch.focus.x)+'px '+(viewer.scrollTop+pinch.focus.y)+'px';
-  $('secZoom').textContent=Math.round(pinch.zoom*visualZoom*100)+'%';
- }else if(e.touches.length===1&&panTouch&&!addType&&!pinch){
+ if(e.touches.length===2){
+  e.preventDefault();if(!pinch){beginSecurityPinch(e);return}
+  const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect(),focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
+  const target=Math.max(.5,Math.min(8,pinch.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinch.dist));
+  visualZoom=target/pinch.zoom;pinch.targetZoom=target;pinch.currentFocus=focus;
+  const stage=$('secStage');stage.style.transformOrigin='0 0';stage.style.transform='scale('+visualZoom+')';
+  viewer.scrollLeft=pinch.stageLeft+pinch.anchor.x*pageWidth*visualZoom-focus.x;
+  viewer.scrollTop=pinch.stageTop+pinch.anchor.y*pageHeight*visualZoom-focus.y;
+  $('secZoom').textContent=Math.round(target*100)+'%';
+ }else if(e.touches.length===1&&panTouch&&!addType&&!textMode&&!pinch){
   e.preventDefault();const t=e.touches[0];viewer.scrollLeft=panTouch.left-(t.clientX-panTouch.x);viewer.scrollTop=panTouch.top-(t.clientY-panTouch.y);
  }
 },{passive:false});
 function endTouch(e){
- if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;setZoom(p.zoom*visualZoom,p.focus);return}
+ if(pinch&&e.touches.length<2){const p=pinch;pinch=null;panTouch=null;suppressPageSwipeUntil=Date.now()+500;commitSecurityPinch(p);return}
  if(e.touches.length===0&&panTouch){
   const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
   if(Date.now()<suppressPageSwipeUntil)return;
