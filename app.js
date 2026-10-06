@@ -122,7 +122,7 @@ function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return 
 async function stripLegacyReportPages(bytes){
  try{
   const scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;let cut=0;
-  for(let i=1;i<=scan.numPages;i++){const pg=await scan.getPage(i),tc=await pg.getTextContent(),txt=tc.items.map(x=>x.str).join(' ').toUpperCase();if(txt.includes('PROVNINGSPROTOKOLL')||txt.includes('ANMÄRKNINGSÖVERSIKT')){cut=i-1;break}}
+  for(let i=1;i<=scan.numPages;i++){const pg=await scan.getPage(i),tc=await pg.getTextContent(),txt=tc.items.map(x=>x.str).join(' ').toUpperCase();if(txt.includes('PROVNINGSPROTOKOLL')||txt.includes('ANMÄRKNINGSÖVERSIKT')||txt.includes('CHECKLISTA REVISION AV DÖRRAUTOMATIK')||txt.includes('ID NUMMERMASKIN')){cut=i-1;break}}
   await scan.destroy();if(!cut)return bytes;
   const src=await PDFLib.PDFDocument.load(bytes,{updateMetadata:false}),out=await PDFLib.PDFDocument.create(),pages=await out.copyPages(src,Array.from({length:cut},(_,i)=>i));pages.forEach(p=>out.addPage(p));return new Uint8Array(await out.save());
  }catch(e){return bytes}
@@ -162,7 +162,7 @@ $('file').onchange=async e=>{
     $('doorOpenWorkMeta').textContent=[project.projectName||project.facilityNo||f.name,doors.length+' dörrar',project.inspectionDate?'senaste service '+project.inspectionDate:''].filter(Boolean).join(' · ');
     $('doorOpenWorkDialog').showModal();notice('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
    }else{
-    const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ';notice(prefix+f.name+' – '+doors.length+' dörrar.'+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'));
+    const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ',importedCount=doors.length+importQueue.length;notice(prefix+f.name+' – '+(legacyImported?importedCount+' automatiker importerade, '+doors.length+' placerade.':doors.length+' dörrar.')+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'));
    }
   }
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
