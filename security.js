@@ -962,7 +962,7 @@ function reportDoc(){
  doc.__protocolPages={};doc.__backLinks=[];
  function txt(value,x,y,size=8,bold=false,color=[25,40,48],opts){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||''),x,y,opts||{})}
  function addLogo(x,y,w,h){if(!logoData)return;try{const im=doc.getImageProperties(logoData),pad=2.5,sc=Math.min((w-pad*2)/im.width,(h-pad*2)/im.height),iw=im.width*sc,ih=im.height*sc;doc.addImage(logoData,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(_){}}
- function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,10.6,true,[25,25,25],{align:'center'});txt((ALL_IN_ONE?'ALLT-I-ETT':'SÄKERHETSSERVICE')+' · KUNDRAPPORT',left+58+(width-58)/2,21.4,7.5,false,[70,82,90],{align:'center'})}
+ function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,10.6,true,[25,25,25],{align:'center'});txt('KUNDRAPPORT',left+58+(width-58)/2,21.4,7.5,false,[88,99,106],{align:'center'})}
  summaryHeader();let y=32;
  const field=(label,value,x,yy,w,signature=false)=>{doc.setFillColor(248,248,248);doc.setDrawColor(185,185,185);doc.setLineWidth(.22);doc.rect(x,yy,w,13,'FD');txt(label,x+2,yy+4,7.2,true,[82,82,82]);doc.setFont('helvetica',signature?'italic':'normal');doc.setFontSize(signature?9.6:9.0);doc.setTextColor(...(signature?[70,125,165]:[25,25,25]));doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.8,{lineHeightFactor:1.05})};
  field('ANLÄGGNING',project.projectName||project.facilityNo,left,y,70);
@@ -970,53 +970,101 @@ function reportDoc(){
  field('ORDER',project.order,left+120,y,66);y+=15;
  field('DATUM',project.date,left,y,42);field('NÄSTA PROVNING',project.nextDate,left+42,y,48);field('BESTÄLLARE',project.customer,left+90,y,48);field('SERVICEFÖRETAG',project.company,left+138,y,48);y+=17;
  const open=reportItems.filter(o=>statusOf(o)==='action').length,failed=reportItems.filter(o=>statusOf(o)==='fail').length,done=reportItems.filter(isSecurityRemediated).length,ready=reportItems.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=reportItems.filter(o=>statusOf(o)==='untested').length;
- const light={ok:[225,240,231],action:[255,240,213],fail:[251,227,227],untested:[232,237,240]};
+ const light={ok:[241,248,244],action:[255,249,238],fail:[252,242,242],untested:[246,248,249]};
+ const statInk=[49,63,71],statMuted=[103,115,122],neutralAccent=[65,88,101];
  const stats=[
-  ['TOTALT',reportItems.length,'Alla objekt',[243,247,249],[45,69,82]],
-  ['KLARA',ready,'Godkända',light.ok,COLORS.ok],
-  ['ÅTGÄRDADE',done,'Klarmarkerade',light.ok,COLORS.ok],
-  ['ÖPPNA FEL',open,'Åtgärd krävs',light.action,COLORS.action],
-  ['EJ GODKÄNDA',failed,'Underkända',light.fail,COLORS.fail],
-  ['EJ KONTROLL.',untested,'Ej kontrollerade',light.untested,COLORS.untested]
+  ['TOTALT',reportItems.length,'Alla objekt',neutralAccent],
+  ['KLARA',ready,'Godkända',COLORS.ok],
+  ['ÅTGÄRDADE',done,'Klarmarkerade',COLORS.ok],
+  ['ÖPPNA FEL',open,'Åtgärd krävs',COLORS.action],
+  ['EJ GODKÄNDA',failed,'Underkända',COLORS.fail],
+  ['EJ KONTROLL.',untested,'Ej kontrollerade',COLORS.untested]
  ];
- const boxW=width/6;
- stats.forEach(([label,value,meaning,bg,fg],i)=>{const x=left+i*boxW;doc.setFillColor(...bg);doc.setDrawColor(185,195,201);doc.setLineWidth(.25);doc.rect(x,y,boxW,17,'FD');txt(label,x+boxW/2,y+4.6,6.8,true,[65,75,82],{align:'center'});txt(value,x+boxW/2,y+10.7,12.5,true,fg,{align:'center'});txt(meaning,x+boxW/2,y+15.1,6.3,true,fg,{align:'center'})});y+=18.8;
- const problemItems=reportItems.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number);
- if(!problemItems.length){doc.setFillColor(235,244,239);doc.rect(left,y,width,16,'F');txt('Inga anmärkningar registrerade vid detta besök.',left+3,y+7,10,true,[29,112,71]);txt('Se protokollen för genomförda kontrollpunkter.',left+3,y+12,8);y+=20}
- problemItems.forEach(o=>{
-  const st=statusOf(o),statusLabel=isSecurityRemediated(o)?'Åtgärdad':st==='action'?'Åtgärd krävs':st==='fail'?'Ej godkänd':st==='untested'?'Ej färdigkontrollerad':'Godkänd';
-  const titleBase=securityDrawingLabel(o)+' · '+SYSTEMS[o.type].label+(o.location?' · '+o.location:'');
-  const issueText=issues(o),remediation=isSecurityRemediated(o)?'Åtgärdad: '+o.remediationDate+' · Signatur: '+o.remediationSignature:'';
-  const bodyParts=issueText.length?issueText.map(t=>'• '+t):[(st==='untested'?'• Ej färdigkontrollerad':'• '+statusLabel)];if(remediation)bodyParts.push('• '+remediation);const bodySource=bodyParts.join('\n');
-  doc.setFont('helvetica','bold');doc.setFontSize(8.6);
-  const titleLines=doc.splitTextToSize(titleBase,width-38);
-  doc.setFont('helvetica','normal');doc.setFontSize(7.2);
-  const bodyLines=doc.splitTextToSize(bodySource,width-18);
-  let bodyOffset=0,first=true;
-  do{
-   const pageRoom=bottom-y;
-   const titleCount=first?Math.min(2,titleLines.length):1;
-   const titleH=titleCount*3.9;
-   const fixedH=7.5+titleH;
-   let maxBody=Math.max(1,Math.floor((pageRoom-fixedH-3)/3.55));
-   if(pageRoom<18||maxBody<1){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32;maxBody=Math.max(1,Math.floor((bottom-y-fixedH-3)/3.15))}
-   const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
-   const cardH=Math.max(18,fixedH+chunk.length*3.55+3.5);
-   const stLight=light[st]||[243,247,249];
-   doc.setFillColor(255,255,255);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
-   
-   const badgeW=32;doc.setFillColor(...stLight);doc.setDrawColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,7,1.2,1.2,'FD');
-   txt(statusLabel,left+width-badgeW/2-3,y+7.7,6.4,true,COLORS[st],{align:'center'});
-   doc.setFont('helvetica','bold');doc.setFontSize(8.6);doc.setTextColor(26,48,61);
-   const shownTitle=first?titleLines.slice(0,2):[o.id+' · forts.'];doc.text(shownTitle,left+7,y+5.8,{lineHeightFactor:1.05});
-   const bodyY=y+7.2+shownTitle.length*3.9;
-   doc.setFont('helvetica','normal');doc.setFontSize(7.2);doc.setTextColor(32,52,64);
-   doc.text(chunk,left+7,bodyY,{lineHeightFactor:1.12,maxWidth:width-14});
-   y+=cardH+3;bodyOffset+=take;first=false;
-   if(bodyOffset<bodyLines.length&&y>bottom-16){doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT – forts.');y=32}
-  }while(bodyOffset<bodyLines.length);
+ const statGap=1.2,statW=(width-statGap*5)/6,statH=17;
+ stats.forEach(([label,value,meaning,accent],i)=>{
+  const x=left+i*(statW+statGap);
+  doc.setFillColor(255,255,255);doc.setDrawColor(213,219,223);doc.setLineWidth(.22);doc.roundedRect(x,y,statW,statH,1.2,1.2,'FD');
+  doc.setFillColor(...accent);doc.roundedRect(x,y,statW,1.15,.55,.55,'F');
+  txt(label,x+statW/2,y+5.0,5.7,true,statInk,{align:'center'});
+  txt(value,x+statW/2,y+10.9,12.0,true,accent,{align:'center'});
+  txt(meaning,x+statW/2,y+15.0,5.5,false,statMuted,{align:'center'});
+ });
+ y+=21.5;
+
+ const issueRows=[];
+ reportItems.filter(hasSecurityRecordedProblem).sort((a,b)=>securityPriority(a)-securityPriority(b)||a.type.localeCompare(b.type)||a.number-b.number).forEach(o=>{
+  const statusLabel=securityStatusText(o),objectName=isDoorAutomationItem(o)?('Dörrautomatik '+(o.serialNumber||o.number||1)):securityDrawingLabel(o);
+  const objectMeta=[isDoorAutomationItem(o)&&o.id!==objectName?o.id:'',o.location].filter(Boolean).join(' · ');
+  let added=false;
+  allChecks(o).forEach(([n,title])=>{
+   const check=o.checks?.[n];if(check?.result!=='remark')return;
+   issueRows.push({o,objectName,objectMeta,point:n+' '+title,remark:check.note?.trim()||'Avvikelse registrerad',statusLabel});added=true;
+  });
+  if(o.notes?.trim()){issueRows.push({o,objectName,objectMeta,point:'Allmän anmärkning',remark:o.notes.trim(),statusLabel});added=true}
+  if(!added&&o.status==='fail')issueRows.push({o,objectName,objectMeta,point:'Slutbedömning',remark:'Objekt ej godkänt.',statusLabel});
  });
 
+ function issueSectionTitle(continued=false){
+  txt(continued?'ANMÄRKNINGAR - forts.':'ANMÄRKNINGAR',left,y+4.4,8.4,true,[31,49,59]);
+  const countText=issueRows.length+' '+(issueRows.length===1?'anmärkning':'anmärkningar');
+  txt(countText,left+width,y+4.4,7,false,[102,113,120],{align:'right'});
+  y+=7;
+ }
+ function issueTableHeader(){
+  const ws=[10,41,59,49,27],titles=['NR','OBJEKT','BESKRIVNING','ANMÄRKNING','STATUS'];let x=left;
+  titles.forEach((t,i)=>{doc.setFillColor(246,247,248);doc.setDrawColor(205,211,215);doc.setLineWidth(.2);doc.rect(x,y,ws[i],8,'FD');txt(t,i===0||i===4?x+ws[i]/2:x+2,y+5.1,6.4,true,[74,84,90],i===0||i===4?{align:'center'}:undefined);x+=ws[i]});
+  y+=8;
+ }
+ function newIssuePage(){
+  doc.addPage();summaryHeader('ANMÄRKNINGSÖVERSIKT - forts.');y=32;issueSectionTitle(true);issueTableHeader();
+ }
+ issueSectionTitle(false);issueTableHeader();
+
+ if(!issueRows.length){
+  doc.setFillColor(255,255,255);doc.setDrawColor(214,221,224);doc.setLineWidth(.22);doc.roundedRect(left,y,width,14,1.2,1.2,'FD');
+  txt('Inga anmärkningar registrerade vid detta besök.',left+4,y+8.6,9,true,COLORS.ok);
+  y+=18;
+ }else{
+  const ws=[10,41,59,49,27];
+  issueRows.forEach((row,rowIndex)=>{
+   const st=statusOf(row.o),accent=COLORS[st]||COLORS.untested,statusBg=light[st]||light.untested;
+   doc.setFont('helvetica','bold');doc.setFontSize(7.2);
+   const objectLines=doc.splitTextToSize(row.objectName,ws[1]-5).slice(0,2);
+   doc.setFont('helvetica','normal');doc.setFontSize(6.2);
+   const metaLines=row.objectMeta?doc.splitTextToSize(row.objectMeta,ws[1]-5).slice(0,2):[];
+   doc.setFont('helvetica','normal');doc.setFontSize(7.0);
+   const pointLines=doc.splitTextToSize(row.point,ws[2]-5).slice(0,3);
+   const remarkLines=doc.splitTextToSize(row.remark,ws[3]-5).slice(0,4);
+   const lines=Math.max(1,objectLines.length+metaLines.length,pointLines.length,remarkLines.length);
+   const rowH=Math.max(14,6+lines*3.4);
+   if(y+rowH>bottom-5)newIssuePage();
+
+   doc.setFillColor(255,255,255);doc.setDrawColor(218,223,226);doc.setLineWidth(.18);doc.rect(left,y,width,rowH,'FD');
+   doc.setFillColor(...accent);doc.rect(left,y,1.15,rowH,'F');
+
+   let x=left;
+   doc.setDrawColor(226,230,232);
+   for(let i=0;i<ws.length;i++){if(i>0)doc.line(x,y,x,y+rowH);x+=ws[i]}
+
+   txt(String(rowIndex+1).padStart(2,'0'),left+ws[0]/2,y+7.1,7,true,[74,84,90],{align:'center'});
+
+   let ox=left+ws[0]+2.5;
+   doc.setFont('helvetica','bold');doc.setFontSize(7.3);doc.setTextColor(31,49,59);doc.text(objectLines,ox,y+5.2,{lineHeightFactor:1.05});
+   if(metaLines.length){doc.setFont('helvetica','normal');doc.setFontSize(5.9);doc.setTextColor(110,120,126);doc.text(metaLines,ox,y+5.2+objectLines.length*3.45,{lineHeightFactor:1.05})}
+
+   const px=left+ws[0]+ws[1]+2.5;
+   doc.setFont('helvetica','normal');doc.setFontSize(7.0);doc.setTextColor(34,47,54);doc.text(pointLines,px,y+5.2,{lineHeightFactor:1.08});
+
+   const rx=left+ws[0]+ws[1]+ws[2]+2.5;
+   doc.setFont('helvetica','normal');doc.setFontSize(7.0);doc.setTextColor(34,47,54);doc.text(remarkLines,rx,y+5.2,{lineHeightFactor:1.08});
+
+   const sx=left+ws[0]+ws[1]+ws[2]+ws[3],sw=ws[4];
+   doc.setFillColor(...statusBg);doc.roundedRect(sx+2.5,y+3.2,sw-5,7.2,1.2,1.2,'F');
+   txt(row.statusLabel,sx+sw/2,y+7.8,5.8,true,accent,{align:'center'});
+   y+=rowH;
+  });
+  y+=3;
+ }
  function cell(label,value,x,yy,w,h=7,bold=false,signature=false){
   doc.setFillColor(252,252,252);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,yy,w,h,'FD');
   const labelText=String(label||'');doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(82,82,82);
