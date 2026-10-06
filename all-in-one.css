@@ -1,4 +1,4 @@
-/* Allt-i-ett 2.4.135 */
+/* Allt-i-ett 2.4.136 */
 .allInOneApp .headerSubtitle{white-space:nowrap}
 .allProtocolDialog{
  width:min(620px,94vw);max-height:min(86vh,760px);border:0;border-radius:14px;
@@ -100,3 +100,26 @@ body.allInOneApp[data-app-text-size="2"] #securityProject #secLogoPreview{min-he
 body.allInOneApp[data-app-text-size="3"] #securityProject #secLogoPreview{min-height:60px!important}
 
 body.allInOneApp .secMarker{max-width:230px!important}
+
+
+/* 2.4.136: Door Automation keeps its own identity separate from the chosen checklist. */
+.allInOneApp #securityProtocol .secAutomationModelField select{
+ width:100%;
+ min-height:27px;
+ height:27px;
+ margin-top:1px;
+ padding:2px 4px;
+ border:1px solid #bccbd3;
+ border-radius:5px;
+ background:#fff;
+ color:#203440;
+ font:inherit;
+}
+.allInOneApp #securityProtocol #secAutomationIdMessage{
+ grid-column:1/-1;
+ margin:0;
+ min-height:0;
+ font-size:8px;
+ color:#a13a3a;
+}
+.allInOneApp #securityProtocol #secAutomationIdMessage:empty{display:none}
