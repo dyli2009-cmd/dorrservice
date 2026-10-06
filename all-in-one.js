@@ -1,4 +1,4 @@
-/* Allt-i-ett protocol selection 2.4.140 */
+/* Allt-i-ett protocol selection 2.4.141 */
 (()=>{
  'use strict';
  const KEY='doorservice-all-in-one-active-protocols';
@@ -52,9 +52,6 @@
  };
  file.addEventListener('change',()=>{awaitingFile=false},{capture:true});
  file.addEventListener('cancel',returnFromCancelledFilePicker);
- window.addEventListener('focus',()=>setTimeout(()=>{
-  if(awaitingFile&&!file.files?.length)returnFromCancelledFilePicker()
- },450));
 
  // The first selection is authoritative for the whole workspace session.
  // Opening/scanning a PDF must never add extra protocol types automatically.
