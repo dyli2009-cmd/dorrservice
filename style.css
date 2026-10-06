@@ -1205,3 +1205,15 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
  .overviewHeadControls,.customerPreviewControls{gap:3px}
  .overviewHeadControls button,.customerPreviewControls button{min-width:31px;min-height:31px;padding:2px 6px;font-size:11px}
 }
+
+
+/* 2.4.115: global A-/A+ text accessibility controls. */
+.globalTextControls{display:inline-flex;align-items:center;gap:2px;border:1px solid #5f7682;border-radius:7px;padding:2px;background:#203b49;white-space:nowrap}
+.globalTextControls button{width:30px!important;min-width:30px!important;height:28px!important;min-height:28px!important;padding:2px 4px!important;margin:0!important;border-radius:5px!important;font-weight:800!important;line-height:1!important}
+.globalTextControls [data-app-text-level]{min-width:36px;text-align:center;font-size:9px!important;color:#d7e3e9;font-variant-numeric:tabular-nums}
+@media(max-width:800px){
+ body header.appHeader .headerActions{gap:3px}
+ .globalTextControls{gap:1px;padding:1px}
+ .globalTextControls button{width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;padding:1px 3px!important}
+ .globalTextControls [data-app-text-level]{display:none}
+}
