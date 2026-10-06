@@ -33,6 +33,23 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   }catch(e){}
   return null
  };
+ const targetFromActionText=async value=>{
+  const text=String(value||'');
+  let m=text.match(/#page=(\d+)/i);if(m)return Number(m[1]);
+  m=text.match(/(?:this\s*\.\s*)?pageNum\s*=\s*(\d+)/i);if(m)return Number(m[1])+1;
+  m=text.match(/gotoNamedDest\s*\(\s*["']([^"']+)["']/i);if(m)return await resolveDest(m[1]);
+  return null
+ };
+ const targetFromPdfJsAnnotation=async a=>{
+  if(a?.dest){const page=await resolveDest(a.dest);if(page)return page}
+  for(const value of [a?.url,a?.unsafeUrl,a?.action]){
+   const page=await targetFromActionText(value);if(page)return page
+  }
+  try{
+   if(a?.actions){const page=await targetFromActionText(JSON.stringify(a.actions));if(page)return page}
+  }catch(e){}
+  return null
+ };
  const parseId=id=>{
   const parts=String(id||'').trim().split('-').map(x=>x.trim()).filter(Boolean);
   if(parts.length<3)return {prefix:'',modelCode:'',serial:''};
@@ -44,55 +61,140 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||''
  };
  try{
+  if(!window.PDFLib)throw new Error('PDF-biblioteket saknas.');
   scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
-  const linkedPages=[],rawLinks=[];let seen=false,gap=0;
-  const scanLimit=Math.min(scan.numPages,120);
-  for(let pageNo=1;pageNo<=scanLimit;pageNo++){
-   onProgress('Söker äldre länkade automatiker… sida '+pageNo+' / '+scanLimit);
-   const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1});
-   const candidates=annotations.filter(a=>a?.dest&&Array.isArray(a.rect)&&!a.checkBox&&!a.radioButton);
-   const resolved=[];
-   for(const a of candidates){const targetPage=await resolveDest(a.dest);if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})}
-   if(resolved.length){
-    seen=true;gap=0;linkedPages.push({originalPage:pageNo,viewport});
-    resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
-   }else if(seen&&++gap>=5)break;
-  }
-  if(rawLinks.length<2)return null;
+  const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),lowPages=source.getPages();
+  const pageRefMap=new Map(lowPages.map((p,i)=>[String(p.ref),i+1]));
+  const lookup=obj=>{try{return obj?source.context.lookup(obj):null}catch(e){return obj||null}};
+  const objectText=obj=>{
+   const value=lookup(obj);if(!value)return '';
+   try{if(typeof value.decodeText==='function')return value.decodeText()}catch(e){}
+   try{if(typeof value.asString==='function')return value.asString().replace(/^\//,'')}catch(e){}
+   return String(value).replace(/^\//,'')
+  };
+  const objectNumber=obj=>{
+   const value=lookup(obj);try{if(value instanceof PDFNumber)return value.asNumber();if(typeof value?.asNumber==='function')return value.asNumber()}catch(e){}
+   const n=Number(String(value||''));return Number.isFinite(n)?n:null
+  };
+  const lowDestTarget=async dest=>{
+   if(!dest)return null;
+   const direct=pageRefMap.get(String(dest));if(direct)return direct;
+   const value=lookup(dest);
+   if(value instanceof PDFArray){
+    if(!value.size())return null;
+    const first=value.get(0),directFirst=pageRefMap.get(String(first));if(directFirst)return directFirst;
+    const firstValue=lookup(first),directLookup=pageRefMap.get(String(firstValue));if(directLookup)return directLookup;
+    const n=objectNumber(first);if(Number.isInteger(n)&&n>=0&&n<scan.numPages)return n+1;
+    const name=objectText(first);if(name){const resolved=await resolveDest(name);if(resolved)return resolved}
+    return null
+   }
+   const name=objectText(value);if(name){const resolved=await resolveDest(name);if(resolved)return resolved}
+   return null
+  };
+  const lowActionTarget=async(action,depth=0)=>{
+   if(!action||depth>5)return null;
+   const value=lookup(action);
+   if(value instanceof PDFArray){
+    for(let i=0;i<value.size();i++){const target=await lowActionTarget(value.get(i),depth+1);if(target)return target}
+    return null
+   }
+   if(!(value instanceof PDFDict))return await targetFromActionText(objectText(value));
+   const direct=await lowDestTarget(value.get(PDFName.of('D')));if(direct)return direct;
+   const js=objectText(value.get(PDFName.of('JS')));if(js){const target=await targetFromActionText(js);if(target)return target}
+   const next=value.get(PDFName.of('Next'));if(next){const target=await lowActionTarget(next,depth+1);if(target)return target}
+   return null
+  };
+  const lowAnnotationTarget=async dict=>{
+   let current=dict;
+   for(let depth=0;current instanceof PDFDict&&depth<5;depth++){
+    const direct=await lowDestTarget(current.get(PDFName.of('Dest')));if(direct)return direct;
+    const action=await lowActionTarget(current.get(PDFName.of('A')));if(action)return action;
+    const aa=lookup(current.get(PDFName.of('AA')));
+    if(aa instanceof PDFDict){
+     for(const key of ['U','D','E','X','Fo','Bl','PO','PC','PV','PI','K','F','V','C']){
+      const target=await lowActionTarget(aa.get(PDFName.of(key)));if(target)return target
+     }
+    }
+    current=lookup(current.get(PDFName.of('Parent')))
+   }
+   return null
+  };
+  const lowRect=dict=>{
+   const rect=lookup(dict?.get?.(PDFName.of('Rect')));if(!(rect instanceof PDFArray)||rect.size()<4)return null;
+   const values=[0,1,2,3].map(i=>objectNumber(rect.get(i)));return values.every(Number.isFinite)?values:null
+  };
+  const lowLinksForPage=async pageNo=>{
+   const page=lowPages[pageNo-1];if(!page)return [];
+   let annots=null;try{annots=page.node.lookup(PDFName.of('Annots'),PDFArray)}catch(e){}
+   if(!(annots instanceof PDFArray))return [];
+   const links=[];
+   for(let i=0;i<annots.size();i++){
+    const dict=lookup(annots.get(i));if(!(dict instanceof PDFDict))continue;
+    const rect=lowRect(dict);if(!rect)continue;
+    const targetPage=await lowAnnotationTarget(dict);
+    if(targetPage&&targetPage!==pageNo)links.push({drawingPage:pageNo,targetPage,rect,source:'pdf-structure'})
+   }
+   return links
+  };
 
-  const targets=[...new Set(rawLinks.map(x=>x.targetPage))].sort((a,b)=>a-b),protocols=new Map();
-  for(let start=0;start<targets.length;start+=6){
-   const batch=targets.slice(start,start+6);
-   onProgress('Läser gamla protokoll… '+Math.min(start+batch.length,targets.length)+' / '+targets.length);
-   await Promise.all(batch.map(async targetPage=>{
-    const pg=await scan.getPage(targetPage),annotations=await pg.getAnnotations({intent:'any'}),fields=collectFields(annotations);
-    const id=getField(fields,'Id nummermaskin');
-    if(id)protocols.set(targetPage,{id,fields})
-   }))
+  const protocols=new Map(),rawLinks=[],viewportMap=new Map(),total=Math.min(scan.numPages,lowPages.length||scan.numPages);
+  for(let pageNo=1;pageNo<=total;pageNo++){
+   onProgress('Analyserar äldre PDF… sida '+pageNo+' / '+total);
+   const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1}),fields=collectFields(annotations),id=getField(fields,'Id nummermaskin');
+   viewportMap.set(pageNo,viewport);
+   if(id)protocols.set(pageNo,{id,fields});
+   for(const a of annotations||[]){
+    if(!Array.isArray(a?.rect))continue;
+    const targetPage=await targetFromPdfJsAnnotation(a);
+    if(targetPage&&targetPage!==pageNo)rawLinks.push({drawingPage:pageNo,targetPage,rect:a.rect,source:'pdfjs'})
+   }
+   const lowLinks=await lowLinksForPage(pageNo);rawLinks.push(...lowLinks)
   }
-  const validLinks=rawLinks.filter(link=>protocols.has(link.targetPage));
-  if(validLinks.length<2)return null;
+  if(protocols.size<2)return null;
 
-  const drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b),pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1])),viewportMap=new Map(linkedPages.map(x=>[x.originalPage,x.viewport]));
-  const used=new Set(),doors=[];
+  const deduped=[],linkKeys=new Set();
+  for(const link of rawLinks){
+   if(!Number.isInteger(link.targetPage)||!Array.isArray(link.rect)||link.rect.length<4)continue;
+   const key=[link.drawingPage,link.targetPage,...link.rect.slice(0,4).map(n=>Math.round(Number(n)*10)/10)].join(':');
+   if(linkKeys.has(key))continue;linkKeys.add(key);deduped.push(link)
+  }
+  const protocolPages=[...protocols.keys()].sort((a,b)=>a-b),validLinks=deduped.filter(link=>protocols.has(link.targetPage)&&!protocols.has(link.drawingPage));
+  let drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b);
+  const firstProtocolPage=protocolPages[0];
+  if(!drawingNumbers.length&&firstProtocolPage>1)drawingNumbers=Array.from({length:firstProtocolPage-1},(_,i)=>i+1).filter(n=>!protocols.has(n));
+  if(!drawingNumbers.length)drawingNumbers=Array.from({length:total},(_,i)=>i+1).filter(n=>!protocols.has(n));
+  if(!drawingNumbers.length)return null;
+  const pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1]));
+
+  const makeDoorTemplate=(targetPage,protocol)=>{
+   const id=protocol.id,parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
+   return {
+    uid:'legacy:'+targetPage+':'+id,id,machineId:id,
+    serialNumber:String(Number(parsed.serial||targetPage)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
+    location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
+    previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:targetPage
+   }
+  };
+
+  const usedPages=new Set(),usedIds=new Set(),doors=[];
   for(const link of validLinks){
-   const protocol=protocols.get(link.targetPage),id=protocol.id;if(!id||used.has(id))continue;used.add(id);
+   const protocol=protocols.get(link.targetPage),id=protocol?.id;if(!protocol||!id||usedIds.has(id)||!pageMap.has(link.drawingPage))continue;
    const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
    const vr=viewport.convertToViewportRectangle(link.rect),x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height));
-   const parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
-   const previousServiceDate=getField(protocol.fields,'Datum'),previousNextDate=getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder=getField(protocol.fields,'Order').replace(/,00$/,'');
-   doors.push(normalize({
-    uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
-    serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
-    location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
-    previousServiceDate,previousNextDate,previousOrder,legacyProtocolPage:link.targetPage
-   }))
+   const template=makeDoorTemplate(link.targetPage,protocol);
+   doors.push(normalize({...template,page:pageMap.get(link.drawingPage),x,y}));usedPages.add(link.targetPage);usedIds.add(id)
   }
-  if(doors.length<2)return null;
+  const importQueue=[];
+  for(const targetPage of protocolPages){
+   if(usedPages.has(targetPage))continue;
+   const protocol=protocols.get(targetPage);if(!protocol?.id||usedIds.has(protocol.id))continue;
+   importQueue.push(makeDoorTemplate(targetPage,protocol));usedIds.add(protocol.id)
+  }
 
   doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
-  const firstProtocol=protocols.get(validLinks[0].targetPage),first=firstProtocol?.fields||new Map(),prefixes=doors.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
-  const serials=doors.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,''),oldServiceDate=getField(first,'Datum'),oldNextDate=getField(first,'näst datum','Nästa provning datum');
+  importQueue.sort((a,b)=>(a.legacyProtocolPage||0)-(b.legacyProtocolPage||0)||a.id.localeCompare(b.id,'sv',{numeric:true}));
+  const allImported=[...doors,...importQueue],first=protocols.get(protocolPages[0])?.fields||new Map(),prefixes=allImported.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
+  const serials=allImported.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,''),oldServiceDate=getField(first,'Datum'),oldNextDate=getField(first,'näst datum','Nästa provning datum');
   const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+/i,'').trim();
   const project={
    projectName,facilityNo,customer:getField(first,'Företag'),agreementNo:'',contact:getField(first,'Kontaktperson'),projectOrder:oldOrder,
@@ -102,24 +204,24 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    nextDoorNumber:Math.max(0,...serials)+1
   };
 
-  onProgress('Bygger ren ritning med '+doors.length+' automatiker…');
-  const {PDFDocument,PDFName}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
+  onProgress('Bygger ren ritning och importerar '+allImported.length+' automatiker…');
+  const output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
   copied.forEach(pg=>{pg.node.delete(PDFName.of('Annots'));output.addPage(pg)});
   try{output.catalog.delete(PDFName.of('AcroForm'))}catch(e){}
   const drawingBytes=new Uint8Array(await output.save());
 
   const modelCounts=new Map(),prefixCounts=new Map();
-  doors.forEach(d=>{const model=d.model||('Kod '+(d.modelCode||'?'));modelCounts.set(model,(modelCounts.get(model)||0)+1);const prefix=parseId(d.id).prefix;if(prefix)prefixCounts.set(prefix,(prefixCounts.get(prefix)||0)+1)});
+  allImported.forEach(d=>{const model=d.model||('Kod '+(d.modelCode||'?'));modelCounts.set(model,(modelCounts.get(model)||0)+1);const prefix=parseId(d.id).prefix;if(prefix)prefixCounts.set(prefix,(prefixCounts.get(prefix)||0)+1)});
   const modelText=[...modelCounts.entries()].sort((a,b)=>b[1]-a[1]).map(([name,count])=>count+' '+name).join(', ');
   const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
-  return {drawingBytes,work:{version:2,doors,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+' '+doors.length+' länkade protokoll importerades. Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
+  const placementText=importQueue.length?' '+doors.length+' placerades från gamla länkar och '+importQueue.length+' ligger redo att placeras med ＋ Placera.':' Alla '+doors.length+' kunde placeras från de gamla länkarna.';
+  return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+' Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
  }catch(error){
   console.warn('Äldre PDF kunde inte autoimporteras',error);return null
  }finally{
   if(scan){try{await scan.destroy()}catch(e){}}
  }
 };
-
 function goView(view){
  if(view!=='doors'&&$('overviewDialog').open)$('overviewDialog').close();
  if(view==='doors'&&!$('overviewDialog').open)$('overviewDialog').show();
@@ -144,6 +246,7 @@ function updateCompactUI(){
  document.body.classList.toggle('hasDrawing',!!pdf);$('objectLabel').textContent=doorWorkspaceTitle();
  if($('changeDrawingBtn'))$('changeDrawingBtn').hidden=!pdf;
  $('newServiceBtn').disabled=!pdf;$('mobileAdd').disabled=!pdf;
+ const addLabel=importQueue.length?'＋ Placera ('+importQueue.length+')':'＋ Lägg dörr';$('mobileAdd').textContent=addLabel;$('mobileAdd').title=importQueue.length?'Placera nästa importerade dörr: '+importQueue[0].id+(importQueue[0].location?' · '+importQueue[0].location:''):'Lägg dörr och checklista';
  if($('protocolHeading'))$('protocolHeading').textContent=doorProtocolTitle();
  const d=cur();if(d){$('checkProgress').textContent=completedChecks(d)+' / '+doorChecks(d).length+' kontrollerade';$('signature').value=project.serviceSignature||d.signature||'';$('serviceBy').textContent=[project.technician,project.company,project.inspectionDate].filter(Boolean).join(' · ')}
 }
@@ -347,12 +450,12 @@ async function inspectWorkPdf(bytes){
  if(state.app!=='dorrservice'||state.version<2||!Array.isArray(state.doors)||!state.project||typeof state.project!=='object'||state.doors.some(d=>!d||typeof d.uid!=='string'||typeof d.id!=='string'||!Number.isInteger(d.page)||d.page<1||!Number.isFinite(d.x)||!Number.isFinite(d.y)||d.x<0||d.x>1||d.y<0||d.y>1))throw new Error('Arbets-PDF:en innehåller ogiltiga dörruppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.doors.some(d=>d.page>source.getPageCount()))throw new Error('Dörrarna hör inte till arbets-PDF:ens ritningssidor.');
- return {drawingBytes,work:{version:1,doors:state.doors,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
+ return {drawingBytes,work:{version:1,doors:state.doors,importQueue:Array.isArray(state.importQueue)?state.importQueue:[],textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
 }
 async function createWorkPdf(){
  if(!pdf||!sourcePdfBytes)throw new Error('Öppna en PDF-ritning först.');
  if(!window.PDFLib||!window.jspdf?.jsPDF)throw new Error('PDF-biblioteken kunde inte laddas.');
- const snapshot=structuredClone({doors,textNotes,drawingExtras,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
+ const snapshot=structuredClone({doors,importQueue,textNotes,drawingExtras,project,logoData}),originalBytes=sourcePdfBytes.slice(),drawingDocument=pdf;
  const {PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib;
  const source=await PDFDocument.load(originalBytes,{updateMetadata:false}),output=await PDFDocument.create(),copied=await output.copyPages(source,source.getPageIndices());copied.forEach(p=>output.addPage(p));const font=await output.embedFont(StandardFonts.HelveticaBold),noteFont=await output.embedFont(StandardFonts.Helvetica),markerLinks=[];
  for(let index=0;index<copied.length;index++){
