@@ -1534,3 +1534,125 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
   .homeChoice{min-height:70px!important;padding:10px 11px!important;border-radius:13px!important}
   .homeToolsLink{min-height:56px!important;padding:8px 10px!important}
 }
+
+
+/* 2.4.165: generated security/door background with home UI directly on top. */
+.appHome{
+  background-color:#102b39!important;
+  background-image:
+    linear-gradient(180deg,rgba(8,24,34,.18),rgba(8,24,34,.34)),
+    var(--home-generated-bg)!important;
+  background-size:cover,cover!important;
+  background-position:center,center!important;
+  background-repeat:no-repeat,no-repeat!important;
+}
+.homeBackdropIcons{display:none!important}
+.homeShell{
+  position:relative;
+  z-index:2;
+  width:min(560px,100%)!important;
+  padding:18px!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.homeBrand{
+  justify-content:center!important;
+  margin-bottom:18px!important;
+  text-shadow:0 2px 12px #07182099;
+}
+.homeBrand strong{
+  color:#fff!important;
+  font-size:22px!important;
+  letter-spacing:.01em;
+}
+.homeBrand span{
+  color:#edf6fa!important;
+  background:rgba(12,35,47,.38)!important;
+  border:1px solid rgba(255,255,255,.20);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.homeChoices,.homeTools{
+  width:min(440px,100%)!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.homeChoice{
+  min-height:78px!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  background:rgba(10,31,43,.42)!important;
+  color:#fff!important;
+  box-shadow:0 12px 32px rgba(3,15,22,.24)!important;
+  backdrop-filter:blur(14px) saturate(115%);
+  -webkit-backdrop-filter:blur(14px) saturate(115%);
+}
+.homeChoice:hover,.homeChoice:focus-visible{
+  background:rgba(13,43,58,.54)!important;
+  border-color:rgba(255,255,255,.40)!important;
+}
+.homeChoiceIcon{
+  background:rgba(255,255,255,.13)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.16);
+}
+.homeChoice strong,.homeChoice b{
+  color:#fff!important;
+  text-shadow:0 1px 8px #06182180;
+}
+.homeChoice b{font-weight:700}
+.homeTools{
+  margin-top:10px!important;
+  padding-top:0!important;
+  border-top:0!important;
+}
+.homeToolsLink{
+  width:100%!important;
+  min-height:62px!important;
+  padding:10px 12px!important;
+  border:1px solid rgba(255,255,255,.20)!important;
+  border-radius:11px!important;
+  background:rgba(10,31,43,.34)!important;
+  color:#fff!important;
+  box-shadow:0 10px 28px rgba(3,15,22,.18);
+  backdrop-filter:blur(12px) saturate(110%);
+  -webkit-backdrop-filter:blur(12px) saturate(110%);
+}
+.homeToolsLink:hover,.homeToolsLink:focus-visible{
+  background:rgba(13,43,58,.48)!important;
+  border-color:rgba(255,255,255,.36)!important;
+}
+.homeToolsIcon{
+  background:rgba(255,255,255,.12)!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.14);
+}
+.homeToolsLink strong{
+  color:#fff!important;
+  text-shadow:0 1px 8px #06182180;
+}
+.homeToolsLink small{
+  color:rgba(242,248,251,.80)!important;
+}
+@media(max-width:620px){
+  .appHome{
+    padding:max(18px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom))!important;
+    background-position:center center,center center!important;
+  }
+  .homeShell{
+    width:100%!important;
+    padding:8px 0!important;
+  }
+  .homeBrand{margin-bottom:15px!important}
+  .homeBrand strong{font-size:20px!important}
+  .homeChoice{
+    min-height:72px!important;
+    padding:10px 11px!important;
+    border-radius:12px!important;
+  }
+  .homeToolsLink{
+    min-height:58px!important;
+    border-radius:10px!important;
+  }
+}
