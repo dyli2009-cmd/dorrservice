@@ -108,20 +108,25 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    cell('ID / märkning:',d.id,left,y,54,8,true);cell('Placering:',d.location,left+54,y,66,8);cell('AO nummer:',p.projectOrder,left+120,y,66,8,true);y+=8;
   }
   function checkHeader(){
-   const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
+   const ws=[9,99,14,21,26,17],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
    titles.forEach((t,i)=>{
     doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10.8,'FD');
-    doc.setFont('helvetica','bold');doc.setFontSize(i>1?7.9:8.8);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.6:y+4.35;
+    doc.setFont('helvetica','bold');const headerSize=i===1?8.8:i===2?7.4:i===3?7.45:i===4?7.55:7.6;doc.setFontSize(headerSize);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.6:y+4.35;
     if(i===1)doc.text(lines,x+2,headerY,{lineHeightFactor:1});
     else doc.text(lines,x+ws[i]/2,headerY,{align:'center',lineHeightFactor:1});
     x+=ws[i];
    });y+=10.8;
   }
   doc.addPage();doc.__doorProtocolPages=doc.__doorProtocolPages||{};doc.__doorProtocolPages[d.uid||d.id]=doc.getNumberOfPages();backToDrawingButton();protocolTop();checkHeader();
-  const ws=[9,91,16,24,28,18],checks=doorChecks(d),notesReserve=29,rowH=Math.max(5.95,Math.min(7.1,(270-y-notesReserve)/Math.max(1,checks.length)));
+  const ws=[9,99,14,21,26,17],checks=doorChecks(d),notesReserve=29,rowH=Math.max(5.95,Math.min(7.1,(270-y-notesReserve)/Math.max(1,checks.length)));
   checks.forEach(([n,title])=>{
-   const c=d.checks[n]||{},titleSize=rowH<6.7?7.0:7.6,step=rowH<6.7?2.5:2.75;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);
-   const titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.8).slice(0,2);let x=left;
+   const c=d.checks[n]||{},baseTitleSize=rowH<6.7?7.0:7.6,step=rowH<6.7?2.5:2.75;doc.setFont('helvetica','normal');
+   let titleSize=baseTitleSize,titleLines=[];
+   for(;titleSize>=6.5;titleSize-=.15){
+    doc.setFontSize(titleSize);titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.8).slice(0,2);
+    if(titleLines.length<2||String(titleLines[1]||'').trim().split(/\s+/).length>1)break;
+   }
+   let x=left;
    const vals=[n,title,c.result==='na'?'–':'','',c.result==='remark'?'X':'',p.serviceSignature||d.signature||''];
    vals.forEach((v,i)=>{
     doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(x,y,ws[i],rowH,'FD');doc.setTextColor(25,25,25);
