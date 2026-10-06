@@ -67,6 +67,12 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   const counts=new Map();for(const value of values.filter(Boolean))counts.set(value,(counts.get(value)||0)+1);
   return [...counts.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||''
  };
+ const allProtocolFields=protocolMap=>[...protocolMap.values()].map(p=>p?.fields).filter(Boolean);
+ const projectField=(fieldMaps,...names)=>{
+  const values=[];
+  for(const fields of fieldMaps){const value=getField(fields,...names);if(value)values.push(value)}
+  return majority(values)||values[0]||''
+ };
  try{
   if(!window.PDFLib)throw new Error('PDF-biblioteket saknas.');
   scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
@@ -263,14 +269,35 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
 
   doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
   importQueue.sort((a,b)=>(a.legacyProtocolPage||0)-(b.legacyProtocolPage||0)||a.id.localeCompare(b.id,'sv',{numeric:true}));
-  const allImported=[...doors,...importQueue],first=protocols.get(protocolPages[0])?.fields||new Map(),prefixes=allImported.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
-  const serials=allImported.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,''),oldServiceDate=getField(first,'Datum'),oldNextDate=getField(first,'näst datum','Nästa provning datum');
-  const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+/i,'').trim();
+  const allImported=[...doors,...importQueue],fieldMaps=allProtocolFields(protocols),prefixes=allImported.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
+  const serials=allImported.map(d=>Number(d.serialNumber)||0);
+  const oldOrder=projectField(fieldMaps,'Order','AO nummer','Ao nummer','Ordernummer').replace(/,00$/,'');
+  const oldServiceDate=projectField(fieldMaps,'Datum','Bokat besök datum','Servicedatum');
+  const oldNextDate=projectField(fieldMaps,'näst datum','Nästa provning datum','Nästa datum');
+  const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+da\s+/i,'').replace(/^service\s+/i,'').trim();
   const project={
-   projectName,facilityNo,customer:getField(first,'Företag','beställare kund','företag kund'),agreementNo:getField(first,'Avtalsnummer','avtal'),contact:getField(first,'Kontaktperson','kontakt kund'),projectOrder:oldOrder,
-   inspectionDate:doorLocalToday(),projectNextDate:oldNextDate,previousServiceDate:oldServiceDate,previousOrder:oldOrder,company:getField(first,'kontakt f','kontakt g','företag heras','företag service'),companyContact:getField(first,'kontakt g','kontakt f','kontakt heras','kontakt service'),
-   companyPhone:getField(first,'tel g','telefon heras','telefon service'),companyAddress:getField(first,'adress g','adress heras','adress service'),companyPostalCode:getField(first,'postnr g','postnr heras','postnr service'),companyPostalCity:getField(first,'post g','post adress heras','postadress heras','postadress service'),
-   phone:getField(first,'tel','telefon kund'),address:getField(first,'adress','adress kund'),postalCode:getField(first,'postnr','postnr kund'),postalCity:getField(first,'postadress','postadress kund'),technician:'',serviceSignature:'',
+   projectName,
+   facilityNo:projectField(fieldMaps,'Anläggningsnummer','Objektnummer','Objekt nr','Text26')||facilityNo,
+   customer:projectField(fieldMaps,'beställare kund','företag kund','Beställare','Kund','Företag'),
+   agreementNo:projectField(fieldMaps,'Avtalsnummer','Avtal','Avtals nr'),
+   contact:projectField(fieldMaps,'kontakt kund','Kontaktperson','Beställarkontakt'),
+   projectOrder:oldOrder,
+   inspectionDate:oldServiceDate||doorLocalToday(),
+   projectNextDate:oldNextDate,
+   previousServiceDate:oldServiceDate,
+   previousOrder:oldOrder,
+   company:projectField(fieldMaps,'företag heras','företag service','serviceföretag','Utförande företag'),
+   companyContact:projectField(fieldMaps,'kontakt heras','kontakt service','kontaktman på objektet','kontakt f','kontakt g'),
+   companyPhone:projectField(fieldMaps,'telefon heras','telefon service','tel g','Företag telefon'),
+   companyAddress:projectField(fieldMaps,'adress heras','adress service','adress g','Företag adress'),
+   companyPostalCode:projectField(fieldMaps,'postnr heras','postnr service','postnr g','Företag postnummer'),
+   companyPostalCity:projectField(fieldMaps,'post adress heras','postadress heras','postadress service','post g','Företag postadress'),
+   phone:projectField(fieldMaps,'telefon kund','tel','Kund telefon'),
+   address:projectField(fieldMaps,'adress kund','adress','Kund adress'),
+   postalCode:projectField(fieldMaps,'postnr kund','postnr','Kund postnummer'),
+   postalCity:projectField(fieldMaps,'postadress kund','postadress','Kund postadress'),
+   technician:projectField(fieldMaps,'Servicetekniker','Tekniker'),
+   serviceSignature:'',
    nextDoorNumber:Math.max(0,...serials)+1
   };
 
@@ -286,8 +313,9 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
   const placementText=importQueue.length?' '+doors.length+' placerades från gamla kopplingar/märkningar och '+importQueue.length+' ligger redo att placeras med ＋ Placera.':' Alla '+doors.length+' kunde placeras från den gamla PDF:en.';
   const perDrawing=drawingNumbers.map((originalPage,index)=>{const count=validLinks.filter(link=>link.drawingPage===originalPage).length;return 'Ritning '+(index+1)+': '+count+' automatik'+(count===1?'':'er')}).join(' · ');
-  const importStats=' Gamla ritningar: '+drawingNumbers.length+' sidor · protokoll: '+protocols.size+' · matchade placeringar: '+doors.length+'. '+perDrawing+'.';
-  return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+importStats+' Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
+  const projectKeys=['facilityNo','customer','agreementNo','contact','projectOrder','inspectionDate','projectNextDate','company','companyContact','companyPhone','companyAddress','companyPostalCode','companyPostalCity','phone','address','postalCode','postalCity'],projectFieldCount=projectKeys.filter(k=>String(project[k]||'').trim()).length;
+  const importStats=' Gamla ritningar: '+drawingNumbers.length+' sidor · protokoll: '+protocols.size+' · matchade placeringar: '+doors.length+' · projektfält ifyllda: '+projectFieldCount+'. '+perDrawing+'.';
+  return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+importStats+' Gamla projektuppgifter är förifyllda och kan ändras inför dagens service.'}
  }catch(error){
   console.warn('Äldre PDF kunde inte autoimporteras',error);return null
  }finally{
