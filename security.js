@@ -97,6 +97,51 @@ if(ALL_IN_ONE){
 '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
 '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 }};
+ SYSTEMS.automation_selfcheck={label:'Egenkontroll dörrautomatik',markerLabel:'Egenkontroll DA',prefix:'DA-E',checks:[
+  ['1.1','Okulär kontroll av dörrautomatik och dörrmiljö.'],
+  ['1.2','Kontroll av infästning och mekaniska delar.'],
+  ['1.3','Funktionsprov öppning och stängning.'],
+  ['1.4','Kontroll av impulsgivare och säkerhetssensorer.'],
+  ['1.5','Kontroll av låsning och dörrfunktion.'],
+  ['1.6','Dokumentera avvikelse eller utförd justering.']
+ ],faults:{
+  '1.1':['Skada eller slitage upptäckt','Dörrmiljö behöver justeras'],
+  '1.2':['Infästning lös','Mekanisk del behöver justeras'],
+  '1.3':['Öppning/stängning avviker','Dörr går inte hela vägen'],
+  '1.4':['Impulsgivare fungerar inte','Säkerhetssensor behöver justeras'],
+  '1.5':['Låsning fungerar inte korrekt','Dörrfunktion behöver justeras'],
+  '1.6':['Åtgärd krävs','Fortsatt kontroll krävs']
+ }};
+ SYSTEMS.fire_panel={label:'Brandcentral',markerLabel:'Brandcentral',prefix:'BC',checks:[
+  ['1.1','Okulär kontroll av brandcentral.'],
+  ['1.2','Kontroll av indikeringar och felmeddelanden.'],
+  ['1.3','Funktionsprov av larm och återställning.'],
+  ['1.4','Kontroll av strömförsörjning och reservkraft.'],
+  ['1.5','Dokumentera avvikelser.']
+ ],faults:{
+  '1.1':['Synlig skada eller slitage'], '1.2':['Felindikering finns'], '1.3':['Funktionsprov avviker'],
+  '1.4':['Reservkraft eller strömförsörjning avviker'], '1.5':['Åtgärd krävs']
+ }};
+ SYSTEMS.fire_detector={label:'Branddetektorer',markerLabel:'Branddetektor',prefix:'BD',checks:[
+  ['1.1','Okulär kontroll av detektor.'],
+  ['1.2','Kontroll av placering och märkning.'],
+  ['1.3','Funktionsprov av detektor.'],
+  ['1.4','Kontroll av nedsmutsning eller skada.'],
+  ['1.5','Dokumentera avvikelser.']
+ ],faults:{
+  '1.1':['Detektor skadad eller sitter löst'], '1.2':['Placering eller märkning avviker'], '1.3':['Detektor reagerar inte'],
+  '1.4':['Rengöring eller byte krävs'], '1.5':['Åtgärd krävs']
+ }};
+ SYSTEMS.fire_door={label:'Branddörr / dörrhållning',markerLabel:'Branddörr',prefix:'BR',checks:[
+  ['1.1','Okulär kontroll av branddörr och dörrmiljö.'],
+  ['1.2','Kontroll av dörrstängning.'],
+  ['1.3','Kontroll av uppställningsmagnet eller hållfunktion.'],
+  ['1.4','Funktionsprov vid brandstyrning.'],
+  ['1.5','Dokumentera avvikelser.']
+ ],faults:{
+  '1.1':['Skada eller slitage upptäckt'], '1.2':['Dörr stänger inte korrekt'], '1.3':['Hållfunktion fungerar inte'],
+  '1.4':['Brandstyrning fungerar inte korrekt'], '1.5':['Åtgärd krävs']
+ }};
 }
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
 let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false;
@@ -441,9 +486,13 @@ async function inspectLegacySecurityLinkedPdf(bytes){
   const typeFromText=value=>{
    const t=clean(value).toLowerCase();
    if(ALL_IN_ONE&&allInOneTypeAllowed('automation')&&/d[oö]rrautomatik|d[oö]rr.?automatik|provningsprotokoll.*d[oö]rr|checklista revision av d[oö]rrautomatik/.test(t))return'automation';
+   if(ALL_IN_ONE&&allInOneTypeAllowed('automation_selfcheck')&&/egenkontroll.*d[oö]rrautomatik|d[oö]rrautomatik.*egenkontroll/.test(t))return'automation_selfcheck';
    if(allInOneTypeAllowed('alarm')&&/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm|^inbrott\b/.test(t))return'alarm';
    if(allInOneTypeAllowed('lock')&&/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(t))return'lock';
    if(allInOneTypeAllowed('access')&&/passersystem|passer\b|kortläsare|kortlasare/.test(t))return'access';
+   if(ALL_IN_ONE&&allInOneTypeAllowed('fire_panel')&&/brandcentral|brandlarmcentral/.test(t))return'fire_panel';
+   if(ALL_IN_ONE&&allInOneTypeAllowed('fire_detector')&&/branddetektor|rökdetektor|rokdetektor|värmedetektor|varmedetektor/.test(t))return'fire_detector';
+   if(ALL_IN_ONE&&allInOneTypeAllowed('fire_door')&&/branddörr|branddorr|dörrhåll|dorrhall|uppställningsmagnet/.test(t))return'fire_door';
    return null
   };
   const markerNumber=(value,type)=>{
