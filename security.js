@@ -711,7 +711,7 @@ async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning f
  out.setTitle('Säkerhetsservice – '+(snapshot.project.projectName||snapshot.project.facilityNo||'Service'));out.setSubject('Ritning, anmärkningsöversikt och protokoll. Arbets-PDF för Säkerhetsservice.');out.setCreator('Dörrservice Säkerhetsservice');
  const bytes=await out.save(),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a'),object=(project.projectName||project.facilityNo||'objekt').trim().replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'objekt',date=project.date||new Date().toISOString().slice(0,10);a.href=url;a.download='sakerhetsservice-'+object+'-'+date+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg('Arbets-PDF skapad. Samma fil kan öppnas nästa service med projekt, logga, objekt och historik kvar.')}catch(e){console.error(e);msg(e.message||'Kunde inte skapa arbets-PDF.',true)}}
 
-let previewPdf=null,previewPage=1,previewRenderTask=null;
+let previewPdf=null,previewPage=1,previewRenderTask=null,previewMode='report';
 const secPreviewTextSmaller=$('secPreviewTextSmaller'),secPreviewTextLarger=$('secPreviewTextLarger');
 let secPreviewTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-security-customer-preview-size')||0)));
 const secPreviewScaleFactor=()=>({[-1]:.84,0:1,1:1.18,2:1.38,3:1.62}[secPreviewTextLevel]||1);
@@ -726,27 +726,45 @@ if(secPreviewTextLarger)secPreviewTextLarger.onclick=()=>{secPreviewTextLevel=Ma
 applySecPreviewTextLevel();
 async function renderCustomerPreview(){
  if(!previewPdf)return;
- if(previewRenderTask)try{previewRenderTask.cancel()}catch(_){}
+ if(previewRenderTask)try{await previewRenderTask.cancel()}catch(_){}
  const p=await previewPdf.getPage(previewPage),wrap=$('secPreviewWrap'),natural=p.getViewport({scale:1}),fitScale=Math.max(.2,Math.min((wrap.clientWidth-24)/natural.width,(wrap.clientHeight-24)/natural.height)),scale=Math.max(.2,Math.min(2.55,fitScale*secPreviewScaleFactor())),dpr=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),vp=p.getViewport({scale:scale*dpr}),cssVp=p.getViewport({scale});
  const cv=$('secPreviewCanvas');cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);cv.style.width=cssVp.width+'px';cv.style.height=cssVp.height+'px';
  const previewCtx=cv.getContext('2d');previewCtx.imageSmoothingEnabled=true;previewCtx.imageSmoothingQuality='high';previewRenderTask=p.render({canvasContext:previewCtx,viewport:vp});try{await previewRenderTask.promise}catch(e){if(e.name!=='RenderingCancelledException')throw e}
+ if(previewMode==='drawing'){
+  const sx=vp.width,sy=vp.height;
+  items.filter(o=>o.page===previewPage).forEach(o=>{
+   const x=o.x*sx,y=o.y*sy,lx=o.labelX*sx,ly=o.labelY*sy,label=securityDrawingLabel(o),st=statusOf(o),rgbv=COLORS[st]||COLORS.untested,color='rgb('+rgbv.join(',')+')';
+   previewCtx.save();previewCtx.strokeStyle=color;previewCtx.fillStyle=color;previewCtx.lineWidth=Math.max(2,dpr*1.15);previewCtx.lineCap='round';
+   previewCtx.beginPath();previewCtx.moveTo(lx,ly);previewCtx.lineTo(x,y);previewCtx.stroke();
+   const dx=x-lx,dy=y-ly,dist=Math.max(1,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,px=-uy,py=ux,head=Math.max(8,dpr*4.8),wing=Math.max(4,dpr*2.5);
+   previewCtx.beginPath();previewCtx.moveTo(x,y);previewCtx.lineTo(x-ux*head+px*wing,y-uy*head+py*wing);previewCtx.moveTo(x,y);previewCtx.lineTo(x-ux*head-px*wing,y-uy*head-py*wing);previewCtx.stroke();
+   previewCtx.beginPath();previewCtx.arc(x,y,Math.max(4,dpr*2.5),0,Math.PI*2);previewCtx.fill();previewCtx.strokeStyle='#fff';previewCtx.lineWidth=Math.max(1.5,dpr*.65);previewCtx.stroke();
+   const fs=Math.max(12,dpr*5.2);previewCtx.font='700 '+fs+'px system-ui,-apple-system,sans-serif';const tw=previewCtx.measureText(label).width,pad=Math.max(7,dpr*3),bw=Math.max(50,tw+pad*2),bh=fs+Math.max(10,dpr*4);
+   previewCtx.fillStyle=color;previewCtx.strokeStyle='#fff';previewCtx.lineWidth=Math.max(1.5,dpr*.7);previewCtx.beginPath();previewCtx.roundRect(lx-bw/2,ly-bh/2,bw,bh,Math.max(4,dpr*2));previewCtx.fill();previewCtx.stroke();
+   previewCtx.fillStyle='#fff';previewCtx.textAlign='center';previewCtx.textBaseline='middle';previewCtx.fillText(label,lx,ly+.5);previewCtx.restore();
+  });
+ }
  $('secPreviewPage').textContent=previewPage+' / '+previewPdf.numPages;
  $('secPreviewPrev').disabled=previewPage<=1;$('secPreviewNext').disabled=previewPage>=previewPdf.numPages;
 }
 async function openCustomerPreview(){
  try{
-  const report=reportDoc(),pageMap=report.__protocolPages||{},bytes=new Uint8Array(report.output('arraybuffer'));
+  const view=document.body.dataset.view||'drawing',overviewOpen=$('securityOverview')?.open,o=cur();
   if(previewPdf)try{await previewPdf.destroy()}catch(_){}
-  previewPdf=await pdfjsLib.getDocument({data:bytes}).promise;
-  const o=cur();previewPage=o&&pageMap[o.uid]?pageMap[o.uid]:1;
-  $('secPreviewTitle').textContent=o?SYSTEMS[o.type].label+' · '+o.id:'Anmärkningsöversikt';
+  if(view==='drawing'&&!overviewOpen&&pdf&&sourceBytes){
+   previewMode='drawing';previewPdf=await pdfjsLib.getDocument({data:sourceBytes.slice()}).promise;previewPage=Math.max(1,Math.min(previewPdf.numPages,page));$('secPreviewTitle').textContent='Ritning · sida '+previewPage;
+  }else{
+   previewMode='report';const report=reportDoc(),pageMap=report.__protocolPages||{},bytes=new Uint8Array(report.output('arraybuffer'));previewPdf=await pdfjsLib.getDocument({data:bytes}).promise;
+   if(view==='protocol'&&o&&pageMap[o.uid]){previewPage=pageMap[o.uid];$('secPreviewTitle').textContent=SYSTEMS[o.type].label+' · '+o.id}
+   else{previewPage=1;$('secPreviewTitle').textContent=overviewOpen?'Objekt och anmärkningar':'Kundrapport'}
+  }
   $('secPreviewDialog').showModal();await renderCustomerPreview();
  }catch(e){console.error(e);msg('Kunde inte visa kundmallen.',true)}
 }
 $('securityPreview').onclick=openCustomerPreview;
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
-$('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;renderCustomerPreview()}};
-$('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;renderCustomerPreview()}};
+$('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
+$('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewDialog').addEventListener('close',()=>{if(previewRenderTask)try{previewRenderTask.cancel()}catch(_){}});
 window.addEventListener('resize',()=>{if($('secPreviewDialog').open)renderCustomerPreview()});
 $('securityExport').onclick=exportPdf;
