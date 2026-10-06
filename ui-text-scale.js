@@ -43,8 +43,8 @@
   const factor=FACTORS[level]||1;
   for(const [el] of managed){
    if(!el.isConnected||!eligible(el))continue;
-   const px=parseFloat(getComputedStyle(el).fontSize);
-   if(Number.isFinite(px)&&px>0)el.style.fontSize=(Math.round(px*factor*100)/100)+'px'
+   const px=parseFloat(getComputedStyle(el).fontSize),baseFactor=el.closest?.('#securityProtocol')?0.90:1;
+   if(Number.isFinite(px)&&px>0)el.style.fontSize=(Math.round(px*factor*baseFactor*100)/100)+'px'
   }
   document.body.dataset.appTextSize=String(level);
   localStorage.setItem(KEY,String(level));
