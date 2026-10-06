@@ -1299,3 +1299,37 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
   padding-right:max(9px,env(safe-area-inset-right))!important;
  }
 }
+
+
+/* 2.4.131: clearer protocol close control, matching Doors and Project. */
+#protocolPanel .protocolSheetHead{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:space-between!important;
+ gap:10px!important;
+}
+#protocolPanel .protocolSheetHead #closeProtocol{
+ flex:0 0 36px!important;
+ width:36px!important;
+ min-width:36px!important;
+ height:36px!important;
+ min-height:36px!important;
+ padding:0!important;
+ margin:0!important;
+ font-size:24px!important;
+ line-height:1!important;
+ font-weight:500!important;
+ border-radius:7px!important;
+ background:#fff!important;
+ color:#294653!important;
+}
+@media(max-width:600px){
+ #protocolPanel .protocolSheetHead #closeProtocol{
+  flex-basis:34px!important;
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  font-size:23px!important;
+ }
+}
