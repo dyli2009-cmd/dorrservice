@@ -651,3 +651,29 @@ body.allInOneApp:not(.secHasPdf) .drawingVisibilityButton{display:none!important
  .secSaveChoice strong{font-size:12px}
  .secSaveChoice small{font-size:9.5px}
 }
+
+
+/* 2.4.159: overview stays scrollable while bottom navigation remains usable. */
+body.allInOneApp #securityOverview[open]{
+  z-index:45;
+  box-shadow:0 14px 42px #0b1b2445;
+}
+@media(max-width:800px){
+  body.allInOneApp #securityOverview[open]{
+    position:fixed;
+    left:7px;
+    right:7px;
+    top:auto;
+    bottom:calc(62px + env(safe-area-inset-bottom,0px));
+    width:auto;
+    height:min(74dvh,760px);
+    max-height:calc(100dvh - 125px - env(safe-area-inset-bottom,0px));
+    margin:0;
+    overflow:auto;
+    border-radius:12px 12px 8px 8px;
+  }
+  body.allInOneApp #mobileBar{
+    position:relative;
+    z-index:60;
+  }
+}
