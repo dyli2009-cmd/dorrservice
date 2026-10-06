@@ -211,9 +211,15 @@ function securityWorkspaceTitle(view=document.body.dataset.view){
  return name;
 }
 function securityProtocolTitle(){return securityWorkspaceTitle('protocol')}
-function refreshTop(){$('securityObject').textContent=securityWorkspaceTitle();$('securityCount').textContent=items.length+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf;if($('secProtocolTitle'))$('secProtocolTitle').textContent=securityProtocolTitle()}
+function refreshTop(){$('securityObject').textContent=securityWorkspaceTitle();$('securityCount').textContent=(ALL_IN_ONE?visibleItems().length:items.length)+' objekt';document.body.classList.toggle('secHasPdf',!!pdf);if($('secChangeDrawing'))$('secChangeDrawing').hidden=!pdf;if($('secProtocolTitle'))$('secProtocolTitle').textContent=securityProtocolTitle()}
 function go(view){document.body.dataset.view=view;$('secNavDrawing').classList.toggle('active',view==='drawing');$('secNavProtocol').classList.toggle('active',view==='protocol');$('secNavProject').classList.toggle('active',view==='project');if(view==='protocol'||view==='project')msg('');refreshTop()}
 function allChecks(o){normalizeSecurityCheckEdits(o);const base=(SYSTEMS[o.type]?.checks||[]).filter(([n])=>o.checkEdits[n]!==null).map(([n,title])=>[n,typeof o.checkEdits[n]==='string'?o.checkEdits[n]:title]);return [...base,...(Array.isArray(o.customChecks)?o.customChecks:[]).map(c=>[c.id,c.title])]}
+function allInOneProtocolActive(type){
+ if(!ALL_IN_ONE)return true;
+ const selected=window.AllInOneProtocols?.get?.();
+ return !Array.isArray(selected)||!selected.length||selected.includes(type)
+}
+function visibleItems(){return items.filter(o=>allInOneProtocolActive(o.type))}
 function editSecurityCheck(o,id,title){
  if(typeof title!=='string'||!title.trim())return false;
  normalize(o);const next=title.trim(),custom=o.customChecks.find(c=>c.id===id),base=(SYSTEMS[o.type]?.checks||[]).find(([n])=>n===id);
@@ -263,7 +269,7 @@ function createItem(type,x,y){
 }
 function drawMarkers(){
  markers.replaceChildren();
- const pageItems=items.filter(o=>o.page===page).map(normalize);
+ const pageItems=items.filter(o=>o.page===page&&allInOneProtocolActive(o.type)).map(normalize);
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
  svg.setAttribute('class','secConnectorLayer');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('viewBox','0 0 1000 1000');svg.setAttribute('preserveAspectRatio','none');
  const defs=document.createElementNS(ns,'defs');
@@ -842,7 +848,7 @@ function syncSecurityOverviewCard(card,badge,o){
 function showOverview(){
  const list=$('secOverviewList');if(!list)return;list.replaceChildren();setSecurityOverviewSummary();
  const filter=$('secOverviewFilter')?.value||'all',query=($('secOverviewSearch')?.value||'').trim().toLocaleLowerCase('sv');
- const visible=items.filter(o=>{
+ const visible=visibleItems().filter(o=>{
   const st=statusOf(o);
   if(filter==='problems'&&!hasSecurityProblem(o))return false;
   if(filter==='untested'&&st!=='untested')return false;
