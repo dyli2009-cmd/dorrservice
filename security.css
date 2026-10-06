@@ -795,3 +795,77 @@ body[data-overview-size="3"] #securityOverview .secSummaryCard h3{font-size:20px
 body[data-overview-size="3"] #securityOverview .secSummaryCard ul,
 body[data-overview-size="3"] #securityOverview .secSummaryCard p,
 body[data-overview-size="3"] #securityOverview .secSummaryMeta{font-size:17px}
+
+
+/* 2.4.120: keep Security customer-preview controls on one horizontal row. */
+.secPreviewHead{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto!important;
+ align-items:center!important;
+ gap:8px!important;
+ min-height:48px!important;
+ padding:7px 9px!important;
+}
+.secPreviewHead>div:first-child{
+ min-width:0!important;
+ overflow:hidden!important;
+}
+.secPreviewHead>div:first-child strong,
+.secPreviewHead>div:first-child span{
+ display:block!important;
+ max-width:100%!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ white-space:nowrap!important;
+}
+.secPreviewControls{
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:nowrap!important;
+ align-items:center!important;
+ justify-content:flex-end!important;
+ gap:3px!important;
+ flex:0 0 auto!important;
+ min-width:max-content!important;
+}
+.secPreviewControls button{
+ flex:0 0 32px!important;
+ width:32px!important;
+ min-width:32px!important;
+ height:32px!important;
+ min-height:32px!important;
+ padding:0!important;
+ margin:0!important;
+ line-height:1!important;
+}
+.secPreviewControls #secPreviewPage{
+ flex:0 0 auto!important;
+ min-width:44px!important;
+ margin:0 1px!important;
+ white-space:nowrap!important;
+ text-align:center!important;
+}
+#secPreviewTextSmaller,#secPreviewTextLarger{font-size:11px!important;font-weight:800!important}
+#secPreviewClose{font-size:19px!important}
+@media(max-width:600px){
+ .secPreviewHead{gap:4px!important;padding:6px!important}
+ .secPreviewHead>div:first-child strong{font-size:11.5px!important}
+ .secPreviewHead #secPreviewTitle{font-size:8px!important}
+ .secPreviewControls{gap:2px!important}
+ .secPreviewControls button{
+  flex-basis:29px!important;
+  width:29px!important;
+  min-width:29px!important;
+  height:29px!important;
+  min-height:29px!important;
+ }
+ .secPreviewControls #secPreviewPage{min-width:38px!important;font-size:8.5px!important}
+ #secPreviewTextSmaller,#secPreviewTextLarger{font-size:10px!important}
+ #secPreviewClose{font-size:18px!important}
+}
+@media all and (display-mode:standalone){
+ .secPreviewHead{
+  padding-left:max(9px,env(safe-area-inset-left))!important;
+  padding-right:max(9px,env(safe-area-inset-right))!important;
+ }
+}
