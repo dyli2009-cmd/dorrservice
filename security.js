@@ -156,7 +156,7 @@ const DOOR_AUTOMATION_MODELS=[
  ['48','Entramatic SL500']
 ];
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
-let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false;
+let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -299,10 +299,10 @@ function drawMarkers(){
   const grab=document.createElement('button');grab.type='button';grab.className='precisionPointGrab'+(o.uid===selected?' selectedPrecision':'');grab.setAttribute('aria-label','Flytthandtag för '+o.id);grab.title='Dra i den stora cirkeln för att flytta pilspetsen';
   let targetDrag=null;
   const syncTargetPosition=()=>{target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';grab.style.left=o.x*100+'%';grab.style.top=o.y*100+'%';grab.classList.toggle('precisionGrabUp',o.y>.72)};
-  const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();if(precisionMode)selected=o.uid;suppressPageSwipeUntil=Date.now()+1200;panTouch=null;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null,touchLike=e.pointerType==='touch'||e.pointerType==='pen',threshold=touchLike?(node===grab?2:5):markerDragThreshold(zoom);targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold,precision};node.classList.add('isDragging');try{node.setPointerCapture(e.pointerId)}catch(_){}};
+  const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();drawingGestureLocked=true;pinch=null;panTouch=null;panMouse=null;viewer.classList.add('arrowDragging');if(precisionMode)selected=o.uid;suppressPageSwipeUntil=Date.now()+1800;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null,touchLike=e.pointerType==='touch'||e.pointerType==='pen',threshold=touchLike?(node===grab?2:5):markerDragThreshold(zoom);targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold,precision};node.classList.add('isDragging');try{node.setPointerCapture(e.pointerId)}catch(_){}};
   const moveTargetDrag=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();if(targetDrag.precision){const p=window.ServicePrecisionPointer.point(e,targetDrag.precision);o.x=Math.max(0,Math.min(1,(p.x-r.left)/r.width));o.y=Math.max(0,Math.min(1,(p.y-r.top)/r.height))}else{o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height))}syncTargetPosition();const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
-  const endTargetDrag=e=>{suppressPageSwipeUntil=Date.now()+700;if(!targetDrag||targetDrag.id!==e.pointerId)return;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');const moved=targetDrag.moved;if(moved)save();targetDrag=null;if(!moved&&selected!==o.uid){selected=o.uid;setTimeout(()=>drawMarkers(),0)}};
-  const cancelTargetDrag=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY;syncTargetPosition()}targetDrag=null;drawMarkers()};
+  const endTargetDrag=e=>{suppressPageSwipeUntil=Date.now()+900;if(!targetDrag||targetDrag.id!==e.pointerId)return;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');drawingGestureLocked=false;viewer.classList.remove('arrowDragging');const moved=targetDrag.moved;if(moved)save();targetDrag=null;if(!moved&&selected!==o.uid){selected=o.uid;setTimeout(()=>drawMarkers(),0)}};
+  const cancelTargetDrag=()=>{suppressPageSwipeUntil=Date.now()+900;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');drawingGestureLocked=false;viewer.classList.remove('arrowDragging');if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY;syncTargetPosition()}targetDrag=null;drawMarkers()};
   [target,grab].forEach(node=>{node.onpointerdown=e=>beginTargetDrag(e,node);node.onpointermove=moveTargetDrag;node.onpointerup=endTargetDrag;node.onpointercancel=cancelTargetDrag});
   syncTargetPosition();markers.append(target,grab);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
@@ -422,7 +422,7 @@ viewer.addEventListener('wheel',e=>{
 },{passive:false});
 
 viewer.addEventListener('pointerdown',e=>{
- if(!pdf||addType||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay'))return;
+ if(!pdf||drawingGestureLocked||addType||textMode||e.button!==0||e.pointerType==='touch'||e.target.closest('.secMarker,.secTarget,.precisionPointGrab,.secTextNote,.secTextTarget,.serviceDrawingOverlay'))return;
  panMouse={pointer:e.pointerId,x:e.clientX,y:e.clientY,left:viewer.scrollLeft,top:viewer.scrollTop};
  viewer.classList.add('mousePanning');viewer.setPointerCapture(e.pointerId);e.preventDefault();
 });
@@ -440,6 +440,7 @@ viewer.addEventListener('pointercancel',endMousePan);
 viewer.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;viewer.classList.remove('mousePanning')}});
 
 function beginSecurityPinch(e){
+ if(drawingGestureLocked)return;
  const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect(),stage=$('secStage');
  const focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
  const anchor={
@@ -459,13 +460,15 @@ function commitSecurityPinch(p){
  zoom=target;return render(false,focus,p.anchor);
 }
 viewer.addEventListener('touchstart',e=>{
+ if(drawingGestureLocked){e.preventDefault();panTouch=null;return}
  if(e.touches.length===2){e.preventDefault();beginSecurityPinch(e);return}
- if(e.target.closest('.secMarker,.secTarget,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
+ if(e.target.closest('.secMarker,.secTarget,.precisionPointGrab,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
  if(e.touches.length===1&&!addType&&!textMode){
   const t=e.touches[0];panTouch={x:t.clientX,y:t.clientY,startX:t.clientX,startY:t.clientY,left:viewer.scrollLeft,top:viewer.scrollTop,started:Date.now(),pageSwipe:zoom<=1.05&&Math.abs(visualZoom-1)<.02};
  }
 },{passive:false});
 viewer.addEventListener('touchmove',e=>{
+ if(drawingGestureLocked){e.preventDefault();panTouch=null;return}
  if(e.touches.length===2){
   e.preventDefault();if(!pinch){beginSecurityPinch(e);return}
   const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect(),focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
