@@ -176,6 +176,19 @@ function isSecurityRemediated(o){return hasSecurityRecordedProblem(o)&&!!String(
 function hasSecurityProblem(o){return hasSecurityRecordedProblem(o)&&!isSecurityRemediated(o)}
 function statusOf(o){if(isSecurityRemediated(o))return'ok';if(o.status==='fail')return'fail';if(Object.values(o.checks||{}).some(c=>c.result==='remark'))return'action';if(o.status==='ok')return'ok';return'untested'}
 function securityStatusText(o){if(isSecurityRemediated(o))return'Åtgärdad';return statusOf(o)==='fail'?'Ej godkänd':statusOf(o)==='action'?'Åtgärd krävs':statusOf(o)==='ok'?'Godkänd':'Ej klar'}
+function customerProtocolTitle(type){
+ const titles={
+  automation:'CHECKLISTA REVISION DÖRRAUTOMATIK',
+  automation_selfcheck:'EGENKONTROLL DÖRRAUTOMATIK',
+  alarm:'INBROTTSLARM',
+  lock:'LÅS & DÖRRMILJÖ',
+  access:'PASSER',
+  fire_panel:'BRANDCENTRAL',
+  fire_detector:'BRANDDETEKTORER',
+  fire_door:'BRANDDÖRR / DÖRRHÅLLNING'
+ };
+ return titles[type]||String(SYSTEMS[type]?.label||type||'PROTOKOLL').toLocaleUpperCase('sv')
+}
 function normalizeSecurityCheckEdits(o){
  const valid=new Set((SYSTEMS[o.type]?.checks||[]).map(([n])=>n)),raw=o.checkEdits&&typeof o.checkEdits==='object'&&!Array.isArray(o.checkEdits)?o.checkEdits:{},clean={};
  Object.entries(raw).forEach(([id,value])=>{if(!valid.has(id))return;if(value===null)clean[id]=null;else if(typeof value==='string'&&value.trim())clean[id]=value.trim()});
@@ -948,7 +961,7 @@ function reportDoc(){
  doc.__protocolPages={};doc.__backLinks=[];
  function txt(value,x,y,size=8,bold=false,color=[25,40,48],opts){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||''),x,y,opts||{})}
  function addLogo(x,y,w,h){if(!logoData)return;try{const im=doc.getImageProperties(logoData),pad=2.5,sc=Math.min((w-pad*2)/im.width,(h-pad*2)/im.height),iw=im.width*sc,ih=im.height*sc;doc.addImage(logoData,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}catch(_){}}
- function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,10.6,true,[25,25,25],{align:'center'});txt('SÄKERHETSSERVICE · KUNDRAPPORT',left+58+(width-58)/2,21.4,7.5,false,[70,82,90],{align:'center'})}
+ function summaryHeader(title='ANMÄRKNINGSÖVERSIKT'){doc.setFillColor(255,255,255);doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18,'FD');doc.line(left+58,8,left+58,26);if(logoData)addLogo(left,8,58,18);txt(title,left+58+(width-58)/2,16.2,10.6,true,[25,25,25],{align:'center'});txt((ALL_IN_ONE?'ALLT-I-ETT':'SÄKERHETSSERVICE')+' · KUNDRAPPORT',left+58+(width-58)/2,21.4,7.5,false,[70,82,90],{align:'center'})}
  summaryHeader();let y=32;
  const field=(label,value,x,yy,w,signature=false)=>{doc.setFillColor(248,248,248);doc.setDrawColor(185,185,185);doc.setLineWidth(.22);doc.rect(x,yy,w,13,'FD');txt(label,x+2,yy+4,7.2,true,[82,82,82]);doc.setFont('helvetica',signature?'italic':'normal');doc.setFontSize(signature?9.6:9.0);doc.setTextColor(...(signature?[70,125,165]:[25,25,25]));doc.text(doc.splitTextToSize(String(value||'-'),w-4).slice(0,2),x+2,yy+8.8,{lineHeightFactor:1.05})};
  field('ANLÄGGNING',project.projectName||project.facilityNo,left,y,70);
@@ -1023,7 +1036,7 @@ function reportDoc(){
  function protocolTop(o,continuation=false){
   doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);addLogo(left,8,58,18);doc.line(left+58,8,left+58,26);
   txt('Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
-  txt('CHECKLISTA REVISION AV '+SYSTEMS[o.type].label,left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
+  txt(customerProtocolTitle(o.type),left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
   if(continuation){txt('fortsättning',left+58+(width-58)/2,23,6,false,[70,70,70],{align:'center'});y=31;cell('Objekt:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=12;return}
   doc.setDrawColor(155,155,155);doc.setLineWidth(.22);doc.line(left,36.2,left+width,36.2);doc.setFillColor(255,255,255);doc.rect(left,31.8,28,7,'F');txt('SERVICE',left+1.5,36.7,11.4,true,[25,25,25]);y=40;
   cell('Bokat datum:',project.date,left,y,93);cell('Nästa provning:',project.nextDate,left+93,y,93);y+=7;
