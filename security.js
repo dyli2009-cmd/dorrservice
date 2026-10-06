@@ -1118,15 +1118,15 @@ function reportDoc(){
   cell('ID / märkning:',o.id,left,y,54,8,true);cell('Placering:',o.location,left+54,y,66,8);cell('AO nummer:',project.order,left+120,y,66,8,true);y+=8;
  }
  function checkHeader(){
-  const ws=[9,91,16,24,28,18],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
-  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?7.3:8.2);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,headerY,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,headerY,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
+  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
+  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8.0);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,headerY,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,headerY,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  }
 
  reportItems.slice().sort((a,b)=>a.page-b.page||a.number-b.number).forEach(o=>{
   doc.addPage();doc.__protocolPages[o.uid]=doc.getNumberOfPages();backButton(o);protocolTop(o);checkHeader();
-  const ws=[9,91,16,24,28,18],checks=allChecks(o),notesReserve=29,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,checks.length)));
+  const ws=[9,101,14,21,25,16],checks=allChecks(o),notesReserve=29,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,checks.length)));
   checks.forEach(([n,title])=>{
-   const check=o.checks[n]||{},titleSize=rowH<7?7.1:7.7,step=rowH<7?2.55:2.8;let x=left;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);const titleLines=doc.splitTextToSize(String(title||''),ws[1]-3.8).slice(0,2);
+   const check=o.checks[n]||{},titleSize=rowH<7?6.9:7.4,step=rowH<7?2.45:2.7;let x=left;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);const titleLines=doc.splitTextToSize(String(title||''),ws[1]-4.2).slice(0,2);
    const vals=[n,title,check.result==='na'?'–':'','',check.result==='remark'?'X':'',project.signature||''];
    vals.forEach((v,i)=>{
     doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(x,y,ws[i],rowH,'FD');
