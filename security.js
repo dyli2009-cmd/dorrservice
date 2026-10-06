@@ -1,7 +1,7 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 const SYSTEMS={
- alarm:{label:'Inbrottslarm',markerLabel:'Inbrott',prefix:'I',checks:[
+ alarm:{label:'Inbrottslarm',markerLabel:'Inbrottslarm',prefix:'I',checks:[
  ['1.1','Lägg anläggningen i serviceläge på larmcentral.'],
  ['1.2','Okulärbesiktning av anläggningen'],
  ['1.3','Pålarmning och stickkontroll detektor.'],
@@ -24,7 +24,7 @@ const SYSTEMS={
  '1.9':['Dekal saknas','Dekal behöver bytas'],
  '1.10':['Batteri svagt','Batteri behöver bytas']
  }},
- lock:{label:'Lås & Dörrmiljö',markerLabel:'Lås & Dörrmiljö',prefix:'L',checks:[
+ lock:{label:'Lås & Dörrmiljö',markerLabel:'Dörrmiljö',prefix:'L',checks:[
  ['1.1','Okulärbesiktning av dörrautomatik/dörrmiljö.'],
  ['1.2','Funktionskontroll av låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],
  ['1.3','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],
@@ -360,87 +360,134 @@ async function inspectLegacySecurityLinkedPdf(bytes){
   const refMap=new Map(pages.map((p,i)=>[String(p.ref),i+1])),lookup=obj=>{try{return obj?source.context.lookup(obj):null}catch(_){return obj||null}};
   const num=obj=>{const v=lookup(obj);try{if(v instanceof PDFNumber)return v.asNumber();if(typeof v?.asNumber==='function')return v.asNumber()}catch(_){}const n=Number(String(v||''));return Number.isFinite(n)?n:null};
   const str=obj=>{const v=lookup(obj);if(!v)return '';try{if(typeof v.decodeText==='function')return v.decodeText()}catch(_){}try{if(typeof v.asString==='function')return v.asString().replace(/^\//,'')}catch(_){}return String(v).replace(/^\//,'')};
-  const rect=dict=>{const a=lookup(dict?.get?.(PDFName.of('Rect')));if(!(a instanceof PDFArray)||a.size()<4)return null;const out=[0,1,2,3].map(i=>num(a.get(i)));return out.every(Number.isFinite)?out:null};
+  const arrNums=obj=>{const a=lookup(obj),out=[];if(a instanceof PDFArray)for(let i=0;i<a.size();i++){const n=num(a.get(i));if(Number.isFinite(n))out.push(n)}return out};
+  const rect=dict=>{const out=arrNums(dict?.get?.(PDFName.of('Rect')));return out.length>=4?out.slice(0,4):null};
+  const fieldName=dict=>{let d=dict;for(let depth=0;depth<3&&d instanceof PDFDict;depth++){const t=str(d.get(PDFName.of('T')));if(t)return t;d=lookup(d.get(PDFName.of('Parent')))}return ''};
   const destPage=dest=>{const a=lookup(dest);if(!(a instanceof PDFArray)||!a.size())return null;const first=a.get(0),direct=refMap.get(String(first))||refMap.get(String(lookup(first)));if(direct)return direct;const n=num(first);return Number.isInteger(n)&&n>=0&&n<pages.length?n+1:null};
+  const clean=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const typeFromText=value=>{
+   const t=clean(value).toLowerCase();
+   if(/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm|^inbrott\b/.test(t))return'alarm';
+   if(/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(t))return'lock';
+   if(/passersystem|passer\b|kortläsare|kortlasare/.test(t))return'access';
+   return null
+  };
+  const markerNumber=(value,type)=>{
+   const t=clean(value);
+   const patterns=type==='alarm'?[/inbrott(?:slarm)?\s*[:#-]?\s*(\d{1,3})/i]:
+                  type==='lock'?[/d[oö]rrmilj[oö]\s*[:#-]?\s*(\d{1,3})/i,/l[aå]s(?:\s*&\s*d[oö]rrmilj[oö])?\s*[:#-]?\s*(\d{1,3})/i]:
+                  type==='access'?[/passer(?:system)?\s*[:#-]?\s*(\d{1,3})/i]:[];
+   for(const re of patterns){const m=t.match(re);if(m)return Number(m[1])}
+   if(/^\s*\d{1,3}\s*$/.test(t))return Number(t.trim());
+   return null
+  };
   const pageGeometry=pageNo=>{
-   const p=pages[pageNo-1],links=[],callouts=[];if(!p)return {links,callouts};
+   const p=pages[pageNo-1],links=[],texts=[],leaders=[];if(!p)return {links,texts,leaders};
    let annots=null;try{annots=p.node.lookup(PDFName.of('Annots'),PDFArray)}catch(_){}
-   if(!(annots instanceof PDFArray))return {links,callouts};
+   if(!(annots instanceof PDFArray))return {links,texts,leaders};
    for(let i=0;i<annots.size();i++){
     const d=lookup(annots.get(i));if(!(d instanceof PDFDict))continue;
     const r=rect(d);if(!r)continue;
-    const subtype=str(d.get(PDFName.of('Subtype'))),intent=str(d.get(PDFName.of('IT')));
-    if(subtype==='FreeText'&&intent==='FreeTextCallout'){
-     const cl=lookup(d.get(PDFName.of('CL'))),points=[];
-     if(cl instanceof PDFArray)for(let j=0;j<cl.size();j++){const n=num(cl.get(j));if(Number.isFinite(n))points.push(n)}
-     if(points.length>=2)callouts.push({rect:r,points,text:str(d.get(PDFName.of('Contents')))||str(d.get(PDFName.of('RC')))})
+    const subtype=str(d.get(PDFName.of('Subtype'))),intent=str(d.get(PDFName.of('IT'))),name=fieldName(d),contents=clean(str(d.get(PDFName.of('Contents')))||str(d.get(PDFName.of('RC')))),key=pageNo+':'+i;
+    if(subtype==='FreeText'){
+     const points=arrNums(d.get(PDFName.of('CL')));
+     texts.push({key,rect:r,points,text:contents,name})
     }
-    const action=lookup(d.get(PDFName.of('A')));
-    if(action instanceof PDFDict){
-     const target=destPage(action.get(PDFName.of('D')));
-     if(target&&target!==pageNo)links.push({sourcePage:pageNo,targetPage:target,rect:r})
+    if(subtype==='Line'||subtype==='PolyLine'){
+     const points=subtype==='Line'?arrNums(d.get(PDFName.of('L'))):arrNums(d.get(PDFName.of('Vertices')));
+     if(points.length>=4)leaders.push({key,rect:r,points,text:contents})
     }
-    const direct=destPage(d.get(PDFName.of('Dest')));
-    if(direct&&direct!==pageNo)links.push({sourcePage:pageNo,targetPage:direct,rect:r})
+    const addLink=target=>{if(target&&target!==pageNo)links.push({sourcePage:pageNo,targetPage:target,rect:r,name,contents,key,typeHint:typeFromText(name+' '+contents)})};
+    const action=lookup(d.get(PDFName.of('A')));if(action instanceof PDFDict)addLink(destPage(action.get(PDFName.of('D'))));
+    addLink(destPage(d.get(PDFName.of('Dest'))))
    }
-   return {links,callouts}
+   return {links,texts,leaders}
   };
-  const protocolCache=new Map();
-  const fieldValue=a=>{const v=a?.fieldValue;if(Array.isArray(v))return v.join(' ');return v===undefined||v===null?'':String(v)};
+  const protocolCache=new Map(),fieldValue=a=>{const v=a?.fieldValue;if(Array.isArray(v))return v.join(' ');return v===undefined||v===null?'':String(v)};
   const protocolInfo=async pageNo=>{
    if(protocolCache.has(pageNo))return protocolCache.get(pageNo);
    const p=await scan.getPage(pageNo),annotations=await p.getAnnotations({intent:'any'}),tc=await p.getTextContent(),visible=tc.items.map(x=>x.str||'').join(' ');
-   const fields=annotations.filter(a=>a?.fieldName||a?.fieldValue).map(a=>({name:String(a.fieldName||''),value:fieldValue(a)})),combined=(visible+' '+fields.map(f=>f.name+' '+f.value).join(' ')).toLowerCase();
-   let type=null;
-   if(/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm/.test(combined))type='alarm';
-   else if(/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(combined))type='lock';
-   else if(/passersystem|passer\b|kortläsare|kortlasare/.test(combined))type='access';
-   if(!type){protocolCache.set(pageNo,null);return null}
+   const fields=annotations.filter(a=>a?.fieldName||a?.fieldValue).map(a=>({name:String(a.fieldName||''),value:fieldValue(a)})),combined=visible+' '+fields.map(f=>f.name+' '+f.value).join(' '),type=typeFromText(combined);
    const pick=(re,avoid)=>{const hit=fields.find(f=>re.test(f.name.toLowerCase())&&(!avoid||!avoid.test(f.name.toLowerCase()))&&f.value.trim()&&!/^(off|yes|on|no|0|1)$/i.test(f.value.trim()));return hit?.value.trim()||''};
-   const id=pick(/(^|\b)(id|objekt.*(?:nr|nummer)|märkning|markning)/,/kund|företag|foretag|anlägg|anlagg/);
-   const location=pick(/placering|dörrlittra|dorrlittra|position|lokal/);
-   const info={type,id,location,fields,visible};
+   const info={type,id:pick(/(^|\b)(id|objekt.*(?:nr|nummer)|märkning|markning)/,/kund|företag|foretag|anlägg|anlagg/),location:pick(/placering|dörrlittra|dorrlittra|position|lokal/),fields,visible};
    protocolCache.set(pageNo,info);return info
   };
-  const allLinks=[],allCallouts=new Map();
-  for(let pageNo=1;pageNo<=pages.length;pageNo++){
-   const g=pageGeometry(pageNo);if(g.callouts.length)allCallouts.set(pageNo,g.callouts);allLinks.push(...g.links)
-  }
+  const geometry=new Map(),allLinks=[];
+  for(let pageNo=1;pageNo<=pages.length;pageNo++){const g=pageGeometry(pageNo);geometry.set(pageNo,g);allLinks.push(...g.links)}
   if(!allLinks.length)return null;
   const valid=[];
-  for(const link of allLinks){const info=await protocolInfo(link.targetPage);if(info)valid.push({...link,info})}
+  for(const link of allLinks){
+   const info=await protocolInfo(link.targetPage),g=geometry.get(link.sourcePage),nearText=(g?.texts||[]).slice().sort((a,b)=>rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect))[0],type=info.type||link.typeHint||typeFromText(nearText?.text);
+   if(type)valid.push({...link,info:{...info,type}})
+  }
   if(!valid.length)return null;
-  const sourcePages=[...new Set(valid.map(x=>x.sourcePage))].sort((a,b)=>a-b),lastDrawing=Math.max(...sourcePages),drawingNumbers=Array.from({length:lastDrawing},(_,i)=>i+1);
-  const viewportMap=new Map();
-  for(const n of sourcePages){const p=await scan.getPage(n);viewportMap.set(n,p.getViewport({scale:1}))}
-  const distance=(a,b)=>{const ax=(a[0]+a[2])/2,ay=(a[1]+a[3])/2,bx=Math.max(b[0],Math.min(ax,b[2])),by=Math.max(b[1],Math.min(ay,b[3]));return Math.hypot(ax-bx,ay-by)};
-  const counts={alarm:0,lock:0,access:0},items=[];
+  const sourcePages=[...new Set(valid.map(x=>x.sourcePage))].sort((a,b)=>a-b),lastDrawing=Math.max(...sourcePages),drawingNumbers=Array.from({length:lastDrawing},(_,i)=>i+1),viewportMap=new Map();
+  for(let n=1;n<=lastDrawing;n++){const p=await scan.getPage(n);viewportMap.set(n,p.getViewport({scale:1}))}
+  function rectDistance(a,b){const ax=(a[0]+a[2])/2,ay=(a[1]+a[3])/2,bx=Math.max(b[0],Math.min(ax,b[2])),by=Math.max(b[1],Math.min(ay,b[3]));return Math.hypot(ax-bx,ay-by)}
+  const usedText=new Set(),usedNumbers={alarm:new Set(),lock:new Set(),access:new Set()},items=[];
+  const nextAvailable=type=>{let n=1;while(usedNumbers[type].has(n))n++;usedNumbers[type].add(n);return n};
   for(const link of valid){
-   const vp=viewportMap.get(link.sourcePage);if(!vp)continue;
-   const callouts=allCallouts.get(link.sourcePage)||[],nearby=callouts.slice().sort((a,b)=>distance(link.rect,a.rect)-distance(link.rect,b.rect))[0]||null;
+   const vp=viewportMap.get(link.sourcePage),g=geometry.get(link.sourcePage);if(!vp||!g)continue;
+   const type=link.info.type,candidates=g.texts.slice().sort((a,b)=>{
+    const at=(typeFromText(a.text)===type?0:1),bt=(typeFromText(b.text)===type?0:1);
+    return at-bt||rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect)
+   }),nearby=candidates.find(t=>!usedText.has(t.key)&&rectDistance(link.rect,t.rect)<=Math.max(120,Math.min(vp.width,vp.height)*.16))||null;
    const lr=vp.convertToViewportRectangle(link.rect);let x=Math.max(0,Math.min(1,((lr[0]+lr[2])/2)/vp.width)),y=Math.max(0,Math.min(1,((lr[1]+lr[3])/2)/vp.height)),labelX=Math.max(.035,Math.min(.965,x+.075)),labelY=Math.max(.035,Math.min(.965,y-.045)),legacyLabelText='';
-   if(nearby&&distance(link.rect,nearby.rect)<=Math.max(100,Math.min(vp.width,vp.height)*.14)){
-    const tip=vp.convertToViewportPoint(nearby.points[0],nearby.points[1]),rr=vp.convertToViewportRectangle(nearby.rect);
-    x=Math.max(0,Math.min(1,tip[0]/vp.width));y=Math.max(0,Math.min(1,tip[1]/vp.height));labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width));labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height));legacyLabelText=nearby.text||''
+   if(nearby){
+    usedText.add(nearby.key);legacyLabelText=nearby.text||'';
+    if(nearby.points.length>=2){const tip=vp.convertToViewportPoint(nearby.points[0],nearby.points[1]);x=Math.max(0,Math.min(1,tip[0]/vp.width));y=Math.max(0,Math.min(1,tip[1]/vp.height))}
+    const rr=vp.convertToViewportRectangle(nearby.rect);labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width));labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height))
    }
-   const type=link.info.type,number=++counts[type],cfg=SYSTEMS[type],id=link.info.id||((cfg?.markerLabel||cfg?.label||type)+' '+number);
-   items.push(normalize({uid:'legacy-security:'+link.targetPage+':'+number+':'+type,type,number,id,page:link.sourcePage,x,y,labelX,labelY,location:link.info.location||'',checks:{},customChecks:[],status:'untested',notes:'',legacyProtocolPage:link.targetPage,legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button'}))
+   let number=markerNumber(link.name,type)||markerNumber(link.contents,type)||markerNumber(legacyLabelText,type)||markerNumber(link.info.id,type);
+   if(!Number.isInteger(number)||number<1||number>999||usedNumbers[type].has(number))number=nextAvailable(type);else usedNumbers[type].add(number);
+   const cfg=SYSTEMS[type],id=link.info.id||((cfg?.markerLabel||cfg?.label||type)+' '+number);
+   items.push(normalize({uid:'legacy-security:'+link.targetPage+':'+number+':'+type,type,number,id,page:link.sourcePage,x,y,labelX,labelY,location:link.info.location||'',checks:{},customChecks:[],status:'untested',notes:'',legacyProtocolPage:link.targetPage,legacyButtonName:link.name||'',legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button'}))
   }
   if(!items.length)return null;
-  const firstInfo=valid[0]?.info,project=emptyProject(),fields=valid.flatMap(x=>x.info?.fields||[]);
+
+  const textNotes=[];
+  const pointToNorm=(vp,px,py)=>{const p=vp.convertToViewportPoint(px,py);return {x:Math.max(0,Math.min(1,p[0]/vp.width)),y:Math.max(0,Math.min(1,p[1]/vp.height))}};
+  for(let pageNo=1;pageNo<=lastDrawing;pageNo++){
+   const vp=viewportMap.get(pageNo),g=geometry.get(pageNo);if(!vp||!g)continue;
+   const candidates=g.texts.filter(t=>!usedText.has(t.key)&&clean(t.text));
+   const groups=[];
+   for(const t of candidates){
+    const rr=vp.convertToViewportRectangle(t.rect),labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width)),labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height)),normText=clean(t.text),keyText=normText.toLowerCase();
+    let group=groups.find(gp=>gp.keyText===keyText&&Math.hypot(gp.labelX-labelX,gp.labelY-labelY)<.08);
+    if(!group){group={keyText,text:normText,labelX,labelY,rect:t.rect,targets:[]};groups.push(group)}
+    if(t.points.length>=2)group.targets.push(pointToNorm(vp,t.points[0],t.points[1]))
+   }
+   for(const leader of g.leaders){
+    if(!leader.points.length)continue;
+    const endpoints=[];for(let j=0;j+1<leader.points.length;j+=2)endpoints.push({x:leader.points[j],y:leader.points[j+1]});
+    if(endpoints.length<2)continue;
+    let best=null;
+    for(const group of groups){
+     const d0=Math.min(...endpoints.map(p=>rectDistance([p.x,p.y,p.x,p.y],group.rect)));
+     if(d0<=Math.max(80,Math.min(vp.width,vp.height)*.10)&&(!best||d0<best.d))best={group,d:d0}
+    }
+    if(best){
+     const nearIndex=endpoints.reduce((bi,p,i)=>rectDistance([p.x,p.y,p.x,p.y],best.group.rect)<rectDistance([endpoints[bi].x,endpoints[bi].y,endpoints[bi].x,endpoints[bi].y],best.group.rect)?i:bi,0);
+     const far=endpoints.reduce((bp,p,i)=>i===nearIndex?bp:(rectDistance([p.x,p.y,p.x,p.y],best.group.rect)>rectDistance([bp.x,bp.y,bp.x,bp.y],best.group.rect)?p:bp),endpoints[(nearIndex+1)%endpoints.length]);
+     best.group.targets.push(pointToNorm(vp,far.x,far.y))
+    }else if(clean(leader.text)){
+     const p=endpoints[endpoints.length-1],rr=vp.convertToViewportRectangle(leader.rect),labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width)),labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height));
+     groups.push({keyText:clean(leader.text).toLowerCase(),text:clean(leader.text),labelX,labelY,rect:leader.rect,targets:[pointToNorm(vp,p.x,p.y)]})
+    }
+   }
+   groups.forEach((gp,idx)=>{
+    const unique=[];for(const t of gp.targets){if(!unique.some(u=>Math.hypot(u.x-t.x,u.y-t.y)<.012))unique.push(t)}
+    if(!unique.length)return;const first=unique[0];
+    textNotes.push({uid:'legacy-note:'+pageNo+':'+idx,page:pageNo,x:first.x,y:first.y,labelX:gp.labelX,labelY:gp.labelY,text:gp.text,targets:unique,legacyImported:true})
+   })
+  }
+
+  const project=emptyProject(),fields=valid.flatMap(x=>x.info?.fields||[]);
   const pickProject=(re,avoid)=>{const h=fields.find(f=>re.test(f.name.toLowerCase())&&(!avoid||!avoid.test(f.name.toLowerCase()))&&String(f.value||'').trim());return String(h?.value||'').trim()};
-  project.projectName=pickProject(/anläggning|anlaggning|objekt(?:namn)?/,/nr|nummer/);
-  project.facilityNo=pickProject(/anläggningsnr|anlaggningsnr|objektnr|objektnummer/);
-  project.order=pickProject(/\bao\b|order/);
-  project.nextDate=pickProject(/näst|nasta/);
-  project.date=pickProject(/datum/,/näst|nasta/)||project.date;
-  project.customer=pickProject(/beställare|bestallare|kund/);
-  project.contact=pickProject(/kontakt.*kund|kontaktperson/,/företag|foretag/);
-  project.phone=pickProject(/telefon.*kund|kund.*telefon/);
-  project.company=pickProject(/serviceföretag|serviceforetag|företag|foretag/);
+  project.projectName=pickProject(/anläggning|anlaggning|objekt(?:namn)?/,/nr|nummer/);project.facilityNo=pickProject(/anläggningsnr|anlaggningsnr|objektnr|objektnummer/);project.order=pickProject(/\bao\b|order/);project.nextDate=pickProject(/näst|nasta/);project.date=pickProject(/datum/,/näst|nasta/)||project.date;project.customer=pickProject(/beställare|bestallare|kund/);project.contact=pickProject(/kontakt.*kund|kontaktperson/,/företag|foretag/);project.phone=pickProject(/telefon.*kund|kund.*telefon/);project.company=pickProject(/serviceföretag|serviceforetag|företag|foretag/);
   const output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));copied.forEach(p=>output.addPage(p));const drawingBytes=new Uint8Array(await output.save({useObjectStreams:false}));
-  const typeSummary=Object.entries(counts).filter(([,n])=>n).map(([type,n])=>(SYSTEMS[type]?.label||type)+': '+n).join(' · ');
-  return {drawingBytes,work:{items,textNotes:[],drawingExtras:[],project,logoData:''},summaryText:'Äldre Bluebeam Säkerhetsservice importerad. '+items.length+' objekt hittades. '+typeSummary+'. '+items.filter(o=>o.legacyPlacementSource==='bluebeam-callout').length+' fick position från gammal text/pil.'}
+  const counts={alarm:items.filter(o=>o.type==='alarm').length,lock:items.filter(o=>o.type==='lock').length,access:items.filter(o=>o.type==='access').length},typeSummary=Object.entries(counts).filter(([,n])=>n).map(([type,n])=>(SYSTEMS[type]?.label||type)+': '+n).join(' · ');
+  return {drawingBytes,work:{items,textNotes,drawingExtras:[],project,logoData:''},summaryText:'Äldre Bluebeam Säkerhetsservice importerad. '+items.length+' protokollobjekt hittades. '+typeSummary+'. '+items.filter(o=>o.legacyPlacementSource==='bluebeam-callout').length+' fick position från text/pil. '+textNotes.length+' fristående textanmärkningar med pilar identifierades.'}
  }catch(error){
   console.warn('Äldre Säkerhetsservice-PDF kunde inte autoimporteras',error);return null
  }finally{if(scan)try{await scan.destroy()}catch(_){}}
