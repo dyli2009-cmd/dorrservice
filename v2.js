@@ -190,6 +190,18 @@ function applyProtocolTextLevel(){
 if(protocolTextSmaller)protocolTextSmaller.onclick=()=>{protocolTextLevel=Math.max(-1,protocolTextLevel-1);applyProtocolTextLevel()};
 if(protocolTextLarger)protocolTextLarger.onclick=()=>{protocolTextLevel=Math.min(3,protocolTextLevel+1);applyProtocolTextLevel()};
 applyProtocolTextLevel();
+
+const overviewTextSmaller=$('overviewTextSmaller'),overviewTextLarger=$('overviewTextLarger');
+let overviewTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-overview-size')||0)));
+function applyOverviewTextLevel(){
+ document.body.dataset.overviewSize=String(overviewTextLevel);
+ if(overviewTextSmaller)overviewTextSmaller.disabled=overviewTextLevel<=-1;
+ if(overviewTextLarger)overviewTextLarger.disabled=overviewTextLevel>=3;
+ localStorage.setItem('doorservice-overview-size',String(overviewTextLevel));
+}
+if(overviewTextSmaller)overviewTextSmaller.onclick=()=>{overviewTextLevel=Math.max(-1,overviewTextLevel-1);applyOverviewTextLevel()};
+if(overviewTextLarger)overviewTextLarger.onclick=()=>{overviewTextLevel=Math.min(3,overviewTextLevel+1);applyOverviewTextLevel()};
+applyOverviewTextLevel();
 let doorCheckEditUid=null;
 buildChecklist=function(d){
  normalize(d);const box=$('checklist');box.replaceChildren();const editing=doorCheckEditUid===d.uid;
@@ -452,6 +464,18 @@ if(installBtn)installBtn.onclick=async()=>{
 refreshInstallUI();
 
 let customerPreviewTimer=null,customerPreviewToken=0,customerPreviewPdf=null;
+const customerPreviewTextSmaller=$('customerPreviewTextSmaller'),customerPreviewTextLarger=$('customerPreviewTextLarger');
+let customerPreviewTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-customer-preview-size')||0)));
+const customerPreviewScaleFactor=()=>({[-1]:.84,0:1,1:1.18,2:1.38,3:1.62}[customerPreviewTextLevel]||1);
+function applyCustomerPreviewTextLevel(){
+ if(customerPreviewTextSmaller)customerPreviewTextSmaller.disabled=customerPreviewTextLevel<=-1;
+ if(customerPreviewTextLarger)customerPreviewTextLarger.disabled=customerPreviewTextLevel>=3;
+ localStorage.setItem('doorservice-customer-preview-size',String(customerPreviewTextLevel));
+ if(!$('customerPreviewPane')?.hidden)renderCustomerPreview();
+}
+if(customerPreviewTextSmaller)customerPreviewTextSmaller.onclick=()=>{customerPreviewTextLevel=Math.max(-1,customerPreviewTextLevel-1);applyCustomerPreviewTextLevel()};
+if(customerPreviewTextLarger)customerPreviewTextLarger.onclick=()=>{customerPreviewTextLevel=Math.min(3,customerPreviewTextLevel+1);applyCustomerPreviewTextLevel()};
+applyCustomerPreviewTextLevel();
 function customerPreviewDoor(){
  const source=cur()||doors[0];
  if(source)return structuredClone(source);
@@ -479,7 +503,7 @@ async function renderCustomerPreview(){
   if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
   if(startPage>preview.numPages)startPage=1;
   const first=await preview.getPage(startPage),base=first.getViewport({scale:1});
-  const available=Math.max(320,(holder.clientWidth||760)-22),displayScale=Math.min(1.55,available/base.width),pixelRatio=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
+  const available=Math.max(320,(holder.clientWidth||760)-22),fitScale=Math.min(1.55,available/base.width),displayScale=Math.max(.2,Math.min(2.55,fitScale*customerPreviewScaleFactor())),pixelRatio=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
   const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-startPage+1;
   canvas.width=renderW;canvas.height=renderH*pageCount+renderGap*Math.max(0,pageCount-1);canvas.style.width=cssW+'px';canvas.style.height=(cssH*pageCount+cssGap*Math.max(0,pageCount-1))+'px';
   const out=canvas.getContext('2d');out.imageSmoothingEnabled=true;out.imageSmoothingQuality='high';out.clearRect(0,0,canvas.width,canvas.height);
