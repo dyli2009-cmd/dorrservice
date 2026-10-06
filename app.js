@@ -146,7 +146,8 @@ $('file').onchange=async e=>{
   const previous=pdf;++renderVersion;if(renderTask)renderTask.cancel();await renderQueue;
   if(version!==loadVersion){await candidate.destroy();return}
   if(!persist()){await candidate.destroy();return}
-  const record=savedDrawing(key)||imported?.work||legacyImported?.work;
+  const stored=savedDrawing(key),storedHasWork=!!(stored&&((Array.isArray(stored.doors)&&stored.doors.length)||(Array.isArray(stored.importQueue)&&stored.importQueue.length)));
+  const record=imported?.work||(storedHasWork?stored:legacyImported?.work||stored);
   const nextDoors=(record?.doors||[]).map(normalize),nextTextNotes=Array.isArray(record?.textNotes)?record.textNotes.filter(n=>n&&Number.isInteger(n.page)&&n.page>0&&Number.isFinite(n.x)&&Number.isFinite(n.y)&&typeof n.text==='string'):[];
   pdf=candidate;sourcePdfBytes=drawingBytes.slice();activeDrawingKey=key;activeDrawingName=f.name;
   doors=nextDoors;importQueue=Array.isArray(record?.importQueue)?record.importQueue.filter(d=>d&&typeof d==='object'&&typeof d.id==='string').map(d=>structuredClone(d)):[];textNotes=nextTextNotes;drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project=record?.project||{};if(!project.inspectionDate)project.inspectionDate=doorLocalToday();logoData=record?.logoData||'';
