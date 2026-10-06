@@ -1,4 +1,4 @@
-/* Allt-i-ett protocol selection 2.4.139 */
+/* Allt-i-ett protocol selection 2.4.140 */
 (()=>{
  'use strict';
  const KEY='doorservice-all-in-one-active-protocols';
@@ -8,7 +8,7 @@
   file=document.getElementById('securityFile');
  if(!dialog||!apply||!file)return;
 
- let active=new Set();
+ let active=new Set(),awaitingFile=false;
 
  function itemTypes(){
   try{return new Set((typeof items!=='undefined'&&Array.isArray(items)?items:[]).map(o=>o?.type).filter(x=>TYPES.includes(x)))}
@@ -37,12 +37,24 @@
   write();
   refresh();
   dialog.close();
+  awaitingFile=true;
   setTimeout(()=>file.click(),40)
  }
 
  apply.onclick=applyPicker;
  dialog.addEventListener('change',e=>{if(e.target.matches('input[type=checkbox][value]'))refresh()});
  dialog.addEventListener('cancel',e=>e.preventDefault());
+
+ const returnFromCancelledFilePicker=()=>{
+  if(!awaitingFile)return;
+  awaitingFile=false;
+  openPicker();
+ };
+ file.addEventListener('change',()=>{awaitingFile=false},{capture:true});
+ file.addEventListener('cancel',returnFromCancelledFilePicker);
+ window.addEventListener('focus',()=>setTimeout(()=>{
+  if(awaitingFile&&!file.files?.length)returnFromCancelledFilePicker()
+ },450));
 
  // The first selection is authoritative for the whole workspace session.
  // Opening/scanning a PDF must never add extra protocol types automatically.
