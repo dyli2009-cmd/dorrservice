@@ -1361,3 +1361,71 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
   .homeChoices,.homeTools{width:100%}
   .homeChoiceIcon svg{width:21px;height:21px}
 }
+
+
+/* 2.4.164: subtle line-icon home design; no image background. */
+.appHome{
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 50% 38%,#28566d 0,#1b4053 44%,#102b39 100%)!important;
+}
+.homeBackdropIcons{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.homeSystemIcon{
+  position:absolute;
+  width:78px;
+  height:78px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #d9e8ef26;
+  border-radius:50%;
+  color:#e7f1f533;
+  background:#ffffff08;
+  backdrop-filter:blur(.5px);
+  -webkit-backdrop-filter:blur(.5px);
+}
+.homeSystemIcon svg{
+  width:45px;
+  height:45px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.45;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.homeSystemAlarm{left:8%;top:12%;transform:rotate(-6deg)}
+.homeSystemFire{right:9%;top:13%;transform:rotate(5deg)}
+.homeSystemLock{left:10%;bottom:13%;transform:rotate(4deg)}
+.homeSystemAccess{right:8%;bottom:14%;transform:rotate(-5deg)}
+.homeSystemDoor{left:4%;top:48%;transform:rotate(-4deg)}
+.homeSystemSensor{right:4%;top:49%;transform:rotate(5deg)}
+.homeShell{
+  position:relative;
+  z-index:1;
+  background:rgba(255,255,255,.96)!important;
+  box-shadow:0 22px 70px #07182070,0 0 0 1px #ffffff20 inset!important;
+}
+@media(max-width:620px){
+  .homeSystemIcon{
+    width:58px;
+    height:58px;
+    opacity:.9;
+  }
+  .homeSystemIcon svg{width:33px;height:33px}
+  .homeSystemAlarm{left:-8px;top:10%}
+  .homeSystemFire{right:-8px;top:12%}
+  .homeSystemLock{left:-10px;bottom:10%}
+  .homeSystemAccess{right:-10px;bottom:11%}
+  .homeSystemDoor{left:-24px;top:46%}
+  .homeSystemSensor{right:-24px;top:48%}
+  .homeShell{
+    width:min(430px,100%);
+    border-radius:16px;
+  }
+}
