@@ -1,4 +1,4 @@
-/* Allt-i-ett 2.4.134 */
+/* Allt-i-ett 2.4.135 */
 .allInOneApp .headerSubtitle{white-space:nowrap}
 .allProtocolDialog{
  width:min(620px,94vw);max-height:min(86vh,760px);border:0;border-radius:14px;
@@ -6,7 +6,7 @@
 }
 .allProtocolDialog::backdrop{background:#0008}
 .allProtocolHead{
- display:flex;align-items:center;justify-content:space-between;gap:10px;
+ display:flex;align-items:center;justify-content:flex-start;gap:10px;
  padding:12px 14px;background:#132b38;color:#fff
 }
 .allProtocolHead h2{margin:2px 0 0;font-size:18px}
@@ -36,8 +36,6 @@
 .allProtocolChoices label small{font-size:10px;color:#6d7f89;font-weight:500}
 #allProtocolMessage{min-height:18px;margin:2px 14px 4px;font-size:10px}
 .allProtocolActions{display:flex;align-items:center;justify-content:flex-end;gap:7px;padding:10px 14px 14px}
-.allProtocolActionSpacer{flex:1}
-#allProtocolOpenWork{white-space:nowrap}
 .allProtocolActions button{min-height:36px}
 .allInOneProtocolTools [data-add][hidden]{display:none!important}
 .allInOneApp .securityTools{align-items:center}
@@ -48,9 +46,57 @@
  .allProtocolIntro{margin:9px 10px 6px;font-size:11px}
  .allProtocolChoices{padding:3px 10px 6px;gap:5px}
  .allProtocolChoices label{padding:8px 9px}
- .allProtocolActions{padding:8px 10px 10px;flex-wrap:wrap}
- .allProtocolActionSpacer{display:none}
- #allProtocolOpenWork{width:100%;order:-1}
+ .allProtocolActions{padding:8px 10px 10px}
  .allInOneApp .headerActions{gap:3px}
  .allInOneApp #allProtocolPicker{font-size:9px;padding-inline:6px}
 }
+
+
+/* 2.4.135: compact Allt-i-ett protocol and make A-/A+ affect the whole Project workspace. */
+body.allInOneApp #securityProtocol .secCheck{
+ padding:4px 5px!important;
+ margin-bottom:3px!important;
+ border-radius:6px!important;
+}
+body.allInOneApp #securityProtocol .secCheckHead{gap:4px!important;line-height:1.12!important}
+body.allInOneApp #securityProtocol .secCheckHead .checkNumber{min-width:24px!important}
+body.allInOneApp #securityProtocol .secChoices{gap:3px!important;margin-top:4px!important}
+body.allInOneApp #securityProtocol .secChoices button{
+ min-height:24px!important;
+ padding:2px 4px!important;
+ line-height:1.05!important;
+}
+body.allInOneApp #securityProtocol .secProgressActions{gap:3px!important}
+body.allInOneApp #securityProtocol .secProgressActions button{min-height:26px!important;padding:2px 5px!important}
+body.allInOneApp #securityProtocol .progressLine{margin:4px 0!important}
+body.allInOneApp #securityProtocol .protocolNotes textarea{min-height:34px!important}
+
+body.allInOneApp[data-app-text-size="-1"] #securityProject .projectCard{padding:5px!important}
+body.allInOneApp[data-app-text-size="-1"] #securityProject .projectSections{gap:5px!important}
+body.allInOneApp[data-app-text-size="-1"] #securityProject .projectCard input{min-height:24px!important;height:24px!important;padding:2px 4px!important}
+body.allInOneApp[data-app-text-size="-1"] #securityProject .secLogoActions .filebtn,
+body.allInOneApp[data-app-text-size="-1"] #securityProject .secLogoActions button{min-height:25px!important}
+
+body.allInOneApp[data-app-text-size="0"] #securityProject .projectCard input{min-height:27px!important;height:27px!important}
+body.allInOneApp[data-app-text-size="1"] #securityProject .projectCard{padding:8px!important}
+body.allInOneApp[data-app-text-size="1"] #securityProject .projectSections{gap:8px!important}
+body.allInOneApp[data-app-text-size="1"] #securityProject .projectCard input{min-height:31px!important;height:31px!important;padding:3px 5px!important}
+body.allInOneApp[data-app-text-size="1"] #securityProject .secLogoActions .filebtn,
+body.allInOneApp[data-app-text-size="1"] #securityProject .secLogoActions button{min-height:32px!important}
+
+body.allInOneApp[data-app-text-size="2"] #securityProject .projectCard{padding:10px!important}
+body.allInOneApp[data-app-text-size="2"] #securityProject .projectSections{gap:10px!important}
+body.allInOneApp[data-app-text-size="2"] #securityProject .projectCard input{min-height:35px!important;height:35px!important;padding:4px 6px!important}
+body.allInOneApp[data-app-text-size="2"] #securityProject .secLogoActions .filebtn,
+body.allInOneApp[data-app-text-size="2"] #securityProject .secLogoActions button{min-height:36px!important}
+
+body.allInOneApp[data-app-text-size="3"] #securityProject .projectCard{padding:12px!important}
+body.allInOneApp[data-app-text-size="3"] #securityProject .projectSections{gap:12px!important}
+body.allInOneApp[data-app-text-size="3"] #securityProject .projectCard input{min-height:40px!important;height:40px!important;padding:5px 7px!important}
+body.allInOneApp[data-app-text-size="3"] #securityProject .secLogoActions .filebtn,
+body.allInOneApp[data-app-text-size="3"] #securityProject .secLogoActions button{min-height:40px!important}
+body.allInOneApp[data-app-text-size="1"] #securityProject #secLogoPreview{min-height:42px!important}
+body.allInOneApp[data-app-text-size="2"] #securityProject #secLogoPreview{min-height:50px!important}
+body.allInOneApp[data-app-text-size="3"] #securityProject #secLogoPreview{min-height:60px!important}
+
+body.allInOneApp .secMarker{max-width:230px!important}
