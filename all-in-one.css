@@ -503,3 +503,15 @@ body.allInOneApp #secViewer.arrowDragging .secTarget{
     font-size:9px!important;
   }
 }
+
+
+/* 2.4.154: selected-object arrow handle only; never let the canvas move under it. */
+body.allInOneApp #secViewer.arrowDragging,
+body.allInOneApp #secViewer.arrowDragging #secStage,
+body.allInOneApp #secViewer.arrowDragging #secMarkers{
+  touch-action:none!important;
+  overscroll-behavior:none!important;
+}
+body.allInOneApp #secViewer.arrowDragging{
+  overflow:hidden!important;
+}
