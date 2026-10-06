@@ -776,3 +776,22 @@ body.precisionMode .secTarget,
 body.precisionMode .secMarker{
  box-shadow:0 0 0 3px rgba(23,63,85,.16),0 2px 5px #0005;
 }
+
+
+/* 2.4.105: Security overview text size follows A-/A+ controls. */
+body[data-overview-size="-1"] #securityOverview .secSummaryCard h3{font-size:12px}
+body[data-overview-size="-1"] #securityOverview .secSummaryCard ul,
+body[data-overview-size="-1"] #securityOverview .secSummaryCard p,
+body[data-overview-size="-1"] #securityOverview .secSummaryMeta{font-size:10px}
+body[data-overview-size="1"] #securityOverview .secSummaryCard h3{font-size:16px}
+body[data-overview-size="1"] #securityOverview .secSummaryCard ul,
+body[data-overview-size="1"] #securityOverview .secSummaryCard p,
+body[data-overview-size="1"] #securityOverview .secSummaryMeta{font-size:13px}
+body[data-overview-size="2"] #securityOverview .secSummaryCard h3{font-size:18px}
+body[data-overview-size="2"] #securityOverview .secSummaryCard ul,
+body[data-overview-size="2"] #securityOverview .secSummaryCard p,
+body[data-overview-size="2"] #securityOverview .secSummaryMeta{font-size:15px}
+body[data-overview-size="3"] #securityOverview .secSummaryCard h3{font-size:20px}
+body[data-overview-size="3"] #securityOverview .secSummaryCard ul,
+body[data-overview-size="3"] #securityOverview .secSummaryCard p,
+body[data-overview-size="3"] #securityOverview .secSummaryMeta{font-size:17px}
