@@ -539,10 +539,10 @@ async function inspectLegacySecurityLinkedPdf(bytes){
    if(kept.length)p.node.set(PDFName.of('Annots'),source.context.obj(kept));else p.node.delete(PDFName.of('Annots'))
   }
   const output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));copied.forEach(p=>output.addPage(p));const drawingBytes=new Uint8Array(await output.save({useObjectStreams:false}));
-  const counts={alarm:items.filter(o=>o.type==='alarm').length,lock:items.filter(o=>o.type==='lock').length,access:items.filter(o=>o.type==='access').length},typeSummary=Object.entries(counts).filter(([,n])=>n).map(([type,n])=>(SYSTEMS[type]?.label||type)+': '+n).join(' · ');
-  return {drawingBytes,work:{items,textNotes,drawingExtras:[],project,logoData:''},summaryText:'Äldre Bluebeam Säkerhetsservice importerad och ritningen rensad. '+items.length+' protokollobjekt hittades. '+typeSummary+'. '+items.filter(o=>o.legacyPlacementSource==='bluebeam-callout').length+' fick position från text/pil. '+textNotes.length+' fristående textanmärkningar med pilar ersattes. '+removedLegacyCount+' gamla Bluebeam-markeringar togs bort.'}
+  const counts={automation:items.filter(o=>o.type==='automation').length,alarm:items.filter(o=>o.type==='alarm').length,lock:items.filter(o=>o.type==='lock').length,access:items.filter(o=>o.type==='access').length},typeSummary=Object.entries(counts).filter(([,n])=>n).map(([type,n])=>(SYSTEMS[type]?.label||type)+': '+n).join(' · ');
+  return {drawingBytes,work:{items,textNotes,drawingExtras:[],project,logoData:''},summaryText:'Äldre Bluebeam '+APP_LABEL+' importerad och ritningen rensad. '+items.length+' protokollobjekt hittades. '+typeSummary+'. '+items.filter(o=>o.legacyPlacementSource==='bluebeam-callout').length+' fick position från text/pil. '+textNotes.length+' fristående textanmärkningar med pilar ersattes. '+removedLegacyCount+' gamla Bluebeam-markeringar togs bort.'}
  }catch(error){
-  console.warn('Äldre Säkerhetsservice-PDF kunde inte autoimporteras',error);return null
+  console.warn('Äldre '+APP_LABEL+'-PDF kunde inte autoimporteras',error);return null
  }finally{if(scan)try{await scan.destroy()}catch(_){}}
 }
 
