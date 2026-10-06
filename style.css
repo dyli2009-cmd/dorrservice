@@ -1166,3 +1166,42 @@ body.precisionMode .precisionPointGrab.selectedPrecision{display:block}
  .precisionPointGrab{width:96px;min-width:96px;height:138px;min-height:138px}
  .precisionPointGrab::after{width:32px;height:32px}
 }
+
+
+/* 2.4.105: readable text controls for Door overview and customer preview. */
+.overviewHeadControls,.customerPreviewControls{display:flex;align-items:center;gap:5px;flex:none}
+.overviewHeadControls button,.customerPreviewControls button{min-width:34px;min-height:34px;padding:3px 8px;font-size:12px}
+.overviewHeadControls button:last-child,.customerPreviewControls button:last-child{font-size:20px;padding:0}
+.customerPreviewHead .customerPreviewControls button{background:#294554;color:#fff;border-color:#496574}
+body[data-overview-size="-1"] #overviewDialog #overviewList,
+body[data-overview-size="-1"] #overviewDialog #overviewList button,
+body[data-overview-size="-1"] #overviewDialog #overviewList input,
+body[data-overview-size="-1"] #overviewDialog #overviewList select{font-size:10.5px}
+body[data-overview-size="-1"] #overviewDialog .overviewProject,
+body[data-overview-size="-1"] #overviewDialog #overviewSummary,
+body[data-overview-size="-1"] #overviewDialog .overviewFilters label{font-size:10px}
+body[data-overview-size="1"] #overviewDialog #overviewList,
+body[data-overview-size="1"] #overviewDialog #overviewList button,
+body[data-overview-size="1"] #overviewDialog #overviewList input,
+body[data-overview-size="1"] #overviewDialog #overviewList select{font-size:14px}
+body[data-overview-size="1"] #overviewDialog .overviewProject,
+body[data-overview-size="1"] #overviewDialog #overviewSummary,
+body[data-overview-size="1"] #overviewDialog .overviewFilters label{font-size:13px}
+body[data-overview-size="2"] #overviewDialog #overviewList,
+body[data-overview-size="2"] #overviewDialog #overviewList button,
+body[data-overview-size="2"] #overviewDialog #overviewList input,
+body[data-overview-size="2"] #overviewDialog #overviewList select{font-size:16px}
+body[data-overview-size="2"] #overviewDialog .overviewProject,
+body[data-overview-size="2"] #overviewDialog #overviewSummary,
+body[data-overview-size="2"] #overviewDialog .overviewFilters label{font-size:14.5px}
+body[data-overview-size="3"] #overviewDialog #overviewList,
+body[data-overview-size="3"] #overviewDialog #overviewList button,
+body[data-overview-size="3"] #overviewDialog #overviewList input,
+body[data-overview-size="3"] #overviewDialog #overviewList select{font-size:18px}
+body[data-overview-size="3"] #overviewDialog .overviewProject,
+body[data-overview-size="3"] #overviewDialog #overviewSummary,
+body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16px}
+@media(max-width:520px){
+ .overviewHeadControls,.customerPreviewControls{gap:3px}
+ .overviewHeadControls button,.customerPreviewControls button{min-width:31px;min-height:31px;padding:2px 6px;font-size:11px}
+}
