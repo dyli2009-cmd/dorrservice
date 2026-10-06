@@ -63,11 +63,12 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
  try{
   if(!window.PDFLib)throw new Error('PDF-biblioteket saknas.');
   scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
-  const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),lowPages=source.getPages();
+  const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),lowPages=source.getPages();
   const pageRefMap=new Map(lowPages.map((p,i)=>[String(p.ref),i+1]));
   const lookup=obj=>{try{return obj?source.context.lookup(obj):null}catch(e){return obj||null}};
   const objectText=obj=>{
    const value=lookup(obj);if(!value)return '';
+   try{if(value instanceof PDFRawStream)return new TextDecoder().decode(decodePDFRawStream(value).decode())}catch(e){}
    try{if(typeof value.decodeText==='function')return value.decodeText()}catch(e){}
    try{if(typeof value.asString==='function')return value.asString().replace(/^\//,'')}catch(e){}
    return String(value).replace(/^\//,'')
@@ -127,7 +128,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    let current=dict,name='',value='';
    for(let depth=0;current instanceof PDFDict&&depth<8;depth++){
     if(!name){const raw=current.get(PDFName.of('T'));if(raw)name=objectText(raw)}
-    if(!value){const raw=current.get(PDFName.of('V'));if(raw)value=objectText(raw)}
+    if(!value){const raw=current.get(PDFName.of('V'))||current.get(PDFName.of('DV'));if(raw)value=objectText(raw)}
     current=lookup(current.get(PDFName.of('Parent')))
    }
    return {name,value:cleanValue(value)}
