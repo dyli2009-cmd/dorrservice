@@ -444,8 +444,7 @@ async function inspectLegacySecurityLinkedPdf(bytes){
     if(nearby.points.length>=2){const tip=vp.convertToViewportPoint(nearby.points[0],nearby.points[1]);x=Math.max(0,Math.min(1,tip[0]/vp.width));y=Math.max(0,Math.min(1,tip[1]/vp.height))}
     const rr=vp.convertToViewportRectangle(nearby.rect);labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width));labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height))
    }
-   let number=markerNumber(link.name,type)||markerNumber(link.contents,type)||markerNumber(legacyLabelText,type)||markerNumber(link.info.id,type);
-   if(!Number.isInteger(number)||number<1||number>999||usedNumbers[type].has(number))number=nextAvailable(type);else usedNumbers[type].add(number);
+   const number=nextAvailable(type);
    const cfg=SYSTEMS[type],id=(cfg?.label||type)+' '+number;
    items.push(normalize({uid:'legacy-security:'+link.targetPage+':'+number+':'+type,type,number,id,page:link.sourcePage,x,y,labelX,labelY,location:link.info.location||'',checks:{},customChecks:[],status:'untested',notes:'',legacyProtocolPage:link.targetPage,legacyProtocolId:link.info.id||'',legacyButtonName:link.name||'',legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button'}))
   }
