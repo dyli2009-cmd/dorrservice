@@ -172,3 +172,35 @@ body.allInOneApp .secMarker{max-width:230px!important}
  body.allInOneApp .secTarget.status-fail::after{background:#bd3f46}
  body.allInOneApp .secTarget.status-untested::after{background:#77858e}
 }
+
+
+/* 2.4.145: compact home icon in Allt-i-ett header. */
+.allInOneApp .homeIconLink{
+  width:36px;
+  min-width:36px;
+  height:36px;
+  min-height:36px;
+  padding:0!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:9px;
+}
+.allInOneApp .homeIconLink svg{
+  width:19px;
+  height:19px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+@media(max-width:600px){
+  .allInOneApp .homeIconLink{
+    width:32px;
+    min-width:32px;
+    height:32px;
+    min-height:32px;
+  }
+  .allInOneApp .homeIconLink svg{width:18px;height:18px}
+}
