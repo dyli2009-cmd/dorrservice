@@ -15,8 +15,9 @@
  // Clear old per-view levels before the older view scripts read them.
  legacyKeys.forEach(k=>localStorage.setItem(k,'0'));
  const managed=new Map();
- const excluded=el=>!!el.closest?.('header.appHeader,.sessionHistoryBar,.appHome,#stage,#secStage,#customerPreviewCanvasWrap,#secPreviewWrap,svg,canvas,script,style,noscript');
- const eligible=el=>el instanceof HTMLElement&&!excluded(el)&&!['SCRIPT','STYLE','META','LINK'].includes(el.tagName);
+ const WORK_AREAS='#protocolPanel,#overviewDialog,#projectPanel,#securityProtocol,#securityOverview,#securityProject';
+ const excluded=el=>!!el.closest?.('header.appHeader,.sessionHistoryBar,.appHome,.objectBar,#drawingEmpty,#secEmpty,#mobileBar,.pagebar,.drawingTools,.securityTools,#stage,#secStage,#customerPreviewCanvasWrap,#secPreviewWrap,svg,canvas,script,style,noscript');
+ const eligible=el=>el instanceof HTMLElement&&!!el.closest?.(WORK_AREAS)&&!excluded(el)&&!['SCRIPT','STYLE','META','LINK'].includes(el.tagName);
  function restoreOriginals(){
   for(const [el,data] of managed){
    if(!el.isConnected){managed.delete(el);continue}
@@ -41,7 +42,7 @@
   restoreOriginals();discover();
   const factor=FACTORS[level]||1;
   for(const [el] of managed){
-   if(!el.isConnected||excluded(el))continue;
+   if(!el.isConnected||!eligible(el))continue;
    const px=parseFloat(getComputedStyle(el).fontSize);
    if(Number.isFinite(px)&&px>0)el.style.fontSize=(Math.round(px*factor*100)/100)+'px'
   }
