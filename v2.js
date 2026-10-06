@@ -159,9 +159,11 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    if(linkKeys.has(key))continue;linkKeys.add(key);deduped.push(link)
   }
   const protocolPages=[...protocols.keys()].sort((a,b)=>a-b),validLinks=deduped.filter(link=>protocols.has(link.targetPage)&&!protocols.has(link.drawingPage));
-  let drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b);
   const firstProtocolPage=protocolPages[0];
-  if(!drawingNumbers.length&&firstProtocolPage>1)drawingNumbers=Array.from({length:firstProtocolPage-1},(_,i)=>i+1).filter(n=>!protocols.has(n));
+  // Keep every old drawing page. Links decide automatic placement, never which drawing pages survive.
+  const leadingDrawingPages=firstProtocolPage>1?Array.from({length:firstProtocolPage-1},(_,i)=>i+1).filter(n=>!protocols.has(n)):[];
+  const linkedDrawingPages=validLinks.map(x=>x.drawingPage).filter(n=>!protocols.has(n));
+  let drawingNumbers=[...new Set([...leadingDrawingPages,...linkedDrawingPages])].sort((a,b)=>a-b);
   if(!drawingNumbers.length)drawingNumbers=Array.from({length:total},(_,i)=>i+1).filter(n=>!protocols.has(n));
   if(!drawingNumbers.length)return null;
   const pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1]));
@@ -215,7 +217,8 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   const modelText=[...modelCounts.entries()].sort((a,b)=>b[1]-a[1]).map(([name,count])=>count+' '+name).join(', ');
   const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
   const placementText=importQueue.length?' '+doors.length+' placerades från gamla länkar och '+importQueue.length+' ligger redo att placeras med ＋ Placera.':' Alla '+doors.length+' kunde placeras från de gamla länkarna.';
-  return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+' Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
+  const importStats=' Gamla ritningar: '+drawingNumbers.length+' sidor · protokoll: '+protocols.size+' · läsbara kopplingar: '+validLinks.length+'.';
+  return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+importStats+' Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
  }catch(error){
   console.warn('Äldre PDF kunde inte autoimporteras',error);return null
  }finally{
