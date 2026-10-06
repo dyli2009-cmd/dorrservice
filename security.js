@@ -156,7 +156,7 @@ const DOOR_AUTOMATION_MODELS=[
  ['48','Entramatic SL500']
 ];
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
-let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false,drawingLockScroll=null,drawingOverlaysHidden=false;
+let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false,drawingLockScroll=null,drawingOverlaysHidden=false,lastObjectTap=null;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -226,6 +226,7 @@ function applyDrawingOverlayVisibility(hidden=drawingOverlaysHidden){
  }
  if(drawingOverlaysHidden){
   selected=null;
+  lastObjectTap=null;
   window.ServicePrecisionPointer?.hide?.();
  }
 }
@@ -325,13 +326,13 @@ function drawMarkers(){
  // tag connector lines after targets are known
  Array.from(svg.querySelectorAll('.secConnector')).forEach((line,i)=>line.setAttribute('data-uid',pageItems[i].uid));
  pageItems.forEach(o=>{
-  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – dra etiketten. Pilen fortsätter peka på objektet.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
+  const b=document.createElement('button');b.type='button';b.className='secMarker '+o.type+' status-'+statusOf(o);b.textContent=securityDrawingLabel(o);b.title=securityDrawingLabel(o)+' – tryck en gång för pilgrepp, två gånger för protokoll. Dra etiketten för att flytta texten.';b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';
   let drag=null,ignore=0;
   b.onpointerdown=e=>{if(e.button!==0)return;e.stopPropagation();suppressPageSwipeUntil=Date.now()+1200;panTouch=null;const r=markers.getBoundingClientRect(),ax=r.left+o.labelX*r.width,ay=r.top+o.labelY*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false,originalX:o.labelX,originalY:o.labelY,threshold:markerDragThreshold(zoom),precision};b.setPointerCapture(e.pointerId)};
   b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();if(drag.precision){const p=window.ServicePrecisionPointer.point(e,drag.precision);o.labelX=Math.max(.015,Math.min(.985,(p.x-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(p.y-r.top)/r.height))}else{o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)/r.height))}b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
-  b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
-  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
-  b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;if(selected!==o.uid){selected=o.uid;drawMarkers()}else{selected=o.uid}};
+  b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag?.moved){ignore=Date.now()+700;lastObjectTap=null;save()}drag=null};
+  b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;lastObjectTap=null;ignore=Date.now()+300;drawMarkers()};
+  b.onclick=e=>{e.preventDefault();e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;const now=Date.now(),isDouble=selected===o.uid&&lastObjectTap?.uid===o.uid&&now-lastObjectTap.time<=520;if(isDouble){lastObjectTap=null;selected=o.uid;showSelected();go('protocol');return}lastObjectTap={uid:o.uid,time:now};if(selected!==o.uid){selected=o.uid;drawMarkers()}else{selected=o.uid}};
   markers.appendChild(b)
  })
  const pageNotes=textNotes.filter(n=>n.page===page);
@@ -359,7 +360,7 @@ let textPointerStart=null;
 markers.addEventListener('pointerdown',e=>{if(!textMode||e.target!==markers)return;e.preventDefault();e.stopPropagation();textPointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};suppressPageSwipeUntil=Date.now()+1000;try{markers.setPointerCapture(e.pointerId)}catch(_){}});
 markers.addEventListener('pointerup',e=>{if(!textMode||!textPointerStart||textPointerStart.id!==e.pointerId)return;const p=textPointerStart;textPointerStart=null;e.preventDefault();e.stopPropagation();if(Math.hypot(e.clientX-p.x,e.clientY-p.y)<18)placeSecurityText(e.clientX,e.clientY)});
 markers.addEventListener('pointercancel',()=>{textPointerStart=null});
-markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(addType){createItem(addType,x,y);return}if(selected){selected=null;drawMarkers()}}
+markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(addType){createItem(addType,x,y);return}if(selected){selected=null;lastObjectTap=null;drawMarkers()}}
 
 function setSecurityPrecisionMode(on){
  precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
@@ -497,7 +498,7 @@ function endTouch(e){
   if(Date.now()<suppressPageSwipeUntil)return;
   if(t){
    const dx=t.clientX-p.startX,dy=t.clientY-p.startY,dist=Math.hypot(dx,dy);
-   if(dist<14&&Date.now()-p.started<650&&selected){selected=null;drawMarkers();return}
+   if(dist<14&&Date.now()-p.started<650&&selected){selected=null;lastObjectTap=null;drawMarkers();return}
    if(p.pageSwipe&&Date.now()-p.started<900&&Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
     if(changeSecurityPage(dx<0?1:-1)){e.preventDefault?.();return}
    }
