@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.132">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.160">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
 <body>
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
- <div><strong>Ritningsverktyg</strong><small>Rensa · optimera · förbered</small></div>
+ <div><strong>Ritningsverktyg</strong><small>Rensa · beskära · optimera</small></div>
  <span class="globalTextControls" role="group" aria-label="Textstorlek"><button type="button" data-app-text-smaller>A−</button><span data-app-text-level>100%</span><button type="button" data-app-text-larger>A+</button></span>
- <span class="version">v2.4.132</span>
+ <span class="version">v2.4.160</span>
 </header>
 
 <main class="toolShell">
@@ -22,7 +22,7 @@
   <div>
    <span class="eyebrow">PDF / RITNING</span>
    <h1>Gör en ren arbetsritning</h1>
-   <p>Originalfilen ändras aldrig. Verktyget skapar en ny, lättare PDF för servicearbete.</p>
+   <p>Originalfilen ändras aldrig. Rensa, dölj, beskär och optimera en ny arbetskopia.</p>
   </div>
   <label class="openBtn" for="toolFile">Öppna PDF</label>
   <input id="toolFile" type="file" accept="application/pdf" hidden>
@@ -37,32 +37,33 @@
  <section id="workspace" class="workspace" hidden>
   <aside class="toolPanel">
    <div class="panelSection">
-    <h2>Rensa</h2>
-    <label class="toggleRow"><input id="removeText" type="checkbox" checked><span><strong>Rensa all text</strong><small>Tar bort synlig text, rumsnamn, mått och gamla textanteckningar.</small></span></label>
-    <label class="toggleRow"><input id="removeAnnotations" type="checkbox" checked><span><strong>Rensa kommentarer & anmärkningar</strong><small>PDF-kommentarer och annotations tas inte med i arbetskopian.</small></span></label>
-    <label class="toggleRow"><input id="removeColors" type="checkbox"><span><strong>Ta bort färgmarkeringar</strong><small>Tar bort färgade markeringar och behåller i första hand svart/grå linjer. Förhandsgranska noga.</small></span></label>
-    <button id="aggressiveClean" class="wideToolBtn" type="button">Aggressiv rensning</button>
-    <p class="hint">Aggressiv rensning slår på text, kommentarer och färgmarkeringar samtidigt.</p>
+    <h2>Rensa ritningen</h2>
+    <label class="toggleRow"><input id="removeText" type="checkbox"><span><strong>Ta bort text</strong><small>Tar bort synlig PDF-text, till exempel rumsnamn, mått och gamla texter.</small></span></label>
+    <label class="toggleRow"><input id="removeAnnotations" type="checkbox" checked><span><strong>Ta bort markeringar & kommentarer</strong><small>PDF-kommentarer, annotations och gamla markeringar följer inte med.</small></span></label>
+    <label class="toggleRow"><input id="removeColors" type="checkbox"><span><strong>Ta bort färgmarkeringar</strong><small>Tar bort färgade överstrykningar/markeringar och försöker behålla svart/grå ritningslinjer.</small></span></label>
+    <button id="aggressiveClean" class="wideToolBtn" type="button">Rensa allt ovan</button>
    </div>
    <div class="panelSection">
-    <h2>Radera sådant som är kvar</h2>
-    <button id="eraseMode" class="wideToolBtn" type="button" aria-pressed="false">Radera område</button>
+    <h2>Dölj eller beskär</h2>
+    <button id="eraseMode" class="wideToolBtn" type="button" aria-pressed="false">Dölj område</button>
     <div class="rowBtns eraseActions">
-     <button id="undoErase" type="button" disabled>Ångra radering</button>
-     <button id="clearErases" type="button" disabled>Rensa markeringar</button>
+     <button id="undoErase" type="button" disabled>Ångra</button>
+     <button id="clearErases" type="button" disabled>Visa allt igen</button>
     </div>
-    <p class="hint">Tryck “Radera område” och dra en ruta över gammal text, symboler eller annat som ska bort. Det fungerar även på vektorobjekt och inbakade bilder.</p>
+    <button id="cropMode" class="wideToolBtn cropToolBtn" type="button" aria-pressed="false">Beskär sida</button>
+    <button id="resetCrop" class="wideToolBtn" type="button" disabled>Återställ beskärning</button>
+    <p class="hint">Dölj område täcker över sådant du inte vill se. Beskär sida gör själva PDF-sidan mindre och behåller bara området du markerar.</p>
    </div>
    <div class="panelSection">
     <h2>Optimera</h2>
     <label>Kvalitet
      <select id="quality">
-      <option value="light">Lätt / snabb</option>
+      <option value="light">Mindre fil</option>
       <option value="balanced" selected>Balans</option>
-      <option value="clear">Tydlig</option>
+      <option value="clear">Högre kvalitet</option>
      </select>
     </label>
-    <p class="hint">Ritningen flattenas till en lätt arbetskopia. Bra för tunga CAD-PDF:er och snabbare zoomning i appen.</p>
+    <p id="qualityHint" class="hint">Balans passar normalt bäst för ritningar. Beräknad storlek visas nedan innan du sparar.</p>
    </div>
    <div class="panelSection">
     <h2>Sidor</h2>
@@ -88,44 +89,26 @@
     <span id="pageState"></span>
    </div>
 
-   <div class="drawingDoorTools">
-    <button id="addDrawingDoor" type="button" aria-pressed="false">＋ Rita dörr</button>
-    <button id="undoDrawingDoor" type="button" disabled>Ångra dörrändring</button>
-    <span id="drawingDoorCount" role="status"></span>
-   </div>
-   <div id="drawingDoorEditor" class="drawingDoorEditor" hidden>
-    <label>Storlek <output id="drawingDoorSizeValue"></output><input id="drawingDoorSize" type="range" min="15" max="450" step="1" value="100"></label>
-    <label>Vinkel <output id="drawingDoorAngleValue"></output><input id="drawingDoorAngle" type="range" min="0" max="359" step="1" value="0"></label>
-    <div class="drawingDoorButtons">
-     <button id="drawingDoorSmaller" type="button" aria-label="Gör dörrsymbolen mindre">−</button>
-     <button id="drawingDoorLarger" type="button" aria-label="Gör dörrsymbolen större">＋</button>
-     <button id="rotateDrawingDoor" type="button">Rotera 90°</button>
-     <button id="flipDrawingDoor" type="button" aria-pressed="false">Spegelvänd</button>
-     <button id="deleteDrawingDoor" type="button">Ta bort dörr</button>
-    </div>
-    <p>Dra symbolen för att flytta. Dra i det blå hörnet för storlek. Symbolen kompletterar ritningen och skapar inget serviceprotokoll.</p>
-   </div>
-   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><svg id="doorSymbolOverlay" xmlns="http://www.w3.org/2000/svg" aria-label="Dörrsymboler på ritningen"></svg><div id="eraseBox" hidden></div></div></div>
+   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="cropBox" hidden></div><div id="eraseBox" hidden></div></div></div>
    <p class="previewNote">Förhandsvisningen visar den rensade arbetskopian. Om något ligger kvar: använd “Radera område” och dra direkt över det. Kontrollera särskilt mått och rumsnamn innan du sparar.</p>
   </section>
  </section>
 
  <section id="sizeCompare" class="sizeCompare" hidden>
-  <div class="sizeCompareHead"><strong>Filstorlek</strong><span id="sizeVerdict">Inte beräknad</span></div>
+  <div class="sizeCompareHead"><strong>Översikt över filen</strong><span id="sizeVerdict">Inte mätt</span></div>
   <div class="sizeStats">
    <div><small>Original</small><strong id="sizeOriginal">–</strong></div>
-   <div><small>Ny arbetskopia</small><strong id="sizeNew">–</strong></div>
-   <div><small>Skillnad</small><strong id="sizeSaved">–</strong></div>
+   <div><small>Sidor kvar</small><strong id="sizePages">–</strong></div>
+   <div><small>Beräknad ny</small><strong id="sizeEstimate">–</strong></div>
+   <div><small>Uppmätt ny</small><strong id="sizeNew">–</strong></div>
    <div><small>Minskning</small><strong id="sizePercent">–</strong></div>
   </div>
-  <p id="sizeDetail">Tryck “Testa optimering” för att mäta den verkliga filstorleken med dina nuvarande inställningar.</p>
+  <p id="sizeDetail">Välj kvalitet för en snabb uppskattning. Tryck “Mät exakt” för verklig filstorlek innan du sparar.</p>
  </section>
 
  <section id="outputActions" class="outputActions" hidden>
-  <button id="analyzeSize" type="button">Testa optimering</button>
-  <button id="savePdf" class="primary" type="button">Spara ren PDF</button>
-  <button id="openDoor" type="button">Öppna i Dörrautomatik</button>
-  <button id="openSecurity" type="button">Öppna i Säkerhetsservice</button>
+  <button id="analyzeSize" type="button">Mät exakt</button>
+  <button id="savePdf" class="primary" type="button">Spara ny PDF</button>
  </section>
 
  <section id="resultCard" class="resultCard" hidden>
@@ -133,8 +116,7 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="drawing-transfer.js?v=2.4.40"></script>
-<script src="drawing-door-symbols.js?v=2.4.40"></script>
-<script src="ui-text-scale.js?v=2.4.132"></script><script src="drawing-tools.js?v=2.4.132"></script>
+<script src="drawing-transfer.js?v=2.4.160"></script>
+<script src="ui-text-scale.js?v=2.4.160"></script><script src="drawing-tools.js?v=2.4.160"></script>
 </body>
 </html>
