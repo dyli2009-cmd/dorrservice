@@ -366,3 +366,46 @@ body.allInOneApp .secMarker{max-width:230px!important}
  body.allInOneApp .precisionPointGrab.selectedPrecision{width:112px!important;min-width:112px!important;height:164px!important;min-height:164px!important}
  body.allInOneApp .precisionPointGrab.selectedPrecision::after{width:42px!important;height:42px!important}
 }
+
+
+/* 2.4.151: magnetic arrow selection feedback for touch. */
+@media (any-pointer:coarse){
+ body.allInOneApp .secTarget.selectedArrow{
+  width:62px!important;
+  min-width:62px!important;
+  height:62px!important;
+  min-height:62px!important;
+ }
+ body.allInOneApp .secTarget.selectedArrow::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:34px;
+  height:34px;
+  transform:translate(-50%,-50%);
+  border:2px solid #173f5590;
+  border-radius:50%;
+  background:#ffffff26;
+  pointer-events:none;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision{
+  width:126px!important;
+  min-width:126px!important;
+  height:176px!important;
+  min-height:176px!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision::after{
+  width:48px!important;
+  height:48px!important;
+  border:3px solid #fff!important;
+  background:#173f55!important;
+  box-shadow:0 2px 8px #0005,0 0 0 2px #173f5540!important;
+ }
+}
+@media (any-pointer:coarse) and (max-width:600px){
+ body.allInOneApp .secTarget.selectedArrow{width:56px!important;min-width:56px!important;height:56px!important;min-height:56px!important}
+ body.allInOneApp .secTarget.selectedArrow::before{width:30px;height:30px}
+ body.allInOneApp .precisionPointGrab.selectedPrecision{width:116px!important;min-width:116px!important;height:166px!important;min-height:166px!important}
+ body.allInOneApp .precisionPointGrab.selectedPrecision::after{width:44px!important;height:44px!important}
+}
