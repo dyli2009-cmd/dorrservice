@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Allt-i-ett – Dörrservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.135">
-<link rel="stylesheet" href="security.css?v=2.4.135"><link rel="stylesheet" href="security-compact.css?v=2.4.135"><link rel="stylesheet" href="all-in-one.css?v=2.4.135">
+<link rel="stylesheet" href="style.css?v=2.4.136">
+<link rel="stylesheet" href="security.css?v=2.4.136"><link rel="stylesheet" href="security-compact.css?v=2.4.136"><link rel="stylesheet" href="all-in-one.css?v=2.4.136">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Allt-i-ett</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.135">v2.4.135</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.136">v2.4.136</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span class="objectTitle"><span id="securityObject">Välj en ritning</span><small>Öppna en ritning eller en tidigare arbets-PDF.</small></span><span id="securityCount">0 objekt</span></div>
@@ -58,9 +58,12 @@
   <div id="secForm" hidden>
     <details class="protocolMetaPanel" open><summary><span>Objektuppgifter</span><span class="protocolMetaHint">Visa / dölj</span></summary>
       <div class="doorDetails securityDetails simpleDoorDetails"><div class="compactSecurityMeta compactDoorMeta">
-        <label class="secTypeField">Typ<input id="secType" readonly></label>
+        <label class="secTypeField">Protokoll<input id="secType" readonly></label>
         <label class="secNumberField doorSerialField">Nummer<input id="secNumber" readonly></label>
-        <label class="secIdField doorIdField">ID / märkning<input id="secId"></label>
+        <label id="secAutomationModelField" class="secAutomationModelField" hidden>Typ av automatik<select id="secAutomationModel"><option value="">Välj modell…</option></select></label>
+        <label id="secAutomationSerialField" class="secAutomationSerialField" hidden>Antal / löpnummer<input id="secAutomationSerial" inputmode="numeric" placeholder="1"></label>
+        <label class="secIdField doorIdField">ID / märkning<input id="secId" placeholder="Objektnummer–typ–antal"></label>
+        <p id="secAutomationIdMessage" class="fieldError doorIdMessage" role="status"></p>
         <label class="secLocationField doorLocationField">Placering / Dörrlittra<input id="secLocation"></label>
         <label class="doorStatusField">Slutbedömning<select id="secStatus"><option value="untested">Pågående</option><option value="ok">Godkänd</option><option value="action">Åtgärd krävs</option><option value="fail">Ej godkänd</option></select></label>
         <label class="doorSignatureField">Teknikerns signatur<input id="secProtocolSignature" readonly placeholder="Projekt"></label>
@@ -187,8 +190,8 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="ui-text-scale.js?v=2.4.135"></script><script src="drawing-annotations.js?v=2.4.135"></script>
-<script src="session-history.js?v=2.4.135"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.135"></script><script src="all-in-one.js?v=2.4.135"></script>
-<script src="drawing-transfer.js?v=2.4.135"></script>
+<script src="ui-text-scale.js?v=2.4.136"></script><script src="drawing-annotations.js?v=2.4.136"></script>
+<script src="session-history.js?v=2.4.136"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.136"></script><script src="all-in-one.js?v=2.4.136"></script>
+<script src="drawing-transfer.js?v=2.4.136"></script>
 </body></html>
