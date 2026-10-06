@@ -8,10 +8,12 @@
  const legacyKeys=['doorservice-protocol-size','doorservice-overview-size','doorservice-security-overview-size'];
  let initial=localStorage.getItem(KEY);
  if(initial===null){
-  const legacy=legacyKeys.map(k=>Number(localStorage.getItem(k))).find(Number.isFinite);
+  const legacy=legacyKeys.map(k=>localStorage.getItem(k)).filter(v=>v!==null).map(Number).find(Number.isFinite);
   initial=Number.isFinite(legacy)?String(legacy):'0'
  }
  let level=Math.max(MIN,Math.min(MAX,Number(initial)||0)),timer=null,applying=false;
+ // Clear old per-view levels before the older view scripts read them.
+ legacyKeys.forEach(k=>localStorage.setItem(k,'0'));
  const managed=new Map();
  const excluded=el=>!!el.closest?.('#stage,#secStage,#customerPreviewCanvasWrap,#secPreviewWrap,svg,canvas,script,style,noscript');
  const eligible=el=>el instanceof HTMLElement&&!excluded(el)&&!['SCRIPT','STYLE','META','LINK'].includes(el.tagName);
