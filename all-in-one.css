@@ -677,3 +677,58 @@ body.allInOneApp #securityOverview[open]{
     z-index:60;
   }
 }
+
+
+/* 2.4.161: drawing tools on the left, continue to PDF on the right. */
+body.allInOneApp .allProtocolActions{
+  justify-content:space-between!important;
+}
+body.allInOneApp .allProtocolDrawingTool{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:7px 11px;
+  border:1px solid #b9c9d2;
+  border-radius:8px;
+  background:#fff;
+  color:#294653;
+  text-decoration:none;
+  font-size:11px;
+  font-weight:750;
+  white-space:nowrap;
+}
+body.allInOneApp .allProtocolDrawingTool svg{
+  width:17px;
+  height:17px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  flex:none;
+}
+body.allInOneApp #allProtocolApply{
+  margin-left:auto;
+}
+@media(max-width:600px){
+  body.allInOneApp .allProtocolActions{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:stretch!important;
+    gap:7px!important;
+  }
+  body.allInOneApp .allProtocolDrawingTool,
+  body.allInOneApp #allProtocolApply{
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    padding:6px 7px!important;
+    font-size:10px!important;
+  }
+  body.allInOneApp .allProtocolDrawingTool svg{
+    width:16px;
+    height:16px;
+  }
+}
