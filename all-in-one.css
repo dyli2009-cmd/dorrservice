@@ -1,4 +1,4 @@
-/* Allt-i-ett 2.4.132 */
+/* Allt-i-ett 2.4.133 */
 .allInOneApp .headerSubtitle{white-space:nowrap}
 .allProtocolDialog{
  width:min(620px,94vw);max-height:min(86vh,760px);border:0;border-radius:14px;
@@ -26,7 +26,9 @@
 .allProtocolChoices strong{font-size:13px;color:#203440}
 .allProtocolChoices small{font-size:10px;color:#6d7f89;font-weight:500}
 #allProtocolMessage{min-height:18px;margin:2px 14px 4px;font-size:10px}
-.allProtocolActions{display:flex;justify-content:flex-end;gap:7px;padding:10px 14px 14px}
+.allProtocolActions{display:flex;align-items:center;justify-content:flex-end;gap:7px;padding:10px 14px 14px}
+.allProtocolActionSpacer{flex:1}
+#allProtocolOpenWork{white-space:nowrap}
 .allProtocolActions button{min-height:36px}
 .allInOneProtocolTools [data-add][hidden]{display:none!important}
 .allInOneApp .securityTools{align-items:center}
@@ -37,7 +39,9 @@
  .allProtocolIntro{margin:9px 10px 6px;font-size:11px}
  .allProtocolChoices{padding:3px 10px 6px;gap:5px}
  .allProtocolChoices label{padding:8px 9px}
- .allProtocolActions{padding:8px 10px 10px}
+ .allProtocolActions{padding:8px 10px 10px;flex-wrap:wrap}
+ .allProtocolActionSpacer{display:none}
+ #allProtocolOpenWork{width:100%;order:-1}
  .allInOneApp .headerActions{gap:3px}
  .allInOneApp #allProtocolPicker{font-size:9px;padding-inline:6px}
 }
