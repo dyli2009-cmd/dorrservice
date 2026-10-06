@@ -785,9 +785,9 @@ function renderSecurityPrevious(o){
 }
 function showSelected(){
  const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;$('secProtocolTitle').textContent=securityProtocolTitle();if(!o)return;
- const cfg=SYSTEMS[o.type],automation=isDoorAutomationItem(o),modelField=$('secAutomationModelField'),serialField=$('secAutomationSerialField'),modelSelect=$('secAutomationModel'),serialInput=$('secAutomationSerial');
+ const cfg=SYSTEMS[o.type],automation=isDoorAutomationItem(o),modelField=$('secAutomationModelField'),serialField=$('secAutomationSerialField'),modelSelect=$('secAutomationModel'),serialInput=$('secAutomationSerial'),numberField=$('secNumber')?.closest('label');
  $('secType').value=cfg.label;$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;$('secProtocolSignature').value=project.signature||project.technician||'';
- if(modelField)modelField.hidden=!automation;if(serialField)serialField.hidden=!automation;
+ if(numberField)numberField.hidden=automation;if(modelField)modelField.hidden=!automation;if(serialField)serialField.hidden=!automation;
  if(automation&&modelSelect){const known=DOOR_AUTOMATION_MODELS.some(([code])=>code===o.modelCode);modelSelect.value=known?o.modelCode:(o.modelCode?'custom':'')}
  if(automation&&serialInput)serialInput.value=o.serialNumber||'';
  const identityMessage=$('secAutomationIdMessage');if(identityMessage)identityMessage.textContent=automation&&!automationProposedId(o)?'Fyll i objektnummer under Projekt och välj typ av automatik.':'';
