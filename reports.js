@@ -79,7 +79,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
   }
   function pdfProtocolMark(kind,cx,cy,size=11.0){
    doc.setFontSize(size);doc.setTextColor(20,20,20);
-   if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(7.1);doc.text('-',cx,cy+1.25,{align:'center'});return}
+   if(kind==='na'){doc.setDrawColor(25,25,25);doc.setLineWidth(.85);doc.setLineCap('round');doc.line(cx-3.2,cy,cx+3.2,cy);doc.setLineCap('butt');return}
    doc.setFont('zapfdingbats','normal');
    doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+size*.12,{align:'center'});
   }
@@ -111,7 +111,7 @@ function buildServiceReportDoc(snapshot,includeProtocols){
    const ws=[9,99,14,21,26,17],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
    titles.forEach((t,i)=>{
     doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.setLineWidth(.24);doc.rect(x,y,ws[i],10.8,'FD');
-    doc.setFont('helvetica','bold');const headerSize=i===1?8.8:i===2?7.4:i===3?7.45:i===4?7.55:7.6;doc.setFontSize(headerSize);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.6:y+4.35;
+    doc.setFont('helvetica','bold');const headerSize=i===1?8.8:7.6;doc.setFontSize(headerSize);doc.setTextColor(35,35,35);const lines=t.split('\n'),headerY=lines.length===1?y+6.6:y+4.35;
     if(i===1)doc.text(lines,x+2,headerY,{lineHeightFactor:1});
     else doc.text(lines,x+ws[i]/2,headerY,{align:'center',lineHeightFactor:1});
     x+=ws[i];
