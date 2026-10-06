@@ -156,7 +156,7 @@ const DOOR_AUTOMATION_MODELS=[
  ['48','Entramatic SL500']
 ];
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
-let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false;
+let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false,drawingLockScroll=null;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -299,10 +299,10 @@ function drawMarkers(){
   const grab=document.createElement('button');grab.type='button';grab.className='precisionPointGrab'+(o.uid===selected?' selectedPrecision':'');grab.setAttribute('aria-label','Flytthandtag för '+o.id);grab.title='Dra i den stora cirkeln för att flytta pilspetsen';
   let targetDrag=null;
   const syncTargetPosition=()=>{target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';grab.style.left=o.x*100+'%';grab.style.top=o.y*100+'%';grab.classList.toggle('precisionGrabUp',o.y>.72)};
-  const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();drawingGestureLocked=true;pinch=null;panTouch=null;panMouse=null;viewer.classList.add('arrowDragging');if(precisionMode)selected=o.uid;suppressPageSwipeUntil=Date.now()+1800;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null,touchLike=e.pointerType==='touch'||e.pointerType==='pen',threshold=touchLike?(node===grab?2:5):markerDragThreshold(zoom);targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold,precision};node.classList.add('isDragging');try{node.setPointerCapture(e.pointerId)}catch(_){}};
-  const moveTargetDrag=e=>{if(!targetDrag||targetDrag.id!==e.pointerId||pinch)return;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();if(targetDrag.precision){const p=window.ServicePrecisionPointer.point(e,targetDrag.precision);o.x=Math.max(0,Math.min(1,(p.x-r.left)/r.width));o.y=Math.max(0,Math.min(1,(p.y-r.top)/r.height))}else{o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height))}syncTargetPosition();const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
-  const endTargetDrag=e=>{suppressPageSwipeUntil=Date.now()+900;if(!targetDrag||targetDrag.id!==e.pointerId)return;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');drawingGestureLocked=false;viewer.classList.remove('arrowDragging');const moved=targetDrag.moved;if(moved)save();targetDrag=null;if(!moved&&selected!==o.uid){selected=o.uid;setTimeout(()=>drawMarkers(),0)}};
-  const cancelTargetDrag=()=>{suppressPageSwipeUntil=Date.now()+900;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');drawingGestureLocked=false;viewer.classList.remove('arrowDragging');if(targetDrag){o.x=targetDrag.originalX;o.y=targetDrag.originalY;syncTargetPosition()}targetDrag=null;drawMarkers()};
+  const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();drawingGestureLocked=true;drawingLockScroll={left:viewer.scrollLeft,top:viewer.scrollTop};pinch=null;panTouch=null;panMouse=null;viewer.classList.add('arrowDragging');suppressPageSwipeUntil=Date.now()+2200;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null,touchLike=e.pointerType==='touch'||e.pointerType==='pen',threshold=touchLike?(node===grab?1:4):markerDragThreshold(zoom);targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold,precision,scrollLeft:drawingLockScroll.left,scrollTop:drawingLockScroll.top};node.classList.add('isDragging');try{node.setPointerCapture(e.pointerId)}catch(_){}};
+  const moveTargetDrag=e=>{if(!targetDrag||targetDrag.id!==e.pointerId)return;e.preventDefault();e.stopPropagation();viewer.scrollLeft=targetDrag.scrollLeft;viewer.scrollTop=targetDrag.scrollTop;if(!targetDrag.moved&&Math.hypot(e.clientX-targetDrag.x,e.clientY-targetDrag.y)<targetDrag.threshold)return;targetDrag.moved=true;const r=markers.getBoundingClientRect();if(targetDrag.precision){const p=window.ServicePrecisionPointer.point(e,targetDrag.precision);o.x=Math.max(0,Math.min(1,(p.x-r.left)/r.width));o.y=Math.max(0,Math.min(1,(p.y-r.top)/r.height))}else{o.x=Math.max(0,Math.min(1,targetDrag.originalX+(e.clientX-targetDrag.x)/r.width));o.y=Math.max(0,Math.min(1,targetDrag.originalY+(e.clientY-targetDrag.y)/r.height))}viewer.scrollLeft=targetDrag.scrollLeft;viewer.scrollTop=targetDrag.scrollTop;syncTargetPosition();const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x2',String(o.x*1000));line.setAttribute('y2',String(o.y*1000))}};
+  const endTargetDrag=e=>{suppressPageSwipeUntil=Date.now()+1000;if(!targetDrag||targetDrag.id!==e.pointerId)return;e.preventDefault();e.stopPropagation();viewer.scrollLeft=targetDrag.scrollLeft;viewer.scrollTop=targetDrag.scrollTop;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');drawingGestureLocked=false;drawingLockScroll=null;viewer.classList.remove('arrowDragging');const moved=targetDrag.moved;if(moved)save();targetDrag=null;if(!moved&&selected!==o.uid){selected=o.uid;setTimeout(()=>drawMarkers(),0)}};
+  const cancelTargetDrag=()=>{suppressPageSwipeUntil=Date.now()+1000;window.ServicePrecisionPointer?.hide();target.classList.remove('isDragging');grab.classList.remove('isDragging');if(targetDrag){viewer.scrollLeft=targetDrag.scrollLeft;viewer.scrollTop=targetDrag.scrollTop;o.x=targetDrag.originalX;o.y=targetDrag.originalY;syncTargetPosition()}drawingGestureLocked=false;drawingLockScroll=null;viewer.classList.remove('arrowDragging');targetDrag=null;drawMarkers()};
   [target,grab].forEach(node=>{node.onpointerdown=e=>beginTargetDrag(e,node);node.onpointermove=moveTargetDrag;node.onpointerup=endTargetDrag;node.onpointercancel=cancelTargetDrag});
   syncTargetPosition();markers.append(target,grab);
   const line=svg.lastElementChild; // ignored; connector lookup uses data uid below
@@ -316,7 +316,7 @@ function drawMarkers(){
   b.onpointermove=e=>{if(!drag||drag.id!==e.pointerId||pinch)return;if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<drag.threshold)return;drag.moved=true;const r=markers.getBoundingClientRect();if(drag.precision){const p=window.ServicePrecisionPointer.point(e,drag.precision);o.labelX=Math.max(.015,Math.min(.985,(p.x-r.left)/r.width));o.labelY=Math.max(.015,Math.min(.985,(p.y-r.top)/r.height))}else{o.labelX=Math.max(.015,Math.min(.985,drag.originalX+(e.clientX-drag.x)/r.width));o.labelY=Math.max(.015,Math.min(.985,drag.originalY+(e.clientY-drag.y)/r.height))}b.style.left=o.labelX*100+'%';b.style.top=o.labelY*100+'%';const line=svg.querySelector('[data-uid="'+CSS.escape(o.uid)+'"]');if(line){line.setAttribute('x1',String(o.labelX*1000));line.setAttribute('y1',String(o.labelY*1000))}};
   b.onpointerup=e=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag?.moved){ignore=Date.now()+700;save()}drag=null};
   b.onpointercancel=()=>{suppressPageSwipeUntil=Date.now()+700;window.ServicePrecisionPointer?.hide();if(drag){o.labelX=drag.originalX;o.labelY=drag.originalY}drag=null;ignore=Date.now()+300;drawMarkers()};
-  b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;selected=o.uid;showSelected();go('protocol')};
+  b.onclick=e=>{e.stopPropagation();if(Date.now()<ignore)return;$('secHint').hidden=true;if(selected!==o.uid){selected=o.uid;drawMarkers()}else{selected=o.uid}};
   markers.appendChild(b)
  })
  const pageNotes=textNotes.filter(n=>n.page===page);
@@ -344,16 +344,8 @@ let textPointerStart=null;
 markers.addEventListener('pointerdown',e=>{if(!textMode||e.target!==markers)return;e.preventDefault();e.stopPropagation();textPointerStart={id:e.pointerId,x:e.clientX,y:e.clientY};suppressPageSwipeUntil=Date.now()+1000;try{markers.setPointerCapture(e.pointerId)}catch(_){}});
 markers.addEventListener('pointerup',e=>{if(!textMode||!textPointerStart||textPointerStart.id!==e.pointerId)return;const p=textPointerStart;textPointerStart=null;e.preventDefault();e.stopPropagation();if(Math.hypot(e.clientX-p.x,e.clientY-p.y)<18)placeSecurityText(e.clientX,e.clientY)});
 markers.addEventListener('pointercancel',()=>{textPointerStart=null});
-function nearestSecurityArrow(clientX,clientY){
- const r=markers.getBoundingClientRect(),coarse=matchMedia?.('(any-pointer: coarse)')?.matches??false,max=coarse?(Math.min(innerWidth,innerHeight)>=700?82:66):38;
- let best=null,bestDistance=max+1;
- items.filter(o=>o.page===page&&allInOneProtocolActive(o.type)).forEach(o=>{
-  const px=r.left+o.x*r.width,py=r.top+o.y*r.height,d=Math.hypot(clientX-px,clientY-py);
-  if(d<bestDistance){best=o;bestDistance=d}
- });
- return bestDistance<=max?best:null
-}
-markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(addType){createItem(addType,x,y);return}const near=nearestSecurityArrow(e.clientX,e.clientY);if(near){if(selected!==near.uid){selected=near.uid;drawMarkers()}return}if(selected){selected=null;drawMarkers()}}
+markers.onclick=e=>{if(textMode){e.preventDefault();e.stopPropagation();return}if(e.target!==markers)return;const r=markers.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;if(addType){createItem(addType,x,y);return}if(selected){selected=null;drawMarkers()}}
+
 function setSecurityPrecisionMode(on){
  precisionMode=!!on;document.body.classList.toggle('precisionMode',precisionMode);
  const b=$('secPrecision');if(b){b.classList.toggle('active',precisionMode);b.setAttribute('aria-pressed',precisionMode?'true':'false');b.title=precisionMode?'Precision på – tryck för att stänga av':'Precision';b.setAttribute('aria-label',b.title);if(!b.closest('.serviceToolsMenu'))b.textContent=precisionMode?'⌖ Precision på':'⌖ Precision'}
@@ -438,6 +430,7 @@ function endMousePan(e){
 viewer.addEventListener('pointerup',endMousePan);
 viewer.addEventListener('pointercancel',endMousePan);
 viewer.addEventListener('lostpointercapture',e=>{if(panMouse&&panMouse.pointer===e.pointerId){panMouse=null;viewer.classList.remove('mousePanning')}});
+viewer.addEventListener('scroll',()=>{if(drawingGestureLocked&&drawingLockScroll&&(viewer.scrollLeft!==drawingLockScroll.left||viewer.scrollTop!==drawingLockScroll.top)){viewer.scrollLeft=drawingLockScroll.left;viewer.scrollTop=drawingLockScroll.top}});
 
 function beginSecurityPinch(e){
  if(drawingGestureLocked)return;
@@ -460,7 +453,7 @@ function commitSecurityPinch(p){
  zoom=target;return render(false,focus,p.anchor);
 }
 viewer.addEventListener('touchstart',e=>{
- if(drawingGestureLocked){e.preventDefault();panTouch=null;return}
+ if(drawingGestureLocked){e.preventDefault();panTouch=null;if(drawingLockScroll){viewer.scrollLeft=drawingLockScroll.left;viewer.scrollTop=drawingLockScroll.top}return}
  if(e.touches.length===2){e.preventDefault();beginSecurityPinch(e);return}
  if(e.target.closest('.secMarker,.secTarget,.precisionPointGrab,.secTextNote,.secTextTarget,.serviceDrawingOverlay')){panTouch=null;suppressPageSwipeUntil=Date.now()+1200;return}
  if(e.touches.length===1&&!addType&&!textMode){
@@ -468,7 +461,7 @@ viewer.addEventListener('touchstart',e=>{
  }
 },{passive:false});
 viewer.addEventListener('touchmove',e=>{
- if(drawingGestureLocked){e.preventDefault();panTouch=null;return}
+ if(drawingGestureLocked){e.preventDefault();panTouch=null;if(drawingLockScroll){viewer.scrollLeft=drawingLockScroll.left;viewer.scrollTop=drawingLockScroll.top}return}
  if(e.touches.length===2){
   e.preventDefault();if(!pinch){beginSecurityPinch(e);return}
   const a=e.touches[0],b=e.touches[1],r=viewer.getBoundingClientRect(),focus={x:(a.clientX+b.clientX)/2-r.left,y:(a.clientY+b.clientY)/2-r.top};
@@ -487,9 +480,10 @@ function endTouch(e){
  if(e.touches.length===0&&panTouch){
   const t=e.changedTouches?.[0],p=panTouch;panTouch=null;
   if(Date.now()<suppressPageSwipeUntil)return;
-  if(t&&p.pageSwipe&&Date.now()-p.started<900){
-   const dx=t.clientX-p.startX,dy=t.clientY-p.startY;
-   if(Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
+  if(t){
+   const dx=t.clientX-p.startX,dy=t.clientY-p.startY,dist=Math.hypot(dx,dy);
+   if(dist<14&&Date.now()-p.started<650&&selected){selected=null;drawMarkers();return}
+   if(p.pageSwipe&&Date.now()-p.started<900&&Math.abs(dx)>=65&&Math.abs(dx)>Math.abs(dy)*1.35){
     if(changeSecurityPage(dx<0?1:-1)){e.preventDefault?.();return}
    }
   }
