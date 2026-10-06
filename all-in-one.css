@@ -515,3 +515,44 @@ body.allInOneApp #secViewer.arrowDragging #secMarkers{
 body.allInOneApp #secViewer.arrowDragging{
   overflow:hidden!important;
 }
+
+
+/* 2.4.155: eye toggle for a completely clean drawing view. */
+body.allInOneApp .drawingVisibilityButton{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+body.allInOneApp .drawingVisibilityButton svg{
+  width:19px;
+  height:19px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+body.allInOneApp .drawingVisibilityButton .eyeSlash{display:none}
+body.allInOneApp .drawingVisibilityButton.active .eyeSlash{display:block}
+body.allInOneApp .drawingVisibilityButton.active{
+  background:#e8eef1!important;
+  color:#526774!important;
+}
+body.allInOneApp.drawingOverlaysHidden #secMarkers,
+body.allInOneApp.drawingOverlaysHidden #secStage .serviceDrawingOverlay{
+  display:none!important;
+}
+@media(max-width:600px){
+ body.allInOneApp .drawingVisibilityButton{
+  width:32px!important;
+  min-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+ }
+ body.allInOneApp .drawingVisibilityButton svg{width:18px;height:18px}
+}
