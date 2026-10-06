@@ -1,0 +1,43 @@
+/* Allt-i-ett 2.4.132 */
+.allInOneApp .headerSubtitle{white-space:nowrap}
+.allProtocolDialog{
+ width:min(620px,94vw);max-height:min(86vh,760px);border:0;border-radius:14px;
+ padding:0;background:#f4f7f8;color:#203440;box-shadow:0 16px 55px #0005;overflow:hidden
+}
+.allProtocolDialog::backdrop{background:#0008}
+.allProtocolHead{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:12px 14px;background:#132b38;color:#fff
+}
+.allProtocolHead h2{margin:2px 0 0;font-size:18px}
+.allProtocolHead .eyebrow{font-size:9px;color:#bfd0d9}
+.allProtocolHead button{
+ width:36px;min-width:36px;height:36px;min-height:36px;padding:0;
+ font-size:24px;line-height:1;background:#294554;color:#fff;border-color:#496574
+}
+.allProtocolIntro{margin:12px 14px 8px;font-size:12px;line-height:1.45;color:#526774}
+.allProtocolChoices{display:grid;gap:7px;padding:4px 14px 8px}
+.allProtocolChoices label{
+ display:flex;align-items:center;gap:10px;margin:0;padding:10px 11px;
+ border:1px solid #cbd7df;border-radius:9px;background:#fff;cursor:pointer
+}
+.allProtocolChoices input{flex:0 0 auto;width:20px;height:20px;min-height:20px;margin:0}
+.allProtocolChoices span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.allProtocolChoices strong{font-size:13px;color:#203440}
+.allProtocolChoices small{font-size:10px;color:#6d7f89;font-weight:500}
+#allProtocolMessage{min-height:18px;margin:2px 14px 4px;font-size:10px}
+.allProtocolActions{display:flex;justify-content:flex-end;gap:7px;padding:10px 14px 14px}
+.allProtocolActions button{min-height:36px}
+.allInOneProtocolTools [data-add][hidden]{display:none!important}
+.allInOneApp .securityTools{align-items:center}
+.allInOneApp .securityTools [data-add]{white-space:nowrap}
+@media(max-width:600px){
+ .allProtocolDialog{width:calc(100vw - 14px);max-height:90dvh}
+ .allProtocolHead{padding:9px 10px}.allProtocolHead h2{font-size:15px}
+ .allProtocolIntro{margin:9px 10px 6px;font-size:11px}
+ .allProtocolChoices{padding:3px 10px 6px;gap:5px}
+ .allProtocolChoices label{padding:8px 9px}
+ .allProtocolActions{padding:8px 10px 10px}
+ .allInOneApp .headerActions{gap:3px}
+ .allInOneApp #allProtocolPicker{font-size:9px;padding-inline:6px}
+}
