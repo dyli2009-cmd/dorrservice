@@ -496,6 +496,7 @@ function goView(view){
  Object.entries(ids).forEach(([name,id])=>{const button=$(id),active=name===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')});
  if(view==='protocol'||view==='project')notice('');
  updateCompactUI();
+ if(!$('customerPreviewPane')?.hidden)scheduleCustomerPreview();
 }
 function completedChecks(d){return doorChecks(d).filter(([n])=>['ok','na','remark'].includes(d.checks?.[n]?.result)).length}
 function displayStatus(d){if(isDoorRemediated(d))return 'ok';if(d.status==='fail')return 'fail';if(hasDoorProblem(d))return 'action';return d.status==='ok'?'ok':'untested'}
@@ -855,37 +856,40 @@ function customerPreviewDoor(){
 }
 async function renderCustomerPreview(){
  const pane=$('customerPreviewPane');if(!pane||pane.hidden)return;
- const token=++customerPreviewToken,status=$('customerPreviewStatus'),canvas=$('customerPreviewCanvas'),holder=$('customerPreviewCanvasWrap');
- const overviewMode=document.body.dataset.view==='doors';
+ const token=++customerPreviewToken,status=$('customerPreviewStatus'),canvas=$('customerPreviewCanvas'),holder=$('customerPreviewCanvasWrap'),view=document.body.dataset.view||'drawing';
  status.textContent='Uppdaterar…';
  try{
-  let report,startPage=1,previewLabel='';
-  if(overviewMode){
+  let bytes,pageNumbers=[],previewLabel='';
+  if(view==='drawing'&&pdf&&sourcePdfBytes){
+   bytes=new Uint8Array(await createWorkPdf());previewLabel='Ritning · sida '+page;
+  }else if(view==='doors'||view==='project'){
    const snapshot=structuredClone({project,logoData,doors});snapshot.doors.forEach(normalize);
-   report=buildServiceReportDoc(snapshot,false);previewLabel='Dörrar och anmärkningar';
+   const report=buildServiceReportDoc(snapshot,false);bytes=new Uint8Array(report.output('arraybuffer'));previewLabel=view==='doors'?'Dörrar och anmärkningar':'Kundrapport';
   }else{
    const door=customerPreviewDoor();normalize(door);
-   const snapshot=structuredClone({project,logoData,doors:[door]});
-   report=buildServiceReportDoc(snapshot,true);previewLabel=door.id||'Provningsprotokoll';startPage=2;
+   const snapshot=structuredClone({project,logoData,doors:[door]}),report=buildServiceReportDoc(snapshot,true);
+   bytes=new Uint8Array(report.output('arraybuffer'));previewLabel=door.id||'Provningsprotokoll';
   }
-  const bytes=new Uint8Array(report.output('arraybuffer'));
   const preview=await pdfjsLib.getDocument({data:bytes}).promise;
   if(token!==customerPreviewToken){await preview.destroy();return}
   if(customerPreviewPdf)await customerPreviewPdf.destroy();customerPreviewPdf=preview;
-  if(startPage>preview.numPages)startPage=1;
-  const first=await preview.getPage(startPage),base=first.getViewport({scale:1});
+  if(view==='drawing'&&pdf&&sourcePdfBytes)pageNumbers=[Math.max(1,Math.min(preview.numPages,page))];
+  else if(view==='protocol')pageNumbers=Array.from({length:Math.max(1,preview.numPages-1)},(_,i)=>i+2).filter(n=>n<=preview.numPages);
+  else pageNumbers=Array.from({length:preview.numPages},(_,i)=>i+1);
+  if(!pageNumbers.length)pageNumbers=[1];
+  const firstPageNo=pageNumbers[0],first=await preview.getPage(firstPageNo),base=first.getViewport({scale:1});
   const available=Math.max(320,(holder.clientWidth||760)-22),fitScale=Math.min(1.55,available/base.width),displayScale=Math.max(.2,Math.min(2.55,fitScale*customerPreviewScaleFactor())),pixelRatio=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),cssGap=14,renderGap=Math.round(cssGap*pixelRatio);
-  const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=preview.numPages-startPage+1;
+  const cssW=Math.round(base.width*displayScale),cssH=Math.round(base.height*displayScale),renderW=Math.ceil(cssW*pixelRatio),renderH=Math.ceil(cssH*pixelRatio),pageCount=pageNumbers.length;
   canvas.width=renderW;canvas.height=renderH*pageCount+renderGap*Math.max(0,pageCount-1);canvas.style.width=cssW+'px';canvas.style.height=(cssH*pageCount+cssGap*Math.max(0,pageCount-1))+'px';
   const out=canvas.getContext('2d');out.imageSmoothingEnabled=true;out.imageSmoothingQuality='high';out.clearRect(0,0,canvas.width,canvas.height);
-  for(let pageNo=startPage,i=0;pageNo<=preview.numPages;pageNo++,i++){
+  for(let i=0;i<pageNumbers.length;i++){
    if(token!==customerPreviewToken)return;
-   const pg=pageNo===startPage?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
+   const pageNo=pageNumbers[i],pg=pageNo===firstPageNo?first:await preview.getPage(pageNo),viewport=pg.getViewport({scale:displayScale*pixelRatio}),tmp=document.createElement('canvas');
    tmp.width=Math.ceil(viewport.width);tmp.height=Math.ceil(viewport.height);await pg.render({canvasContext:tmp.getContext('2d'),viewport}).promise;
    out.drawImage(tmp,0,i*(renderH+renderGap));tmp.width=tmp.height=0;
   }
   if(token===customerPreviewToken)status.textContent='Visar '+previewLabel+' · '+pageCount+' sida'+(pageCount===1?'':'or')+' · uppdateras automatiskt';
- }catch(e){if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
+ }catch(e){console.error(e);if(token===customerPreviewToken)status.textContent='Kunde inte visa mallen'}
 }
 function scheduleCustomerPreview(){if($('customerPreviewPane')?.hidden)return;clearTimeout(customerPreviewTimer);customerPreviewTimer=setTimeout(renderCustomerPreview,220)}
 function setCustomerPreview(open){
