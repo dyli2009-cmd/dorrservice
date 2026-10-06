@@ -383,6 +383,18 @@ function applySecProtocolTextLevel(){
 if(secProtocolTextSmaller)secProtocolTextSmaller.onclick=()=>{secProtocolTextLevel=Math.max(-1,secProtocolTextLevel-1);applySecProtocolTextLevel()};
 if(secProtocolTextLarger)secProtocolTextLarger.onclick=()=>{secProtocolTextLevel=Math.min(3,secProtocolTextLevel+1);applySecProtocolTextLevel()};
 applySecProtocolTextLevel();
+
+const secOverviewTextSmaller=$('secOverviewTextSmaller'),secOverviewTextLarger=$('secOverviewTextLarger');
+let secOverviewTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-security-overview-size')||0)));
+function applySecOverviewTextLevel(){
+ document.body.dataset.overviewSize=String(secOverviewTextLevel);
+ if(secOverviewTextSmaller)secOverviewTextSmaller.disabled=secOverviewTextLevel<=-1;
+ if(secOverviewTextLarger)secOverviewTextLarger.disabled=secOverviewTextLevel>=3;
+ localStorage.setItem('doorservice-security-overview-size',String(secOverviewTextLevel));
+}
+if(secOverviewTextSmaller)secOverviewTextSmaller.onclick=()=>{secOverviewTextLevel=Math.max(-1,secOverviewTextLevel-1);applySecOverviewTextLevel()};
+if(secOverviewTextLarger)secOverviewTextLarger.onclick=()=>{secOverviewTextLevel=Math.min(3,secOverviewTextLevel+1);applySecOverviewTextLevel()};
+applySecOverviewTextLevel();
 let securityCheckEditUid=null;
 function buildChecklist(o){
  const box=$('secChecklist');box.replaceChildren();const checks=allChecks(o),editing=securityCheckEditUid===o.uid;
@@ -700,10 +712,22 @@ async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning f
  const bytes=await out.save(),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a'),object=(project.projectName||project.facilityNo||'objekt').trim().replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'objekt',date=project.date||new Date().toISOString().slice(0,10);a.href=url;a.download='sakerhetsservice-'+object+'-'+date+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg('Arbets-PDF skapad. Samma fil kan öppnas nästa service med projekt, logga, objekt och historik kvar.')}catch(e){console.error(e);msg(e.message||'Kunde inte skapa arbets-PDF.',true)}}
 
 let previewPdf=null,previewPage=1,previewRenderTask=null;
+const secPreviewTextSmaller=$('secPreviewTextSmaller'),secPreviewTextLarger=$('secPreviewTextLarger');
+let secPreviewTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-security-customer-preview-size')||0)));
+const secPreviewScaleFactor=()=>({[-1]:.84,0:1,1:1.18,2:1.38,3:1.62}[secPreviewTextLevel]||1);
+function applySecPreviewTextLevel(){
+ if(secPreviewTextSmaller)secPreviewTextSmaller.disabled=secPreviewTextLevel<=-1;
+ if(secPreviewTextLarger)secPreviewTextLarger.disabled=secPreviewTextLevel>=3;
+ localStorage.setItem('doorservice-security-customer-preview-size',String(secPreviewTextLevel));
+ if($('secPreviewDialog')?.open)renderCustomerPreview();
+}
+if(secPreviewTextSmaller)secPreviewTextSmaller.onclick=()=>{secPreviewTextLevel=Math.max(-1,secPreviewTextLevel-1);applySecPreviewTextLevel()};
+if(secPreviewTextLarger)secPreviewTextLarger.onclick=()=>{secPreviewTextLevel=Math.min(3,secPreviewTextLevel+1);applySecPreviewTextLevel()};
+applySecPreviewTextLevel();
 async function renderCustomerPreview(){
  if(!previewPdf)return;
  if(previewRenderTask)try{previewRenderTask.cancel()}catch(_){}
- const p=await previewPdf.getPage(previewPage),wrap=$('secPreviewWrap'),natural=p.getViewport({scale:1}),scale=Math.max(.2,Math.min((wrap.clientWidth-24)/natural.width,(wrap.clientHeight-24)/natural.height)),dpr=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),vp=p.getViewport({scale:scale*dpr}),cssVp=p.getViewport({scale});
+ const p=await previewPdf.getPage(previewPage),wrap=$('secPreviewWrap'),natural=p.getViewport({scale:1}),fitScale=Math.max(.2,Math.min((wrap.clientWidth-24)/natural.width,(wrap.clientHeight-24)/natural.height)),scale=Math.max(.2,Math.min(2.55,fitScale*secPreviewScaleFactor())),dpr=Math.min(Math.max(2.5,(window.devicePixelRatio||1)*1.6),4),vp=p.getViewport({scale:scale*dpr}),cssVp=p.getViewport({scale});
  const cv=$('secPreviewCanvas');cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);cv.style.width=cssVp.width+'px';cv.style.height=cssVp.height+'px';
  const previewCtx=cv.getContext('2d');previewCtx.imageSmoothingEnabled=true;previewCtx.imageSmoothingQuality='high';previewRenderTask=p.render({canvasContext:previewCtx,viewport:vp});try{await previewRenderTask.promise}catch(e){if(e.name!=='RenderingCancelledException')throw e}
  $('secPreviewPage').textContent=previewPage+' / '+previewPdf.numPages;
