@@ -116,6 +116,7 @@ $('restoreLegacy').onclick=()=>{
  refreshDrawingUI();save();draw();show();notice('Det äldre arbetet är nu kopplat till '+activeDrawingName+'.');
 };
 let loadVersion=0,renderVersion=0,renderQueue=Promise.resolve(),renderTask=null;
+if($('legacyImportOk'))$('legacyImportOk').onclick=()=>$('legacyImportDialog')?.close();
 let pageWidth=1,pageHeight=1;
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
@@ -162,7 +163,12 @@ $('file').onchange=async e=>{
     $('doorOpenWorkMeta').textContent=[project.projectName||project.facilityNo||f.name,doors.length+' dörrar',project.inspectionDate?'senaste service '+project.inspectionDate:''].filter(Boolean).join(' · ');
     $('doorOpenWorkDialog').showModal();notice('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
    }else{
-    const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ',importedCount=doors.length+importQueue.length;notice(prefix+f.name+' – '+(legacyImported?importedCount+' automatiker importerade, '+doors.length+' placerade.':doors.length+' dörrar.')+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'));
+    const prefix=imported?'Arbets-PDF öppnad: ':legacyImported?'Äldre länkad PDF importerad: ':record?'Sparad ritning: ':'Ny ritning: ',importedCount=doors.length+importQueue.length;
+    const legacyMessage=legacyImported?f.name+' – '+importedCount+' automatiker hittades. '+doors.length+' placerades automatiskt'+(importQueue.length?' och '+importQueue.length+' väntar på placering. ':' . ')+(legacyImported.summaryText||''):'';
+    notice(prefix+f.name+' – '+(legacyImported?importedCount+' automatiker importerade, '+doors.length+' placerade.':doors.length+' dörrar.')+(legacyImported?.summaryText?' '+legacyImported.summaryText:' Välj ＋ Dörr för att lägga till.'));
+    if(legacyImported&&$('legacyImportDialog')&&$('legacyImportMeta')){
+     $('legacyImportMeta').textContent=legacyMessage;$('legacyImportDialog').showModal();
+    }
    }
   }
  }catch(error){if(candidate&&candidate!==pdf)await candidate.destroy();if(version===loadVersion)notice(error.storageError||String(error.message).includes('Arbets-PDF')?error.message:'Kunde inte öppna PDF-filen. Kontrollera att den är giltig och inte lösenordsskyddad.',true)}
