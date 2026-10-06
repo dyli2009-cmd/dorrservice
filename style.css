@@ -1656,3 +1656,87 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
     border-radius:10px!important;
   }
 }
+
+
+/* 2.4.166: smaller centered home overlay so more of the background remains visible. */
+.homeShell{
+  width:min(460px,100%)!important;
+  padding:8px 0!important;
+}
+.homeBrand{
+  margin-bottom:12px!important;
+}
+.homeBrand strong{
+  font-size:18px!important;
+}
+.homeBrand span{
+  font-size:9px!important;
+  padding:2px 5px!important;
+}
+.homeChoices,.homeTools{
+  width:min(350px,100%)!important;
+}
+.homeChoice{
+  min-height:62px!important;
+  grid-template-columns:32px 1fr auto!important;
+  gap:8px!important;
+  padding:8px 10px!important;
+  border-radius:10px!important;
+}
+.homeChoiceIcon{
+  width:32px!important;
+  height:32px!important;
+}
+.homeChoiceIcon svg{
+  width:19px!important;
+  height:19px!important;
+}
+.homeChoice strong{
+  font-size:13px!important;
+}
+.homeChoice b{
+  font-size:10.5px!important;
+}
+.homeTools{
+  margin-top:7px!important;
+}
+.homeToolsLink{
+  min-height:50px!important;
+  padding:7px 9px!important;
+  gap:7px!important;
+  border-radius:9px!important;
+}
+.homeToolsIcon{
+  width:29px!important;
+  height:29px!important;
+}
+.homeToolsIcon svg{
+  width:18px!important;
+  height:18px!important;
+}
+.homeToolsLink strong{
+  font-size:12px!important;
+}
+.homeToolsLink small{
+  margin-top:1px!important;
+  font-size:9.5px!important;
+}
+@media(max-width:620px){
+  .homeShell{
+    width:min(390px,100%)!important;
+    padding:4px 0!important;
+  }
+  .homeChoices,.homeTools{
+    width:min(315px,88vw)!important;
+  }
+  .homeBrand{margin-bottom:10px!important}
+  .homeBrand strong{font-size:17px!important}
+  .homeChoice{
+    min-height:58px!important;
+    padding:7px 9px!important;
+  }
+  .homeToolsLink{
+    min-height:46px!important;
+    padding:6px 8px!important;
+  }
+}
