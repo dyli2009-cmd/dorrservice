@@ -81,7 +81,46 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   try{
    if(!window.PDFLib)return null;
    classicScan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;scan=classicScan;
-   const linkedPages=[],rawLinks=[];let seen=false,gap=0;
+   const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib,classicSource=await PDFDocument.load(bytes,{updateMetadata:false}),classicPages=classicSource.getPages();
+   const classicRefMap=new Map(classicPages.map((p,i)=>[String(p.ref),i+1]));
+   const classicLookup=obj=>{try{return obj?classicSource.context.lookup(obj):null}catch(e){return obj||null}};
+   const classicNumber=obj=>{const value=classicLookup(obj);try{if(value instanceof PDFNumber)return value.asNumber();if(typeof value?.asNumber==='function')return value.asNumber()}catch(e){}const n=Number(String(value||''));return Number.isFinite(n)?n:null};
+   const classicText=obj=>{const value=classicLookup(obj);if(!value)return '';try{if(typeof value.decodeText==='function')return value.decodeText()}catch(e){}try{if(typeof value.asString==='function')return value.asString().replace(/^\//,'')}catch(e){}return String(value).replace(/^\//,'')};
+   const classicRect=dict=>{const arr=classicLookup(dict?.get?.(PDFName.of('Rect')));if(!(arr instanceof PDFArray)||arr.size()<4)return null;const out=[0,1,2,3].map(i=>classicNumber(arr.get(i)));return out.every(Number.isFinite)?out:null};
+   const classicDestPage=dest=>{
+    const value=classicLookup(dest);if(!(value instanceof PDFArray)||!value.size())return null;
+    const first=value.get(0),direct=classicRefMap.get(String(first))||classicRefMap.get(String(classicLookup(first)));if(direct)return direct;
+    const n=classicNumber(first);return Number.isInteger(n)&&n>=0&&n<classicScan.numPages?n+1:null
+   };
+   const classicPageData=pageNo=>{
+    const page=classicPages[pageNo-1],links=[],callouts=[];if(!page)return {links,callouts};
+    let annots=null;try{annots=page.node.lookup(PDFName.of('Annots'),PDFArray)}catch(e){}
+    if(!(annots instanceof PDFArray))return {links,callouts};
+    for(let i=0;i<annots.size();i++){
+     const dict=classicLookup(annots.get(i));if(!(dict instanceof PDFDict))continue;
+     const rect=classicRect(dict);if(!rect)continue;
+     const subtype=classicText(dict.get(PDFName.of('Subtype'))),intent=classicText(dict.get(PDFName.of('IT')));
+     if(subtype==='FreeText'&&intent==='FreeTextCallout'){
+      const cl=classicLookup(dict.get(PDFName.of('CL'))),points=[];
+      if(cl instanceof PDFArray)for(let j=0;j<cl.size();j++){const n=classicNumber(cl.get(j));if(Number.isFinite(n))points.push(n)}
+      const text=classicText(dict.get(PDFName.of('Contents')))||classicText(dict.get(PDFName.of('RC')));
+      if(points.length>=2)callouts.push({drawingPage:pageNo,rect,points,text})
+     }
+     const action=classicLookup(dict.get(PDFName.of('A')));
+     if(action instanceof PDFDict){
+      const targetPage=classicDestPage(action.get(PDFName.of('D')));
+      if(targetPage&&targetPage!==pageNo)links.push({drawingPage:pageNo,targetPage,rect,source:'bluebeam-action'})
+     }
+     const directTarget=classicDestPage(dict.get(PDFName.of('Dest')));
+     if(directTarget&&directTarget!==pageNo)links.push({drawingPage:pageNo,targetPage:directTarget,rect,source:'bluebeam-dest'})
+    }
+    return {links,callouts}
+   };
+   const rectDistance=(a,b)=>{
+    const ax=(a[0]+a[2])/2,ay=(a[1]+a[3])/2,bx=Math.max(b[0],Math.min(ax,b[2])),by=Math.max(b[1],Math.min(ay,b[3]));
+    return Math.hypot(ax-bx,ay-by)
+   };
+   const linkedPages=[],rawLinks=[],classicCallouts=[];let seen=false,gap=0;
    const scanLimit=Math.min(classicScan.numPages,30);
    for(let pageNo=1;pageNo<=scanLimit;pageNo++){
     onProgress('Läser gamla dörrkopplingar… sida '+pageNo+' / '+scanLimit);
@@ -90,12 +129,14 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     const resolved=[];
     for(const a of candidates){
      const targetPage=await targetFromPdfJsAnnotation(a);
-     if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})
+     if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect,source:'pdfjs-button'})
     }
-    if(resolved.length){
+    const direct=classicPageData(pageNo);classicCallouts.push(...direct.callouts);direct.links.forEach(item=>resolved.push(item));
+    const seenKeys=new Set(),uniqueResolved=resolved.filter(item=>{const key=[item.targetPage,...item.rect.map(n=>Math.round(n*10)/10)].join(':');if(seenKeys.has(key))return false;seenKeys.add(key);return true});
+    if(uniqueResolved.length){
      seen=true;gap=0;linkedPages.push({originalPage:pageNo,viewport});
-     resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
-    }else if(seen&&++gap>=2)break
+     uniqueResolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
+    }else if(seen&&++gap>=5)break
    }
    if(rawLinks.length<1)return null;
 
@@ -121,14 +162,18 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     const protocol=protocols.get(link.targetPage),id=protocol?.id;
     if(!id||used.has(id))continue;used.add(id);
     const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
-    const vr=viewport.convertToViewportRectangle(link.rect),
-          x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),
-          y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height)),
-          parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};
+    const nearby=classicCallouts.filter(item=>item.drawingPage===link.drawingPage&&idsInText(item.text).length).sort((a,b)=>rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect))[0]||null;
+    const vr=viewport.convertToViewportRectangle(link.rect);let x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height)),labelX,labelY,legacyLabelText='';
+    if(nearby&&rectDistance(link.rect,nearby.rect)<=Math.max(90,Math.min(viewport.width,viewport.height)*.12)){
+     const tip=viewport.convertToViewportPoint(nearby.points[0],nearby.points[1]),lr=viewport.convertToViewportRectangle(nearby.rect);
+     x=Math.max(0,Math.min(1,tip[0]/viewport.width));y=Math.max(0,Math.min(1,tip[1]/viewport.height));
+     labelX=Math.max(0,Math.min(1,((lr[0]+lr[2])/2)/viewport.width));labelY=Math.max(0,Math.min(1,((lr[1]+lr[3])/2)/viewport.height));legacyLabelText=nearby.text||''
+    }
+    const parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};
     CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
     doors.push(normalize({
-     uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
-     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
+     uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,labelX,labelY,
+     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button',
      location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
      previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:link.targetPage
     }))
@@ -165,8 +210,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    };
 
    onProgress('Gamla kopplingar hittade – bygger '+doors.length+' automatiker…');
-   const {PDFDocument,PDFName}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),output=await PDFDocument.create(),
-         copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
+   const source=classicSource,output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
    copied.forEach(pg=>{pg.node.delete(PDFName.of('Annots'));output.addPage(pg)});
    try{output.catalog.delete(PDFName.of('AcroForm'))}catch(e){}
    const drawingBytes=new Uint8Array(await output.save());
@@ -181,7 +225,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     drawingBytes,
     work:{version:2,doors,importQueue:[],project,logoData:''},
     classicImport:true,
-    summaryText:'Klassisk PDF-koppling använd. '+doors.length+' automatiker hittades och placerades. '+perDrawing+'. Projektfält ifyllda: '+projectFieldCount+'.'
+    summaryText:'Klassisk Bluebeam-koppling använd. '+doors.length+' automatiker hittades och placerades. '+doors.filter(d=>d.legacyPlacementSource==='bluebeam-callout').length+' fick exakt position från gammal text/pil. '+perDrawing+'. Projektfält ifyllda: '+projectFieldCount+'.'
    }
   }catch(error){
    console.warn('Klassisk äldre PDF-import misslyckades',error);
