@@ -1,9 +1,14 @@
-/* Allt-i-ett protocol selection 2.4.133 */
+/* Allt-i-ett protocol selection 2.4.134 */
 (()=>{
  'use strict';
  const KEY='doorservice-all-in-one-active-protocols';
- const TYPES=['automation','alarm','lock','access'];
- const names={automation:'Dörrautomatik',alarm:'Inbrottslarm',lock:'Lås & Dörrmiljö',access:'Passer'};
+ const TYPES=['automation','automation_selfcheck','alarm','lock','access','fire_panel','fire_detector','fire_door'];
+ const names={
+  automation:'Checklista revision dörrautomatik',
+  automation_selfcheck:'Egenkontroll dörrautomatik',
+  alarm:'Inbrottslarm',lock:'Lås & Dörrmiljö',access:'Passer',
+  fire_panel:'Brandcentral',fire_detector:'Branddetektorer',fire_door:'Branddörr / dörrhållning'
+ };
  const dialog=document.getElementById('allProtocolDialog'),picker=document.getElementById('allProtocolPicker'),
   close=document.getElementById('allProtocolClose'),cancel=document.getElementById('allProtocolCancel'),
   apply=document.getElementById('allProtocolApply'),openWork=document.getElementById('allProtocolOpenWork'),
