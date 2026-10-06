@@ -58,3 +58,233 @@
  .sizeStats>div:first-child{grid-column:1/2}
  .sizeStats>div:nth-child(5){grid-column:1/-1}
 }
+
+
+/* 2.4.162: compact icon-first drawing toolbar. */
+.workspace{
+ display:block!important;
+}
+.previewPane{
+ width:100%;
+ position:relative;
+ overflow:visible!important;
+}
+.compactToolBar{
+ position:sticky;
+ top:58px;
+ z-index:16;
+ display:flex;
+ align-items:center;
+ gap:5px;
+ padding:7px 8px;
+ border-bottom:1px solid #dbe4e8;
+ background:#fff;
+ overflow:visible;
+}
+.toolIconGroup{display:flex;align-items:center;gap:3px}
+.toolDivider{width:1px;height:28px;background:#d8e2e7;flex:none}
+.iconTool,
+.toolMenu>summary,
+.pageNavCompact button{
+ min-width:36px;
+ height:36px;
+ border:1px solid #c5d2d8;
+ border-radius:8px;
+ background:#f8fafb;
+ color:#294653;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ gap:5px;
+ padding:5px 8px;
+ font-size:10px;
+ font-weight:750;
+ cursor:pointer;
+ user-select:none;
+}
+.iconTool svg,
+.toolMenu>summary svg{
+ width:18px;
+ height:18px;
+ fill:none;
+ stroke:currentColor;
+ stroke-width:1.8;
+ stroke-linecap:round;
+ stroke-linejoin:round;
+ flex:none;
+}
+.iconTool:disabled{opacity:.35;cursor:default}
+.iconTool.active{
+ background:#173f55;
+ color:#fff;
+ border-color:#173f55;
+}
+.labeledTool span{font-size:9.5px}
+.toolBarSpacer{flex:1}
+.pageNavCompact{
+ display:flex;
+ align-items:center;
+ gap:4px;
+ flex:none;
+}
+.pageNavCompact strong{
+ min-width:58px;
+ text-align:center;
+ font-size:9.5px;
+ white-space:nowrap;
+}
+.compactToolBar>#pageState{
+ max-width:180px;
+ overflow:hidden;
+ text-overflow:ellipsis;
+ white-space:nowrap;
+ font-size:8.5px;
+ color:#6e828d;
+}
+.toolMenu{
+ position:relative;
+ flex:none;
+}
+.toolMenu>summary{
+ list-style:none;
+ min-width:auto;
+}
+.toolMenu>summary::-webkit-details-marker{display:none}
+.toolMenu>summary b{
+ font-size:11px;
+ line-height:1;
+ transition:transform .15s ease;
+}
+.toolMenu[open]>summary{
+ background:#eaf2f6;
+ border-color:#8eabb8;
+}
+.toolMenu[open]>summary b{transform:rotate(180deg)}
+.toolMenuPanel{
+ position:absolute;
+ top:42px;
+ left:0;
+ z-index:30;
+ width:min(290px,calc(100vw - 24px));
+ display:grid;
+ gap:6px;
+ padding:9px;
+ border:1px solid #c7d4da;
+ border-radius:10px;
+ background:#fff;
+ box-shadow:0 10px 28px #102b3840;
+}
+.toolMenuPanel button,
+.toolMenuPanel select{
+ min-height:34px;
+ border:1px solid #c5d2d8;
+ border-radius:7px;
+ background:#f7fafb;
+ color:#294653;
+ padding:6px 8px;
+ font-size:9.5px;
+ font-weight:700;
+}
+.compactToggle{
+ display:flex;
+ align-items:center;
+ gap:8px;
+ min-height:34px;
+ padding:6px 7px;
+ border-radius:7px;
+ background:#f6f9fa;
+ font-size:9.5px;
+ font-weight:650;
+}
+.compactToggle input{
+ width:18px;
+ height:18px;
+ min-height:18px;
+ flex:none;
+}
+.compactSelect{
+ display:grid;
+ gap:4px;
+ font-size:9px;
+ font-weight:750;
+}
+.pageMenuPanel{width:min(340px,calc(100vw - 24px))}
+.pageMenuPanel .pageList{
+ max-height:120px;
+ overflow:auto;
+ padding-top:2px;
+}
+#previewWrap{
+ min-height:560px;
+ max-height:calc(100dvh - 220px);
+}
+.sizeCompare{
+ padding:9px!important;
+}
+.sizeCompareHead{margin-bottom:6px!important}
+.sizeStats>div{padding:6px!important}
+.sizeCompare p{margin-top:6px!important}
+.outputActions{
+ padding:8px!important;
+ margin-top:8px!important;
+}
+@media(max-width:760px){
+ .toolShell{padding:6px}
+ .toolIntro{
+  padding:9px 10px;
+  border-radius:9px;
+ }
+ .toolIntro h1{font-size:15px}
+ .toolIntro p{font-size:8.5px}
+ #toolMessage{margin:6px 0;padding:6px 8px}
+ .deepCleanInfo{margin-bottom:6px;padding:6px 8px}
+ .compactToolBar{
+  top:52px;
+  gap:3px;
+  padding:5px 6px;
+  overflow-x:auto;
+  overflow-y:visible;
+  scrollbar-width:none;
+ }
+ .compactToolBar::-webkit-scrollbar{display:none}
+ .iconTool,
+ .toolMenu>summary,
+ .pageNavCompact button{
+  min-width:34px;
+  height:34px;
+  padding:4px 6px;
+  border-radius:7px;
+ }
+ .labeledTool span{display:none}
+ .toolMenu>summary span{font-size:9px}
+ .toolMenuPanel{
+  position:fixed;
+  left:8px;
+  right:8px;
+  top:auto;
+  bottom:calc(74px + env(safe-area-inset-bottom,0px));
+  width:auto;
+  max-height:48dvh;
+  overflow:auto;
+ }
+ .toolBarSpacer{display:none}
+ .pageNavCompact{margin-left:auto}
+ .compactToolBar>#pageState{display:none}
+ #previewWrap{
+  min-height:430px;
+  max-height:calc(100dvh - 185px);
+  padding:6px;
+ }
+ .previewNote{padding:6px 8px;font-size:8px}
+ .sizeCompare{margin-top:7px}
+ .outputActions{
+  bottom:4px;
+  margin-top:6px!important;
+ }
+}
+@media(max-width:460px){
+ .toolMenu>summary span{display:none}
+ .toolMenu>summary b{display:none}
+ .toolMenu>summary{min-width:34px;padding:4px}
+ .pageNavCompact strong{min-width:50px;font-size:8.5px}
+}
