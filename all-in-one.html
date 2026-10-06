@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Allt-i-ett – Dörrservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.144">
-<link rel="stylesheet" href="security.css?v=2.4.144"><link rel="stylesheet" href="security-compact.css?v=2.4.144"><link rel="stylesheet" href="all-in-one.css?v=2.4.144">
+<link rel="stylesheet" href="style.css?v=2.4.145">
+<link rel="stylesheet" href="security.css?v=2.4.145"><link rel="stylesheet" href="security-compact.css?v=2.4.145"><link rel="stylesheet" href="all-in-one.css?v=2.4.145">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -17,11 +17,11 @@
 <body class="securityApp allInOneApp" data-view="drawing">
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Allt-i-ett</strong></div>
- <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.144">v2.4.144</small></div>
+ <div class="headerActions"><a class="filebtn homeIconLink" href="./" aria-label="Hem" title="Hem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></svg></a><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
+ <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.145">v2.4.145</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
-<div class="objectBar"><span class="objectTitle"><span id="securityObject">Välj en ritning</span><small>Öppna en ritning eller en tidigare arbets-PDF.</small></span><span id="securityCount">0 objekt</span></div>
+<div class="objectBar"><span class="objectTitle"><span id="securityObject">Välj en ritning</span></span><span id="securityCount">0 objekt</span></div>
 <div id="securityMessage" role="status"></div>
 
 <main>
@@ -34,7 +34,7 @@
   <div id="secHint" hidden>Tryck på ritningen där objektet finns.</div>
   <section id="secViewer">
     <div id="secStage"><canvas id="secCanvas"></canvas><div id="secMarkers"></div></div>
-    <div id="secEmpty"><h1>Allt-i-ett</h1><p>Välj protokoll och fortsätt sedan till PDF.</p><label class="filebtn primary" for="securityFile">Öppna PDF</label></div>
+    <div id="secEmpty"><h1>Allt-i-ett</h1><p>Välj en ritning.</p><label class="filebtn primary" for="securityFile">Öppna PDF</label></div>
   </section>
   <div class="securityTools allInOneProtocolTools">
     <button data-add="automation">＋ Checklista revision dörrautomatik</button>
@@ -104,7 +104,7 @@
 
 <dialog id="allProtocolDialog" class="allProtocolDialog" aria-labelledby="allProtocolTitle">
   <div class="allProtocolHead">
-    <div><span class="eyebrow">ALLT-I-ETT</span><h2 id="allProtocolTitle">Välj protokoll</h2></div>
+    <div><span class="eyebrow">ALLT-I-ETT</span><h2 id="allProtocolTitle">Välj checklistor som passar just ditt arbete</h2></div>
   </div>
   <div class="allProtocolChoices">
     <details class="allProtocolGroup">
@@ -188,8 +188,8 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="ui-text-scale.js?v=2.4.144"></script><script src="drawing-annotations.js?v=2.4.144"></script>
-<script src="session-history.js?v=2.4.144"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.144"></script><script src="all-in-one.js?v=2.4.144"></script>
-<script src="drawing-transfer.js?v=2.4.144"></script>
+<script src="ui-text-scale.js?v=2.4.145"></script><script src="drawing-annotations.js?v=2.4.145"></script>
+<script src="session-history.js?v=2.4.145"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.145"></script><script src="all-in-one.js?v=2.4.145"></script>
+<script src="drawing-transfer.js?v=2.4.145"></script>
 </body></html>
