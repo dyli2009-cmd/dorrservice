@@ -727,22 +727,22 @@ async function createWorkPdf(){
   const page=copied[index],originalPage=await drawingDocument.getPage(index+1),viewport=originalPage.getViewport({scale:1}),radius=Math.max(7,Math.min(13,Math.min(viewport.width,viewport.height)*.016));
   snapshot.doors.filter(d=>d.page===index+1).forEach(d=>{
    const [x,y]=viewport.convertToPdfPoint(d.x*viewport.width,d.y*viewport.height),[lx,ly]=viewport.convertToPdfPoint((Number.isFinite(d.labelX)?d.labelX:d.x+.075)*viewport.width,(Number.isFinite(d.labelY)?d.labelY:d.y-.045)*viewport.height),color=REPORT_COLORS[displayStatus(d)].rgb,statusColor=rgb(...color.map(n=>n/255));
-   const serial=String(d.serialNumber||'').replace(/^0+(?=\d)/,'')||String(d.id||'').replace(/^D/,'');const model=(d.modelCode||d.model||'').trim();const object=(snapshot.project?.facilityNo||'').trim();const label=[object,model,serial].filter(Boolean).join(' · ');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=safeLabel.length>26?10.8:safeLabel.length>18?11.8:13.4,w=font.widthOfTextAtSize(safeLabel,size),boxW=Math.max(44,w+14),boxH=size+8.5,angle=page.getRotation().angle,rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,localUx=cos*ux+sin*uy,localUy=-sin*ux+cos*uy,halfW=boxW/2,halfH=boxH/2,txEdge=Math.min(Math.abs(localUx)>.0001?halfW/Math.abs(localUx):Infinity,Math.abs(localUy)>.0001?halfH/Math.abs(localUy):Infinity),edgeX=lx+ux*(txEdge+1.5),edgeY=ly+uy*(txEdge+1.5),endX=x-ux*2,endY=y-uy*2;
-   page.drawLine({start:{x:edgeX,y:edgeY},end:{x:endX,y:endY},thickness:1.05,color:statusColor,opacity:.9});
-   const head=5,wing=2.8,px=-uy,py=ux;page.drawLine({start:{x,y},end:{x:x-ux*head+px*wing,y:y-uy*head+py*wing},thickness:1.05,color:statusColor});page.drawLine({start:{x,y},end:{x:x-ux*head-px*wing,y:y-uy*head-py*wing},thickness:1.05,color:statusColor});
-   page.drawCircle({x,y,size:2.2,color:statusColor,borderColor:rgb(1,1,1),borderWidth:.7});
+   const serial=String(d.serialNumber||'').replace(/^0+(?=\d)/,'')||String(d.id||'').replace(/^D/,'');const model=(d.modelCode||d.model||'').trim();const object=(snapshot.project?.facilityNo||'').trim();const label=[object,model,serial].filter(Boolean).join(' · ');const safeLabel=String(label).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?');const size=safeLabel.length>26?13.0:safeLabel.length>18?14.4:16.2,w=font.widthOfTextAtSize(safeLabel,size),boxW=Math.max(48,w+16),boxH=size+9.5,angle=page.getRotation().angle,rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,localUx=cos*ux+sin*uy,localUy=-sin*ux+cos*uy,halfW=boxW/2,halfH=boxH/2,txEdge=Math.min(Math.abs(localUx)>.0001?halfW/Math.abs(localUx):Infinity,Math.abs(localUy)>.0001?halfH/Math.abs(localUy):Infinity),edgeX=lx+ux*(txEdge+1.5),edgeY=ly+uy*(txEdge+1.5),endX=x-ux*2,endY=y-uy*2;
+   page.drawLine({start:{x:edgeX,y:edgeY},end:{x:endX,y:endY},thickness:1.2,color:statusColor,opacity:.92});
+   const head=5.8,wing=3.2,px=-uy,py=ux;page.drawLine({start:{x,y},end:{x:x-ux*head+px*wing,y:y-uy*head+py*wing},thickness:1.2,color:statusColor});page.drawLine({start:{x,y},end:{x:x-ux*head-px*wing,y:y-uy*head-py*wing},thickness:1.2,color:statusColor});
+   page.drawCircle({x,y,size:3.0,color:statusColor,borderColor:rgb(1,1,1),borderWidth:.85});
    const boxX=lx-cos*halfW+sin*halfH,boxY=ly-sin*halfW-cos*halfH;page.drawRectangle({x:boxX,y:boxY,width:boxW,height:boxH,color:statusColor,borderColor:rgb(1,1,1),borderWidth:1,rotate:degrees(angle)});
    const textLocalX=-w/2,textLocalY=-size/3;page.drawText(safeLabel,{x:lx+textLocalX*cos-textLocalY*sin,y:ly+textLocalX*sin+textLocalY*cos,size,font,color:rgb(1,1,1),rotate:degrees(angle)});
    markerLinks.push({pageIndex:index,doorKey:d.uid||d.id,x:lx,y:ly,radius:Math.max(boxW,boxH)/2+5});
   });
   (snapshot.textNotes||[]).filter(n=>n.page===index+1&&n.text).forEach(n=>{
-   const [x,y]=viewport.convertToPdfPoint(n.x*viewport.width,n.y*viewport.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,120),size=8.2,maxWidth=Math.min(150,viewport.width*.28);
+   const [x,y]=viewport.convertToPdfPoint(n.x*viewport.width,n.y*viewport.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,120),size=9.4,maxWidth=Math.min(165,viewport.width*.30);
    const lines=[];let line='';
    safe.split(/\s+/).forEach(word=>{const trial=line?line+' '+word:word;if(noteFont.widthOfTextAtSize(trial,size)<=maxWidth)line=trial;else{if(line)lines.push(line);line=word}});if(line)lines.push(line);
-   const shown=lines.slice(0,3),padding=4,lineH=size+2,width=Math.max(34,...shown.map(t=>noteFont.widthOfTextAtSize(t,size)))+padding*2,height=shown.length*lineH+padding*2;
+   const shown=lines.slice(0,3),padding=4.5,lineH=size+2.2,width=Math.max(38,...shown.map(t=>noteFont.widthOfTextAtSize(t,size)))+padding*2,height=shown.length*lineH+padding*2;
    const bx=Math.min(viewport.width-width-3,x+10),by=Math.max(3,y-height-10);
    page.drawLine({start:{x,y},end:{x:bx,y:by+height/2},thickness:1,color:rgb(.1,.25,.34)});
-   page.drawCircle({x,y,size:2.4,color:rgb(.1,.25,.34)});
+   page.drawCircle({x,y,size:2.9,color:rgb(.1,.25,.34)});
    page.drawRectangle({x:bx,y:by,width,height,color:rgb(1,1,.91),borderColor:rgb(.1,.25,.34),borderWidth:.8,opacity:.96});
    shown.forEach((t,i)=>page.drawText(t,{x:bx+padding,y:by+height-padding-size-i*lineH,size,font:noteFont,color:rgb(.05,.12,.16)}));
   });
