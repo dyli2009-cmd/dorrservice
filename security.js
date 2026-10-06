@@ -143,6 +143,18 @@ if(ALL_IN_ONE){
   '1.4':['Brandstyrning fungerar inte korrekt'], '1.5':['Åtgärd krävs']
  }};
 }
+const DOOR_AUTOMATION_MODELS=[
+ ['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],
+ ['15','Besam Powerswing'],['16','Besam SW100'],['17','Dorma ED 200'],['18','Tormax'],['19','Record standardarm'],
+ ['20','Powerswing pardörr'],['21','Geze TSA 160'],['22','Record glidarm'],['23','Gilgen FDC'],['24','Dorma ED 100'],
+ ['25','Besam SDE'],['26','Ditec hissmonterad'],['27','SR 2000'],['28','OVE'],['29','Dorma CD 80'],
+ ['30','Cibes hissöppnare'],['31','Geze TSA 160 dubbeldörr'],['32','Dorma ED 180'],['33','Geze EC Turn'],
+ ['34','Besam DHE'],['35','Entramatic PLS 100'],['36','Entramatic PLS 150'],['37','Dorma ED 250'],
+ ['38','Geze Powerdrive skjutdörr'],['39','Geze EC Drive skjutdörr'],['40','Geze SL skjutdörr'],
+ ['41','Faac 930 skjutdörr'],['42','Faac A140 skjutdörr'],['43','Dorma TS 93 + brandstängning'],
+ ['44','Dorma TS 93'],['45','Entramatic SW 300'],['46','Unislide dubbel flyglig'],['47','Unislide enkel flyglig'],
+ ['48','Entramatic SL500']
+];
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
 let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
@@ -169,7 +181,25 @@ function normalizeSecurityCheckEdits(o){
  Object.entries(raw).forEach(([id,value])=>{if(!valid.has(id))return;if(value===null)clean[id]=null;else if(typeof value==='string'&&value.trim())clean[id]=value.trim()});
  o.checkEdits=clean;
 }
-function normalize(o){o.checks=o.checks||{};Object.values(o.checks).forEach(c=>{if(c&&typeof c.note==='string')c.note=cleanSecurityRemarkText(c.note)});if(Array.isArray(o.previousIssues))o.previousIssues.forEach(issue=>{if(issue&&typeof issue.note==='string')issue.note=cleanSecurityRemarkText(issue.note)});const cfg=SYSTEMS[o.type];normalizeSecurityCheckEdits(o);const used=new Set((cfg?.checks||[]).map(([n])=>n));o.customChecks=(Array.isArray(o.customChecks)?o.customChecks:[]).filter(c=>{if(!c||typeof c.id!=='string'||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;used.add(c.id);c.title=c.title.trim();return true});allChecks(o).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.previousIssues=Array.isArray(o.previousIssues)?o.previousIssues:[];o.previousNotes=o.previousNotes||'';o.previousStatus=o.previousStatus||'';o.previousServiceDate=o.previousServiceDate||'';o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';const legacyId=(cfg?.prefix||'')+(Number(o.number)||1);if(!o.id||o.id===legacyId)o.id=(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1);if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
+function isDoorAutomationItem(o){return ALL_IN_ONE&&(o?.type==='automation'||o?.type==='automation_selfcheck')}
+function normalizeAutomationIdentity(o){
+ if(!isDoorAutomationItem(o))return o;
+ o.modelCode=String(o.modelCode||o.importedDoorModel||'').trim();
+ o.model=String(o.model||'').trim();
+ o.machineId=String(o.machineId||o.importedMachineId||'').trim();
+ o.serialNumber=String(o.serialNumber||o.importedSerialNumber||'').trim();
+ const parts=String(o.id||'').trim().split('-').filter(Boolean);
+ if(parts.length>=3){
+  if(!o.modelCode)o.modelCode=parts.at(-2);
+  if(!o.serialNumber&&/^\d+$/.test(parts.at(-1)))o.serialNumber=String(Number(parts.at(-1)));
+ }
+ const known=DOOR_AUTOMATION_MODELS.find(([code,name])=>code===o.modelCode||name.toLocaleLowerCase('sv')===o.modelCode.toLocaleLowerCase('sv'));
+ if(known){o.modelCode=known[0];if(!o.model)o.model=known[1]}
+ if(!o.serialNumber)o.serialNumber=String(Number(o.number)||1);
+ if(!o.idMode)o.idMode='auto';
+ return o
+}
+function normalize(o){o.checks=o.checks||{};Object.values(o.checks).forEach(c=>{if(c&&typeof c.note==='string')c.note=cleanSecurityRemarkText(c.note)});if(Array.isArray(o.previousIssues))o.previousIssues.forEach(issue=>{if(issue&&typeof issue.note==='string')issue.note=cleanSecurityRemarkText(issue.note)});const cfg=SYSTEMS[o.type];normalizeAutomationIdentity(o);normalizeSecurityCheckEdits(o);const used=new Set((cfg?.checks||[]).map(([n])=>n));o.customChecks=(Array.isArray(o.customChecks)?o.customChecks:[]).filter(c=>{if(!c||typeof c.id!=='string'||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;used.add(c.id);c.title=c.title.trim();return true});allChecks(o).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.previousIssues=Array.isArray(o.previousIssues)?o.previousIssues:[];o.previousNotes=o.previousNotes||'';o.previousStatus=o.previousStatus||'';o.previousServiceDate=o.previousServiceDate||'';o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';const legacyId=(cfg?.prefix||'')+(Number(o.number)||1);if(!o.id||o.id===legacyId)o.id=isDoorAutomationItem(o)?'D'+o.serialNumber:(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1);if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
 function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem(APP_STORAGE_PREFIX+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
@@ -206,13 +236,31 @@ function syncStatus(o){
  return o.status
 }
 function nextNumber(type){const nums=items.filter(x=>x.type===type).map(x=>Number(x.number)||0);return Math.max(0,...nums)+1}
+function nextAutomationSerial(){const nums=items.filter(isDoorAutomationItem).map(o=>Number(o.serialNumber)||0);return String(Math.max(0,...nums)+1)}
+function automationProposedId(o){return isDoorAutomationItem(o)&&project.facilityNo&&o.modelCode&&o.serialNumber?[project.facilityNo.trim(),o.modelCode,String(Number(o.serialNumber)||o.serialNumber)].join('-'):null}
+function applyAutomationId(o){
+ if(!isDoorAutomationItem(o)||o.idMode==='manual')return false;
+ const next=automationProposedId(o);if(!next)return false;
+ if(items.some(other=>other.uid!==o.uid&&other.id===next))return false;
+ o.id=next;o.idMode='auto';return true
+}
+function syncAutomationIds(){
+ let changed=false;
+ items.filter(isDoorAutomationItem).forEach(o=>{if(applyAutomationId(o))changed=true});
+ if(changed){drawMarkers();showOverview()}
+ return changed
+}
 function renumberLegacySecurityItems(list){
  const counts={alarm:0,lock:0,access:0,automation:0,automation_selfcheck:0,fire_panel:0,fire_detector:0,fire_door:0};
- (list||[]).forEach(o=>{if(!o?.legacyProtocolPage||!SYSTEMS[o.type])return;const n=++counts[o.type];o.number=n;o.id=(SYSTEMS[o.type].label||o.type)+' '+n});
+ (list||[]).forEach(o=>{if(!o?.legacyProtocolPage||!SYSTEMS[o.type])return;const n=++counts[o.type];o.number=n;if(!isDoorAutomationItem(o))o.id=(SYSTEMS[o.type].label||o.type)+' '+n});
  return list
 }
-function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return (cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1)}
-function createItem(type,x,y){const n=nextNumber(type),cfg=SYSTEMS[type],label=(cfg.markerLabel||cfg.label)+' '+n,o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');save();drawMarkers();showSelected();go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd. Dra pilpunkten och etiketten till rätt läge. Tryck sedan på etiketten för att öppna protokollet.';$('secHint').hidden=false}
+function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return isDoorAutomationItem(o)?(o.id||('D'+(o.serialNumber||o.number||1))):(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1)}
+function createItem(type,x,y){
+ const n=nextNumber(type),cfg=SYSTEMS[type],automation=ALL_IN_ONE&&(type==='automation'||type==='automation_selfcheck'),serial=automation?nextAutomationSerial():'',label=automation?'D'+serial:(cfg.markerLabel||cfg.label)+' '+n;
+ const o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,idMode:automation?'auto':'manual',serialNumber:serial,modelCode:'',model:'',page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});
+ applyAutomationId(o);items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');save();drawMarkers();showSelected();go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd. Dra pilpunkten och etiketten till rätt läge. Tryck sedan på etiketten för att öppna protokollet.';$('secHint').hidden=false
+}
 function drawMarkers(){
  markers.replaceChildren();
  const pageItems=items.filter(o=>o.page===page).map(normalize);
@@ -450,7 +498,7 @@ async function inspectDoorAutomationWorkPdfForAllInOne(bytes){
    location:d.location||'',checks:d.checks||{},customChecks:Array.isArray(d.customChecks)?d.customChecks:[],checkEdits:d.checkEdits||{},status:d.status||'untested',
    manualFail:d.status==='fail',notes:d.notes||'',previousIssues:Array.isArray(d.previousIssues)?d.previousIssues:[],previousNotes:d.previousNotes||'',
    previousStatus:d.previousStatus||'',previousServiceDate:d.previousServiceDate||'',remediationDate:d.remediationDate||'',remediationSignature:d.remediationSignature||'',
-   importedDoorModel:d.modelCode||d.model||'',importedMachineId:d.machineId||'',importedSerialNumber:d.serialNumber||''
+   modelCode:d.modelCode||'',model:d.model||'',machineId:d.machineId||'',serialNumber:d.serialNumber||String(index+1),idMode:d.idMode||'auto'
   })).map(normalize);
   if(items.some(o=>o.page>source.getPageCount()))return null;
   const p=state.project||{},project={...emptyProject(),
@@ -635,7 +683,7 @@ if($('secChangeDrawing'))$('secChangeDrawing').onclick=()=>$('securityFile').cli
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),doorImported=!imported?await inspectDoorAutomationWorkPdfForAllInOne(bytes):null,legacyImported=!imported&&!doorImported?await inspectLegacySecurityLinkedPdf(bytes):null,drawingBytes=imported?.drawingBytes||doorImported?.drawingBytes||legacyImported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||doorImported?.work||(saved?.items?.length?saved:legacyImported?.work)||legacyImported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
  if(pdf)try{await pdf.destroy()}catch(_){}
- pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=renumberLegacySecurityItems((record?.items||[]).map(normalize));textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
+ pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=renumberLegacySecurityItems((record?.items||[]).map(normalize));textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project={...emptyProject(),...(record?.project||{})};syncAutomationIds();logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
  if((imported||doorImported)&&items.length){
   $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||APP_LABEL,items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
   $('secOpenWorkDialog').showModal();
@@ -735,8 +783,37 @@ function renderSecurityPrevious(o){
  if(o.previousStatus||o.previousServiceDate){const meta=document.createElement('div');meta.className='previousIssue';const strong=document.createElement('strong');strong.textContent=[o.previousServiceDate,o.previousStatus].filter(Boolean).join(' · ');meta.appendChild(strong);box.appendChild(meta)}
  rows.forEach(issue=>{const row=document.createElement('div');row.className='previousIssue';const strong=document.createElement('strong');strong.textContent=[issue.n,issue.title].filter(Boolean).join(' · ');const text=document.createElement('span');text.textContent=issue.note?.trim()||issue.title||'Tidigare anmärkning';row.append(strong,text);box.appendChild(row)});
 }
-function showSelected(){const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;$('secProtocolTitle').textContent=securityProtocolTitle();if(!o)return;const cfg=SYSTEMS[o.type];$('secType').value=cfg.label;$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;$('secProtocolSignature').value=project.signature||project.technician||'';syncStatus(o);$('secStatus').value=isSecurityRemediated(o)?'ok':o.status;$('secEditChecks').textContent=securityCheckEditUid===o.uid?'Klar':'Redigera kontrollpunkter';renderSecurityPrevious(o);buildChecklist(o)}
-['secLocation','secId','secNotes'].forEach(id=>$(id).oninput=()=>{const o=cur();if(!o)return;if(id==='secLocation')o.location=$(id).value;if(id==='secId')o.id=$(id).value;if(id==='secNotes')o.notes=$(id).value;save();drawMarkers();showOverview()});
+function showSelected(){
+ const o=cur();$('secNoSelection').hidden=!!o;$('secForm').hidden=!o;$('secProtocolTitle').textContent=securityProtocolTitle();if(!o)return;
+ const cfg=SYSTEMS[o.type],automation=isDoorAutomationItem(o),modelField=$('secAutomationModelField'),serialField=$('secAutomationSerialField'),modelSelect=$('secAutomationModel'),serialInput=$('secAutomationSerial');
+ $('secType').value=cfg.label;$('secNumber').value=o.number;$('secLocation').value=o.location;$('secId').value=o.id;$('secNotes').value=o.notes;$('secProtocolSignature').value=project.signature||project.technician||'';
+ if(modelField)modelField.hidden=!automation;if(serialField)serialField.hidden=!automation;
+ if(automation&&modelSelect){const known=DOOR_AUTOMATION_MODELS.some(([code])=>code===o.modelCode);modelSelect.value=known?o.modelCode:(o.modelCode?'custom':'')}
+ if(automation&&serialInput)serialInput.value=o.serialNumber||'';
+ const identityMessage=$('secAutomationIdMessage');if(identityMessage)identityMessage.textContent=automation&&!automationProposedId(o)?'Fyll i objektnummer under Projekt och välj typ av automatik.':'';
+ syncStatus(o);$('secStatus').value=isSecurityRemediated(o)?'ok':o.status;$('secEditChecks').textContent=securityCheckEditUid===o.uid?'Klar':'Redigera kontrollpunkter';renderSecurityPrevious(o);buildChecklist(o)
+}
+['secLocation','secId','secNotes'].forEach(id=>$(id).oninput=()=>{const o=cur();if(!o)return;if(id==='secLocation')o.location=$(id).value;if(id==='secId'){o.id=$(id).value;if(isDoorAutomationItem(o))o.idMode='manual'}if(id==='secNotes')o.notes=$(id).value;save();drawMarkers();showOverview()});
+const automationModelSelect=$('secAutomationModel'),automationSerialInput=$('secAutomationSerial');
+if(automationModelSelect){
+ DOOR_AUTOMATION_MODELS.forEach(([code,name])=>{const option=document.createElement('option');option.value=code;option.textContent=code+' · '+name;automationModelSelect.appendChild(option)});
+ const custom=document.createElement('option');custom.value='custom';custom.textContent='Annan modell…';automationModelSelect.appendChild(custom);
+ automationModelSelect.onchange=()=>{
+  const o=cur();if(!isDoorAutomationItem(o))return;const value=automationModelSelect.value,known=DOOR_AUTOMATION_MODELS.find(([code])=>code===value);
+  if(value==='custom'){
+   const entered=prompt('Skriv modell / typ av automatik:',o.modelCode||o.model||'');
+   if(entered===null||!entered.trim()){showSelected();return}
+   o.modelCode=entered.trim();o.model=entered.trim();
+  }else{o.modelCode=known?.[0]||'';o.model=known?.[1]||''}
+  o.idMode='auto';applyAutomationId(o);save();drawMarkers();showOverview();showSelected()
+ };
+}
+if(automationSerialInput)automationSerialInput.onchange=()=>{
+ const o=cur();if(!isDoorAutomationItem(o))return;const value=automationSerialInput.value.trim(),message=$('secAutomationIdMessage');
+ if(!/^\d{1,6}$/.test(value)||Number(value)<1){if(message)message.textContent='Ange antal/löpnummer från 1 till 999999.';automationSerialInput.value=o.serialNumber||'';return}
+ o.serialNumber=String(Number(value));o.idMode='auto';if(!applyAutomationId(o)&&message&&automationProposedId(o))message.textContent='Märkningen används redan av en annan automatik.';
+ save();drawMarkers();showOverview();showSelected()
+};
 $('secStatus').onchange=()=>{const o=cur();if(!o)return;o.manualFail=$('secStatus').value==='fail';syncStatus(o);$('secStatus').value=o.status;save();drawMarkers();showOverview()};
 $('secAddCheck').onclick=()=>{const o=cur();if(!o)return;const title=prompt('Skriv den extra kontrollpunkten:','');if(!title?.trim())return;const used=new Set(allChecks(o).map(([n])=>n));let next=SYSTEMS[o.type].checks.length+1;while(used.has('1.'+next))next++;const id='1.'+next;o.customChecks.push({id,title:title.trim()});o.checks[id]={result:'',note:''};o.manualFail=false;o.remediationDate='';o.remediationSignature='';syncStatus(o);save();buildChecklist(o);$('secStatus').value=o.status;drawMarkers()};
 $('secEditChecks').onclick=()=>{const o=cur();if(!o)return;securityCheckEditUid=securityCheckEditUid===o.uid?null:o.uid;$('secEditChecks').textContent=securityCheckEditUid===o.uid?'Klar':'Redigera kontrollpunkter';buildChecklist(o)};
@@ -811,7 +888,7 @@ function refreshLogoPreview(){
  }
 }
 function syncProjectInputs(){for(const[id,key]of Object.entries(projectFieldMap()))$(id).value=project[key]||'';refreshLogoPreview()}
-for(const[id,key]of Object.entries(projectFieldMap()))$(id).oninput=()=>{project[key]=$(id).value;save()};
+for(const[id,key]of Object.entries(projectFieldMap()))$(id).oninput=()=>{project[key]=$(id).value;if(key==='facilityNo')syncAutomationIds();save();if(key==='facilityNo'&&cur())showSelected()};
 $('secTechnician').oninput=()=>{
  const previous=project.technician||'',value=$('secTechnician').value;
  project.technician=value;
