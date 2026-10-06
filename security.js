@@ -1,5 +1,10 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
+const ALL_IN_ONE=window.DOORSERVICE_APP_MODE==='all-in-one';
+const APP_STORAGE_PREFIX=ALL_IN_ONE?'doorservice-all-in-one:':'security-service:';
+const APP_WORK_KEY=ALL_IN_ONE?'DoorserviceAllInOneWork':'SecurityServiceWork';
+const APP_STATE_NAME=ALL_IN_ONE?'doorservice-all-in-one':'security-service';
+const APP_LABEL=ALL_IN_ONE?'Allt-i-ett':'Säkerhetsservice';
 const SYSTEMS={
  alarm:{label:'Inbrottslarm',markerLabel:'Inbrottslarm',prefix:'I',checks:[
  ['1.1','Lägg anläggningen i serviceläge på larmcentral.'],
@@ -71,6 +76,28 @@ const SYSTEMS={
  '1.7':['Kortläsare behöver rengöras','Kortläsare skadad']
  }}
 };
+if(ALL_IN_ONE){
+ SYSTEMS.automation={label:'Dörrautomatik',markerLabel:'Dörrautomatik',prefix:'DA',checks:[['1.1','Samtal med nyttjaren.'],['1.2','Okulärbesiktning av dörrautomatik/dörrmiljö.'],['1.3','Kontroll av eventuella ombyggnader.'],['1.4','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],['1.5','Funktionskontroll manuell och automatisk öppning (kraft, dämpning & hastighet).'],['1.6','Funktionskontroll manuell och automatisk stängning (kraft, dämpning & hastighet).'],['1.7','Funktionskontroll öppnings- & stängningstider.'],['1.8','Funktionskontroll av nödöppning & utrymning.'],['1.9','Funktionskontroll/justering koordinator och armsystem.'],['1.10','Funktionskontroll impulsgivare (radar, armbågskontakter etc).'],['1.11','Sensorlister och säkerhetsanordningar.'],['1.12','Funktionskontroll låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],['1.13','Kontroll/justering uppställningsmagnet & dörrstopp.'],['1.14','Kontroll gummiupphängningar, fjädrar, tryckslangar & tätning.'],['1.15','Kontroll motor, pump, hydraulik och drivaxel.'],['1.16','Kontroll säkringar / programväljare / styrmodul.'],['1.17','Behovsrengöring dörrautomatik och sensorlister.'],['1.18','Mindre justering.']],faults:{
+'1.1':['Nyttjaren uppger återkommande driftstörning','Nyttjaren uppger avvikande funktion','Användning eller förutsättningar har ändrats'],
+'1.2':['Skada/slitage i dörrmiljön','Lösa eller skadade delar','Dörrblad/karm behöver justeras'],
+'1.3':['Ombyggnad påverkar dörrmiljön','Ändrad dörrmiljö kräver ny riskbedömning','Ny eller ändrad utrustning behöver kontrolleras'],
+'1.4':['Infästning lös, efterdragning krävs','Skruvar saknas/lösa','Automatikhus/arm sitter löst'],
+'1.5':['För hög öppningskraft','Fel öppningshastighet','Dämpning behöver justeras','Dörr öppnar inte fullt'],
+'1.6':['För hög stängningskraft','Fel stängningshastighet','Dämpning behöver justeras','Dörr stänger inte helt'],
+'1.7':['Öppningstid behöver justeras','Stängningstid behöver justeras','Öppethållandetid behöver justeras'],
+'1.8':['Nödöppning fungerar ej','Utrymningsfunktion behöver åtgärdas'],
+'1.9':['Armsystem behöver justeras','Koordinator fungerar ej korrekt','Glapp/slitage i armsystem'],
+'1.10':['Radar/impulsgivare fungerar ej','Armbågskontakt fungerar ej','Impulsgivare behöver justeras'],
+'1.11':['Säkerhetssensor saknas, komplettera enligt SS-EN 16005 och aktuell riskbedömning','Klämskydd saknas, komplettera enligt SS-EN 16005 där aktuell riskbedömning visar klämrisk','Säkerhetssensor/sensorlist fungerar ej','Säkerhetssensor täcker inte riskområdet','Klämskydd saknas eller är otillräckligt','Komplettera med säkerhetssensor eller klämskydd'],
+'1.12':['Elslutbleck fungerar ej korrekt','Lås släpper för sent/kort tid','Motorlås/ellås fungerar ej','Dörr/lås behöver justeras'],
+'1.13':['Dörrstopp saknas, komplettera med dörrstopp för att begränsa öppningsvinkeln till 90° där detta är angiven maxvinkel för aktuell automatik/installation','Dörrstopp saknas eller är felplacerat','Dörr öppnar för långt / fel öppningsvinkel','Uppställningsmagnet fungerar ej','Arm eller drivaxel belastas i öppet ändläge','Dörrstopp/öppningsvinkel behöver justeras enligt tillverkarens anvisning'],
+'1.14':['Gummiupphängning sliten','Fjäder behöver bytas/justeras','Tryckslang/tätning behöver åtgärdas'],
+'1.15':['Motor missljud/slitage','Pump/hydraulik läcker','Drivaxel glapp/slitage'],
+'1.16':['Programväljare fungerar ej','Styrmodul fel','Säkring/strömförsörjning behöver åtgärdas'],
+'1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
+'1.18':['Mindre justering utförd','Ytterligare justering krävs']
+}};
+}
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
 let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
@@ -100,11 +127,11 @@ function normalizeSecurityCheckEdits(o){
 function normalize(o){o.checks=o.checks||{};Object.values(o.checks).forEach(c=>{if(c&&typeof c.note==='string')c.note=cleanSecurityRemarkText(c.note)});if(Array.isArray(o.previousIssues))o.previousIssues.forEach(issue=>{if(issue&&typeof issue.note==='string')issue.note=cleanSecurityRemarkText(issue.note)});const cfg=SYSTEMS[o.type];normalizeSecurityCheckEdits(o);const used=new Set((cfg?.checks||[]).map(([n])=>n));o.customChecks=(Array.isArray(o.customChecks)?o.customChecks:[]).filter(c=>{if(!c||typeof c.id!=='string'||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;used.add(c.id);c.title=c.title.trim();return true});allChecks(o).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.previousIssues=Array.isArray(o.previousIssues)?o.previousIssues:[];o.previousNotes=o.previousNotes||'';o.previousStatus=o.previousStatus||'';o.previousServiceDate=o.previousServiceDate||'';o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';const legacyId=(cfg?.prefix||'')+(Number(o.number)||1);if(!o.id||o.id===legacyId)o.id=(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1);if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
 async function fingerprint(bytes){const h=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('')}
-function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem('security-service:'+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
-function loadSaved(key){try{return JSON.parse(localStorage.getItem('security-service:'+key)||'null')}catch(e){return null}}
+function save(){refreshTop();if(!activeKey)return true;const data={version:1,items,textNotes,drawingExtras,project,logoData,updatedAt:new Date().toISOString()};try{localStorage.setItem(APP_STORAGE_PREFIX+activeKey,JSON.stringify(data));return true}catch(e){console.error(e);msg('Kunde inte spara allt på enheten. Prova en mindre logga eller exportera PDF.',true);return false}}
+function loadSaved(key){try{return JSON.parse(localStorage.getItem(APP_STORAGE_PREFIX+key)||'null')}catch(e){return null}}
 function securityWorkspaceTitle(view=document.body.dataset.view){
  const name=project.projectName||$('securityFile').files?.[0]?.name||(pdf?'Ritning öppnad':'Välj en ritning');
- if(view==='protocol'&&pdf)return name+' – Säkerhetsprotokoll';
+ if(view==='protocol'&&pdf)return name+(ALL_IN_ONE?' – Protokoll':' – Säkerhetsprotokoll');
  if(view==='project'&&pdf)return 'Aktuell ritning: '+name;
  return name;
 }
@@ -135,7 +162,7 @@ function syncStatus(o){
 }
 function nextNumber(type){const nums=items.filter(x=>x.type===type).map(x=>Number(x.number)||0);return Math.max(0,...nums)+1}
 function renumberLegacySecurityItems(list){
- const counts={alarm:0,lock:0,access:0};
+ const counts={alarm:0,lock:0,access:0,automation:0};
  (list||[]).forEach(o=>{if(!o?.legacyProtocolPage||!SYSTEMS[o.type])return;const n=++counts[o.type];o.number=n;o.id=(SYSTEMS[o.type].label||o.type)+' '+n});
  return list
 }
@@ -350,12 +377,12 @@ viewer.addEventListener('touchcancel',endTouch,{passive:true});
 async function inspectSecurityWorkPdf(bytes){
  if(!window.PDFLib)throw new Error('PDF-biblioteket är inte tillgängligt.');
  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib;
- const doc=await PDFDocument.load(bytes,{updateMetadata:false}),ref=doc.catalog.get(PDFName.of('SecurityServiceWork'));if(!ref)return null;
- const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error('Säkerhetsservice-arbetsfilens uppgifter är skadade.');
- const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error('Säkerhetsservice-arbetsfilen har en äldre dataversion.');
+ const doc=await PDFDocument.load(bytes,{updateMetadata:false}),ref=doc.catalog.get(PDFName.of(APP_WORK_KEY));if(!ref)return null;
+ const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error(APP_LABEL+'-arbetsfilens uppgifter är skadade.');
+ const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error(APP_LABEL+'-arbetsfilen har en äldre dataversion.');
  const data=metadata.lookup(PDFName.of('Data'),PDFRawStream),drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);
  const state=JSON.parse(new TextDecoder().decode(decodePDFRawStream(data).decode()));
- if(state.app!=='security-service'||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error('Säkerhetsservice-arbetsfilen innehåller ogiltiga objektuppgifter.');
+ if(state.app!==APP_STATE_NAME||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error(APP_LABEL+'-arbetsfilen innehåller ogiltiga objektuppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.items.some(o=>o.page>source.getPageCount()))throw new Error('Objekten hör inte till arbetsfilens ritningssidor.');
  return {drawingBytes,work:{items:state.items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
@@ -377,6 +404,7 @@ async function inspectLegacySecurityLinkedPdf(bytes){
   const clean=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   const typeFromText=value=>{
    const t=clean(value).toLowerCase();
+   if(ALL_IN_ONE&&/d[oö]rrautomatik|d[oö]rr.?automatik|provningsprotokoll.*d[oö]rr|checklista revision av d[oö]rrautomatik/.test(t))return'automation';
    if(/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm|^inbrott\b/.test(t))return'alarm';
    if(/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(t))return'lock';
    if(/passersystem|passer\b|kortläsare|kortlasare/.test(t))return'access';
@@ -524,11 +552,11 @@ $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
  if(pdf)try{await pdf.destroy()}catch(_){}
  pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=renumberLegacySecurityItems((record?.items||[]).map(normalize));textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
  if(imported&&items.length){
-  $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||'Säkerhetsservice',items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
+  $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||APP_LABEL,items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
   $('secOpenWorkDialog').showModal();
   msg('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
  }else if(legacyImported&&items.length)msg(legacyImported.summaryText);
- else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
+ else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':(ALL_IN_ONE?'Välj protokoll och börja markera på ritningen.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')));
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
 $('secOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
 $('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('')};
@@ -866,7 +894,7 @@ function reportDoc(){
   const noteText=noteLines.join('  ·  '),boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
   if(noteText){let fs=8.3,lines=doc.splitTextToSize(noteText,width-7),maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)));while(lines.length>maxLines&&fs>6.7){fs-=.3;doc.setFontSize(fs);lines=doc.splitTextToSize(noteText,width-7);maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)))}if(lines.length>maxLines){lines=lines.slice(0,maxLines);lines[maxLines-1]=String(lines[maxLines-1]).replace(/\s*$/,'')+' …'}doc.setFont('helvetica','normal');doc.setFontSize(fs);doc.setTextColor(35,35,35);doc.text(lines,left+3,y+4.5,{lineHeightFactor:1.1})}
  });
- const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([project.company,project.projectName||project.facilityNo].filter(Boolean).join(' · ')||'Säkerhetsservice',left,289,7,false,[89,110,123]);txt('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
+ const pages=doc.getNumberOfPages();for(let i=1;i<=pages;i++){doc.setPage(i);doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([project.company,project.projectName||project.facilityNo].filter(Boolean).join(' · ')||APP_LABEL,left,289,7,false,[89,110,123]);txt('Sida '+i+' av '+pages,177,289,7,false,[89,110,123])}
  return doc
 }
 async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning först.',true);try{msg('Skapar arbets-PDF…');const snapshot=structuredClone({items,textNotes,drawingExtras,project,logoData}),originalBytes=sourceBytes.slice(),{PDFDocument,PDFName,PDFArray,StandardFonts,rgb,degrees}=PDFLib,src=await PDFDocument.load(originalBytes,{updateMetadata:false}),out=await PDFDocument.create(),copied=await out.copyPages(src,src.getPageIndices());copied.forEach(p=>out.addPage(p));const font=await out.embedFont(StandardFonts.HelveticaBold),links=[];for(let i=0;i<copied.length;i++){const pg=copied[i],p=await pdf.getPage(i+1),vp=p.getViewport({scale:1});items.filter(o=>o.page===i+1).forEach(o=>{const[x,y]=vp.convertToPdfPoint(o.x*vp.width,o.y*vp.height),[lx,ly]=vp.convertToPdfPoint(o.labelX*vp.width,o.labelY*vp.height),label=securityDrawingLabel(o),size=label.length>16?7.5:8.5,tw=font.widthOfTextAtSize(label,size),s=statusOf(o),sc=COLORS[s]||COLORS.untested,c=rgb(sc[0]/255,sc[1]/255,sc[2]/255),angle=pg.getRotation().angle,rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad),boxW=Math.max(34,tw+12),boxH=size+8,halfW=boxW/2,halfH=boxH/2,dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,localUx=cos*ux+sin*uy,localUy=-sin*ux+cos*uy,edge=Math.min(Math.abs(localUx)>.0001?halfW/Math.abs(localUx):Infinity,Math.abs(localUy)>.0001?halfH/Math.abs(localUy):Infinity),startX=lx+ux*(edge+1.5),startY=ly+uy*(edge+1.5),endX=x-ux*2,endY=y-uy*2;pg.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:1.05,color:c,opacity:.9});const ah=5,aw=2.8,px=-uy,py=ux;pg.drawLine({start:{x,y},end:{x:x-ux*ah+px*aw,y:y-uy*ah+py*aw},thickness:1.05,color:c});pg.drawLine({start:{x,y},end:{x:x-ux*ah-px*aw,y:y-uy*ah-py*aw},thickness:1.05,color:c});pg.drawCircle({x,y,size:2.2,color:c,borderColor:rgb(1,1,1),borderWidth:.7});const boxX=lx-cos*halfW+sin*halfH,boxY=ly-sin*halfW-cos*halfH;pg.drawRectangle({x:boxX,y:boxY,width:boxW,height:boxH,color:c,borderColor:rgb(1,1,1),borderWidth:1,rotate:degrees(angle)});const tx=-tw/2,ty=-size/3,textX=lx+tx*cos-ty*sin,textY=ly+tx*sin+ty*cos;pg.drawText(label,{x:textX,y:textY,size,font,color:rgb(1,1,1),rotate:degrees(angle)});links.push({pageIndex:i,uid:o.uid,x:lx,y:ly,radius:Math.max(boxW,boxH)/2+4})});
@@ -874,11 +902,11 @@ async function exportPdf(){if(!pdf||!sourceBytes)return msg('Öppna en ritning f
  (textNotes||[]).filter(n=>n.page===i+1&&n.text).forEach(n=>{const[lx,ly]=vp.convertToPdfPoint(n.labelX*vp.width,n.labelY*vp.height),safe=String(n.text).replace(/[^\x20-\x7e\u00a0-\u00ff]/g,'?').slice(0,180),size=7,maxW=Math.min(145,vp.width*.3),lines=[];let line='';safe.split(/\s+/).forEach(word=>{const t=line?line+' '+word:word;if(noteFont.widthOfTextAtSize(t,size)<=maxW)line=t;else{if(line)lines.push(line);line=word}});if(line)lines.push(line);const shown=lines.slice(0,4),pad=4,lineH=9,w=Math.max(34,...shown.map(t=>noteFont.widthOfTextAtSize(t,size)))+pad*2,h=shown.length*lineH+pad*2,c=rgb(.09,.25,.33),targets=Array.isArray(n.targets)&&n.targets.length?n.targets:[{x:n.x,y:n.y}];targets.forEach(point=>{const[x,y]=vp.convertToPdfPoint(point.x*vp.width,point.y*vp.height),dx=x-lx,dy=y-ly,dist=Math.max(.001,Math.hypot(dx,dy)),ux=dx/dist,uy=dy/dist,startX=lx+ux*(Math.min(w,h)/2+2),startY=ly+uy*(Math.min(w,h)/2+2),endX=x-ux*2,endY=y-uy*2;pg.drawLine({start:{x:startX,y:startY},end:{x:endX,y:endY},thickness:.9,color:c});const ah=4,aw=2.2,px=-uy,py=ux;pg.drawLine({start:{x,y},end:{x:x-ux*ah+px*aw,y:y-uy*ah+py*aw},thickness:.9,color:c});pg.drawLine({start:{x,y},end:{x:x-ux*ah-px*aw,y:y-uy*ah-py*aw},thickness:.9,color:c});pg.drawCircle({x,y,size:1.8,color:c})});pg.drawRectangle({x:lx-w/2,y:ly-h/2,width:w,height:h,color:rgb(1,1,.94),borderColor:c,borderWidth:.7,opacity:.96});shown.forEach((t,k)=>pg.drawText(t,{x:lx-w/2+pad,y:ly+h/2-pad-size-k*lineH,size,font:noteFont,color:rgb(.05,.12,.16)}))})
  ServiceDrawingTools.drawToPdf(pg,i+1,vp.width,vp.height,snapshot.drawingExtras,noteFont);
 }const report=reportDoc(),map=report.__protocolPages||{},backs=report.__backLinks||[],rpdf=await PDFDocument.load(report.output('arraybuffer')),rpages=await out.copyPages(rpdf,rpdf.getPageIndices());rpages.forEach(p=>out.addPage(p));function addLink(sp,tp,rect){const ref=out.context.register(out.context.obj({Type:'Annot',Subtype:'Link',Rect:rect,Border:[0,0,0],Dest:out.context.obj([tp.ref,PDFName.of('Fit')])}));const ex=sp.node.get(PDFName.of('Annots'));if(ex)sp.node.lookup(PDFName.of('Annots'),PDFArray).push(ref);else sp.node.set(PDFName.of('Annots'),out.context.obj([ref]))}links.forEach(l=>{const n=map[l.uid];if(n){const hit=Math.max(14,l.radius||12);addLink(out.getPage(l.pageIndex),out.getPage(src.getPageCount()+n-1),[l.x-hit,l.y-hit,l.x+hit,l.y+hit])}});backs.forEach(b=>{const spi=src.getPageCount()+b.pageNo-1,tpi=b.drawingPage-1;if(spi>=out.getPageCount()||tpi<0)return;const sp=out.getPage(spi),tp=out.getPage(tpi),sz=sp.getSize(),sx=sz.width/210,sy=sz.height/297,[mx,my,mw,mh]=b.rect;addLink(sp,tp,[mx*sx,sz.height-(my+mh)*sy,(mx+mw)*sx,sz.height-my*sy])});
- const state={app:'security-service',version:2,exportedAt:new Date().toISOString(),...snapshot};
+ const state={app:APP_STATE_NAME,version:2,exportedAt:new Date().toISOString(),...snapshot};
  const dataRef=out.context.register(out.context.flateStream(new TextEncoder().encode(JSON.stringify(state)))),drawingRef=out.context.register(out.context.flateStream(originalBytes));
  out.catalog.set(PDFName.of('SecurityServiceWork'),out.context.register(out.context.obj({Version:2,Data:dataRef,Drawing:drawingRef})));
- out.setTitle('Säkerhetsservice – '+(snapshot.project.projectName||snapshot.project.facilityNo||'Service'));out.setSubject('Ritning, anmärkningsöversikt och protokoll. Arbets-PDF för Säkerhetsservice.');out.setCreator('Dörrservice Säkerhetsservice');
- const bytes=await out.save(),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a'),object=(project.projectName||project.facilityNo||'objekt').trim().replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'objekt',date=project.date||new Date().toISOString().slice(0,10);a.href=url;a.download='sakerhetsservice-'+object+'-'+date+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg('Arbets-PDF skapad. Samma fil kan öppnas nästa service med projekt, logga, objekt och historik kvar.')}catch(e){console.error(e);msg(e.message||'Kunde inte skapa arbets-PDF.',true)}}
+ out.setTitle(APP_LABEL+' – '+(snapshot.project.projectName||snapshot.project.facilityNo||'Service'));out.setSubject('Ritning, anmärkningsöversikt och protokoll. Arbets-PDF för '+APP_LABEL+'.');out.setCreator('Dörrservice '+APP_LABEL);
+ const bytes=await out.save(),url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})),a=document.createElement('a'),object=(project.projectName||project.facilityNo||'objekt').trim().replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'objekt',date=project.date||new Date().toISOString().slice(0,10);a.href=url;a.download=(ALL_IN_ONE?'allt-i-ett-':'sakerhetsservice-')+object+'-'+date+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);msg('Arbets-PDF skapad. Samma fil kan öppnas nästa service med projekt, logga, objekt och historik kvar.')}catch(e){console.error(e);msg(e.message||'Kunde inte skapa arbets-PDF.',true)}}
 
 let previewPdf=null,previewPage=1,previewRenderTask=null,previewMode='report';
 const secPreviewTextSmaller=$('secPreviewTextSmaller'),secPreviewTextLarger=$('secPreviewTextLarger');
