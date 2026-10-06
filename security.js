@@ -377,15 +377,46 @@ viewer.addEventListener('touchcancel',endTouch,{passive:true});
 async function inspectSecurityWorkPdf(bytes){
  if(!window.PDFLib)throw new Error('PDF-biblioteket är inte tillgängligt.');
  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib;
- const doc=await PDFDocument.load(bytes,{updateMetadata:false}),ref=doc.catalog.get(PDFName.of(APP_WORK_KEY));if(!ref)return null;
+ const doc=await PDFDocument.load(bytes,{updateMetadata:false}),ownRef=doc.catalog.get(PDFName.of(APP_WORK_KEY)),securityRef=ALL_IN_ONE?doc.catalog.get(PDFName.of('SecurityServiceWork')):null,ref=ownRef||securityRef;if(!ref)return null;
  const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))throw new Error(APP_LABEL+'-arbetsfilens uppgifter är skadade.');
  const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)throw new Error(APP_LABEL+'-arbetsfilen har en äldre dataversion.');
  const data=metadata.lookup(PDFName.of('Data'),PDFRawStream),drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);
  const state=JSON.parse(new TextDecoder().decode(decodePDFRawStream(data).decode()));
- if(state.app!==APP_STATE_NAME||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error(APP_LABEL+'-arbetsfilen innehåller ogiltiga objektuppgifter.');
+ if((ALL_IN_ONE?![APP_STATE_NAME,'security-service'].includes(state.app):state.app!==APP_STATE_NAME)||state.version<2||!Array.isArray(state.items)||!state.project||typeof state.project!=='object'||state.items.some(o=>!o||typeof o.uid!=='string'||!SYSTEMS[o.type]||!Number.isInteger(o.page)||o.page<1||!Number.isFinite(o.x)||!Number.isFinite(o.y)))throw new Error(APP_LABEL+'-arbetsfilen innehåller ogiltiga objektuppgifter.');
  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
  if(state.items.some(o=>o.page>source.getPageCount()))throw new Error('Objekten hör inte till arbetsfilens ritningssidor.');
  return {drawingBytes,work:{items:state.items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
+}
+
+
+async function inspectDoorAutomationWorkPdfForAllInOne(bytes){
+ if(!ALL_IN_ONE||!window.PDFLib)return null;
+ try{
+  const {PDFDocument,PDFName,PDFDict,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib,doc=await PDFDocument.load(bytes,{updateMetadata:false}),ref=doc.catalog.get(PDFName.of('DorrserviceWork'));if(!ref)return null;
+  const metadata=doc.context.lookup(ref);if(!(metadata instanceof PDFDict))return null;
+  const version=metadata.lookup(PDFName.of('Version'),PDFNumber).asNumber();if(version<2)return null;
+  const data=metadata.lookup(PDFName.of('Data'),PDFRawStream),drawing=metadata.lookup(PDFName.of('Drawing'),PDFRawStream);
+  const state=JSON.parse(new TextDecoder().decode(decodePDFRawStream(data).decode()));
+  if(state.app!=='dorrservice'||!Array.isArray(state.doors))return null;
+  const drawingBytes=decodePDFRawStream(drawing).decode().slice(),source=await PDFDocument.load(drawingBytes,{updateMetadata:false});
+  const items=state.doors.filter(d=>d&&Number.isInteger(d.page)&&d.page>0&&Number.isFinite(d.x)&&Number.isFinite(d.y)).map((d,index)=>({
+   uid:d.uid||('door-import-'+index),type:'automation',number:index+1,id:d.id||('Dörrautomatik '+(index+1)),page:d.page,x:d.x,y:d.y,
+   labelX:Number.isFinite(d.labelX)?d.labelX:Math.max(.035,Math.min(.965,d.x+.075)),labelY:Number.isFinite(d.labelY)?d.labelY:Math.max(.035,Math.min(.965,d.y-.045)),
+   location:d.location||'',checks:d.checks||{},customChecks:Array.isArray(d.customChecks)?d.customChecks:[],checkEdits:d.checkEdits||{},status:d.status||'untested',
+   manualFail:d.status==='fail',notes:d.notes||'',previousIssues:Array.isArray(d.previousIssues)?d.previousIssues:[],previousNotes:d.previousNotes||'',
+   previousStatus:d.previousStatus||'',previousServiceDate:d.previousServiceDate||'',remediationDate:d.remediationDate||'',remediationSignature:d.remediationSignature||'',
+   importedDoorModel:d.modelCode||d.model||'',importedMachineId:d.machineId||'',importedSerialNumber:d.serialNumber||''
+  })).map(normalize);
+  if(items.some(o=>o.page>source.getPageCount()))return null;
+  const p=state.project||{},project={...emptyProject(),
+   projectName:p.projectName||'',facilityNo:p.facilityNo||'',order:p.projectOrder||p.order||'',date:p.inspectionDate||p.date||localToday(),
+   nextDate:p.projectNextDate||p.nextDate||'',customer:p.customer||'',agreement:p.agreementNo||p.agreement||'',contact:p.contact||'',
+   phone:p.phone||'',address:p.address||'',postalCode:p.postalCode||'',postalCity:p.postalCity||'',company:p.company||'',
+   technician:p.technician||'',companyContact:p.companyContact||'',companyPhone:p.companyPhone||'',companyAddress:p.companyAddress||'',
+   companyPostalCode:p.companyPostalCode||'',companyPostalCity:p.companyPostalCity||'',signature:p.serviceSignature||p.signature||''
+  };
+  return {drawingBytes,work:{items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project,logoData:state.logoData||''},sourceKind:'door-automation'}
+ }catch(error){console.warn('Dörrautomatik-arbetsfil kunde inte öppnas i Allt-i-ett',error);return null}
 }
 
 async function inspectLegacySecurityLinkedPdf(bytes){
@@ -548,13 +579,13 @@ async function inspectLegacySecurityLinkedPdf(bytes){
 
 if($('secChangeDrawing'))$('secChangeDrawing').onclick=()=>$('securityFile').click();
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
- msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),legacyImported=!imported?await inspectLegacySecurityLinkedPdf(bytes):null,drawingBytes=imported?.drawingBytes||legacyImported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||(saved?.items?.length?saved:legacyImported?.work)||legacyImported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
+ msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),doorImported=!imported?await inspectDoorAutomationWorkPdfForAllInOne(bytes):null,legacyImported=!imported&&!doorImported?await inspectLegacySecurityLinkedPdf(bytes):null,drawingBytes=imported?.drawingBytes||doorImported?.drawingBytes||legacyImported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||doorImported?.work||(saved?.items?.length?saved:legacyImported?.work)||legacyImported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
  if(pdf)try{await pdf.destroy()}catch(_){}
  pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=renumberLegacySecurityItems((record?.items||[]).map(normalize));textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
- if(imported&&items.length){
+ if((imported||doorImported)&&items.length){
   $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||APP_LABEL,items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
   $('secOpenWorkDialog').showModal();
-  msg('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
+  msg((doorImported?'Dörrautomatik importerad till Allt-i-ett. ':'Arbets-PDF öppnad. ')+'Välj Ny service eller Fortsätt / ändra.');
  }else if(legacyImported&&items.length)msg(legacyImported.summaryText);
  else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':(ALL_IN_ONE?'Välj protokoll och börja markera på ritningen.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')));
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
