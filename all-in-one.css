@@ -556,3 +556,5 @@ body.allInOneApp.drawingOverlaysHidden #secStage .serviceDrawingOverlay{
  }
  body.allInOneApp .drawingVisibilityButton svg{width:18px;height:18px}
 }
+
+body.allInOneApp:not(.secHasPdf) .drawingVisibilityButton{display:none!important}
