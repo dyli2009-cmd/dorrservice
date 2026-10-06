@@ -123,6 +123,37 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    const rect=lookup(dict?.get?.(PDFName.of('Rect')));if(!(rect instanceof PDFArray)||rect.size()<4)return null;
    const values=[0,1,2,3].map(i=>objectNumber(rect.get(i)));return values.every(Number.isFinite)?values:null
   };
+  const lowFieldPair=dict=>{
+   let current=dict,name='',value='';
+   for(let depth=0;current instanceof PDFDict&&depth<8;depth++){
+    if(!name){const raw=current.get(PDFName.of('T'));if(raw)name=objectText(raw)}
+    if(!value){const raw=current.get(PDFName.of('V'));if(raw)value=objectText(raw)}
+    current=lookup(current.get(PDFName.of('Parent')))
+   }
+   return {name,value:cleanValue(value)}
+  };
+  const lowFieldsForPage=pageNo=>{
+   const fields=new Map(),page=lowPages[pageNo-1];if(!page)return fields;
+   let annots=null;try{annots=page.node.lookup(PDFName.of('Annots'),PDFArray)}catch(e){}
+   if(!(annots instanceof PDFArray))return fields;
+   for(let i=0;i<annots.size();i++){
+    const dict=lookup(annots.get(i));if(!(dict instanceof PDFDict))continue;
+    const pair=lowFieldPair(dict),key=cleanName(pair.name);
+    if(key&&pair.value&&!fields.has(key))fields.set(key,pair.value)
+   }
+   return fields
+  };
+  const mergeFields=(primary,secondary)=>{for(const [key,value] of secondary||[]){if(value&&!primary.has(key))primary.set(key,value)}return primary};
+  const fieldsFromPageText=async pg=>{
+   const fields=new Map();
+   try{
+    const tc=await pg.getTextContent(),txt=tc.items.map(x=>String(x.str||'')).join(' ').replace(/\s+/g,' ');
+    const id=(txt.match(/\b\d{4,}(?:-\d+){2,4}\b/)||[])[0]||'';
+    if(id)fields.set(cleanName('Id nummermaskin'),id);
+    const date=(txt.match(/\b20\d{2}-\d{2}-\d{2}\b/)||[])[0]||'';if(date)fields.set(cleanName('Datum'),date)
+   }catch(e){}
+   return fields
+  };
   const lowLinksForPage=async pageNo=>{
    const page=lowPages[pageNo-1];if(!page)return [];
    let annots=null;try{annots=page.node.lookup(PDFName.of('Annots'),PDFArray)}catch(e){}
@@ -140,7 +171,10 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   const protocols=new Map(),rawLinks=[],viewportMap=new Map(),total=Math.min(scan.numPages,lowPages.length||scan.numPages);
   for(let pageNo=1;pageNo<=total;pageNo++){
    onProgress('Analyserar äldre PDF… sida '+pageNo+' / '+total);
-   const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1}),fields=collectFields(annotations),id=getField(fields,'Id nummermaskin');
+   const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1}),fields=collectFields(annotations);
+   mergeFields(fields,lowFieldsForPage(pageNo));
+   let id=getField(fields,'Id nummermaskin');
+   if(!id){mergeFields(fields,await fieldsFromPageText(pg));id=getField(fields,'Id nummermaskin')}
    viewportMap.set(pageNo,viewport);
    if(id)protocols.set(pageNo,{id,fields});
    for(const a of annotations||[]){
@@ -710,9 +744,9 @@ generalWording.onclick=()=>{const d=cur();if(!d)return;openDoorWording({title:'A
 /* Session undo/redo: shared behavior with Security Service. */
 const doorSessionHistory=installServiceHistory({
  scope:()=>pdf,
- capture:()=>({data:JSON.parse(JSON.stringify({doors,textNotes,drawingExtras,project,logoData})),selected}),
+ capture:()=>({data:JSON.parse(JSON.stringify({doors,importQueue,textNotes,drawingExtras,project,logoData})),selected}),
  restore:state=>{
-  ({doors,textNotes,drawingExtras,project,logoData}=state.data);
+  ({doors,importQueue,textNotes,drawingExtras,project,logoData}=state.data);importQueue=Array.isArray(importQueue)?importQueue:[];
   selected=doors.some(d=>d.uid===state.selected)?state.selected:null;
   refreshDrawingUI();draw();show();renderOverview();save();persist();
  },
