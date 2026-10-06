@@ -50,6 +50,13 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   }catch(e){}
   return null
  };
+ const annotationText=a=>{
+  const values=[a?.contentsObj?.str,a?.contents,a?.titleObj?.str,a?.title,a?.fieldName,a?.fieldValue,a?.alternativeText,a?.buttonValue,a?.url,a?.unsafeUrl,a?.action];
+  try{if(a?.actions)values.push(JSON.stringify(a.actions))}catch(e){}
+  return values.filter(v=>v!==undefined&&v!==null).map(v=>Array.isArray(v)?v.join(' '):String(v)).join(' ')
+ };
+ const idPattern=/\b\d{4,}(?:-\d+){2,4}\b/g;
+ const idsInText=text=>[...new Set((String(text||'').match(idPattern)||[]).map(x=>x.trim()))];
  const parseId=id=>{
   const parts=String(id||'').trim().split('-').map(x=>x.trim()).filter(Boolean);
   if(parts.length<3)return {prefix:'',modelCode:'',serial:''};
@@ -155,37 +162,64 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    }catch(e){}
    return fields
   };
+  const lowAnnotationText=dict=>{
+   const values=[];let current=dict;
+   for(let depth=0;current instanceof PDFDict&&depth<6;depth++){
+    for(const key of ['Contents','T','TU','TM','V','DV']){
+     const raw=current.get(PDFName.of(key));if(raw)values.push(objectText(raw))
+    }
+    current=lookup(current.get(PDFName.of('Parent')))
+   }
+   return values.filter(Boolean).join(' ')
+  };
   const lowLinksForPage=async pageNo=>{
-   const page=lowPages[pageNo-1];if(!page)return [];
+   const page=lowPages[pageNo-1];if(!page)return {links:[],markers:[]};
    let annots=null;try{annots=page.node.lookup(PDFName.of('Annots'),PDFArray)}catch(e){}
-   if(!(annots instanceof PDFArray))return [];
-   const links=[];
+   if(!(annots instanceof PDFArray))return {links:[],markers:[]};
+   const links=[],markers=[];
    for(let i=0;i<annots.size();i++){
     const dict=lookup(annots.get(i));if(!(dict instanceof PDFDict))continue;
     const rect=lowRect(dict);if(!rect)continue;
+    const text=lowAnnotationText(dict),ids=idsInText(text);
+    if(ids.length)markers.push({drawingPage:pageNo,rect,text,ids,source:'pdf-structure-label'});
     const targetPage=await lowAnnotationTarget(dict);
     if(targetPage&&targetPage!==pageNo)links.push({drawingPage:pageNo,targetPage,rect,source:'pdf-structure'})
    }
-   return links
+   return {links,markers}
   };
 
-  const protocols=new Map(),rawLinks=[],viewportMap=new Map(),total=Math.min(scan.numPages,lowPages.length||scan.numPages);
+  const protocols=new Map(),rawLinks=[],rawMarkers=[],viewportMap=new Map(),pageKinds=new Map(),total=Math.min(scan.numPages,lowPages.length||scan.numPages);
   for(let pageNo=1;pageNo<=total;pageNo++){
    onProgress('Analyserar äldre PDF… sida '+pageNo+' / '+total);
    const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1}),fields=collectFields(annotations);
    mergeFields(fields,lowFieldsForPage(pageNo));
+   let pageText='';try{const tc=await pg.getTextContent();pageText=tc.items.map(x=>String(x.str||'')).join(' ').replace(/\s+/g,' ')}catch(e){}
    let id=getField(fields,'Id nummermaskin');
    if(!id){mergeFields(fields,await fieldsFromPageText(pg));id=getField(fields,'Id nummermaskin')}
+   const upper=pageText.toUpperCase(),isProtocol=!!id||upper.includes('CHECKLISTA REVISION AV DÖRRAUTOMATIK'),isOverview=!isProtocol&&(upper.includes('EGENKONTROLL DÖRRAUTOMATIK')||upper.includes('DÖRR NR: ANMÄRKNING')||upper.includes('DÖRR NR ANMÄRKNING'));
+   pageKinds.set(pageNo,isProtocol?'protocol':isOverview?'overview':'drawing');
    viewportMap.set(pageNo,viewport);
    if(id)protocols.set(pageNo,{id,fields});
    for(const a of annotations||[]){
     if(!Array.isArray(a?.rect))continue;
+    const text=annotationText(a),ids=idsInText(text);
+    if(ids.length)rawMarkers.push({drawingPage:pageNo,rect:a.rect,text,ids,source:'pdfjs-label'});
     const targetPage=await targetFromPdfJsAnnotation(a);
     if(targetPage&&targetPage!==pageNo)rawLinks.push({drawingPage:pageNo,targetPage,rect:a.rect,source:'pdfjs'})
    }
-   const lowLinks=await lowLinksForPage(pageNo);rawLinks.push(...lowLinks)
+   const low=await lowLinksForPage(pageNo);rawLinks.push(...low.links);rawMarkers.push(...low.markers)
   }
   if(protocols.size<2)return null;
+
+  // Old Acrobat drawings often keep the machine ID in the callout itself even when the button action is unreadable.
+  const protocolById=new Map([...protocols.entries()].map(([pageNo,p])=>[String(p.id).trim(),pageNo]));
+  for(const marker of rawMarkers){
+   if(pageKinds.get(marker.drawingPage)!=='drawing')continue;
+   for(const markerId of marker.ids||[]){
+    const targetPage=protocolById.get(String(markerId).trim());
+    if(targetPage)rawLinks.push({drawingPage:marker.drawingPage,targetPage,rect:marker.rect,source:marker.source+'-id-match'})
+   }
+  }
 
   const deduped=[],linkKeys=new Set();
   for(const link of rawLinks){
@@ -193,13 +227,12 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    const key=[link.drawingPage,link.targetPage,...link.rect.slice(0,4).map(n=>Math.round(Number(n)*10)/10)].join(':');
    if(linkKeys.has(key))continue;linkKeys.add(key);deduped.push(link)
   }
-  const protocolPages=[...protocols.keys()].sort((a,b)=>a-b),validLinks=deduped.filter(link=>protocols.has(link.targetPage)&&!protocols.has(link.drawingPage));
-  const firstProtocolPage=protocolPages[0];
-  // Keep every old drawing page. Links decide automatic placement, never which drawing pages survive.
-  const leadingDrawingPages=firstProtocolPage>1?Array.from({length:firstProtocolPage-1},(_,i)=>i+1).filter(n=>!protocols.has(n)):[];
-  const linkedDrawingPages=validLinks.map(x=>x.drawingPage).filter(n=>!protocols.has(n));
-  let drawingNumbers=[...new Set([...leadingDrawingPages,...linkedDrawingPages])].sort((a,b)=>a-b);
-  if(!drawingNumbers.length)drawingNumbers=Array.from({length:total},(_,i)=>i+1).filter(n=>!protocols.has(n));
+  const protocolPages=[...protocols.keys()].sort((a,b)=>a-b),validLinks=deduped.filter(link=>protocols.has(link.targetPage)&&pageKinds.get(link.drawingPage)==='drawing');
+  let drawingNumbers=[...pageKinds.entries()].filter(([,kind])=>kind==='drawing').map(([n])=>n).sort((a,b)=>a-b);
+  if(!drawingNumbers.length){
+   const firstProtocolPage=protocolPages[0];
+   drawingNumbers=firstProtocolPage>1?Array.from({length:firstProtocolPage-1},(_,i)=>i+1).filter(n=>!protocols.has(n)):[];
+  }
   if(!drawingNumbers.length)return null;
   const pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1]));
 
@@ -251,8 +284,9 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   allImported.forEach(d=>{const model=d.model||('Kod '+(d.modelCode||'?'));modelCounts.set(model,(modelCounts.get(model)||0)+1);const prefix=parseId(d.id).prefix;if(prefix)prefixCounts.set(prefix,(prefixCounts.get(prefix)||0)+1)});
   const modelText=[...modelCounts.entries()].sort((a,b)=>b[1]-a[1]).map(([name,count])=>count+' '+name).join(', ');
   const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
-  const placementText=importQueue.length?' '+doors.length+' placerades från gamla länkar och '+importQueue.length+' ligger redo att placeras med ＋ Placera.':' Alla '+doors.length+' kunde placeras från de gamla länkarna.';
-  const importStats=' Gamla ritningar: '+drawingNumbers.length+' sidor · protokoll: '+protocols.size+' · läsbara kopplingar: '+validLinks.length+'.';
+  const placementText=importQueue.length?' '+doors.length+' placerades från gamla kopplingar/märkningar och '+importQueue.length+' ligger redo att placeras med ＋ Placera.':' Alla '+doors.length+' kunde placeras från den gamla PDF:en.';
+  const perDrawing=drawingNumbers.map((originalPage,index)=>{const count=validLinks.filter(link=>link.drawingPage===originalPage).length;return 'Ritning '+(index+1)+': '+count+' automatik'+(count===1?'':'er')}).join(' · ');
+  const importStats=' Gamla ritningar: '+drawingNumbers.length+' sidor · protokoll: '+protocols.size+' · matchade placeringar: '+doors.length+'. '+perDrawing+'.';
   return {drawingBytes,work:{version:2,doors,importQueue,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+placementText+importStats+' Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
  }catch(error){
   console.warn('Äldre PDF kunde inte autoimporteras',error);return null
