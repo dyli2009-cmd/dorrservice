@@ -259,7 +259,7 @@ function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return isDoorAutomati
 function createItem(type,x,y){
  const n=nextNumber(type),cfg=SYSTEMS[type],automation=ALL_IN_ONE&&(type==='automation'||type==='automation_selfcheck'),serial=automation?nextAutomationSerial():'',label=automation?'D'+serial:(cfg.markerLabel||cfg.label)+' '+n;
  const o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,idMode:automation?'auto':'manual',serialNumber:serial,modelCode:'',model:'',page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});
- applyAutomationId(o);items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');save();drawMarkers();showSelected();go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd. Dra pilpunkten och etiketten till rätt läge. Tryck sedan på etiketten för att öppna protokollet.';$('secHint').hidden=false
+ applyAutomationId(o);items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');save();drawMarkers();showSelected();go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd. På telefon: dra i den stora cirkeln för att flytta pilspetsen. Dra etiketten separat till rätt läge.';$('secHint').hidden=false
 }
 function drawMarkers(){
  markers.replaceChildren();
@@ -277,7 +277,7 @@ function drawMarkers(){
  markers.appendChild(svg);
  pageItems.forEach(o=>{
   const target=document.createElement('button');target.type='button';target.className='secTarget status-'+statusOf(o);target.title='Dörrpunkt – dra för att flytta exakt träffpunkt';target.setAttribute('aria-label','Dörrpunkt för '+o.id);
-  const grab=document.createElement('button');grab.type='button';grab.className='precisionPointGrab'+(o.uid===selected?' selectedPrecision':'');grab.setAttribute('aria-label','Precisionsgrepp för '+o.id);grab.title='Precision – dra här med fingret så ser du träffpunkten';
+  const grab=document.createElement('button');grab.type='button';grab.className='precisionPointGrab'+(o.uid===selected?' selectedPrecision':'');grab.setAttribute('aria-label','Flytthandtag för '+o.id);grab.title='Dra i den stora cirkeln för att flytta pilspetsen';
   let targetDrag=null;
   const syncTargetPosition=()=>{target.style.left=o.x*100+'%';target.style.top=o.y*100+'%';grab.style.left=o.x*100+'%';grab.style.top=o.y*100+'%';grab.classList.toggle('precisionGrabUp',o.y>.72)};
   const beginTargetDrag=(e,node)=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();if(precisionMode)selected=o.uid;suppressPageSwipeUntil=Date.now()+1200;panTouch=null;const r=markers.getBoundingClientRect(),ax=r.left+o.x*r.width,ay=r.top+o.y*r.height,precision=window.ServicePrecisionPointer?.begin(e,ax,ay)||null;targetDrag={id:e.pointerId,x:e.clientX,y:e.clientY,originalX:o.x,originalY:o.y,moved:false,threshold:markerDragThreshold(zoom),precision};try{node.setPointerCapture(e.pointerId)}catch(_){}};
