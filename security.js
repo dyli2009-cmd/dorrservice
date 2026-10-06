@@ -612,7 +612,7 @@ function reportDoc(){
    const remaining=Math.max(1,bodyLines.length-bodyOffset),take=Math.min(maxBody,remaining),chunk=bodyLines.length?bodyLines.slice(bodyOffset,bodyOffset+take):[''];
    const cardH=Math.max(16,fixedH+chunk.length*3.15+3);
    const stLight=light[st]||[243,247,249];
-   doc.setFillColor(...stLight);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
+   doc.setFillColor(255,255,255);doc.setDrawColor(180,180,180);doc.setLineWidth(.2);doc.roundedRect(left,y,width,cardH,1.5,1.5,'FD');
    doc.setFillColor(...COLORS[st]);doc.rect(left,y,2.4,cardH,'F');
    const badgeW=31;doc.setFillColor(...stLight);doc.setDrawColor(...COLORS[st]);doc.roundedRect(left+width-badgeW-3,y+3,badgeW,6,1.2,1.2,'FD');
    txt(statusLabel,left+width-badgeW/2-3,y+7.1,5.8,true,COLORS[st],{align:'center'});
