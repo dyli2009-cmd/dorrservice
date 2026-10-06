@@ -73,7 +73,128 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   for(const fields of fieldMaps){const value=getField(fields,...names);if(value)values.push(value)}
   return majority(values)||values[0]||''
  };
+
+ // Proven importer used when the first linked legacy PDFs (including large school files)
+ // were successfully brought into Door Automation. Keep this as the first path.
+ const tryClassicLinkedImport=async()=>{
+  let classicScan=null;
+  try{
+   if(!window.PDFLib)return null;
+   classicScan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;scan=classicScan;
+   const linkedPages=[],rawLinks=[];let seen=false,gap=0;
+   const scanLimit=Math.min(classicScan.numPages,30);
+   for(let pageNo=1;pageNo<=scanLimit;pageNo++){
+    onProgress('Läser gamla dörrkopplingar… sida '+pageNo+' / '+scanLimit);
+    const pg=await classicScan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1});
+    const candidates=annotations.filter(a=>a?.fieldType==='Btn'&&!a.checkBox&&!a.radioButton&&a.dest&&Array.isArray(a.rect));
+    const resolved=[];
+    for(const a of candidates){
+     const targetPage=await resolveDest(a.dest);
+     if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})
+    }
+    if(resolved.length){
+     seen=true;gap=0;linkedPages.push({originalPage:pageNo,viewport});
+     resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
+    }else if(seen&&++gap>=2)break
+   }
+   if(rawLinks.length<2)return null;
+
+   const targets=[...new Set(rawLinks.map(x=>x.targetPage))].sort((a,b)=>a-b),protocols=new Map();
+   for(let start=0;start<targets.length;start+=8){
+    const batch=targets.slice(start,start+8);
+    onProgress('Läser länkade gamla protokoll… '+Math.min(start+batch.length,targets.length)+' / '+targets.length);
+    await Promise.all(batch.map(async targetPage=>{
+     const pg=await classicScan.getPage(targetPage),annotations=await pg.getAnnotations({intent:'any'}),fields=collectFields(annotations);
+     const id=getField(fields,'Id nummermaskin');
+     if(id)protocols.set(targetPage,{id,fields})
+    }))
+   }
+
+   const validLinks=rawLinks.filter(link=>protocols.has(link.targetPage));
+   if(validLinks.length<2)return null;
+   const drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b),
+         pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1])),
+         viewportMap=new Map(linkedPages.map(x=>[x.originalPage,x.viewport])),
+         used=new Set(),doors=[];
+
+   for(const link of validLinks){
+    const protocol=protocols.get(link.targetPage),id=protocol?.id;
+    if(!id||used.has(id))continue;used.add(id);
+    const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
+    const vr=viewport.convertToViewportRectangle(link.rect),
+          x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),
+          y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height)),
+          parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};
+    CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
+    doors.push(normalize({
+     uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
+     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
+     location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
+     previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:link.targetPage
+    }))
+   }
+   if(doors.length<2)return null;
+   doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
+
+   const fieldMaps=allProtocolFields(protocols),prefixes=doors.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes),serials=doors.map(d=>Number(d.serialNumber)||0),
+         oldOrder=projectField(fieldMaps,'Order','AO nummer','Ao nummer','Ordernummer').replace(/,00$/,''),
+         oldServiceDate=projectField(fieldMaps,'Datum','Bokat besök datum','Servicedatum'),
+         oldNextDate=projectField(fieldMaps,'näst datum','Nästa provning datum','Nästa datum'),
+         projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+da\s+/i,'').replace(/^service\s+/i,'').trim();
+
+   const project={
+    projectName,
+    facilityNo:projectField(fieldMaps,'Anläggningsnummer','Objektnummer','Objekt nr','Text26')||facilityNo,
+    customer:projectField(fieldMaps,'beställare kund','företag kund','Beställare','Kund','Företag'),
+    agreementNo:projectField(fieldMaps,'Avtalsnummer','Avtal','Avtals nr'),
+    contact:projectField(fieldMaps,'kontakt kund','Kontaktperson','Beställarkontakt'),
+    projectOrder:oldOrder,
+    inspectionDate:oldServiceDate||doorLocalToday(),projectNextDate:oldNextDate,previousServiceDate:oldServiceDate,previousOrder:oldOrder,
+    company:projectField(fieldMaps,'företag heras','företag service','serviceföretag','Utförande företag'),
+    companyContact:projectField(fieldMaps,'kontakt heras','kontakt service','kontaktman på objektet','kontakt f','kontakt g'),
+    companyPhone:projectField(fieldMaps,'telefon heras','telefon service','tel g','Företag telefon'),
+    companyAddress:projectField(fieldMaps,'adress heras','adress service','adress g','Företag adress'),
+    companyPostalCode:projectField(fieldMaps,'postnr heras','postnr service','postnr g','Företag postnummer'),
+    companyPostalCity:projectField(fieldMaps,'post adress heras','postadress heras','postadress service','post g','Företag postadress'),
+    phone:projectField(fieldMaps,'telefon kund','tel','Kund telefon'),
+    address:projectField(fieldMaps,'adress kund','adress','Kund adress'),
+    postalCode:projectField(fieldMaps,'postnr kund','postnr','Kund postnummer'),
+    postalCity:projectField(fieldMaps,'postadress kund','postadress','Kund postadress'),
+    technician:projectField(fieldMaps,'Servicetekniker','Tekniker'),serviceSignature:'',
+    nextDoorNumber:Math.max(0,...serials)+1
+   };
+
+   onProgress('Gamla kopplingar hittade – bygger '+doors.length+' automatiker…');
+   const {PDFDocument,PDFName}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),output=await PDFDocument.create(),
+         copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));
+   copied.forEach(pg=>{pg.node.delete(PDFName.of('Annots'));output.addPage(pg)});
+   try{output.catalog.delete(PDFName.of('AcroForm'))}catch(e){}
+   const drawingBytes=new Uint8Array(await output.save());
+
+   const perDrawing=drawingNumbers.map((originalPage,index)=>{
+    const count=validLinks.filter(link=>link.drawingPage===originalPage).length;
+    return 'Ritning '+(index+1)+': '+count+' automatik'+(count===1?'':'er')
+   }).join(' · ');
+   const projectKeys=['facilityNo','customer','agreementNo','contact','projectOrder','inspectionDate','projectNextDate','company','companyContact','companyPhone','companyAddress','companyPostalCode','companyPostalCity','phone','address','postalCode','postalCity'],
+         projectFieldCount=projectKeys.filter(k=>String(project[k]||'').trim()).length;
+   return {
+    drawingBytes,
+    work:{version:2,doors,importQueue:[],project,logoData:''},
+    classicImport:true,
+    summaryText:'Klassisk PDF-koppling använd. '+doors.length+' automatiker hittades och placerades. '+perDrawing+'. Projektfält ifyllda: '+projectFieldCount+'.'
+   }
+  }catch(error){
+   console.warn('Klassisk äldre PDF-import misslyckades',error);
+   return null
+  }finally{
+   if(classicScan){try{await classicScan.destroy()}catch(e){}}
+   if(scan===classicScan)scan=null
+  }
+ };
+
  try{
+  const classic=await tryClassicLinkedImport();
+  if(classic)return classic;
   if(!window.PDFLib)throw new Error('PDF-biblioteket saknas.');
   scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
   const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber,PDFRawStream,decodePDFRawStream}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),lowPages=source.getPages();
