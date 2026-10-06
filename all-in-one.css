@@ -1,4 +1,4 @@
-/* Allt-i-ett 2.4.136 */
+/* Allt-i-ett 2.4.137 */
 .allInOneApp .headerSubtitle{white-space:nowrap}
 .allProtocolDialog{
  width:min(620px,94vw);max-height:min(86vh,760px);border:0;border-radius:14px;
@@ -123,3 +123,52 @@ body.allInOneApp .secMarker{max-width:230px!important}
  color:#a13a3a;
 }
 .allInOneApp #securityProtocol #secAutomationIdMessage:empty{display:none}
+
+
+/* 2.4.137: phone-friendly arrow movement.
+   Only the selected object gets the long touch handle; the actual arrow point stays visually small. */
+@media(max-width:800px){
+ body.allInOneApp .precisionPointGrab.selectedPrecision{
+  display:block!important;
+  width:112px!important;
+  min-width:112px!important;
+  height:168px!important;
+  min-height:168px!important;
+  z-index:18!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision::after{
+  width:38px!important;
+  height:38px!important;
+  border-width:3px!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision::before{
+  border-left-width:2px!important;
+  opacity:.58!important;
+ }
+
+ body.allInOneApp .secTarget{
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  min-height:44px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+ }
+ body.allInOneApp .secTarget::after{
+  content:"";
+  position:absolute;
+  left:50%;top:50%;
+  width:12px;height:12px;
+  transform:translate(-50%,-50%);
+  border:2px solid #fff;
+  border-radius:50%;
+  box-shadow:0 1px 4px #0005;
+  background:#77858e;
+  pointer-events:none;
+ }
+ body.allInOneApp .secTarget.status-ok::after{background:#238354}
+ body.allInOneApp .secTarget.status-action::after{background:#c77c13}
+ body.allInOneApp .secTarget.status-fail::after{background:#bd3f46}
+ body.allInOneApp .secTarget.status-untested::after{background:#77858e}
+}
