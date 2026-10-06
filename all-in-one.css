@@ -319,3 +319,50 @@ body.allInOneApp .secMarker{max-width:230px!important}
   min-height:56px!important;
  }
 }
+
+
+/* 2.4.149: larger arrow controls only while that arrow is selected. */
+@media (any-pointer:coarse){
+ body.allInOneApp .secTarget{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  touch-action:none!important;
+ }
+ body.allInOneApp .secTarget.selectedArrow{
+  width:58px!important;
+  min-width:58px!important;
+  height:58px!important;
+  min-height:58px!important;
+  z-index:23!important;
+ }
+ body.allInOneApp .secTarget.selectedArrow::after{
+  width:16px!important;
+  height:16px!important;
+  box-shadow:0 1px 5px #0006,0 0 0 3px #ffffff55!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision{
+  width:118px!important;
+  min-width:118px!important;
+  height:174px!important;
+  min-height:174px!important;
+  z-index:24!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision::after{
+  width:44px!important;
+  height:44px!important;
+  border-width:3px!important;
+  box-shadow:0 2px 7px #0005,0 0 0 1px #173f55!important;
+ }
+ body.allInOneApp .precisionPointGrab.selectedPrecision::before{
+  border-left-width:2px!important;
+  opacity:.62!important;
+ }
+}
+@media (any-pointer:coarse) and (max-width:600px){
+ body.allInOneApp .secTarget{width:32px!important;min-width:32px!important;height:32px!important;min-height:32px!important}
+ body.allInOneApp .secTarget.selectedArrow{width:54px!important;min-width:54px!important;height:54px!important;min-height:54px!important}
+ body.allInOneApp .precisionPointGrab.selectedPrecision{width:112px!important;min-width:112px!important;height:164px!important;min-height:164px!important}
+ body.allInOneApp .precisionPointGrab.selectedPrecision::after{width:42px!important;height:42px!important}
+}
