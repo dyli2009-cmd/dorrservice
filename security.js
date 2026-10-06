@@ -842,9 +842,10 @@ function issues(o){const arr=[];allChecks(o).forEach(([n,t])=>{const c=o.checks[
 function securityPriority(o){if(isSecurityRemediated(o))return 3;const s=statusOf(o);return s==='fail'?0:s==='action'?1:s==='untested'?2:4}
 function setSecurityOverviewSummary(){
  const target=$('secOverviewSummary');if(!target)return;
- const open=reportItems.filter(o=>statusOf(o)==='action').length,failed=reportItems.filter(o=>statusOf(o)==='fail').length,done=reportItems.filter(isSecurityRemediated).length,ready=reportItems.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=reportItems.filter(o=>statusOf(o)==='untested').length;
+ const overviewItems=ALL_IN_ONE?visibleItems():items;
+ const open=overviewItems.filter(o=>statusOf(o)==='action').length,failed=overviewItems.filter(o=>statusOf(o)==='fail').length,done=overviewItems.filter(isSecurityRemediated).length,ready=overviewItems.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=overviewItems.filter(o=>statusOf(o)==='untested').length;
  target.replaceChildren();
- [['Totalt',items.length,'total','Alla objekt'],['Klara',ready,'ready','Godkänd'],['Åtgärdade',done,'done','Godkänd / åtgärdad'],['Öppna fel',open,'open','Åtgärd krävs'],['Ej godkända',failed,'fail','Ej godkänd'],['Ej kontrollerade',untested,'untested','Ej kontrollerad']].forEach(([label,value,key,meaning])=>{
+ [['Totalt',overviewItems.length,'total','Alla objekt'],['Klara',ready,'ready','Godkänd'],['Åtgärdade',done,'done','Godkänd / åtgärdad'],['Öppna fel',open,'open','Åtgärd krävs'],['Ej godkända',failed,'fail','Ej godkänd'],['Ej kontrollerade',untested,'untested','Ej kontrollerad']].forEach(([label,value,key,meaning])=>{
   const box=document.createElement('span');box.className='overviewStat '+key;
   const strong=document.createElement('strong');strong.textContent=String(value);
   const small=document.createElement('small');small.textContent=label;
@@ -968,7 +969,7 @@ function reportDoc(){
  field('ANLÄGGNINGSNUMMER',project.facilityNo,left+70,y,50);
  field('ORDER',project.order,left+120,y,66);y+=15;
  field('DATUM',project.date,left,y,42);field('NÄSTA PROVNING',project.nextDate,left+42,y,48);field('BESTÄLLARE',project.customer,left+90,y,48);field('SERVICEFÖRETAG',project.company,left+138,y,48);y+=17;
- const open=items.filter(o=>statusOf(o)==='action').length,failed=items.filter(o=>statusOf(o)==='fail').length,done=items.filter(isSecurityRemediated).length,ready=items.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=items.filter(o=>statusOf(o)==='untested').length;
+ const open=reportItems.filter(o=>statusOf(o)==='action').length,failed=reportItems.filter(o=>statusOf(o)==='fail').length,done=reportItems.filter(isSecurityRemediated).length,ready=reportItems.filter(o=>o.status==='ok'&&!hasSecurityRecordedProblem(o)).length,untested=reportItems.filter(o=>statusOf(o)==='untested').length;
  const light={ok:[225,240,231],action:[255,240,213],fail:[251,227,227],untested:[232,237,240]};
  const stats=[
   ['TOTALT',reportItems.length,'Alla objekt',[243,247,249],[45,69,82]],
