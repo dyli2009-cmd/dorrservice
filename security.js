@@ -350,16 +350,113 @@ async function inspectSecurityWorkPdf(bytes){
  if(state.items.some(o=>o.page>source.getPageCount()))throw new Error('Objekten hör inte till arbetsfilens ritningssidor.');
  return {drawingBytes,work:{items:state.items,textNotes:Array.isArray(state.textNotes)?state.textNotes:[],drawingExtras:Array.isArray(state.drawingExtras)?state.drawingExtras:[],project:state.project,logoData:state.logoData||''}};
 }
+
+async function inspectLegacySecurityLinkedPdf(bytes){
+ if(!window.PDFLib||!window.pdfjsLib)return null;
+ let scan=null;
+ try{
+  const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib,source=await PDFDocument.load(bytes,{updateMetadata:false}),pages=source.getPages();
+  scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+  const refMap=new Map(pages.map((p,i)=>[String(p.ref),i+1])),lookup=obj=>{try{return obj?source.context.lookup(obj):null}catch(_){return obj||null}};
+  const num=obj=>{const v=lookup(obj);try{if(v instanceof PDFNumber)return v.asNumber();if(typeof v?.asNumber==='function')return v.asNumber()}catch(_){}const n=Number(String(v||''));return Number.isFinite(n)?n:null};
+  const str=obj=>{const v=lookup(obj);if(!v)return '';try{if(typeof v.decodeText==='function')return v.decodeText()}catch(_){}try{if(typeof v.asString==='function')return v.asString().replace(/^\//,'')}catch(_){}return String(v).replace(/^\//,'')};
+  const rect=dict=>{const a=lookup(dict?.get?.(PDFName.of('Rect')));if(!(a instanceof PDFArray)||a.size()<4)return null;const out=[0,1,2,3].map(i=>num(a.get(i)));return out.every(Number.isFinite)?out:null};
+  const destPage=dest=>{const a=lookup(dest);if(!(a instanceof PDFArray)||!a.size())return null;const first=a.get(0),direct=refMap.get(String(first))||refMap.get(String(lookup(first)));if(direct)return direct;const n=num(first);return Number.isInteger(n)&&n>=0&&n<pages.length?n+1:null};
+  const pageGeometry=pageNo=>{
+   const p=pages[pageNo-1],links=[],callouts=[];if(!p)return {links,callouts};
+   let annots=null;try{annots=p.node.lookup(PDFName.of('Annots'),PDFArray)}catch(_){}
+   if(!(annots instanceof PDFArray))return {links,callouts};
+   for(let i=0;i<annots.size();i++){
+    const d=lookup(annots.get(i));if(!(d instanceof PDFDict))continue;
+    const r=rect(d);if(!r)continue;
+    const subtype=str(d.get(PDFName.of('Subtype'))),intent=str(d.get(PDFName.of('IT')));
+    if(subtype==='FreeText'&&intent==='FreeTextCallout'){
+     const cl=lookup(d.get(PDFName.of('CL'))),points=[];
+     if(cl instanceof PDFArray)for(let j=0;j<cl.size();j++){const n=num(cl.get(j));if(Number.isFinite(n))points.push(n)}
+     if(points.length>=2)callouts.push({rect:r,points,text:str(d.get(PDFName.of('Contents')))||str(d.get(PDFName.of('RC')))})
+    }
+    const action=lookup(d.get(PDFName.of('A')));
+    if(action instanceof PDFDict){
+     const target=destPage(action.get(PDFName.of('D')));
+     if(target&&target!==pageNo)links.push({sourcePage:pageNo,targetPage:target,rect:r})
+    }
+    const direct=destPage(d.get(PDFName.of('Dest')));
+    if(direct&&direct!==pageNo)links.push({sourcePage:pageNo,targetPage:direct,rect:r})
+   }
+   return {links,callouts}
+  };
+  const protocolCache=new Map();
+  const fieldValue=a=>{const v=a?.fieldValue;if(Array.isArray(v))return v.join(' ');return v===undefined||v===null?'':String(v)};
+  const protocolInfo=async pageNo=>{
+   if(protocolCache.has(pageNo))return protocolCache.get(pageNo);
+   const p=await scan.getPage(pageNo),annotations=await p.getAnnotations({intent:'any'}),tc=await p.getTextContent(),visible=tc.items.map(x=>x.str||'').join(' ');
+   const fields=annotations.filter(a=>a?.fieldName||a?.fieldValue).map(a=>({name:String(a.fieldName||''),value:fieldValue(a)})),combined=(visible+' '+fields.map(f=>f.name+' '+f.value).join(' ')).toLowerCase();
+   let type=null;
+   if(/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm/.test(combined))type='alarm';
+   else if(/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(combined))type='lock';
+   else if(/passersystem|passer\b|kortläsare|kortlasare/.test(combined))type='access';
+   if(!type){protocolCache.set(pageNo,null);return null}
+   const pick=(re,avoid)=>{const hit=fields.find(f=>re.test(f.name.toLowerCase())&&(!avoid||!avoid.test(f.name.toLowerCase()))&&f.value.trim()&&!/^(off|yes|on|no|0|1)$/i.test(f.value.trim()));return hit?.value.trim()||''};
+   const id=pick(/(^|\b)(id|objekt.*(?:nr|nummer)|märkning|markning)/,/kund|företag|foretag|anlägg|anlagg/);
+   const location=pick(/placering|dörrlittra|dorrlittra|position|lokal/);
+   const info={type,id,location,fields,visible};
+   protocolCache.set(pageNo,info);return info
+  };
+  const allLinks=[],allCallouts=new Map();
+  for(let pageNo=1;pageNo<=pages.length;pageNo++){
+   const g=pageGeometry(pageNo);if(g.callouts.length)allCallouts.set(pageNo,g.callouts);allLinks.push(...g.links)
+  }
+  if(!allLinks.length)return null;
+  const valid=[];
+  for(const link of allLinks){const info=await protocolInfo(link.targetPage);if(info)valid.push({...link,info})}
+  if(!valid.length)return null;
+  const sourcePages=[...new Set(valid.map(x=>x.sourcePage))].sort((a,b)=>a-b),lastDrawing=Math.max(...sourcePages),drawingNumbers=Array.from({length:lastDrawing},(_,i)=>i+1);
+  const viewportMap=new Map();
+  for(const n of sourcePages){const p=await scan.getPage(n);viewportMap.set(n,p.getViewport({scale:1}))}
+  const distance=(a,b)=>{const ax=(a[0]+a[2])/2,ay=(a[1]+a[3])/2,bx=Math.max(b[0],Math.min(ax,b[2])),by=Math.max(b[1],Math.min(ay,b[3]));return Math.hypot(ax-bx,ay-by)};
+  const counts={alarm:0,lock:0,access:0},items=[];
+  for(const link of valid){
+   const vp=viewportMap.get(link.sourcePage);if(!vp)continue;
+   const callouts=allCallouts.get(link.sourcePage)||[],nearby=callouts.slice().sort((a,b)=>distance(link.rect,a.rect)-distance(link.rect,b.rect))[0]||null;
+   const lr=vp.convertToViewportRectangle(link.rect);let x=Math.max(0,Math.min(1,((lr[0]+lr[2])/2)/vp.width)),y=Math.max(0,Math.min(1,((lr[1]+lr[3])/2)/vp.height)),labelX=Math.max(.035,Math.min(.965,x+.075)),labelY=Math.max(.035,Math.min(.965,y-.045)),legacyLabelText='';
+   if(nearby&&distance(link.rect,nearby.rect)<=Math.max(100,Math.min(vp.width,vp.height)*.14)){
+    const tip=vp.convertToViewportPoint(nearby.points[0],nearby.points[1]),rr=vp.convertToViewportRectangle(nearby.rect);
+    x=Math.max(0,Math.min(1,tip[0]/vp.width));y=Math.max(0,Math.min(1,tip[1]/vp.height));labelX=Math.max(0,Math.min(1,((rr[0]+rr[2])/2)/vp.width));labelY=Math.max(0,Math.min(1,((rr[1]+rr[3])/2)/vp.height));legacyLabelText=nearby.text||''
+   }
+   const type=link.info.type,number=++counts[type],cfg=SYSTEMS[type],id=link.info.id||((cfg?.markerLabel||cfg?.label||type)+' '+number);
+   items.push(normalize({uid:'legacy-security:'+link.targetPage+':'+number+':'+type,type,number,id,page:link.sourcePage,x,y,labelX,labelY,location:link.info.location||'',checks:{},customChecks:[],status:'untested',notes:'',legacyProtocolPage:link.targetPage,legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button'}))
+  }
+  if(!items.length)return null;
+  const firstInfo=valid[0]?.info,project=emptyProject(),fields=valid.flatMap(x=>x.info?.fields||[]);
+  const pickProject=(re,avoid)=>{const h=fields.find(f=>re.test(f.name.toLowerCase())&&(!avoid||!avoid.test(f.name.toLowerCase()))&&String(f.value||'').trim());return String(h?.value||'').trim()};
+  project.projectName=pickProject(/anläggning|anlaggning|objekt(?:namn)?/,/nr|nummer/);
+  project.facilityNo=pickProject(/anläggningsnr|anlaggningsnr|objektnr|objektnummer/);
+  project.order=pickProject(/\bao\b|order/);
+  project.nextDate=pickProject(/näst|nasta/);
+  project.date=pickProject(/datum/,/näst|nasta/)||project.date;
+  project.customer=pickProject(/beställare|bestallare|kund/);
+  project.contact=pickProject(/kontakt.*kund|kontaktperson/,/företag|foretag/);
+  project.phone=pickProject(/telefon.*kund|kund.*telefon/);
+  project.company=pickProject(/serviceföretag|serviceforetag|företag|foretag/);
+  const output=await PDFDocument.create(),copied=await output.copyPages(source,drawingNumbers.map(n=>n-1));copied.forEach(p=>output.addPage(p));const drawingBytes=new Uint8Array(await output.save({useObjectStreams:false}));
+  const typeSummary=Object.entries(counts).filter(([,n])=>n).map(([type,n])=>(SYSTEMS[type]?.label||type)+': '+n).join(' · ');
+  return {drawingBytes,work:{items,textNotes:[],drawingExtras:[],project,logoData:''},summaryText:'Äldre Bluebeam Säkerhetsservice importerad. '+items.length+' objekt hittades. '+typeSummary+'. '+items.filter(o=>o.legacyPlacementSource==='bluebeam-callout').length+' fick position från gammal text/pil.'}
+ }catch(error){
+  console.warn('Äldre Säkerhetsservice-PDF kunde inte autoimporteras',error);return null
+ }finally{if(scan)try{await scan.destroy()}catch(_){}}
+}
+
 if($('secChangeDrawing'))$('secChangeDrawing').onclick=()=>$('securityFile').click();
 $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
- msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),drawingBytes=imported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
+ msg('Laddar ritning…');const bytes=new Uint8Array(await f.arrayBuffer()),imported=await inspectSecurityWorkPdf(bytes),legacyImported=!imported?await inspectLegacySecurityLinkedPdf(bytes):null,drawingBytes=imported?.drawingBytes||legacyImported?.drawingBytes||bytes,key=await fingerprint(drawingBytes),saved=loadSaved(key),record=imported?.work||(saved?.items?.length?saved:legacyImported?.work)||legacyImported?.work||saved,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
  if(pdf)try{await pdf.destroy()}catch(_){}
  pdf=candidate;sourceBytes=drawingBytes.slice();activeKey=key;items=(record?.items||[]).map(normalize);textNotes=Array.isArray(record?.textNotes)?record.textNotes:[];drawingExtras=Array.isArray(record?.drawingExtras)?record.drawingExtras:[];project={...emptyProject(),...(record?.project||{})};logoData=record?.logoData||'';page=1;zoom=1;visualZoom=1;pinch=null;panTouch=null;panMouse=null;addType=null;textMode=false;document.body.classList.remove('secAdding','secTextAdding');$('secAddText').classList.remove('primary');$('secStage').style.transform='';syncProjectInputs();refreshTop();save();await render(true);viewer.scrollLeft=0;viewer.scrollTop=0;
  if(imported&&items.length){
   $('secOpenWorkMeta').textContent=[project.projectName||project.facilityNo||'Säkerhetsservice',items.length+' objekt',project.date?'senaste service '+project.date:''].filter(Boolean).join(' · ');
   $('secOpenWorkDialog').showModal();
   msg('Arbets-PDF öppnad. Välj Ny service eller Fortsätt / ändra.');
- }else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
+ }else if(legacyImported&&items.length)msg(legacyImported.summaryText);
+ else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.'));
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
 $('secOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
 $('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('')};
