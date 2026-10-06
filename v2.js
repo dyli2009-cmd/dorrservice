@@ -86,10 +86,10 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    for(let pageNo=1;pageNo<=scanLimit;pageNo++){
     onProgress('Läser gamla dörrkopplingar… sida '+pageNo+' / '+scanLimit);
     const pg=await classicScan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1});
-    const candidates=annotations.filter(a=>a?.fieldType==='Btn'&&!a.checkBox&&!a.radioButton&&a.dest&&Array.isArray(a.rect));
+    const candidates=annotations.filter(a=>a?.fieldType==='Btn'&&!a.checkBox&&!a.radioButton&&Array.isArray(a.rect));
     const resolved=[];
     for(const a of candidates){
-     const targetPage=await resolveDest(a.dest);
+     const targetPage=await targetFromPdfJsAnnotation(a);
      if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})
     }
     if(resolved.length){
@@ -97,7 +97,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
      resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
     }else if(seen&&++gap>=2)break
    }
-   if(rawLinks.length<2)return null;
+   if(rawLinks.length<1)return null;
 
    const targets=[...new Set(rawLinks.map(x=>x.targetPage))].sort((a,b)=>a-b),protocols=new Map();
    for(let start=0;start<targets.length;start+=8){
@@ -111,7 +111,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    }
 
    const validLinks=rawLinks.filter(link=>protocols.has(link.targetPage));
-   if(validLinks.length<2)return null;
+   if(validLinks.length<1)return null;
    const drawingNumbers=[...new Set(validLinks.map(x=>x.drawingPage))].sort((a,b)=>a-b),
          pageMap=new Map(drawingNumbers.map((n,i)=>[n,i+1])),
          viewportMap=new Map(linkedPages.map(x=>[x.originalPage,x.viewport])),
@@ -133,7 +133,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
      previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:link.targetPage
     }))
    }
-   if(doors.length<2)return null;
+   if(doors.length<1)return null;
    doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
 
    const fieldMaps=allProtocolFields(protocols),prefixes=doors.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes),serials=doors.map(d=>Number(d.serialNumber)||0),
@@ -336,7 +336,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    }
    const low=await lowLinksForPage(pageNo);rawLinks.push(...low.links);rawMarkers.push(...low.markers)
   }
-  if(protocols.size<2)return null;
+  if(protocols.size<1)return null;
 
   // Old Acrobat drawings often keep the machine ID in the callout itself even when the button action is unreadable.
   const protocolById=new Map([...protocols.entries()].map(([pageNo,p])=>[String(p.id).trim(),pageNo]));
