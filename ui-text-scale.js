@@ -15,7 +15,7 @@
  // Clear old per-view levels before the older view scripts read them.
  legacyKeys.forEach(k=>localStorage.setItem(k,'0'));
  const managed=new Map();
- const excluded=el=>!!el.closest?.('#stage,#secStage,#customerPreviewCanvasWrap,#secPreviewWrap,svg,canvas,script,style,noscript');
+ const excluded=el=>!!el.closest?.('header.appHeader,.sessionHistoryBar,.appHome,#stage,#secStage,#customerPreviewCanvasWrap,#secPreviewWrap,svg,canvas,script,style,noscript');
  const eligible=el=>el instanceof HTMLElement&&!excluded(el)&&!['SCRIPT','STYLE','META','LINK'].includes(el.tagName);
  function restoreOriginals(){
   for(const [el,data] of managed){
