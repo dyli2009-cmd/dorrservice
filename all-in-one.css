@@ -409,3 +409,14 @@ body.allInOneApp .secMarker{max-width:230px!important}
  body.allInOneApp .precisionPointGrab.selectedPrecision{width:116px!important;min-width:116px!important;height:166px!important;min-height:166px!important}
  body.allInOneApp .precisionPointGrab.selectedPrecision::after{width:44px!important;height:44px!important}
 }
+
+
+/* 2.4.152: while an arrow is being dragged, the drawing itself must stay still. */
+body.allInOneApp #secViewer.arrowDragging{
+ touch-action:none!important;
+ overscroll-behavior:contain;
+}
+body.allInOneApp #secViewer.arrowDragging .precisionPointGrab,
+body.allInOneApp #secViewer.arrowDragging .secTarget{
+ touch-action:none!important;
+}
