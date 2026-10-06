@@ -4,7 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const $=id=>document.getElementById(id);
 let pdf=null,sourceBytes=null,fileName='ritning.pdf',page=1,keep=[],undo=[],renderTask=null,lastOutput=null,uploadedSize=0,drawingSourceSize=0;
 let manualMasks={},cropRects={},editMode='',dragStart=null,estimateVersion=0;
-let selectPagesMode=false,selectedPages=new Set(),workSourceKind='';
+let selectPagesMode=false,selectedPages=new Set(),workSourceKind='',toolUndo=[],toolRedo=[],historyRestoring=false;
 const QUALITY={
  light:{maxPixels:3500000,maxSide:3200,jpeg:.76,label:'Mindre fil',estimateBpp:.095},
  balanced:{maxPixels:7000000,maxSide:4200,jpeg:.85,label:'Balans',estimateBpp:.145},
@@ -70,6 +70,34 @@ async function inspectKnownWorkPdf(bytes){
  return null;
 }
 function masksFor(pageNo){return manualMasks[pageNo]||(manualMasks[pageNo]=[])}
+function toolSnapshot(){
+ return {
+  keep:keep.slice(),
+  manualMasks:JSON.parse(JSON.stringify(manualMasks)),
+  cropRects:JSON.parse(JSON.stringify(cropRects))
+ };
+}
+function updateToolHistoryButtons(){
+ $('undoTool').disabled=!toolUndo.length;
+ $('redoTool').disabled=!toolRedo.length;
+}
+function pushToolHistory(){
+ if(historyRestoring||!pdf)return;
+ toolUndo.push(toolSnapshot());if(toolUndo.length>40)toolUndo.shift();
+ toolRedo=[];
+ updateToolHistoryButtons();
+}
+function restoreToolSnapshot(state){
+ if(!state)return;
+ historyRestoring=true;
+ keep=state.keep.slice();
+ manualMasks=JSON.parse(JSON.stringify(state.manualMasks||{}));
+ cropRects=JSON.parse(JSON.stringify(state.cropRects||{}));
+ editMode='';dragStart=null;selectPagesMode=false;selectedPages.clear();lastOutput=null;
+ $('eraseBox').hidden=true;
+ updateToolHistoryButtons();updateEditButtons();renderPageList();updateSizeComparison();updateEstimatedSize();renderPreview();
+ historyRestoring=false;
+}
 function updateEditButtons(){
  const count=(manualMasks[page]||[]).length,crop=!!cropRects[page];
  $('undoErase').disabled=!count;$('clearErases').disabled=!count;$('resetCrop').disabled=!crop;
@@ -77,10 +105,11 @@ function updateEditButtons(){
  $('cropMode').classList.toggle('active',editMode==='crop');
  $('eraseMode').setAttribute('aria-pressed',String(editMode==='erase'));
  $('cropMode').setAttribute('aria-pressed',String(editMode==='crop'));
- $('eraseMode').textContent=editMode==='erase'?'Dölj område: PÅ':'Dölj område';
- $('cropMode').textContent=editMode==='crop'?'Beskär sida: PÅ':'Beskär sida';
+ $('eraseMode').title=editMode==='erase'?'Dölj område – aktivt':'Dölj område';
+ $('cropMode').title=editMode==='crop'?'Beskär sida – aktivt':'Beskär sida';
  $('previewWrap').classList.toggle('eraseMode',editMode==='erase');
  $('previewWrap').classList.toggle('cropMode',editMode==='crop');
+ updateToolHistoryButtons();
 }
 function updateBulkControls(){
  $('selectPages').classList.toggle('active',selectPagesMode);
@@ -167,7 +196,7 @@ async function loadFile(file){
   message('Läser PDF-strukturen…');
   const uploadedBytes=new Uint8Array(await file.arrayBuffer()),embedded=await inspectKnownWorkPdf(uploadedBytes),drawingBytes=embedded?.drawingBytes||uploadedBytes,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;await candidate.getPage(1);
   if(pdf)try{await pdf.destroy()}catch(_){}
-  pdf=candidate;sourceBytes=drawingBytes;uploadedSize=uploadedBytes.byteLength;drawingSourceSize=drawingBytes.byteLength;fileName=file.name||'ritning.pdf';workSourceKind=embedded?.kind||'';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};cropRects={};editMode='';dragStart=null;selectPagesMode=false;selectedPages=new Set();lastOutput=null;
+  pdf=candidate;sourceBytes=drawingBytes;uploadedSize=uploadedBytes.byteLength;drawingSourceSize=drawingBytes.byteLength;fileName=file.name||'ritning.pdf';workSourceKind=embedded?.kind||'';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};cropRects={};editMode='';dragStart=null;selectPagesMode=false;selectedPages=new Set();lastOutput=null;toolUndo=[];toolRedo=[];
   $('undoPage').disabled=true;$('workspace').hidden=false;$('outputActions').hidden=false;$('resultCard').hidden=true;$('sizeCompare').hidden=false;
   if(embedded){
    $('deepCleanInfo').hidden=false;$('deepCleanTitle').textContent=embedded.kind+' arbets-PDF upptäckt';
@@ -221,16 +250,16 @@ function finishDrag(e){
  const rect={x:x/end.w,y:y/end.h,w:w/end.w,h:h/end.h};
  if(editMode==='crop'){
   if(rect.w<.05||rect.h<.05)return message('Beskärningsområdet är för litet.',true);
-  cropRects[page]=rect;editMode='';invalidate();renderPreview();message('Sida '+page+' beskärs till det markerade området.');return;
+  pushToolHistory();cropRects[page]=rect;editMode='';invalidate();renderPreview();message('Sida '+page+' beskärs till det markerade området.');return;
  }
  if(editMode==='erase'){
-  masksFor(page).push(rect);invalidate();renderPreview();message('Området döljs på sida '+page+'.');
+  pushToolHistory();masksFor(page).push(rect);invalidate();renderPreview();message('Området döljs på sida '+page+'.');
  }
 }
 $('toolFile').onchange=e=>{const f=e.target.files?.[0];loadFile(f);e.target.value=''};
 $('prevPage').onclick=()=>{if(page>1){page--;renderPageList();updateEditButtons();renderPreview()}};
 $('nextPage').onclick=()=>{if(page<keep.length){page++;renderPageList();updateEditButtons();renderPreview()}};
-$('removePage').onclick=()=>{if(!pdf)return;if(keep[page-1]&&keptPages().length===1)return message('Du kan inte ta bort den sista sidan.',true);pushUndo();keep[page-1]=!keep[page-1];invalidate();renderPageList();renderPreview();message(keep[page-1]?'Sidan återställd.':'Sidan tas inte med i arbetskopian.')};
+$('removePage').onclick=()=>{if(!pdf)return;if(keep[page-1]&&keptPages().length===1)return message('Du kan inte ta bort den sista sidan.',true);pushToolHistory();pushUndo();keep[page-1]=!keep[page-1];invalidate();renderPageList();renderPreview();message(keep[page-1]?'Sidan återställd.':'Sidan tas inte med i arbetskopian.')};
 $('selectPages').onclick=()=>{selectPagesMode=!selectPagesMode;if(!selectPagesMode)selectedPages.clear();renderPageList();message(selectPagesMode?'Klicka på alla sidor du vill välja. Tryck sedan “Ta bort valda”.':'Flervalsläget är avstängt.')};
 $('selectAllPages').onclick=()=>{selectedPages=new Set(keep.map((_,i)=>i+1));renderPageList()};
 $('clearPageSelection').onclick=()=>{selectedPages.clear();renderPageList()};
@@ -238,7 +267,7 @@ $('removeSelectedPages').onclick=()=>{
  if(!selectedPages.size)return message('Välj först vilka sidor som ska tas bort.',true);
  const currentlyKept=keptPages(),toRemove=currentlyKept.filter(n=>selectedPages.has(n));
  if(currentlyKept.length-toRemove.length<1)return message('Du måste lämna minst en sida kvar.',true);
- pushUndo();toRemove.forEach(n=>keep[n-1]=false);selectedPages.clear();selectPagesMode=false;invalidate();renderPageList();renderPreview();message(toRemove.length+' sidor tas bort från arbetskopian.');
+ pushToolHistory();pushUndo();toRemove.forEach(n=>keep[n-1]=false);selectedPages.clear();selectPagesMode=false;invalidate();renderPageList();renderPreview();message(toRemove.length+' sidor tas bort från arbetskopian.');
 };
 $('undoPage').onclick=()=>{if(!undo.length)return;keep=undo.pop();$('undoPage').disabled=!undo.length;invalidate();renderPageList();renderPreview();message('Senaste sidändringen ångrades.')};
 $('removeText').onchange=()=>{invalidate();renderPreview()};
@@ -248,15 +277,20 @@ $('quality').onchange=()=>{invalidate();const q=QUALITY[$('quality').value]||QUA
 $('aggressiveClean').onclick=()=>{$('removeText').checked=true;$('removeAnnotations').checked=true;$('removeColors').checked=true;invalidate();renderPreview();message('Text, kommentarer och färgmarkeringar rensas. Kontrollera förhandsvisningen innan du sparar.')};
 $('eraseMode').onclick=()=>{editMode=editMode==='erase'?'':'erase';dragStart=null;$('eraseBox').hidden=true;updateEditButtons();message(editMode==='erase'?'Dra en ruta över det du vill dölja.':'Dölj område är avstängt.')};
 $('cropMode').onclick=()=>{editMode=editMode==='crop'?'':'crop';dragStart=null;$('eraseBox').hidden=true;updateEditButtons();message(editMode==='crop'?'Dra en ruta runt den del av sidan du vill behålla.':'Beskärning är avstängd.')};
-$('resetCrop').onclick=()=>{if(!cropRects[page])return;delete cropRects[page];invalidate();updateEditButtons();renderPreview();message('Beskärningen på sida '+page+' är återställd.')};
+$('resetCrop').onclick=()=>{if(!cropRects[page])return;pushToolHistory();delete cropRects[page];invalidate();updateEditButtons();renderPreview();message('Beskärningen på sida '+page+' är återställd.')};
 $('undoErase').onclick=()=>{const masks=masksFor(page);if(!masks.length)return;masks.pop();invalidate();updateEditButtons();renderPreview();message('Senaste dolda området ångrades.')};
-$('clearErases').onclick=()=>{if(!masksFor(page).length)return;manualMasks[page]=[];invalidate();updateEditButtons();renderPreview();message('Alla dolda områden på sida '+page+' visas igen.')};
+$('clearErases').onclick=()=>{if(!masksFor(page).length)return;pushToolHistory();manualMasks[page]=[];invalidate();updateEditButtons();renderPreview();message('Alla dolda områden på sida '+page+' visas igen.')};
+$('undoTool').onclick=()=>{if(!toolUndo.length)return;toolRedo.push(toolSnapshot());restoreToolSnapshot(toolUndo.pop());message('Senaste ritningsändringen ångrades.')};
+$('redoTool').onclick=()=>{if(!toolRedo.length)return;toolUndo.push(toolSnapshot());restoreToolSnapshot(toolRedo.pop());message('Ändringen gjordes om.')};
+document.querySelectorAll('.toolMenu').forEach(menu=>menu.addEventListener('toggle',()=>{if(!menu.open)return;document.querySelectorAll('.toolMenu').forEach(other=>{if(other!==menu)other.open=false})}));
 const cv=$('previewCanvas');
 cv.addEventListener('pointerdown',e=>{if(!editMode||!pdf)return;e.preventDefault();cv.setPointerCapture?.(e.pointerId);dragStart=pointerPos(e);showDragBox(dragStart,dragStart)});
 cv.addEventListener('pointermove',e=>{if(!editMode||!dragStart)return;e.preventDefault();showDragBox(dragStart,pointerPos(e))});
 cv.addEventListener('pointerup',e=>{if(!editMode||!dragStart)return;e.preventDefault();finishDrag(e)});
 cv.addEventListener('pointercancel',()=>{dragStart=null;$('eraseBox').hidden=true});
-$('analyzeSize').onclick=async()=>{try{$('analyzeSize').disabled=true;await buildOutput()}catch(e){console.error(e);message(e.message||'Kunde inte mäta filstorleken.',true)}finally{$('analyzeSize').disabled=false}};
+async function analyzeExactSize(trigger){try{if(trigger)trigger.disabled=true;await buildOutput()}catch(e){console.error(e);message(e.message||'Kunde inte mäta filstorleken.',true)}finally{if(trigger)trigger.disabled=false}}
+$('analyzeSize').onclick=()=>analyzeExactSize($('analyzeSize'));
+$('analyzeSizeInline').onclick=()=>analyzeExactSize($('analyzeSizeInline'));
 $('savePdf').onclick=async()=>{try{const r=await output();if(!r)return;if(window.DorrNative?.isNative?.()){await window.DorrNative.saveAndSharePdf(r.bytes,r.name,'Ritningsverktyg – ren PDF');message('PDF klar. Välj Spara till Filer eller dela ritningen.');return}const url=URL.createObjectURL(r.blob),a=document.createElement('a');a.href=url;a.download=r.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}catch(e){console.error(e);message(e.message||'Kunde inte skapa PDF.',true)}};
 window.addEventListener('resize',()=>{if(pdf)renderPreview()});
 })();
