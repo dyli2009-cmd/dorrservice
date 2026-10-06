@@ -46,17 +46,17 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
  try{
   scan=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
   const linkedPages=[],rawLinks=[];let seen=false,gap=0;
-  const scanLimit=Math.min(scan.numPages,30);
+  const scanLimit=Math.min(scan.numPages,120);
   for(let pageNo=1;pageNo<=scanLimit;pageNo++){
    onProgress('Söker äldre länkade automatiker… sida '+pageNo+' / '+scanLimit);
    const pg=await scan.getPage(pageNo),annotations=await pg.getAnnotations({intent:'any'}),viewport=pg.getViewport({scale:1});
-   const candidates=annotations.filter(a=>a?.fieldType==='Btn'&&!a.checkBox&&!a.radioButton&&a.dest&&Array.isArray(a.rect));
+   const candidates=annotations.filter(a=>a?.dest&&Array.isArray(a.rect)&&!a.checkBox&&!a.radioButton);
    const resolved=[];
    for(const a of candidates){const targetPage=await resolveDest(a.dest);if(targetPage&&targetPage!==pageNo)resolved.push({targetPage,rect:a.rect})}
    if(resolved.length){
     seen=true;gap=0;linkedPages.push({originalPage:pageNo,viewport});
     resolved.forEach(item=>rawLinks.push({drawingPage:pageNo,...item}))
-   }else if(seen&&++gap>=2)break;
+   }else if(seen&&++gap>=5)break;
   }
   if(rawLinks.length<2)return null;
 
@@ -80,21 +80,23 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
    const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
    const vr=viewport.convertToViewportRectangle(link.rect),x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height));
    const parsed=parseId(id),modelEntry=MODELS.find(([code])=>String(code)===String(parsed.modelCode)),checks={};CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
+   const previousServiceDate=getField(protocol.fields,'Datum'),previousNextDate=getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder=getField(protocol.fields,'Order').replace(/,00$/,'');
    doors.push(normalize({
     uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,
     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',
-    location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:''
+    location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
+    previousServiceDate,previousNextDate,previousOrder,legacyProtocolPage:link.targetPage
    }))
   }
   if(doors.length<2)return null;
 
   doors.sort((a,b)=>a.page-b.page||a.id.localeCompare(b.id,'sv',{numeric:true}));
   const firstProtocol=protocols.get(validLinks[0].targetPage),first=firstProtocol?.fields||new Map(),prefixes=doors.map(d=>parseId(d.id).prefix),facilityNo=majority(prefixes);
-  const serials=doors.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,'');
+  const serials=doors.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,''),oldServiceDate=getField(first,'Datum'),oldNextDate=getField(first,'näst datum','Nästa provning datum');
   const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+/i,'').trim();
   const project={
    projectName,facilityNo,customer:getField(first,'Företag'),agreementNo:'',contact:getField(first,'Kontaktperson'),projectOrder:oldOrder,
-   inspectionDate:'',projectNextDate:'',company:getField(first,'kontakt f','kontakt g'),companyContact:getField(first,'kontakt g','kontakt f'),
+   inspectionDate:doorLocalToday(),projectNextDate:oldNextDate,previousServiceDate:oldServiceDate,previousOrder:oldOrder,company:getField(first,'kontakt f','kontakt g'),companyContact:getField(first,'kontakt g','kontakt f'),
    companyPhone:getField(first,'tel g'),companyAddress:getField(first,'adress g'),companyPostalCode:getField(first,'postnr g'),companyPostalCity:getField(first,'post g'),
    phone:getField(first,'tel'),address:getField(first,'adress'),postalCode:getField(first,'postnr'),postalCity:getField(first,'postadress'),technician:'',serviceSignature:'',
    nextDoorNumber:Math.max(0,...serials)+1
@@ -110,7 +112,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   doors.forEach(d=>{const model=d.model||('Kod '+(d.modelCode||'?'));modelCounts.set(model,(modelCounts.get(model)||0)+1);const prefix=parseId(d.id).prefix;if(prefix)prefixCounts.set(prefix,(prefixCounts.get(prefix)||0)+1)});
   const modelText=[...modelCounts.entries()].sort((a,b)=>b[1]-a[1]).map(([name,count])=>count+' '+name).join(', ');
   const prefixText=prefixCounts.size>1?' '+prefixCounts.size+' objektnummer hittades - kontrollera objektnummer under Projekt.':'';
-  return {drawingBytes,work:{version:2,doors,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+' Kontroller och datum är nollställda för nytt servicebesök.'}
+  return {drawingBytes,work:{version:2,doors,project,logoData:''},summaryText:(modelText?'Typer: '+modelText+'.':'')+prefixText+' '+doors.length+' länkade protokoll importerades. Tidigare serviceuppgifter sparades som historik och dagens kontroller är nollställda.'}
  }catch(error){
   console.warn('Äldre PDF kunde inte autoimporteras',error);return null
  }finally{
@@ -254,7 +256,8 @@ const baseShow=show;show=function(){baseShow();const d=cur();$('protocolHeading'
  if(lastShownDoor!==d.uid){$('protocolPanel').scrollTop=0;lastShownDoor=d.uid}
  if(isDoorRemediated(d))$('status').value='ok';
  if(d.serialNumber)d.serialNumber=String(Number(d.serialNumber)||1);$('serialNumber').value=d.serialNumber||'';$('modelChoice').value=MODELS.some(([code])=>code===d.modelCode)?d.modelCode:(d.model?'custom':'');$('idMessage').textContent='';
- const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus;$('previousIssues').replaceChildren();
+ const prior=d.previousIssues||[];$('previousPanel').hidden=!prior.length&&!d.previousNotes&&!d.previousStatus&&!d.previousServiceDate&&!d.previousNextDate&&!d.previousOrder;$('previousIssues').replaceChildren();
+ if(d.previousServiceDate||d.previousNextDate||d.previousOrder){const p=document.createElement('p');p.textContent=[d.previousServiceDate?'Tidigare service: '+d.previousServiceDate:'',d.previousNextDate?'Nästa provning: '+d.previousNextDate:'',d.previousOrder?'Tidigare order: '+d.previousOrder:''].filter(Boolean).join(' · ');$('previousIssues').appendChild(p)}
  if(prior.length){const ul=document.createElement('ul');prior.forEach(issue=>{const li=document.createElement('li');li.textContent=issue.n+' '+issue.title+': '+cleanRemarkText(issue.note||'Beskrivning saknas');ul.appendChild(li)});$('previousIssues').appendChild(ul)}
  if(d.previousNotes){const p=document.createElement('p');p.textContent=d.previousNotes;$('previousIssues').appendChild(p)}
  if(d.previousStatus){const p=document.createElement('p');p.textContent='Tidigare bedömning: '+(STATUS_LABELS[d.previousStatus]||d.previousStatus);$('previousIssues').appendChild(p)}
