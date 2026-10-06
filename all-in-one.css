@@ -420,3 +420,86 @@ body.allInOneApp #secViewer.arrowDragging .precisionPointGrab,
 body.allInOneApp #secViewer.arrowDragging .secTarget{
  touch-action:none!important;
 }
+
+
+/* 2.4.153: centered mobile protocol selection and consistent header icon buttons. */
+.allProtocolHead{
+  justify-content:center!important;
+  text-align:center!important;
+}
+.allProtocolHead>div{width:100%}
+.allProtocolActions{
+  justify-content:center!important;
+}
+#allProtocolApply{
+  min-width:170px;
+}
+.allInOneApp .appHeaderIconButton{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  white-space:nowrap!important;
+}
+.allInOneApp .appHeaderIconButton svg{
+  display:block!important;
+  width:17px!important;
+  height:17px!important;
+  flex:none!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:1.9!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+.allInOneApp .appHeaderIconButton span{
+  display:inline-block!important;
+  font-size:10px!important;
+  line-height:1!important;
+}
+.allInOneApp .homeIconLink{
+  width:auto!important;
+  min-width:0!important;
+  padding:5px 8px!important;
+}
+@media(max-width:600px){
+  .allProtocolDialog{
+    margin:auto!important;
+  }
+  .allProtocolHead{
+    padding:11px 12px!important;
+  }
+  .allProtocolHead .eyebrow{
+    display:block;
+    text-align:center;
+  }
+  .allProtocolHead h2{
+    margin-top:3px!important;
+    text-align:center!important;
+    font-size:15px!important;
+    line-height:1.25!important;
+  }
+  .allProtocolActions{
+    padding:9px 10px 12px!important;
+  }
+  #allProtocolApply{
+    min-width:180px!important;
+    min-height:40px!important;
+  }
+  .allInOneApp .headerActions{
+    gap:3px!important;
+  }
+  .allInOneApp .appHeaderIconButton{
+    min-height:36px!important;
+    height:36px!important;
+    padding:4px 6px!important;
+    border-radius:8px!important;
+  }
+  .allInOneApp .appHeaderIconButton svg{
+    width:16px!important;
+    height:16px!important;
+  }
+  .allInOneApp .appHeaderIconButton span{
+    font-size:9px!important;
+  }
+}
