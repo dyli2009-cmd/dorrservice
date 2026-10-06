@@ -911,12 +911,19 @@ function showOverview(){
     label.appendChild(input);grid.appendChild(label);
    });card.appendChild(grid);
   }
-  card.onclick=e=>{if(e.target.closest('input,select,textarea,button,label'))return;selected=o.uid;showSelected();$('securityOverview').close();go('protocol')};
+  card.onclick=e=>{if(e.target.closest('input,select,textarea,button,label'))return;selected=o.uid;showSelected();closeSecurityOverview();go('protocol')};
   list.appendChild(card);
  })
 }
 $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
-$('secNavOverview').onclick=()=>{showOverview();$('securityOverview').showModal()};$('secCloseOverview').onclick=()=>$('securityOverview').close();$('secNavDrawing').onclick=()=>go('drawing');$('secNavProtocol').onclick=()=>go('protocol');$('secNavProject').onclick=()=>go('project');$('secCloseProtocol').onclick=$('secCloseProject').onclick=()=>go('drawing');
+function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
+function navigateSecurity(view){closeSecurityOverview();go(view)}
+$('secNavOverview').onclick=()=>{showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
+$('secCloseOverview').onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
+$('secNavDrawing').onclick=()=>navigateSecurity('drawing');
+$('secNavProtocol').onclick=()=>navigateSecurity('protocol');
+$('secNavProject').onclick=()=>navigateSecurity('project');
+$('secCloseProtocol').onclick=$('secCloseProject').onclick=()=>navigateSecurity('drawing');
 function projectFieldMap(){return {secProjectName:'projectName',secFacilityNo:'facilityNo',secOrder:'order',secDate:'date',secNextDate:'nextDate',secCustomer:'customer',secAgreement:'agreement',secContact:'contact',secPhone:'phone',secAddress:'address',secPostalCode:'postalCode',secPostalCity:'postalCity',secCompany:'company',secCompanyContact:'companyContact',secCompanyPhone:'companyPhone',secCompanyAddress:'companyAddress',secCompanyPostalCode:'companyPostalCode',secCompanyPostalCity:'companyPostalCity',secTechnician:'technician',secSignature:'signature'}}
 function refreshLogoPreview(){
  const box=$('secLogoPreview');if(!box)return;box.replaceChildren();
