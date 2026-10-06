@@ -8,8 +8,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Allt-i-ett – Dörrservice</title>
-<link rel="stylesheet" href="style.css?v=2.4.133">
-<link rel="stylesheet" href="security.css?v=2.4.133"><link rel="stylesheet" href="security-compact.css?v=2.4.133"><link rel="stylesheet" href="all-in-one.css?v=2.4.133">
+<link rel="stylesheet" href="style.css?v=2.4.134">
+<link rel="stylesheet" href="security.css?v=2.4.134"><link rel="stylesheet" href="security-compact.css?v=2.4.134"><link rel="stylesheet" href="all-in-one.css?v=2.4.134">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -18,7 +18,7 @@
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Allt-i-ett</strong></div>
  <div class="headerActions"><a class="filebtn" href="./">Hem</a><button id="allProtocolPicker" type="button">Välj protokoll</button><button id="securityPreview">Kundmall</button><button id="securityExport" class="primary">Spara PDF</button></div>
- <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.133">v2.4.133</small></div>
+ <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small><small class="appVersion" aria-label="Webbversion 2.4.134">v2.4.134</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
 <div class="objectBar"><span class="objectTitle"><span id="securityObject">Välj en ritning</span><small>Öppna en ritning eller en tidigare arbets-PDF.</small></span><span id="securityCount">0 objekt</span></div>
@@ -37,10 +37,14 @@
     <div id="secEmpty"><h1>Allt-i-ett</h1><p>Öppna en PDF först. Välj sedan de protokoll du ska arbeta med på jobbet.</p><label class="filebtn primary" for="securityFile">Öppna PDF</label></div>
   </section>
   <div class="securityTools allInOneProtocolTools">
-    <button data-add="automation">＋ Dörrautomatik</button>
+    <button data-add="automation">＋ Revision dörrautomatik</button>
+    <button data-add="automation_selfcheck">＋ Egenkontroll dörrautomatik</button>
     <button data-add="alarm">＋ Inbrottslarm</button>
     <button data-add="lock">＋ Lås & Dörrmiljö</button>
     <button data-add="access">＋ Passer</button>
+    <button data-add="fire_panel">＋ Brandcentral</button>
+    <button data-add="fire_detector">＋ Branddetektorer</button>
+    <button data-add="fire_door">＋ Branddörr / dörrhållning</button>
     <button id="secPrecision" type="button" class="precisionButton" aria-pressed="false" title="Precisionsläge för exakt placering på telefon">⌖ Precision</button>
     <button id="secAddText" hidden>＋ Text</button>
     <button id="secChangeDrawing" type="button" hidden>Byt ritning</button>
@@ -102,10 +106,29 @@
   </div>
   <p class="allProtocolIntro">Välj vad du ska arbeta med först. När du fortsätter öppnar du PDF:en och analysen anpassas efter de valda arbetsområdena.</p>
   <div class="allProtocolChoices">
-    <label><input type="checkbox" value="automation"><span><strong>Dörrautomatik</strong><small>Revision/service · 18 kontrollpunkter</small></span></label>
-    <label><input type="checkbox" value="alarm"><span><strong>Inbrottslarm</strong><small>Service och funktionskontroll</small></span></label>
-    <label><input type="checkbox" value="lock"><span><strong>Lås &amp; Dörrmiljö</strong><small>Lås, dörrmiljö och utrymning</small></span></label>
-    <label><input type="checkbox" value="access"><span><strong>Passer</strong><small>Passersystem och dörrfunktion</small></span></label>
+    <details class="allProtocolGroup" open>
+      <summary><span><strong>Dörrautomatik</strong><small>Välj protokoll</small></span></summary>
+      <div class="allProtocolChildren">
+        <label><input type="checkbox" value="automation"><span><strong>Checklista revision dörrautomatik</strong><small>Befintlig revisionschecklista · 18 kontrollpunkter</small></span></label>
+        <label><input type="checkbox" value="automation_selfcheck"><span><strong>Egenkontroll dörrautomatik</strong><small>Provisorisk egenkontroll · punkterna justerar vi senare</small></span></label>
+      </div>
+    </details>
+    <details class="allProtocolGroup">
+      <summary><span><strong>Säkerhetsservice</strong><small>Inbrott, lås och passer</small></span></summary>
+      <div class="allProtocolChildren">
+        <label><input type="checkbox" value="alarm"><span><strong>Inbrottslarm</strong><small>Service och funktionskontroll</small></span></label>
+        <label><input type="checkbox" value="lock"><span><strong>Lås &amp; Dörrmiljö</strong><small>Lås, dörrmiljö och utrymning</small></span></label>
+        <label><input type="checkbox" value="access"><span><strong>Passer</strong><small>Passersystem och dörrfunktion</small></span></label>
+      </div>
+    </details>
+    <details class="allProtocolGroup">
+      <summary><span><strong>Brand</strong><small>Provisoriska brandprotokoll</small></span></summary>
+      <div class="allProtocolChildren">
+        <label><input type="checkbox" value="fire_panel"><span><strong>Brandcentral</strong><small>Provisorisk checklista</small></span></label>
+        <label><input type="checkbox" value="fire_detector"><span><strong>Branddetektorer</strong><small>Provisorisk checklista</small></span></label>
+        <label><input type="checkbox" value="fire_door"><span><strong>Branddörr / dörrhållning</strong><small>Provisorisk checklista</small></span></label>
+      </div>
+    </details>
   </div>
   <p id="allProtocolMessage" class="muted" role="status"></p>
   <div class="allProtocolActions">
@@ -168,8 +191,8 @@
   <button id="secNavProtocol"><span class="navLabel">Protokoll</span></button>
   <button id="secNavProject"><span class="navLabel">Projekt</span></button>
 </nav>
-<script src="ui-text-scale.js?v=2.4.133"></script><script src="drawing-annotations.js?v=2.4.133"></script>
-<script src="session-history.js?v=2.4.133"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.133"></script><script src="all-in-one.js?v=2.4.133"></script>
-<script src="drawing-transfer.js?v=2.4.133"></script>
+<script src="ui-text-scale.js?v=2.4.134"></script><script src="drawing-annotations.js?v=2.4.134"></script>
+<script src="session-history.js?v=2.4.134"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.134"></script><script src="all-in-one.js?v=2.4.134"></script>
+<script src="drawing-transfer.js?v=2.4.134"></script>
 </body></html>
