@@ -267,10 +267,10 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
   const serials=allImported.map(d=>Number(d.serialNumber)||0),oldOrder=getField(first,'Order').replace(/,00$/,''),oldServiceDate=getField(first,'Datum'),oldNextDate=getField(first,'näst datum','Nästa provning datum');
   const projectName=String(fileName||'').replace(/\.pdf$/i,'').replace(/^service\s+/i,'').trim();
   const project={
-   projectName,facilityNo,customer:getField(first,'Företag'),agreementNo:'',contact:getField(first,'Kontaktperson'),projectOrder:oldOrder,
-   inspectionDate:doorLocalToday(),projectNextDate:oldNextDate,previousServiceDate:oldServiceDate,previousOrder:oldOrder,company:getField(first,'kontakt f','kontakt g'),companyContact:getField(first,'kontakt g','kontakt f'),
-   companyPhone:getField(first,'tel g'),companyAddress:getField(first,'adress g'),companyPostalCode:getField(first,'postnr g'),companyPostalCity:getField(first,'post g'),
-   phone:getField(first,'tel'),address:getField(first,'adress'),postalCode:getField(first,'postnr'),postalCity:getField(first,'postadress'),technician:'',serviceSignature:'',
+   projectName,facilityNo,customer:getField(first,'Företag','beställare kund','företag kund'),agreementNo:getField(first,'Avtalsnummer','avtal'),contact:getField(first,'Kontaktperson','kontakt kund'),projectOrder:oldOrder,
+   inspectionDate:doorLocalToday(),projectNextDate:oldNextDate,previousServiceDate:oldServiceDate,previousOrder:oldOrder,company:getField(first,'kontakt f','kontakt g','företag heras','företag service'),companyContact:getField(first,'kontakt g','kontakt f','kontakt heras','kontakt service'),
+   companyPhone:getField(first,'tel g','telefon heras','telefon service'),companyAddress:getField(first,'adress g','adress heras','adress service'),companyPostalCode:getField(first,'postnr g','postnr heras','postnr service'),companyPostalCity:getField(first,'post g','post adress heras','postadress heras','postadress service'),
+   phone:getField(first,'tel','telefon kund'),address:getField(first,'adress','adress kund'),postalCode:getField(first,'postnr','postnr kund'),postalCity:getField(first,'postadress','postadress kund'),technician:'',serviceSignature:'',
    nextDoorNumber:Math.max(0,...serials)+1
   };
 
