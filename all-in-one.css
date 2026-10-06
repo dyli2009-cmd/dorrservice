@@ -204,3 +204,57 @@ body.allInOneApp .secMarker{max-width:230px!important}
   }
   .allInOneApp .homeIconLink svg{width:18px;height:18px}
 }
+
+
+/* 2.4.146: larger home control and compact save-PDF icon button. */
+.allInOneApp .homeIconLink{
+  width:42px!important;
+  min-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  border-radius:10px!important;
+}
+.allInOneApp .homeIconLink svg{
+  width:24px!important;
+  height:24px!important;
+  stroke-width:2!important;
+}
+.allInOneApp .savePdfButton{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  min-height:42px;
+  padding:5px 9px!important;
+}
+.allInOneApp .savePdfButton svg{
+  width:17px;
+  height:17px;
+  flex:none;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.allInOneApp .savePdfButton span{
+  font-size:10.5px;
+  line-height:1;
+  white-space:nowrap;
+}
+@media(max-width:600px){
+  .allInOneApp .homeIconLink{
+    width:38px!important;
+    min-width:38px!important;
+    height:38px!important;
+    min-height:38px!important;
+  }
+  .allInOneApp .homeIconLink svg{width:22px!important;height:22px!important}
+  .allInOneApp .savePdfButton{
+    min-height:38px;
+    padding:4px 7px!important;
+    gap:4px;
+  }
+  .allInOneApp .savePdfButton svg{width:16px;height:16px}
+  .allInOneApp .savePdfButton span{font-size:9.5px}
+}
