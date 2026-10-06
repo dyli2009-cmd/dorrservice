@@ -433,12 +433,17 @@ async function inspectLegacySecurityLinkedPdf(bytes){
   const fieldName=dict=>{let d=dict;for(let depth=0;depth<3&&d instanceof PDFDict;depth++){const t=str(d.get(PDFName.of('T')));if(t)return t;d=lookup(d.get(PDFName.of('Parent')))}return ''};
   const destPage=dest=>{const a=lookup(dest);if(!(a instanceof PDFArray)||!a.size())return null;const first=a.get(0),direct=refMap.get(String(first))||refMap.get(String(lookup(first)));if(direct)return direct;const n=num(first);return Number.isInteger(n)&&n>=0&&n<pages.length?n+1:null};
   const clean=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const allInOneTypeAllowed=type=>{
+   if(!ALL_IN_ONE)return true;
+   const selected=window.AllInOneProtocols?.get?.();
+   return !Array.isArray(selected)||!selected.length||selected.includes(type)
+  };
   const typeFromText=value=>{
    const t=clean(value).toLowerCase();
-   if(ALL_IN_ONE&&/d[oö]rrautomatik|d[oö]rr.?automatik|provningsprotokoll.*d[oö]rr|checklista revision av d[oö]rrautomatik/.test(t))return'automation';
-   if(/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm|^inbrott\b/.test(t))return'alarm';
-   if(/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(t))return'lock';
-   if(/passersystem|passer\b|kortläsare|kortlasare/.test(t))return'access';
+   if(ALL_IN_ONE&&allInOneTypeAllowed('automation')&&/d[oö]rrautomatik|d[oö]rr.?automatik|provningsprotokoll.*d[oö]rr|checklista revision av d[oö]rrautomatik/.test(t))return'automation';
+   if(allInOneTypeAllowed('alarm')&&/inbrottslarm|inbrott.?larm|larmcentral|sabotagelarm|^inbrott\b/.test(t))return'alarm';
+   if(allInOneTypeAllowed('lock')&&/lås\s*&\s*dörrmiljö|dörrmiljö|dorrmiljo|låshus|elslutbleck/.test(t))return'lock';
+   if(allInOneTypeAllowed('access')&&/passersystem|passer\b|kortläsare|kortlasare/.test(t))return'access';
    return null
   };
   const markerNumber=(value,type)=>{
