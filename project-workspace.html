@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#132b38">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Projektflöde – Tillsyno</title>
+<link rel="stylesheet" href="project-workspace.css?v=2.4.216">
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+</head>
+<body>
+<header class="pwHeader">
+  <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
+  <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
+  <label class="pwOpen" for="pwFile">Öppna projekt-PDF</label>
+  <input id="pwFile" type="file" accept="application/pdf" hidden>
+</header>
+
+<section class="pwProjectBar">
+  <div class="pwFileInfo">
+    <strong id="pwFileName">Ingen projektfil</strong>
+    <small id="pwState">Öppna en PDF med ritningar, gula projektstämplar och protokoll.</small>
+  </div>
+  <div class="pwStats">
+    <span><b id="pwPositionCount">0</b><small>positioner</small></span>
+    <span><b id="pwMatchedCount">0</b><small>matchade</small></span>
+    <span><b id="pwDoneCount">0</b><small>klara</small></span>
+    <span><b id="pwTotalProgress">0%</b><small>totalt</small></span>
+  </div>
+</section>
+
+<section class="pwToolbar">
+  <button id="pwPrev" type="button" aria-label="Föregående sida">‹</button>
+  <span id="pwPageInfo">Ingen sida</span>
+  <button id="pwNext" type="button" aria-label="Nästa sida">›</button>
+  <button id="pwZoomOut" type="button" aria-label="Zooma ut">−</button>
+  <span id="pwZoomInfo">100%</span>
+  <button id="pwZoomIn" type="button" aria-label="Zooma in">+</button>
+  <button id="pwFit" type="button">Passa</button>
+  <button id="pwRescan" type="button" hidden>Analysera igen</button>
+</section>
+
+<main class="pwMain">
+  <section id="pwViewer" class="pwViewer">
+    <div id="pwStage" class="pwStage">
+      <canvas id="pwCanvas"></canvas>
+      <div id="pwMarkers" class="pwMarkers"></div>
+    </div>
+    <div id="pwEmpty" class="pwEmpty">
+      <div class="pwEmptyIcon">⌖</div>
+      <h1>Projekt-PDF:en är arbetsytan</h1>
+      <p>Projektflödet läser riktiga PDF-stämplar, räknar varje fysisk position och matchar stämpelns ID mot rätt protokollsida i samma fil.</p>
+      <label class="pwOpen pwOpenLarge" for="pwFile">Öppna projekt-PDF</label>
+      <small>Kontrollflödet används inte av den här sidan.</small>
+    </div>
+  </section>
+
+  <aside class="pwSide">
+    <div class="pwSideHead">
+      <div><span>PROJEKT</span><strong>Positioner</strong></div>
+      <button id="pwCurrentPageOnly" type="button" aria-pressed="false">Aktuell sida</button>
+    </div>
+    <div id="pwGroups" class="pwGroups"><p class="pwMuted">Positionerna visas här efter analys.</p></div>
+  </aside>
+</main>
+
+<dialog id="pwProtocol" class="pwProtocol">
+  <header class="pwProtocolHeader">
+    <button id="pwBack" type="button">← Ritning</button>
+    <div class="pwProtocolIdentity">
+      <span>PROJEKTPROTOKOLL</span>
+      <strong id="pwProtocolCode">—</strong>
+      <small id="pwProtocolPosition">—</small>
+    </div>
+    <div class="pwProtocolProgress">
+      <strong id="pwProtocolPercent">0%</strong>
+      <div class="pwProgressTrack"><i id="pwProtocolBar"></i></div>
+    </div>
+    <button id="pwProtocolClose" type="button" aria-label="Stäng">×</button>
+  </header>
+
+  <div class="pwProtocolBody">
+    <section class="pwProtocolOriginal">
+      <div class="pwProtocolTools">
+        <strong>Originalprotokoll</strong>
+        <div>
+          <button id="pwProtocolZoomOut" type="button">−</button>
+          <span id="pwProtocolZoomInfo">100%</span>
+          <button id="pwProtocolZoomIn" type="button">+</button>
+        </div>
+      </div>
+      <div id="pwProtocolCanvasWrap" class="pwProtocolCanvasWrap">
+        <div id="pwProtocolStage" class="pwProtocolStage"><canvas id="pwProtocolCanvas"></canvas></div>
+        <div id="pwProtocolMissing" class="pwProtocolMissing" hidden>
+          <strong>Protokoll hittades inte automatiskt</strong>
+          <p>Positionen är sparad, men ingen säker protokollsida kunde matchas för märkningen.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="pwChecklistPane">
+      <div class="pwChecklistHead">
+        <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
+        <small id="pwChecklistMeta">0 punkter</small>
+      </div>
+      <p class="pwChecklistIntro">Rubriker och beskrivande text bevaras. Korta tomma fältnamn utan innehåll tas inte med som kontrollpunkt.</p>
+      <div id="pwChecklist" class="pwChecklist"></div>
+    </aside>
+  </div>
+</dialog>
+
+<script src="project-workspace.js?v=2.4.216"></script>
+</body>
+</html>
