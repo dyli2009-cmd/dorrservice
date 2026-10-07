@@ -926,7 +926,7 @@ function showOverview(){
 $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
 function navigateSecurity(view){closeSecurityOverview();go(view)}
-$('secNavOverview').onclick=()=>{const filter=$('secOverviewFilter'),search=$('secOverviewSearch');if(filter)filter.value='summary';if(search)search.value='';showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
+$('secNavOverview').onclick=()=>{const filter=$('secOverviewFilter'),search=$('secOverviewSearch'),d=$('securityOverview');if(filter){filter.value='summary';filter.blur()}if(search){search.value='';search.blur()}document.activeElement?.blur?.();showOverview();if(!d.open)d.show();try{d.focus({preventScroll:true})}catch(_){d.focus()}$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
 const secCloseOverview=$('secCloseOverview');if(secCloseOverview)secCloseOverview.onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
 $('secNavDrawing').onclick=()=>navigateSecurity('drawing');
 $('secNavProtocol').onclick=()=>navigateSecurity('protocol');
