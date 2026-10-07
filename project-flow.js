@@ -1,143 +1,213 @@
 (() => {
   'use strict';
-  if (!window.pdfjsLib) {
-    document.getElementById('pfState').textContent = 'PDF-biblioteket kunde inte laddas.';
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    drawingFile:$('pfDrawingFile'), protocolFile:$('pfProtocolFile'),
+    fileName:$('pfFileName'), protocolFileName:$('pfProtocolFileName'), state:$('pfState'),
+    objectCount:$('pfObjectCount'), doneCount:$('pfDoneCount'), totalProgress:$('pfTotalProgress'),
+    prev:$('pfPrev'), next:$('pfNext'), pageInfo:$('pfPageInfo'), zoomOut:$('pfZoomOut'), zoomIn:$('pfZoomIn'),
+    rescan:$('pfRescan'), wrap:$('pfViewerWrap'), stage:$('pfStage'), canvas:$('pfCanvas'), markers:$('pfMarkers'),
+    empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'),
+    protocol:$('pfProtocol'), protocolType:$('pfProtocolType'), protocolTitle:$('pfProtocolTitle'),
+    protocolPosition:$('pfProtocolPosition'), protocolPercent:$('pfProtocolPercent'), protocolBar:$('pfProtocolBar'),
+    matched:$('pfMatchedProtocol'), matchedText:$('pfMatchedProtocolText'), showProtocolPage:$('pfShowProtocolPage'),
+    protocolPreview:$('pfProtocolPreview'), protocolCanvas:$('pfProtocolCanvas'),
+    drawingPage:$('pfDrawingPage'), doorCardStatus:$('pfDoorCardStatus'),
+    templateName:$('pfTemplateName'), checks:$('pfChecks'), closeProtocol:$('pfCloseProtocol'),
+    backToDrawing:$('pfBackToDrawing')
+  };
+
+  if (!window.pdfjsLib || !window.PDFLib) {
+    if (els.state) els.state.textContent = 'PDF-biblioteket kunde inte laddas.';
     return;
   }
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const $ = id => document.getElementById(id);
-  const els = {
-    file:$('pfFile'), fileName:$('pfFileName'), state:$('pfState'), objectCount:$('pfObjectCount'),
-    doneCount:$('pfDoneCount'), totalProgress:$('pfTotalProgress'), prev:$('pfPrev'), next:$('pfNext'),
-    pageInfo:$('pfPageInfo'), zoomOut:$('pfZoomOut'), zoomIn:$('pfZoomIn'), prefixes:$('pfPrefixes'),
-    rescan:$('pfRescan'), wrap:$('pfViewerWrap'), stage:$('pfStage'), canvas:$('pfCanvas'), markers:$('pfMarkers'),
-    empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'), protocol:$('pfProtocol'),
-    protocolType:$('pfProtocolType'), protocolTitle:$('pfProtocolTitle'), protocolPosition:$('pfProtocolPosition'),
-    protocolPercent:$('pfProtocolPercent'), protocolBar:$('pfProtocolBar'), instanceId:$('pfInstanceId'),
-    pdfPosition:$('pfPdfPosition'), templateName:$('pfTemplateName'), checks:$('pfChecks'),
-    closeProtocol:$('pfCloseProtocol'), backToDrawing:$('pfBackToDrawing'), matched:$('pfMatchedProtocol'),
-    matchedText:$('pfMatchedProtocolText'), showProtocolPage:$('pfShowProtocolPage')
-  };
+  const ctx=els.canvas.getContext('2d');
+  const protocolCtx=els.protocolCanvas.getContext('2d');
+  const CHECK_POINTS=['Daglåsning','Nattlåsning','Dörrstängning','Larm / passer','Dörrfunktion','Larmfunktion','Brandfunktion'];
 
-  const ctx = els.canvas.getContext('2d');
-  let pdf=null, bytes=null, fileKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, selectedId=null;
-  let restoreView=null;
-  const TEMPLATE_POINTS = [
-    'Kontrollpunkt 1','Kontrollpunkt 2','Kontrollpunkt 3','Kontrollpunkt 4','Kontrollpunkt 5',
-    'Kontrollpunkt 6','Kontrollpunkt 7','Kontrollpunkt 8','Kontrollpunkt 9','Kontrollpunkt 10'
-  ];
+  let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
+  let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, selectedId=null, restoreView=null;
+  let previewVisible=true;
 
   function hashText(text){
     let h=2166136261;
     for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}
     return (h>>>0).toString(36);
   }
-  function storageKey(){return 'tillsyno-project-flow:'+fileKey}
+  function storageKey(){return 'tillsyno-project-flow-v2:'+drawingKey}
   function loadSaved(){
-    if(!fileKey)return {};
+    if(!drawingKey)return {};
     try{return JSON.parse(localStorage.getItem(storageKey())||'{}')}catch(_){return {}}
   }
   function saveAll(){
-    if(!fileKey)return;
-    const payload={version:1,updatedAt:new Date().toISOString(),prefixes:els.prefixes.value,objects:{}};
+    if(!drawingKey)return;
+    const payload={version:2,updatedAt:new Date().toISOString(),objects:{}};
     objects.forEach(o=>payload.objects[o.id]={checks:o.checks||[],progress:o.progress||0});
     try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
   }
-  function prefixRegex(){
-    const parts=String(els.prefixes.value||'GS').toUpperCase().split(/[,; ]+/).map(x=>x.replace(/[^A-ZÅÄÖ0-9]/g,'')).filter(Boolean);
-    const safe=(parts.length?parts:['GS']).map(x=>x.replace(/[.*+?^$()|[\]\\]/g,'\\$&'));
-    return new RegExp('\\b(?:'+safe.join('|')+')\\s*[- ]?\\s*\\d{1,3}[A-Z]?\\b','gi');
+  function normalizeCode(value){
+    const m=String(value||'').toUpperCase().trim().match(/^GS\s*[- ]?\s*(\d{1,3})$/);
+    return m?'GS'+m[1]:'';
   }
-  function normalizeCode(code){return String(code||'').toUpperCase().replace(/[\s-]+/g,'')}
   function objectProgress(o){
-    const arr=Array.isArray(o.checks)?o.checks:[];
-    const done=arr.filter(Boolean).length;
-    return Math.round(done/TEMPLATE_POINTS.length*100);
+    const done=(o.checks||[]).filter(Boolean).length;
+    return Math.round(done/CHECK_POINTS.length*100);
   }
-  function isProtocolish(text){
-    return /(PROTOKOLL|KONTROLLPUNKT|EGENKONTROLL|RISKBEDÖMNING|SERVICEPROTOKOLL|CHECKLISTA)/i.test(text||'');
+  function progressLabel(p){return p===0?'Ej kontrollerad':p===100?'Klar':p+'% klart'}
+  function decodePdfText(obj){
+    try{
+      if(obj && typeof obj.decodeText==='function')return obj.decodeText();
+      if(obj && typeof obj.asString==='function')return obj.asString();
+    }catch(_){}
+    return String(obj||'');
   }
 
-  async function scanPdf(){
-    if(!pdf)return;
-    els.state.textContent='Analyserar ritningen…';
-    els.rescan.disabled=true;
-    const regex=prefixRegex(), drawingCandidates=[], protocolMap={};
-    for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
-      els.state.textContent='Analyserar sida '+pageNo+' av '+pdf.numPages+'…';
-      const page=await pdf.getPage(pageNo), viewport=page.getViewport({scale:1});
-      const content=await page.getTextContent();
-      const pageText=content.items.map(i=>i.str||'').join(' ');
-      const matches=[];
-      const addMatches=(raw,item)=>{
-        regex.lastIndex=0;
-        let m;
-        while((m=regex.exec(String(raw||'')))){
-          const code=normalizeCode(m[0]);
-          const t=pdfjsLib.Util.transform(viewport.transform,item.transform);
-          const x=Math.max(0,Math.min(1,t[4]/viewport.width));
-          const y=Math.max(0,Math.min(1,t[5]/viewport.height));
-          if(!matches.some(v=>v.code===code&&Math.abs(v.x-x)<0.015&&Math.abs(v.y-y)<0.015)) matches.push({code,x,y});
+  async function extractStampObjects(data){
+    const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=window.PDFLib;
+    const doc=await PDFDocument.load(data.slice(),{ignoreEncryption:true,updateMetadata:false});
+    const found=[];
+    doc.getPages().forEach((page,index)=>{
+      const annots=page.node.Annots();
+      if(!annots)return;
+      for(let i=0;i<annots.size();i++){
+        let dict=null;
+        try{dict=annots.lookup(i,PDFDict)}catch(_){}
+        if(!dict)continue;
+        const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
+        if(subtype!=='Stamp')continue;
+        const code=normalizeCode(decodePdfText(dict.get(PDFName.of('Subj'))));
+        if(!code)continue;
+        let rectArr=null;
+        try{rectArr=dict.lookup(PDFName.of('Rect'),PDFArray)}catch(_){}
+        if(!rectArr || rectArr.size()<4)continue;
+        const rect=[];
+        for(let n=0;n<4;n++){
+          let num=null;
+          try{num=rectArr.lookup(n,PDFNumber)}catch(_){}
+          rect.push(num&&typeof num.asNumber==='function'?num.asNumber():Number(decodePdfText(rectArr.get(n))));
         }
-      };
-      content.items.forEach((item,index)=>{
-        addMatches(item.str,item);
-        const next=content.items[index+1];
-        if(next){
-          const a=pdfjsLib.Util.transform(viewport.transform,item.transform);
-          const b=pdfjsLib.Util.transform(viewport.transform,next.transform);
-          const sameLine=Math.abs(a[5]-b[5])<Math.max(8,Math.abs(a[0])*1.4);
-          if(sameLine)addMatches(String(item.str||'')+' '+String(next.str||''),item);
+        if(rect.every(Number.isFinite))found.push({page:index+1,code,rect});
+      }
+    });
+    return found;
+  }
+
+  async function fallbackTextObjects(){
+    const found=[];
+    const rx=/\bGS\s*[- ]?\s*\d{1,3}\b/gi;
+    for(let pageNo=1;pageNo<=drawingPdf.numPages;pageNo++){
+      const page=await drawingPdf.getPage(pageNo);
+      const viewport=page.getViewport({scale:1});
+      const content=await page.getTextContent();
+      content.items.forEach(item=>{
+        rx.lastIndex=0;
+        let m;
+        while((m=rx.exec(String(item.str||'')))){
+          const code=normalizeCode(m[0]);
+          if(!code)continue;
+          const t=pdfjsLib.Util.transform(viewport.transform,item.transform);
+          const x=t[4], y=t[5], w=Math.max(28,Math.abs(item.width||32)), h=Math.max(18,Math.abs(item.height||16));
+          const p1=viewport.convertToPdfPoint(x,y), p2=viewport.convertToPdfPoint(x+w,y+h);
+          found.push({page:pageNo,code,rect:[p1[0],p1[1],p2[0],p2[1]]});
         }
       });
-      if(isProtocolish(pageText)){
-        matches.forEach(m=>{if(!protocolMap[m.code])protocolMap[m.code]=pageNo});
-      }else if(matches.length){
-        matches.forEach(m=>drawingCandidates.push({page:pageNo,code:m.code,x:m.x,y:m.y}));
+    }
+    return found;
+  }
+
+  async function scanProtocolPdf(){
+    protocolPages={};
+    if(!protocolPdf){updateState();return}
+    els.state.textContent='Läser dörrkorten…';
+    for(let pageNo=1;pageNo<=protocolPdf.numPages;pageNo++){
+      const page=await protocolPdf.getPage(pageNo);
+      const content=await page.getTextContent();
+      const text=content.items.map(i=>String(i.str||'')).join(' ');
+      const match=text.match(/\bGS\s*[- ]?\s*(\d{1,3})\b/i);
+      if(match){
+        const code='GS'+match[1];
+        if(!protocolPages[code])protocolPages[code]=pageNo;
       }
     }
+    renderGroups();
+    updateState();
+    if(selectedId && els.protocol.open){
+      const o=objects.find(x=>x.id===selectedId);
+      if(o)await updateMatchedProtocol(o,true);
+    }
+  }
+
+  async function scanDrawing(){
+    if(!drawingPdf || !drawingBytes)return;
+    els.state.textContent='Läser GS-stämplarna i ritningen…';
+    els.rescan.disabled=true;
+    let raw=[];
+    try{raw=await extractStampObjects(drawingBytes)}catch(err){console.warn('Stamp scan failed, fallback to text',err)}
+    if(!raw.length)raw=await fallbackTextObjects();
 
     const saved=loadSaved(), counts={};
-    drawingCandidates.sort((a,b)=>a.page-b.page||a.y-b.y||a.x-b.x);
-    objects=drawingCandidates.map((o,index)=>{
+    raw.sort((a,b)=>a.page-b.page||a.rect[1]-b.rect[1]||a.rect[0]-b.rect[0]);
+    objects=raw.map(o=>{
       counts[o.code]=(counts[o.code]||0)+1;
-      const id=o.code+'@p'+o.page+'@'+Math.round(o.x*10000)+'x'+Math.round(o.y*10000);
-      const old=saved.objects&&saved.objects[id]||{};
-      const checks=Array.isArray(old.checks)?old.checks.slice(0,TEMPLATE_POINTS.length):Array(TEMPLATE_POINTS.length).fill(false);
-      while(checks.length<TEMPLATE_POINTS.length)checks.push(false);
-      return {...o,id,instance:counts[o.code],checks,progress:0};
+      const id=o.code+'@p'+o.page+'@'+o.rect.map(n=>Math.round(n)).join('_');
+      const old=(saved.objects&&saved.objects[id])||{};
+      const checks=Array.isArray(old.checks)?old.checks.slice(0,CHECK_POINTS.length):Array(CHECK_POINTS.length).fill(false);
+      while(checks.length<CHECK_POINTS.length)checks.push(false);
+      const obj={...o,id,instance:counts[o.code],checks,progress:0};
+      obj.progress=objectProgress(obj);
+      return obj;
     });
-    objects.forEach(o=>o.progress=objectProgress(o));
-    protocolPages=protocolMap;
+
     saveAll();
     renderGroups();
     updateSummary();
-    await renderPage(currentPage);
-    els.state.textContent=objects.length
-      ? 'Hittade '+objects.length+' positioner. Tryck på en markering för att öppna dess instans.'
-      : 'Inga märkningar hittades med prefixet '+els.prefixes.value+'.';
+    await renderPage(Math.min(currentPage,drawingPdf.numPages));
     els.rescan.disabled=false;
+    updateState();
   }
 
-  async function openFile(file){
+  function updateState(){
+    if(!drawingPdf){
+      els.state.textContent='Öppna ritningen och dörrkorts-PDF:en för att börja.';
+      return;
+    }
+    const codes=[...new Set(objects.map(o=>o.code))];
+    const matched=codes.filter(c=>protocolPages[c]).length;
+    if(!protocolPdf){
+      els.state.textContent='Hittade '+objects.length+' GS-positioner. Ladda dörrkorts-PDF:en för automatisk koppling.';
+      return;
+    }
+    els.state.textContent='Hittade '+objects.length+' GS-positioner. '+matched+' av '+codes.length+' GS-typer är matchade mot dörrkort.';
+  }
+
+  async function openDrawing(file){
     if(!file)return;
-    bytes=new Uint8Array(await file.arrayBuffer());
-    fileKey=hashText([file.name,file.size,file.lastModified].join('|'));
+    drawingBytes=new Uint8Array(await file.arrayBuffer());
+    drawingKey=hashText([file.name,file.size,file.lastModified].join('|'));
     els.fileName.textContent=file.name;
-    els.state.textContent='Öppnar PDF…';
-    pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+    els.state.textContent='Öppnar ritningen…';
+    drawingPdf=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
     currentPage=1;
     els.empty.hidden=true;
-    const saved=loadSaved();
-    if(saved.prefixes)els.prefixes.value=saved.prefixes;
-    await scanPdf();
+    await scanDrawing();
+  }
+
+  async function openProtocolFile(file){
+    if(!file)return;
+    protocolBytes=new Uint8Array(await file.arrayBuffer());
+    els.protocolFileName.textContent=file.name;
+    els.state.textContent='Öppnar dörrkorten…';
+    protocolPdf=await pdfjsLib.getDocument({data:protocolBytes.slice()}).promise;
+    await scanProtocolPdf();
   }
 
   async function renderPage(pageNo){
-    if(!pdf)return;
-    currentPage=Math.max(1,Math.min(pdf.numPages,pageNo));
-    const page=await pdf.getPage(currentPage);
+    if(!drawingPdf)return;
+    currentPage=Math.max(1,Math.min(drawingPdf.numPages,pageNo));
+    const page=await drawingPdf.getPage(currentPage);
     const viewport=page.getViewport({scale});
     els.canvas.width=Math.ceil(viewport.width);
     els.canvas.height=Math.ceil(viewport.height);
@@ -146,21 +216,38 @@
     els.stage.style.width=viewport.width+'px';
     els.stage.style.height=viewport.height+'px';
     await page.render({canvasContext:ctx,viewport}).promise;
-    els.pageInfo.textContent=currentPage+' / '+pdf.numPages;
-    renderMarkers(viewport.width,viewport.height);
-    highlightCurrentGroup();
+    els.pageInfo.textContent=currentPage+' / '+drawingPdf.numPages;
+    renderMarkers(viewport);
   }
 
-  function renderMarkers(width,height){
+  function rectOnViewport(rect,viewport){
+    const converted=viewport.convertToViewportRectangle(rect);
+    const left=Math.min(converted[0],converted[2]), top=Math.min(converted[1],converted[3]);
+    const right=Math.max(converted[0],converted[2]), bottom=Math.max(converted[1],converted[3]);
+    return {left,top,width:right-left,height:bottom-top};
+  }
+
+  function renderMarkers(viewport){
     els.markers.innerHTML='';
     objects.filter(o=>o.page===currentPage).forEach(o=>{
+      const r=rectOnViewport(o.rect,viewport);
       const btn=document.createElement('button');
-      btn.type='button';btn.className='pfMarker';btn.dataset.id=o.id;btn.dataset.progress=String(o.progress);
-      btn.style.left=(o.x*width)+'px';btn.style.top=(o.y*height)+'px';
-      const angle=Math.max(0,Math.min(360,o.progress*3.6));
-      btn.style.setProperty('--marker-angle',angle+'deg');
-      btn.style.setProperty('--marker-fill',o.progress===100?'#238354':'#116a99');
-      btn.innerHTML='<span class="pfMarkerDot"></span><span class="pfMarkerPct">'+o.progress+'%</span><span class="pfMarkerLabel">'+o.code+' · '+o.instance+'</span>';
+      btn.type='button';
+      btn.className='pfMarkerHit';
+      btn.dataset.id=o.id;
+      btn.dataset.progress=String(o.progress);
+      const pad=8, width=Math.max(38,r.width+pad*2), height=Math.max(38,r.height+pad*2);
+      btn.style.left=(r.left+r.width/2-width/2)+'px';
+      btn.style.top=(r.top+r.height/2-height/2)+'px';
+      btn.style.width=width+'px';
+      btn.style.height=height+'px';
+      btn.setAttribute('aria-label',o.code+', position '+o.instance+', '+progressLabel(o.progress));
+      if(o.progress>0){
+        const badge=document.createElement('span');
+        badge.className='pfMarkerPct';
+        badge.textContent=o.progress===100?'✓':o.progress+'%';
+        btn.appendChild(badge);
+      }
       btn.addEventListener('click',()=>openProtocol(o.id));
       els.markers.appendChild(btn);
     });
@@ -171,73 +258,125 @@
     objects.forEach(o=>(map[o.code]||(map[o.code]=[])).push(o));
     return Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0],'sv',{numeric:true}));
   }
+
   function renderGroups(){
-    if(!objects.length){els.groups.innerHTML='<p class="pfMuted">Inga objekt hittades.</p>';return}
+    if(!objects.length){els.groups.innerHTML='<p class="pfMuted">Inga GS-positioner hittades.</p>';return}
     els.groups.innerHTML='';
     groupData().forEach(([code,list])=>{
-      const box=document.createElement('section');box.className='pfGroup';box.dataset.code=code;
+      const box=document.createElement('section');
+      box.className='pfGroup';
       const avg=Math.round(list.reduce((s,o)=>s+o.progress,0)/list.length);
-      const head=document.createElement('button');head.type='button';
-      head.innerHTML='<b>'+code+'</b><span>'+list.length+' positioner · '+avg+'%</span>';
+      const head=document.createElement('button');
+      head.type='button';
+      head.innerHTML='<b>'+code+'</b><span>'+list.length+' positioner · '+(protocolPages[code]?'dörrkort kopplat':'dörrkort saknas')+'</span>';
       box.appendChild(head);
-      const items=document.createElement('div');items.className='pfGroupItems';
+      const items=document.createElement('div');
+      items.className='pfGroupItems';
       list.forEach(o=>{
-        const b=document.createElement('button');b.type='button';b.className='pfGroupItem';
-        b.innerHTML='<span><strong>Position '+o.instance+'</strong><small>Sida '+o.page+'</small></span><b>'+o.progress+'%</b>';
+        const b=document.createElement('button');
+        b.type='button';
+        b.className='pfGroupItem';
+        b.innerHTML='<span><strong>Position '+o.instance+'</strong><small>Sida '+o.page+' · '+progressLabel(o.progress)+'</small></span><b>'+o.progress+'%</b>';
         b.addEventListener('click',async()=>{await renderPage(o.page);focusObject(o.id);openProtocol(o.id)});
         items.appendChild(b);
       });
-      box.appendChild(items);els.groups.appendChild(box);
-    });
-    highlightCurrentGroup();
-  }
-  function highlightCurrentGroup(){
-    els.groups.querySelectorAll('.pfGroupItem').forEach(x=>x.style.background='');
-  }
-  function focusObject(id){
-    requestAnimationFrame(()=>{
-      const marker=els.markers.querySelector('[data-id="'+CSS.escape(id)+'"]');
-      if(marker) marker.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+      const avgLine=document.createElement('small');
+      avgLine.className='pfGroupAvg';
+      avgLine.textContent='Totalt '+avg+'%';
+      box.append(items,avgLine);
+      els.groups.appendChild(box);
     });
   }
 
-  function openProtocol(id){
-    const o=objects.find(x=>x.id===id);if(!o)return;
+  function focusObject(id){
+    requestAnimationFrame(()=>{
+      const marker=els.markers.querySelector('[data-id="'+CSS.escape(id)+'"]');
+      if(marker)marker.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+    });
+  }
+
+  async function openProtocol(id){
+    const o=objects.find(x=>x.id===id);
+    if(!o)return;
     selectedId=id;
     restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop};
     const same=objects.filter(x=>x.code===o.code);
-    els.protocolType.textContent=o.code+' · PROTOKOLLINSTANS';
+    els.protocolType.textContent='DÖRRKORT · '+o.code;
     els.protocolTitle.textContent=o.code+' · position '+o.instance;
     els.protocolPosition.textContent='Position '+o.instance+' av '+same.length+' · ritningssida '+o.page;
-    els.instanceId.textContent=o.id;
-    els.pdfPosition.textContent='Sida '+o.page+' · '+Math.round(o.x*100)+'% / '+Math.round(o.y*100)+'%';
+    els.drawingPage.textContent='Sida '+o.page;
     els.templateName.textContent=o.code;
     els.checks.innerHTML='';
-    TEMPLATE_POINTS.forEach((label,index)=>{
-      const row=document.createElement('label');row.className='pfCheck';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!o.checks[index];
-      cb.addEventListener('change',()=>{o.checks[index]=cb.checked;o.progress=objectProgress(o);saveAll();updateProtocol(o);updateSummary();renderGroups();renderMarkers(els.canvas.width,els.canvas.height)});
-      const span=document.createElement('span');span.textContent=label;
-      row.append(cb,span);els.checks.appendChild(row);
+
+    CHECK_POINTS.forEach((label,index)=>{
+      const row=document.createElement('label');
+      row.className='pfCheck';
+      const cb=document.createElement('input');
+      cb.type='checkbox';
+      cb.checked=!!o.checks[index];
+      cb.addEventListener('change',async()=>{
+        o.checks[index]=cb.checked;
+        o.progress=objectProgress(o);
+        saveAll();updateProtocol(o);updateSummary();renderGroups();
+        const page=await drawingPdf.getPage(currentPage);
+        renderMarkers(page.getViewport({scale}));
+      });
+      const span=document.createElement('span');
+      span.textContent=label;
+      row.append(cb,span);
+      els.checks.appendChild(row);
     });
-    const p=protocolPages[o.code];
-    els.matched.hidden=!p;
-    if(p){els.matchedText.textContent=o.code+' hittades på protokollsida '+p;els.showProtocolPage.dataset.page=String(p)}
+
     updateProtocol(o);
     if(typeof els.protocol.showModal==='function')els.protocol.showModal();else els.protocol.setAttribute('open','');
+    await updateMatchedProtocol(o,true);
+  }
+
+  async function updateMatchedProtocol(o,forceRender=false){
+    const p=protocolPages[o.code];
+    els.matched.hidden=!p;
+    els.protocolPreview.hidden=!p || !previewVisible;
+    if(!p){
+      els.doorCardStatus.textContent='Saknas';
+      return;
+    }
+    els.doorCardStatus.textContent=o.code+' · sida '+p;
+    els.matchedText.textContent=o.code+' är automatiskt kopplat till dörrkort sida '+p;
+    els.showProtocolPage.dataset.page=String(p);
+    els.showProtocolPage.textContent=previewVisible?'Dölj dörrkort':'Visa dörrkort';
+    if(previewVisible && (forceRender || !els.protocolPreview.hidden))await renderProtocolPreview(p);
+  }
+
+  async function renderProtocolPreview(pageNo){
+    if(!protocolPdf || !pageNo)return;
+    const page=await protocolPdf.getPage(pageNo);
+    const base=page.getViewport({scale:1});
+    const target=Math.min(1.35,Math.max(.72,520/base.width));
+    const viewport=page.getViewport({scale:target});
+    els.protocolCanvas.width=Math.ceil(viewport.width);
+    els.protocolCanvas.height=Math.ceil(viewport.height);
+    els.protocolCanvas.style.width='100%';
+    els.protocolCanvas.style.height='auto';
+    await page.render({canvasContext:protocolCtx,viewport}).promise;
   }
 
   function updateProtocol(o){
     els.protocolPercent.textContent=o.progress+'%';
     els.protocolBar.style.width=o.progress+'%';
   }
+
   async function closeProtocol(restore=true){
     if(els.protocol.open)els.protocol.close();
-    if(restore&&restoreView&&pdf){
+    if(restore&&restoreView&&drawingPdf){
       if(currentPage!==restoreView.page)await renderPage(restoreView.page);
-      requestAnimationFrame(()=>{els.wrap.scrollLeft=restoreView.left;els.wrap.scrollTop=restoreView.top;focusObject(selectedId)});
+      requestAnimationFrame(()=>{
+        els.wrap.scrollLeft=restoreView.left;
+        els.wrap.scrollTop=restoreView.top;
+        focusObject(selectedId);
+      });
     }
   }
+
   function updateSummary(){
     els.objectCount.textContent=objects.length;
     const done=objects.filter(o=>o.progress===100).length;
@@ -246,21 +385,35 @@
     els.totalProgress.textContent=avg+'%';
   }
 
-  els.file.addEventListener('change',e=>openFile(e.target.files&&e.target.files[0]).catch(err=>{console.error(err);els.state.textContent='Kunde inte öppna PDF: '+err.message}));
+  els.drawingFile.addEventListener('change',e=>openDrawing(e.target.files&&e.target.files[0]).catch(err=>{
+    console.error(err);els.state.textContent='Kunde inte öppna ritningen: '+err.message;els.rescan.disabled=false;
+  }));
+  els.protocolFile.addEventListener('change',e=>openProtocolFile(e.target.files&&e.target.files[0]).catch(err=>{
+    console.error(err);els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
+  }));
   els.prev.addEventListener('click',()=>renderPage(currentPage-1));
   els.next.addEventListener('click',()=>renderPage(currentPage+1));
-  els.zoomOut.addEventListener('click',()=>{scale=Math.max(.65,scale-.15);renderPage(currentPage)});
-  els.zoomIn.addEventListener('click',()=>{scale=Math.min(2.5,scale+.15);renderPage(currentPage)});
-  els.rescan.addEventListener('click',()=>scanPdf().catch(err=>{console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false}));
+  els.zoomOut.addEventListener('click',()=>{scale=Math.max(.55,scale-.15);renderPage(currentPage)});
+  els.zoomIn.addEventListener('click',()=>{scale=Math.min(2.8,scale+.15);renderPage(currentPage)});
+  els.rescan.addEventListener('click',()=>scanDrawing().catch(err=>{
+    console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false;
+  }));
   els.closeProtocol.addEventListener('click',()=>closeProtocol(true));
   els.backToDrawing.addEventListener('click',()=>closeProtocol(true));
-  els.showProtocolPage.addEventListener('click',async()=>{const page=Number(els.showProtocolPage.dataset.page||0);await closeProtocol(false);if(page)await renderPage(page)});
-  els.focusCurrent.addEventListener('click',()=>renderPage(currentPage));
+  els.showProtocolPage.addEventListener('click',async()=>{
+    const o=objects.find(x=>x.id===selectedId);
+    if(!o)return;
+    previewVisible=!previewVisible;
+    await updateMatchedProtocol(o,true);
+  });
+  els.focusCurrent.addEventListener('click',()=>drawingPdf&&renderPage(currentPage));
 
   let touchStartX=0,touchStartY=0;
-  els.wrap.addEventListener('touchstart',e=>{if(e.touches.length===1){touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY}},{passive:true});
+  els.wrap.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY}
+  },{passive:true});
   els.wrap.addEventListener('touchend',e=>{
-    if(!pdf||!e.changedTouches.length)return;
+    if(!drawingPdf||!e.changedTouches.length)return;
     const dx=e.changedTouches[0].clientX-touchStartX,dy=e.changedTouches[0].clientY-touchStartY;
     if(Math.abs(dx)>90&&Math.abs(dx)>Math.abs(dy)*1.5){dx<0?renderPage(currentPage+1):renderPage(currentPage-1)}
   },{passive:true});
