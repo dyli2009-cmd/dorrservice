@@ -182,7 +182,10 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     const nearby=(exactCallouts.length?exactCallouts:pageCallouts).sort((a,b)=>rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect))[0]||null;
     const exactCalloutMatch=!!(nearby&&exactCallouts.includes(nearby));
     const vr=viewport.convertToViewportRectangle(link.rect);let x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height)),labelX,labelY,legacyLabelText='';
-    if(nearby&&rectDistance(link.rect,nearby.rect)<=Math.max(90,Math.min(viewport.width,viewport.height)*.12)){
+    // Exact object-ID match is authoritative even when the Bluebeam text box is far from P.
+    // Distance is only a safety limit for the old nearest-callout fallback.
+    const useCallout=nearby&&(exactCalloutMatch||rectDistance(link.rect,nearby.rect)<=Math.max(90,Math.min(viewport.width,viewport.height)*.12));
+    if(useCallout){
      const tip=viewport.convertToViewportPoint(nearby.points[0],nearby.points[1]),lr=viewport.convertToViewportRectangle(nearby.rect);
      x=Math.max(0,Math.min(1,tip[0]/viewport.width));y=Math.max(0,Math.min(1,tip[1]/viewport.height));
      labelX=Math.max(0,Math.min(1,((lr[0]+lr[2])/2)/viewport.width));labelY=Math.max(0,Math.min(1,((lr[1]+lr[3])/2)/viewport.height));legacyLabelText=nearby.text||''
@@ -191,7 +194,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
     doors.push(normalize({
      uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,labelX,labelY,
-     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',legacyLabelText,legacyPlacementSource:nearby?(exactCalloutMatch?'bluebeam-callout-id':'bluebeam-callout-nearest'):'bluebeam-button',legacyCalloutMatchedById:exactCalloutMatch,
+     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',legacyLabelText,legacyPlacementSource:useCallout?(exactCalloutMatch?'bluebeam-callout-id':'bluebeam-callout-nearest'):'bluebeam-button',legacyCalloutMatchedById:exactCalloutMatch,
      location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
      previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:link.targetPage
     }))
