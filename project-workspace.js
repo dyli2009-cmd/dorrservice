@@ -1275,7 +1275,7 @@ function selectAllOnPage(){
  updateBulkBar();renderMarkers();
 }
 function beginBulkDrag(e){
- if(!bulkSelectMode||!pdf||e.pointerType!=='mouse'||e.button!==0||e.target.closest?.('.pwStampHit'))return false;
+ if(!bulkSelectMode||!pdf||e.pointerType!=='mouse'||e.button!==0||e.target.closest?.('.pwStampHit,.pwAutomationMarker'))return false;
  if(!el.stage.contains(e.target))return false;
  e.preventDefault();e.stopPropagation();
  const p=stagePoint(e.clientX,e.clientY);
@@ -1593,7 +1593,7 @@ function renderAutomationMarkers(){
    btn.title='Egenkontroll · '+automationDisplayId(o)+(o.model?' · '+o.model:'')+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
    const badge=document.createElement('span');badge.textContent=o.progress===100?'✓':'EK';btn.appendChild(badge);
-   btn.onclick=e=>{e.preventDefault();e.stopPropagation();openAutomationProtocol(o)};
+   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)openAutomationProtocol(o)};
    el.automationMarkers.appendChild(btn);
   });
  }).catch(console.error);
