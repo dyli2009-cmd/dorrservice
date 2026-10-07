@@ -7,7 +7,7 @@ const el={
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
- protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),
+ protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
  checklist:$('pwChecklist'),checklistMeta:$('pwChecklistMeta'),addChecklistItem:$('pwAddChecklistItem'),
  itemEditor:$('pwItemEditor'),itemEditorTitle:$('pwItemEditorTitle'),itemEditorClose:$('pwItemEditorClose'),editLabel:$('pwEditLabel'),editValue:$('pwEditValue'),editNote:$('pwEditNote'),editCancel:$('pwEditCancel'),editSave:$('pwEditSave')
 };
@@ -20,7 +20,7 @@ const protocolCtx=el.protocolCanvas.getContext('2d');
 
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',embeddedState={},page=1,scale=1.1,renderTask=null;
 let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
-let selectedId=null,protocolScale=1,protocolRenderTask=null,currentOnly=false,restoreView=null,editingItem=null;
+let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null;
 
 function setState(text){el.state.textContent=text}
 function isNativeIos(){
@@ -403,6 +403,123 @@ async function focusInstance(o){
  const cx=(Math.min(x1,x2)+Math.abs(x2-x1)/2)*scale,cy=(vp.height-(Math.min(y1,y2)+Math.abs(y2-y1)/2)*scale);
  el.viewer.scrollTo({left:Math.max(0,cx-el.viewer.clientWidth/2),top:Math.max(0,cy-el.viewer.clientHeight/2),behavior:'smooth'});
 }
+function clampProtocolScale(value){return Math.max(.4,Math.min(3,Number(value)||1))}
+function currentProtocolPage(){
+ const o=instances.find(x=>x.id===selectedId);
+ return o?protocolMap[o.code]:null;
+}
+function protocolFocusRatios(clientX,clientY){
+ const stageRect=el.protocolStage.getBoundingClientRect();
+ const x=Number.isFinite(clientX)?clientX:stageRect.left+stageRect.width/2;
+ const y=Number.isFinite(clientY)?clientY:stageRect.top+stageRect.height/2;
+ return {
+  x:Math.max(0,Math.min(1,stageRect.width?(x-stageRect.left)/stageRect.width:.5)),
+  y:Math.max(0,Math.min(1,stageRect.height?(y-stageRect.top)/stageRect.height:.5)),
+  clientX:x,clientY:y
+ };
+}
+function restoreProtocolFocus(focus){
+ if(!focus)return;
+ const stageRect=el.protocolStage.getBoundingClientRect();
+ const pointX=stageRect.left+focus.x*stageRect.width;
+ const pointY=stageRect.top+focus.y*stageRect.height;
+ el.protocolCanvasWrap.scrollLeft+=pointX-focus.clientX;
+ el.protocolCanvasWrap.scrollTop+=pointY-focus.clientY;
+}
+async function setProtocolScale(nextScale,clientX,clientY){
+ const pageNo=currentProtocolPage();if(!pageNo)return;
+ const focus=protocolFocusRatios(clientX,clientY);
+ protocolScale=clampProtocolScale(nextScale);
+ el.protocolCanvas.style.transform='';
+ await renderProtocolPage(pageNo);
+ requestAnimationFrame(()=>restoreProtocolFocus(focus));
+}
+async function fitProtocolPage(){
+ const pageNo=currentProtocolPage();if(!pageNo)return;
+ const pg=await pdf.getPage(pageNo),vp=pg.getViewport({scale:1});
+ const pad=20;
+ const target=Math.min(
+  (el.protocolCanvasWrap.clientWidth-pad)/vp.width,
+  (el.protocolCanvasWrap.clientHeight-pad)/vp.height
+ );
+ protocolScale=clampProtocolScale(target);
+ el.protocolCanvas.style.transform='';
+ await renderProtocolPage(pageNo);
+ el.protocolCanvasWrap.scrollTo({left:0,top:0});
+}
+function protocolTouchCenter(touches){
+ return {
+  x:(touches[0].clientX+touches[1].clientX)/2,
+  y:(touches[0].clientY+touches[1].clientY)/2
+ };
+}
+function protocolTouchDistance(touches){
+ const dx=touches[0].clientX-touches[1].clientX,dy=touches[0].clientY-touches[1].clientY;
+ return Math.hypot(dx,dy);
+}
+function beginProtocolTouch(e){
+ if(e.touches.length>=2){
+  e.preventDefault();
+  const center=protocolTouchCenter(e.touches),focus=protocolFocusRatios(center.x,center.y);
+  protocolGesture={
+   mode:'pinch',startDistance:Math.max(1,protocolTouchDistance(e.touches)),
+   startScale:protocolScale,targetScale:protocolScale,focus,
+   baseWidth:parseFloat(el.protocolStage.style.width)||el.protocolStage.getBoundingClientRect().width,
+   baseHeight:parseFloat(el.protocolStage.style.height)||el.protocolStage.getBoundingClientRect().height,
+   center
+  };
+  el.protocolCanvasWrap.classList.add('isPinching');
+  return;
+ }
+ if(e.touches.length===1){
+  const t=e.touches[0];
+  protocolGesture={mode:'pan',x:t.clientX,y:t.clientY,left:el.protocolCanvasWrap.scrollLeft,top:el.protocolCanvasWrap.scrollTop};
+ }
+}
+function moveProtocolTouch(e){
+ if(!protocolGesture)return;
+ if(protocolGesture.mode==='pan'&&e.touches.length===1){
+  e.preventDefault();
+  const t=e.touches[0];
+  el.protocolCanvasWrap.scrollLeft=protocolGesture.left+(protocolGesture.x-t.clientX);
+  el.protocolCanvasWrap.scrollTop=protocolGesture.top+(protocolGesture.y-t.clientY);
+  return;
+ }
+ if(protocolGesture.mode==='pinch'&&e.touches.length>=2){
+  e.preventDefault();
+  const center=protocolTouchCenter(e.touches);
+  const target=clampProtocolScale(protocolGesture.startScale*(protocolTouchDistance(e.touches)/protocolGesture.startDistance));
+  protocolGesture.targetScale=target;protocolGesture.center=center;
+  const factor=target/protocolGesture.startScale;
+  el.protocolCanvas.style.transform='scale('+factor+')';
+  el.protocolStage.style.width=(protocolGesture.baseWidth*factor)+'px';
+  el.protocolStage.style.height=(protocolGesture.baseHeight*factor)+'px';
+  el.protocolZoomInfo.textContent=Math.round(target*100)+'%';
+  const stageRect=el.protocolStage.getBoundingClientRect();
+  el.protocolCanvasWrap.scrollLeft+=stageRect.left+protocolGesture.focus.x*stageRect.width-center.x;
+  el.protocolCanvasWrap.scrollTop+=stageRect.top+protocolGesture.focus.y*stageRect.height-center.y;
+ }
+}
+async function endProtocolTouch(e){
+ if(!protocolGesture)return;
+ if(protocolGesture.mode==='pinch'&&e.touches.length<2){
+  const g=protocolGesture;protocolGesture=null;
+  el.protocolCanvasWrap.classList.remove('isPinching');
+  el.protocolCanvas.style.transform='';
+  protocolScale=clampProtocolScale(g.targetScale);
+  const pageNo=currentProtocolPage();
+  if(pageNo){
+   await renderProtocolPage(pageNo);
+   requestAnimationFrame(()=>restoreProtocolFocus({...g.focus,clientX:g.center.x,clientY:g.center.y}));
+  }
+  if(e.touches.length===1){
+   const t=e.touches[0];
+   protocolGesture={mode:'pan',x:t.clientX,y:t.clientY,left:el.protocolCanvasWrap.scrollLeft,top:el.protocolCanvasWrap.scrollTop};
+  }
+  return;
+ }
+ if(protocolGesture.mode==='pan'&&e.touches.length===0)protocolGesture=null;
+}
 async function renderProtocolPage(pageNo){
  if(protocolRenderTask)try{protocolRenderTask.cancel()}catch(_){}
  if(!pageNo){el.protocolCanvas.hidden=true;el.protocolMissing.hidden=false;return}
@@ -526,8 +643,20 @@ el.rescan.onclick=()=>{if(el.file.files?.[0])analyze(el.file.files[0]).catch(con
 el.currentPageOnly.onclick=()=>{currentOnly=!currentOnly;el.currentPageOnly.setAttribute('aria-pressed',String(currentOnly));el.currentPageOnly.classList.toggle('active',currentOnly);renderGroups()};
 el.back.onclick=closeProtocol;el.protocolClose.onclick=closeProtocol;
 el.protocol.addEventListener('cancel',e=>{e.preventDefault();closeProtocol()});
-el.protocolZoomOut.onclick=async()=>{protocolScale=Math.max(.45,protocolScale-.12);const o=instances.find(x=>x.id===selectedId);if(o)await renderProtocolPage(protocolMap[o.code])};
-el.protocolZoomIn.onclick=async()=>{protocolScale=Math.min(2.6,protocolScale+.12);const o=instances.find(x=>x.id===selectedId);if(o)await renderProtocolPage(protocolMap[o.code])};
+el.protocolFit.onclick=fitProtocolPage;
+el.protocolZoomOut.onclick=()=>setProtocolScale(protocolScale-.2);
+el.protocolZoomIn.onclick=()=>setProtocolScale(protocolScale+.2);
+el.protocolMax.onclick=()=>setProtocolScale(3);
+el.protocolCanvasWrap.addEventListener('touchstart',beginProtocolTouch,{passive:false});
+el.protocolCanvasWrap.addEventListener('touchmove',moveProtocolTouch,{passive:false});
+el.protocolCanvasWrap.addEventListener('touchend',endProtocolTouch,{passive:false});
+el.protocolCanvasWrap.addEventListener('touchcancel',endProtocolTouch,{passive:false});
+el.protocolCanvasWrap.addEventListener('wheel',e=>{
+ if(!(e.ctrlKey||e.metaKey))return;
+ e.preventDefault();
+ const factor=e.deltaY<0?1.18:.85;
+ setProtocolScale(protocolScale*factor,e.clientX,e.clientY);
+},{passive:false});
 el.addChecklistItem.onclick=()=>openItemEditor(selectedInstance());
 el.itemEditorClose.onclick=closeItemEditor;el.editCancel.onclick=closeItemEditor;el.editSave.onclick=saveItemEditor;
 el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()});
