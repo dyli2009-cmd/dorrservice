@@ -3,7 +3,7 @@
 
 const $=id=>document.getElementById(id);
 const el={
- file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),saveMenu:$('pwSaveMenu'),savePortable:$('pwSavePortable'),saveCopy:$('pwSaveCopy'),savePage:$('pwSavePage'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
+ file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),saveMenu:$('pwSaveMenu'),savePortable:$('pwSavePortable'),saveAs:$('pwSaveAs'),saveCopy:$('pwSaveCopy'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),bulkSelect:$('pwBulkSelect'),timeReport:$('pwTimeReport'),toolMenuButton:$('pwToolMenuButton'),toolMenu:$('pwToolMenu'),toolText:$('pwToolText'),toolCallout:$('pwToolCallout'),toolArrow:$('pwToolArrow'),toolImage:$('pwToolImage'),toolDelete:$('pwToolDelete'),toolUndo:$('pwToolUndo'),toolRedo:$('pwToolRedo'),imageFile:$('pwImageFile'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),drawingNotes:$('pwDrawingNotes'),selectionRect:$('pwSelectionRect'),markers:$('pwMarkers'),empty:$('pwEmpty'),side:$('pwSide'),showPositions:$('pwShowPositions'),hidePositions:$('pwHidePositions'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
@@ -20,7 +20,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
 const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
-let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',embeddedState={},page=1,scale=1.1,renderTask=null;
+let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',currentFileHandle=null,embeddedState={},page=1,scale=1.1,renderTask=null;
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[],pendingImage=null;
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
@@ -80,12 +80,37 @@ async function blobFromPickedFile(picked){
  }
  throw lastError||new Error('Den valda PDF-filen kunde inte läsas av appen.');
 }
+function desktopOpenPickerAvailable(){
+ return !isNativeIos()&&typeof window.showOpenFilePicker==='function';
+}
+function desktopSavePickerAvailable(){
+ return !isNativeIos()&&typeof window.showSaveFilePicker==='function';
+}
+const PDF_FILE_PICKER_TYPES=[{description:'PDF-filer',accept:{'application/pdf':['.pdf']}}];
 async function openProjectPdf(){
  if(!isNativeIos()){
+  if(desktopOpenPickerAvailable()){
+   setState('Öppnar filväljare…');
+   try{
+    const handles=await window.showOpenFilePicker({multiple:false,types:PDF_FILE_PICKER_TYPES});
+    const handle=handles?.[0];if(!handle){setState('Ingen fil vald.');return}
+    const file=await handle.getFile();
+    currentFileHandle=handle;
+    await analyze(file);
+    return;
+   }catch(err){
+    if(err?.name==='AbortError'){setState('Ingen fil vald.');return}
+    console.error(err);
+    currentFileHandle=null;
+    setState('Datorns filväljare kunde inte användas. Öppnar vanlig filväljare…');
+   }
+  }
+  currentFileHandle=null;
   el.file.value='';
   el.file.click();
   return;
  }
+ currentFileHandle=null;
  if(!nativeFilePickerAvailable()){
   setState('Native filväljare saknas i den här appversionen. Öppnar vanlig filväljare…');
   el.file.value='';
@@ -180,47 +205,108 @@ async function deliverProjectFile(file,title,text){
  if(!shared)downloadProjectFile(file);
  return true;
 }
+async function chooseDesktopSaveHandle(suggestedName){
+ if(!desktopSavePickerAvailable())return null;
+ return window.showSaveFilePicker({
+  suggestedName:suggestedName||'Tillsyno-projekt.pdf',
+  types:PDF_FILE_PICKER_TYPES,
+  excludeAcceptAllOption:false
+ });
+}
+async function writePdfToHandle(handle,data){
+ if(!handle||typeof handle.createWritable!=='function')throw new Error('Filen kan inte skrivas direkt i den här webbläsaren.');
+ const writable=await handle.createWritable();
+ try{
+  await writable.write(new Blob([data],{type:'application/pdf'}));
+ }finally{
+  await writable.close();
+ }
+}
 async function savePortableProject(){
  if(!bytes||!instances.length)return;
- closeSaveMenu();el.saveProject.disabled=true;setState('Sparar projektstatus i PDF-filen…');
+ closeSaveMenu();
+ let targetHandle=currentFileHandle;
+ if(!targetHandle&&desktopSavePickerAvailable()){
+  try{
+   targetHandle=await chooseDesktopSaveHandle(currentFileName||'Tillsyno-projekt.pdf');
+  }catch(err){
+   if(err?.name==='AbortError'){setState('Sparandet avbröts.');return}
+   console.error(err);
+  }
+ }
+ el.saveProject.disabled=true;setState(targetHandle?'Sparar projektet i PDF-filen…':'Förbereder projekt-PDF…');
  try{
   const savedBytes=await buildPortableProjectPdf();
+  if(targetHandle){
+   await writePdfToHandle(targetHandle,savedBytes);
+   currentFileHandle=targetHandle;
+   currentFileName=targetHandle.name||currentFileName;
+   el.fileName.textContent=currentFileName;
+   setState('Projektet är sparat i samma PDF-fil.');
+   return;
+  }
   const file=new File([savedBytes],currentFileName||'Tillsyno-projekt.pdf',{type:'application/pdf'});
   const delivered=await deliverProjectFile(file,'Tillsyno Projektflöde','Projektfil med sparad arbetsstatus');
-  if(!delivered){setState('Sparandet avbröts. Projektstatusen finns kvar på den här enheten.');return}
-  setState('Projekt-PDF sparad med avbockningar, kommentarer och procent.');
+  setState(delivered?'Projekt-PDF sparad med arbetsstatus.':'Sparandet avbröts. Projektstatusen finns kvar på den här enheten.');
  }catch(err){
   console.error(err);setState('Projektet kunde inte sparas i PDF-filen: '+(err?.message||err));
  }finally{el.saveProject.disabled=false}
 }
+async function saveProjectAs(){
+ if(!bytes||!instances.length)return;
+ closeSaveMenu();
+ let targetHandle=null;
+ if(desktopSavePickerAvailable()){
+  try{
+   targetHandle=await chooseDesktopSaveHandle(currentFileName||'Tillsyno-projekt.pdf');
+  }catch(err){
+   if(err?.name==='AbortError'){setState('Spara som avbröts.');return}
+   console.error(err);
+  }
+ }
+ el.saveProject.disabled=true;setState(targetHandle?'Sparar projektet på vald plats…':'Förbereder projekt-PDF…');
+ try{
+  const savedBytes=await buildPortableProjectPdf();
+  if(targetHandle){
+   await writePdfToHandle(targetHandle,savedBytes);
+   currentFileHandle=targetHandle;
+   currentFileName=targetHandle.name||currentFileName;
+   el.fileName.textContent=currentFileName;
+   setState('Projektet sparades på vald plats. Nästa Spara skriver till samma fil.');
+   return;
+  }
+  const file=new File([savedBytes],currentFileName||'Tillsyno-projekt.pdf',{type:'application/pdf'});
+  const delivered=await deliverProjectFile(file,'Tillsyno Projektflöde','Projektfil med sparad arbetsstatus');
+  setState(delivered?'Projekt-PDF sparad.':'Spara som avbröts.');
+ }catch(err){
+  console.error(err);setState('Projektet kunde inte sparas: '+(err?.message||err));
+ }finally{el.saveProject.disabled=false}
+}
 async function savePdfCopy(){
  if(!bytes)return;
- closeSaveMenu();el.saveProject.disabled=true;setState('Förbereder PDF-kopia…');
+ closeSaveMenu();
+ const name=fileStem(currentFileName)+'-kopia.pdf';
+ let targetHandle=null;
+ if(desktopSavePickerAvailable()){
+  try{
+   targetHandle=await chooseDesktopSaveHandle(name);
+  }catch(err){
+   if(err?.name==='AbortError'){setState('Sparandet avbröts.');return}
+   console.error(err);
+  }
+ }
+ el.saveProject.disabled=true;setState('Förbereder PDF-kopia…');
  try{
-  const name=fileStem(currentFileName)+'-kopia.pdf';
+  if(targetHandle){
+   await writePdfToHandle(targetHandle,bytes.slice());
+   setState('PDF-kopian sparades på vald plats.');
+   return;
+  }
   const file=new File([bytes.slice()],name,{type:'application/pdf'});
   const delivered=await deliverProjectFile(file,'Tillsyno PDF-kopia','Kopia av hela PDF-filen');
   setState(delivered?'PDF-kopian är klar.':'Sparandet avbröts.');
  }catch(err){
   console.error(err);setState('PDF-kopian kunde inte sparas: '+(err?.message||err));
- }finally{el.saveProject.disabled=false}
-}
-async function saveCurrentDrawingPage(){
- if(!bytes||!pdf)return;
- closeSaveMenu();el.saveProject.disabled=true;setState('Förbereder aktuell ritningssida…');
- try{
-  const {PDFDocument}=PDFLib;
-  const source=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
-  const output=await PDFDocument.create();
-  const copied=await output.copyPages(source,[Math.max(0,page-1)]);
-  output.addPage(copied[0]);
-  const onePage=await output.save({useObjectStreams:false});
-  const name=fileStem(currentFileName)+'-sida-'+page+'.pdf';
-  const file=new File([onePage],name,{type:'application/pdf'});
-  const delivered=await deliverProjectFile(file,'Tillsyno ritningssida','Aktuell ritningssida från Projektflödet');
-  setState(delivered?'Aktuell ritningssida är klar.':'Sparandet avbröts.');
- }catch(err){
-  console.error(err);setState('Den aktuella sidan kunde inte sparas: '+(err?.message||err));
  }finally{el.saveProject.disabled=false}
 }
 function decodePdfText(obj){
@@ -1414,13 +1500,13 @@ async function analyze(file){
  setState(stamps.length+' positioner hittade · '+codes.length+' märkningar · '+matched+' av '+codes.length+' protokolltyper matchade'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
-el.file.onchange=e=>{const file=e.target.files?.[0];if(file)analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})};
+el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
 el.openProject.onclick=openProjectPdf;
 el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=toggleSaveMenu;
 el.savePortable.onclick=savePortableProject;
+el.saveAs.onclick=saveProjectAs;
 el.saveCopy.onclick=savePdfCopy;
-el.savePage.onclick=saveCurrentDrawingPage;
 el.hidePositions.onclick=()=>setPositionsHidden(true);
 el.showPositions.onclick=()=>setPositionsHidden(false);
 document.addEventListener('pointerdown',e=>{
