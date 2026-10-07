@@ -690,7 +690,7 @@ function updateSelfcheckExportCount(){
  el.selfcheckExportCount.textContent=n+' valda';el.selfcheckExportCreate.disabled=n===0;
 }
 function openSelfcheckExport(){
- if(!pdf)return;renderSelfcheckExportList();el.selfcheckExportDialog.showModal();
+ if(!pdf)return;closeSaveMenu();renderSelfcheckExportList();el.selfcheckExportDialog.showModal();
 }
 function closeSelfcheckExport(){if(el.selfcheckExportDialog.open)el.selfcheckExportDialog.close()}
 function safePdfName(value){return String(value||'dorrautomatik').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'dorrautomatik'}
@@ -705,10 +705,15 @@ function createAutomationSelfcheckPdf(o){
  txt('Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
  txt('EGENKONTROLL DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
  txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
- cell('Datum:',projectMeta.date,left,y,62);cell('Projekt / objekt:',projectMeta.projectName,left+62,y,62);cell('Objektnummer:',projectMeta.facilityNo,left+124,y,62);y+=7;
- cell('Företag:',projectMeta.company,left,y,93);cell('Kontaktperson:',projectMeta.contact,left+93,y,93);y+=7;
- cell('Utförd av:',projectMeta.technician,left,y,93);cell('Order / AO:',projectMeta.order,left+93,y,93);y+=7;
- cell('ID / märkning:',automationDisplayId(o),left,y,62,8,true);cell('Typ av automatik:',o.model||o.modelCode,left+62,y,70,8,true);cell('Placering:',o.location,left+132,y,54,8);y+=10;
+ cell('Bokat datum:',projectMeta.date,left,y,93);cell('Nästa provning:',projectMeta.nextDate,left+93,y,93);y+=7;
+ cell('ANLÄGGNING:',projectMeta.projectName,left,y,93,7,true);cell('Anläggningsnr:',projectMeta.facilityNo,left+93,y,93,7,true);y+=7;
+ cell('SERVICEFÖRETAG:',projectMeta.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',projectMeta.customer,left+93,y,93,7,true);y+=7;
+ cell('Kontaktperson på objektet:',projectMeta.companyContact,left,y,93);cell('Kontaktperson:',projectMeta.contact,left+93,y,93);y+=7;
+ cell('Telefon:',projectMeta.companyPhone,left,y,93);cell('Telefon:',projectMeta.phone,left+93,y,93);y+=7;
+ cell('Adress:',projectMeta.companyAddress,left,y,93);cell('Adress:',projectMeta.address,left+93,y,93);y+=7;
+ cell('Postnummer / Postadress:',[projectMeta.companyPostalCode,projectMeta.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[projectMeta.postalCode,projectMeta.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+ cell('ID / märkning:',automationDisplayId(o),left,y,54,8,true);cell('Typ av automatik:',o.model||o.modelCode,left+54,y,66,8,true);cell('AO nummer:',projectMeta.order,left+120,y,66,8,true);y+=8;
+ cell('Placering / Dörrlittra:',o.location,left,y,93,8);cell('Utförd av / tekniker:',projectMeta.technician,left+93,y,93,8,true);y+=10;
  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8);doc.setTextColor(35,35,35);const lines=t.split('\n'),hy=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,hy,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,hy,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  PROJECT_AUTOMATION_CHECKS.forEach(([id,title])=>{
@@ -729,6 +734,36 @@ function createAutomationSelfcheckPdf(o){
  if(issueText){doc.setFont('helvetica','normal');doc.setFontSize(8.3);doc.setTextColor(35,35,35);doc.text(doc.splitTextToSize(issueText,width-7).slice(0,12),left+3,y+5,{lineHeightFactor:1.1})}
  doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([projectMeta.company,projectMeta.projectName||projectMeta.facilityNo].filter(Boolean).join(' · ')||'Tillsyno',left,289,7,false,[89,110,123]);txt('Sida 1 av 1',177,289,7,false,[89,110,123]);
  return doc;
+}
+async function renderAutomationCustomerPreview(){
+ if(!automationPreviewPdf)return;
+ if(automationPreviewRenderTask)try{automationPreviewRenderTask.cancel()}catch(_){}
+ const pg=await automationPreviewPdf.getPage(1),natural=pg.getViewport({scale:1});
+ const width=Math.max(280,el.automationPreviewWrap.clientWidth-20),previewScale=Math.max(.55,Math.min(2.1,width/natural.width));
+ const vp=pg.getViewport({scale:previewScale}),canvas=el.automationPreviewCanvas,ctx=canvas.getContext('2d');
+ const dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.ceil(vp.width*dpr);canvas.height=Math.ceil(vp.height*dpr);canvas.style.width=vp.width+'px';canvas.style.height=vp.height+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ automationPreviewRenderTask=pg.render({canvasContext:ctx,viewport:vp});
+ try{await automationPreviewRenderTask.promise}catch(err){if(err?.name!=='RenderingCancelledException')throw err}
+}
+async function openAutomationCustomerPreview(){
+ const o=selectedAutomation();if(!o)return;
+ try{
+  const doc=createAutomationSelfcheckPdf(o),arrayBuffer=doc.output('arraybuffer');
+  if(automationPreviewPdf)try{await automationPreviewPdf.destroy()}catch(_){}
+  automationPreviewPdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
+  el.automationPreviewTitle.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');
+  el.automationPreviewDialog.showModal();
+  requestAnimationFrame(()=>renderAutomationCustomerPreview().catch(console.error));
+ }catch(err){console.error(err);setState('Kundmallen kunde inte visas: '+(err?.message||err))}
+}
+async function closeAutomationCustomerPreview(){
+ if(el.automationPreviewDialog.open)el.automationPreviewDialog.close();
+ if(automationPreviewRenderTask)try{automationPreviewRenderTask.cancel()}catch(_){}
+ automationPreviewRenderTask=null;
+ if(automationPreviewPdf)try{await automationPreviewPdf.destroy()}catch(_){}
+ automationPreviewPdf=null;
 }
 async function exportSelectedSelfchecks(){
  const ids=[...el.selfcheckExportList.querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value),selected=automationItems.filter(o=>ids.includes(o.id));
@@ -1978,8 +2013,10 @@ el.automationNotes.oninput=()=>{const o=selectedAutomation();if(!o)return;o.note
 el.automationApproveAll.onclick=()=>{const o=selectedAutomation();if(!o)return;PROJECT_AUTOMATION_CHECKS.forEach(([id])=>o.checks[id]={...(o.checks[id]||{}),result:'ok',note:''});o.progress=100;save();renderAutomationProtocol(o);renderMarkers();renderGroups()};
 
 [
- [el.projectName,'projectName'],[el.projectFacility,'facilityNo'],[el.projectOrder,'order'],[el.projectDate,'date'],
- [el.projectContact,'contact'],[el.projectCompany,'company'],[el.projectTechnician,'technician'],[el.projectSignature,'signature']
+ [el.projectName,'projectName'],[el.projectFacility,'facilityNo'],[el.projectOrder,'order'],[el.projectDate,'date'],[el.projectNextDate,'nextDate'],
+ [el.projectCustomer,'customer'],[el.projectAgreement,'agreement'],[el.projectContact,'contact'],[el.projectPhone,'phone'],[el.projectAddress,'address'],[el.projectPostalCode,'postalCode'],[el.projectPostalCity,'postalCity'],
+ [el.projectCompany,'company'],[el.projectCompanyContact,'companyContact'],[el.projectCompanyPhone,'companyPhone'],[el.projectCompanyAddress,'companyAddress'],[el.projectCompanyPostalCode,'companyPostalCode'],[el.projectCompanyPostalCity,'companyPostalCity'],
+ [el.projectTechnician,'technician'],[el.projectSignature,'signature']
 ].forEach(([input,key])=>input.oninput=()=>{projectMeta[key]=input.value;save()});
 el.projectLogo.onchange=async e=>{
  const input=e.currentTarget,file=input.files?.[0];if(!file)return;
@@ -1990,7 +2027,11 @@ el.projectLogo.onchange=async e=>{
 };
 el.projectLogoRemove.onclick=()=>{projectLogoData='';save();refreshProjectLogoPreview()};
 
-el.selfcheckExport.onclick=openSelfcheckExport;
+el.saveSelfchecks.onclick=openSelfcheckExport;
+el.automationPreview.onclick=openAutomationCustomerPreview;
+el.automationPreviewClose.onclick=closeAutomationCustomerPreview;
+el.automationPreviewDialog.addEventListener('cancel',e=>{e.preventDefault();closeAutomationCustomerPreview()});
+window.addEventListener('resize',()=>{if(el.automationPreviewDialog.open)renderAutomationCustomerPreview().catch(console.error)});
 el.selfcheckExportClose.onclick=closeSelfcheckExport;
 el.selfcheckExportDialog.addEventListener('cancel',e=>{e.preventDefault();closeSelfcheckExport()});
 el.selfcheckSelectAll.onclick=()=>{el.selfcheckExportList.querySelectorAll('input[type="checkbox"]').forEach(x=>x.checked=true);updateSelfcheckExportCount()};
