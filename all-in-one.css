@@ -801,3 +801,59 @@ body.allInOneApp #mobileBar{
   position:relative;
   z-index:60;
 }
+
+
+/* Protocol chooser: Ritningsverktyg · Hem · Fortsätt */
+body.allInOneApp .allProtocolHome{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:7px 11px;
+  border:1px solid #b9c9d2;
+  border-radius:8px;
+  background:#fff;
+  color:#294653;
+  text-decoration:none;
+  font-size:11px;
+  font-weight:750;
+  white-space:nowrap;
+}
+body.allInOneApp .allProtocolHome svg{
+  width:17px;
+  height:17px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  flex:none;
+}
+body.allInOneApp .allProtocolActions{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(110px,.72fr) minmax(0,1fr)!important;
+  align-items:stretch!important;
+  gap:8px!important;
+}
+body.allInOneApp #allProtocolApply{margin-left:0!important}
+@media(max-width:600px){
+  body.allInOneApp .allProtocolActions{
+    grid-template-columns:minmax(0,1fr) minmax(72px,.7fr) minmax(0,1fr)!important;
+    gap:6px!important;
+  }
+  body.allInOneApp .allProtocolDrawingTool,
+  body.allInOneApp .allProtocolHome,
+  body.allInOneApp #allProtocolApply{
+    width:100%!important;
+    min-width:0!important;
+    min-height:40px!important;
+    padding:6px 5px!important;
+    font-size:9.5px!important;
+  }
+  body.allInOneApp .allProtocolDrawingTool svg,
+  body.allInOneApp .allProtocolHome svg{
+    width:15px;
+    height:15px;
+  }
+}
