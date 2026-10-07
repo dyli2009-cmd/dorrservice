@@ -326,3 +326,10 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
   .pfViewerWrap.isPanning *{cursor:grabbing!important}
   .pfMarkerHit{cursor:pointer!important}
 }
+
+
+/* v2.4.185: explicit pan/hand mode for the drawing workspace. */
+.pfPanMode.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.pfViewerWrap.isPanMode{cursor:grab}
+.pfViewerWrap.isPanMode.isPanning{cursor:grabbing;user-select:none}
+.pfViewerWrap.isPanMode .pfStage{user-select:none}
