@@ -901,6 +901,13 @@ function showOverview(){
   const meta=document.createElement('p');meta.className='secSummaryMeta';meta.textContent=o.location?'Placering: '+o.location:'Placering saknas';card.appendChild(meta);
   const iss=issues(o);if(iss.length){const ul=document.createElement('ul');iss.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});card.appendChild(ul)}else{const p=document.createElement('p');p.textContent=statusOf(o)==='ok'?'Godkänd utan anmärkning':'Inga registrerade anmärkningar.';card.appendChild(p)}
   if(hasSecurityRecordedProblem(o)){
+   const actionBlock=document.createElement('section');actionBlock.className='secRemediationDescriptionBlock';
+   const actionTitle=document.createElement('h4');actionTitle.textContent='Beskriv åtgärd';
+   const actionText=document.createElement('textarea');actionText.rows=2;actionText.value=o.remediationDescription||'';actionText.placeholder='Beskriv vad som gjordes för att lösa felet…';actionText.setAttribute('aria-label','Beskriv åtgärd för '+securityDrawingLabel(o));
+   actionText.onclick=e=>e.stopPropagation();
+   actionText.oninput=e=>{e.stopPropagation();o.remediationDescription=actionText.value;save()};
+   actionText.onchange=e=>{e.stopPropagation();o.remediationDescription=actionText.value.trim();save();showOverview()};
+   actionBlock.append(actionTitle,actionText);card.appendChild(actionBlock);
    const grid=document.createElement('div');grid.className='grid2 secRemediationGrid';
    [['remediationDate','Åtgärdat datum','date'],['remediationSignature','Åtgärdssignatur','text']].forEach(([key,title,type])=>{
     const label=document.createElement('label');label.textContent=title;
@@ -909,14 +916,7 @@ function showOverview(){
     input.oninput=e=>{e.stopPropagation();o[key]=input.value;save();syncSecurityOverviewCard(card,badge,o);setSecurityOverviewSummary();drawMarkers()};
     input.onchange=e=>{e.stopPropagation();save();showOverview();drawMarkers()};
     label.appendChild(input);grid.appendChild(label);
-   });
-   const actionLabel=document.createElement('label');actionLabel.className='secRemediationDescription';actionLabel.textContent='Beskriv åtgärd';
-   const actionText=document.createElement('textarea');actionText.rows=2;actionText.value=o.remediationDescription||'';actionText.placeholder='Beskriv vad som gjordes för att lösa felet…';actionText.setAttribute('aria-label','Beskriv åtgärd för '+securityDrawingLabel(o));
-   actionText.onclick=e=>e.stopPropagation();
-   actionText.oninput=e=>{e.stopPropagation();o.remediationDescription=actionText.value;save()};
-   actionText.onchange=e=>{e.stopPropagation();o.remediationDescription=actionText.value.trim();save();showOverview()};
-   actionLabel.appendChild(actionText);grid.appendChild(actionLabel);
-   card.appendChild(grid);
+   });card.appendChild(grid);
   }
   card.onclick=e=>{if(e.target.closest('input,select,textarea,button,label'))return;selected=o.uid;showSelected();closeSecurityOverview();go('protocol')};
   list.appendChild(card);
@@ -1229,15 +1229,15 @@ async function openCustomerPreview(forceReport=false){
    previewMode='drawing';previewPdf=await pdfjsLib.getDocument({data:sourceBytes.slice()}).promise;previewPage=Math.max(1,Math.min(previewPdf.numPages,page));$('secPreviewTitle').textContent='Ritning · sida '+previewPage;
   }else{
    previewMode='report';const report=reportDoc(),pageMap=report.__protocolPages||{},bytes=new Uint8Array(report.output('arraybuffer'));previewPdf=await pdfjsLib.getDocument({data:bytes}).promise;
-   if(view==='protocol'&&o&&pageMap[o.uid]){previewPage=pageMap[o.uid];$('secPreviewTitle').textContent=SYSTEMS[o.type].label+' · '+o.id}
-   else{previewPage=1;$('secPreviewTitle').textContent=overviewOpen?'Objekt och anmärkningar':'Kundrapport'}
+   if(!forceReport&&!overviewOpen&&view==='protocol'&&o&&pageMap[o.uid]){previewPage=pageMap[o.uid];$('secPreviewTitle').textContent=SYSTEMS[o.type].label+' · '+o.id}
+   else{previewPage=1;$('secPreviewTitle').textContent=(forceReport||overviewOpen)?'Objekt och anmärkningar':'Kundrapport'}
   }
   $('secPreviewDialog').showModal();await renderCustomerPreview();
  }catch(e){console.error(e);msg('Kunde inte visa kundmallen.',true)}
 }
 $('securityPreview').onclick=()=>{
  const fromOverview=!!$('securityOverview')?.open;
- openCustomerPreview(fromOverview);
+ openCustomerPreview(fromOverview||!ALL_IN_ONE);
 };
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
