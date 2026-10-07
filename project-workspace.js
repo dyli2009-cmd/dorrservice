@@ -594,7 +594,7 @@ async function markBulkDone(){
   checks.forEach(item=>o.checks[item.key]=true);
   await recalc(o);changed++;
  }
- save();updateStats();renderGroups();renderMarkers();bulkSelected.clear();updateBulkBar();
+ bulkSelected.clear();updateBulkBar();save();updateStats();renderGroups();renderMarkers();
  setState(changed+' positioner klarmarkerade'+(withoutChecks?' · '+withoutChecks+' saknade kontrollpunkter':'')+'.');
  if(el.timeDialog.open)await renderTimeReport();
 }
