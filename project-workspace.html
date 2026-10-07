@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.230">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.231">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -153,6 +153,7 @@
   <div class="pwItemEditorBody">
     <label>Benämning<input id="pwEditLabel" type="text" placeholder="Exempel: Elbleck"></label>
     <label>Typ / utförande<input id="pwEditValue" type="text" placeholder="Exempel: STEP 40"></label>
+    <label>Tid (minuter)<input id="pwEditMinutes" type="number" min="0" step="5" inputmode="numeric" placeholder="Tomt = använd standardtid"><small>Du kan sätta en egen tid för just den här punkten. Sätt 0 min om den inte ska påverka tidsprocenten.</small></label>
     <label>Kommentar<textarea id="pwEditNote" rows="3" placeholder="Exempel: Bytt modell på plats – originaltypen gick inte att använda."></textarea></label>
   </div>
   <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
@@ -168,13 +169,14 @@
       <div><span>Totalt</span><strong id="pwTimeTotal">0 h</strong></div>
       <div><span>Beräknat utfört</span><strong id="pwTimeDone">0 h</strong></div>
       <div><span>Kvar</span><strong id="pwTimeLeft">0 h</strong></div>
+      <div><span>Projekt klart</span><strong id="pwTimeProgress">0%</strong></div>
       <div><span>Utan tidsestimat</span><strong id="pwTimeUnknown">0</strong></div>
     </div>
-    <p class="pwTimeIntro">Tiden är en uppskattning utifrån projektets GS-kontrollpunkter. Ändra minuterna nedan så räknas rapporten om direkt.</p>
+    <p class="pwTimeIntro">Tiden är en uppskattning utifrån projektets GS-kontrollpunkter. Ändra standardtid, ta bort en tidsmall från beräkningen eller sätt en egen tid direkt på en kontrollpunkt. Projektprocenten vägs efter minuter.</p>
     <div id="pwTimeRows" class="pwTimeRows"></div>
   </div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.230"></script>
+<script src="project-workspace.js?v=2.4.231"></script>
 </body>
 </html>
