@@ -886,3 +886,11 @@ body[data-overview-size="3"] #securityOverview .secSummaryMeta{font-size:17px}
  #secOverviewList .secRemediationDescriptionBlock h4{font-size:9px;margin:0 0 3px}
  #secOverviewList .secRemediationDescriptionBlock textarea{min-height:42px;padding:4px 5px;font-size:10px;border-radius:5px}
 }
+
+/* 2.4.213: overview should open quietly and stay visually compact. */
+#securityOverview .overviewHead h2{font-size:15px;line-height:1.15;margin:1px 0 0}
+#secNavOverview .navLabel{font-size:9px}
+@media(max-width:800px){
+ #securityOverview .overviewHead h2{font-size:12px}
+ #secNavOverview .navLabel{font-size:8.5px}
+}
