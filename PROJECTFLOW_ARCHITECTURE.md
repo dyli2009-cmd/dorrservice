@@ -76,6 +76,14 @@ Kontrollflödets lås ska respekteras.
 - samma viewport-transform ska användas när en position väljs från listan och centreras på ritningen
 - alla hittade positioner visas med en diskret färgad overlay så det går att kontrollera visuellt var systemet har positionerat dem; ingen extra ID-etikett läggs ovanpå ritningens egen GS-text
 
+## Startvy
+- Innan en projekt-PDF öppnas visas en ren Projektflöde-startvy utan projektstatistik, arbetsverktyg eller positionspanel.
+- Sidhuvudets `Projektflöde` är centrerat; den extra `Öppna projekt-PDF`-knappen uppe till höger är borttagen.
+- Startsidan har endast huvudknappen `Öppna projekt-PDF` i mitten.
+- De tidigare förklarande styckena om PDF-matchning och Kontrollflödet visas inte på startsidan.
+- Bakgrunden är en diskret teknisk projektillustration med planlinjer, dörrsymboler och projektmarkeringar. Den försvinner när ritningen öppnas.
+- `Passa` och övriga ritverktyg visas först efter att en PDF har öppnats.
+
 ## Ritning – navigation
 - mushjulet zoomar ritningen in/ut kring muspekaren
 - zoomförhandsvisning sker direkt och högupplöst PDF-rendering görs efter en kort paus för snabb känsla på stora ritningar
