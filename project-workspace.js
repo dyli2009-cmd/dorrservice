@@ -3,7 +3,7 @@
 
 const $=id=>document.getElementById(id);
 const el={
- file:$('pwFile'),saveProject:$('pwSaveProject'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
+ file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
@@ -26,40 +26,61 @@ function setState(text){el.state.textContent=text}
 function isNativeIos(){
  try{return !!window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='ios'}catch(_){return false}
 }
+function nativeFilePickerAvailable(){
+ try{return isNativeIos()&&!!window.Capacitor?.isPluginAvailable?.('FilePicker')}catch(_){return false}
+}
 function getNativeFilePicker(){
- if(!isNativeIos())return null;
+ if(!nativeFilePickerAvailable())return null;
  try{
   if(window.Capacitor?.registerPlugin)return window.Capacitor.registerPlugin('FilePicker');
   return window.Capacitor?.Plugins?.FilePicker||null;
  }catch(_){return null}
 }
-async function pickProjectPdfNative(){
+async function blobFromPickedFile(picked){
+ if(picked?.blob)return picked.blob;
+ const urls=[];
+ if(picked?.webPath)urls.push(picked.webPath);
+ if(picked?.path){
+  try{urls.push(window.Capacitor?.convertFileSrc?.(picked.path)||picked.path)}catch(_){urls.push(picked.path)}
+ }
+ let lastError=null;
+ for(const url of [...new Set(urls.filter(Boolean))]){
+  try{
+   const response=await fetch(url);
+   if(response.ok)return await response.blob();
+   lastError=new Error('Filåtkomst gav status '+response.status+'.');
+  }catch(err){lastError=err}
+ }
+ throw lastError||new Error('Den valda PDF-filen kunde inte läsas av appen.');
+}
+async function openProjectPdf(){
+ if(!isNativeIos()){
+  el.file.value='';
+  el.file.click();
+  return;
+ }
+ if(!nativeFilePickerAvailable()){
+  setState('Native filväljare saknas i den här appversionen. Öppnar vanlig filväljare…');
+  el.file.value='';
+  el.file.click();
+  return;
+ }
  const picker=getNativeFilePicker();
- if(!picker){el.file.click();return}
  setState('Öppnar Filer…');
  try{
-  const result=await picker.pickFiles({types:['application/pdf'],limit:1});
+  const result=await picker.pickFiles({types:['application/pdf'],limit:1,readData:false});
   const picked=result?.files?.[0];
-  if(!picked)return;
-  let blob=picked.blob||null;
-  if(!blob&&picked.webPath){
-   const response=await fetch(picked.webPath);
-   if(!response.ok)throw new Error('Kunde inte läsa den valda filen.');
-   blob=await response.blob();
-  }
-  if(!blob&&picked.path){
-   const response=await fetch(window.Capacitor?.convertFileSrc?.(picked.path)||picked.path);
-   if(!response.ok)throw new Error('Kunde inte läsa den valda filen.');
-   blob=await response.blob();
-  }
-  if(!blob)throw new Error('Den valda PDF-filen kunde inte läsas.');
-  const file=new File([blob],picked.name||'Projekt.pdf',{type:picked.mimeType||'application/pdf',lastModified:picked.modifiedAt||Date.now()});
+  if(!picked){setState('Ingen fil vald.');return}
+  setState('PDF vald: '+(picked.name||'Projekt.pdf')+' · läser filen…');
+  const blob=await blobFromPickedFile(picked);
+  const type=picked.mimeType||blob.type||'application/pdf';
+  const file=new File([blob],picked.name||'Projekt.pdf',{type,lastModified:picked.modifiedAt||Date.now()});
   await analyze(file);
  }catch(err){
   const message=String(err?.message||err||'');
   if(/cancel|dismiss|avbr/i.test(message)){setState('Ingen fil vald.');return}
   console.error(err);
-  setState('PDF-filen kunde inte öppnas från Filer: '+message);
+  setState('Kunde inte öppna PDF i iOS: '+message);
  }
 }
 function hashBytes(arr){let h=2166136261;const step=Math.max(1,Math.floor(arr.length/50000));for(let i=0;i<arr.length;i+=step){h^=arr[i];h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
@@ -488,13 +509,8 @@ async function analyze(file){
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file)analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})};
-document.querySelectorAll('label[for="pwFile"]').forEach(label=>{
- label.addEventListener('click',e=>{
-  if(!isNativeIos())return;
-  e.preventDefault();
-  pickProjectPdfNative();
- });
-});
+el.openProject.onclick=openProjectPdf;
+el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=savePortableProject;
 el.prev.onclick=async()=>{if(pdf&&page>1){page--;await renderDrawing();renderGroups()}};
 el.next.onclick=async()=>{if(pdf&&page<pdf.numPages){page++;await renderDrawing();renderGroups()}};
