@@ -376,10 +376,10 @@ function effectiveChecks(o,def){
  const base=(def?.checks||[]).map(line=>{
   const override=o.overrides?.[line.key]||{};
   if(override.hidden)return null;
-  return {...line,label:override.label??line.label,value:override.value??line.value,note:override.note||'',minutes:Number.isFinite(Number(override.minutes))?Math.max(0,Number(override.minutes)):null,source:'base'};
+  return {...line,label:override.label??line.label,value:override.value??line.value,note:override.note||'',minutes:override.minutes!==null&&override.minutes!==''&&Number.isFinite(Number(override.minutes))?Math.max(0,Number(override.minutes)):null,source:'base'};
  }).filter(Boolean);
  const custom=(o.customItems||[]).map(item=>({
-  key:item.id,label:item.label||'Egen punkt',value:item.value||'',note:item.note||'',minutes:Number.isFinite(Number(item.minutes))?Math.max(0,Number(item.minutes)):null,source:'custom',actionable:true
+  key:item.id,label:item.label||'Egen punkt',value:item.value||'',note:item.note||'',minutes:item.minutes!==null&&item.minutes!==''&&Number.isFinite(Number(item.minutes))?Math.max(0,Number(item.minutes)):null,source:'custom',actionable:true
  }));
  return [...base,...custom];
 }
@@ -762,7 +762,7 @@ function classifyTimeItem(item){
  return TIME_CATEGORY_DEFS.find(d=>d.rx.test(text))||null;
 }
 function resolveItemMinutes(item){
- if(Number.isFinite(Number(item?.minutes)))return {minutes:Math.max(0,Number(item.minutes)),source:'item',category:classifyTimeItem(item)};
+ if(item?.minutes!==null&&item?.minutes!==''&&Number.isFinite(Number(item?.minutes)))return {minutes:Math.max(0,Number(item.minutes)),source:'item',category:classifyTimeItem(item)};
  const category=classifyTimeItem(item);
  if(!category)return {minutes:null,source:'none',category:null};
  if(loadDisabledTimeCategories().has(category.key))return {minutes:null,source:'disabled',category};
@@ -1041,7 +1041,7 @@ function openItemEditor(o,item=null){
  el.itemEditorTitle.textContent=item?'Ändra punkt':'Lägg till punkt';
  el.editLabel.value=item?.label||'';
  el.editValue.value=item?.value||'';
- el.editMinutes.value=Number.isFinite(Number(item?.minutes))?String(Math.max(0,Number(item.minutes))):'';
+ el.editMinutes.value=item?.minutes!==null&&item?.minutes!==''&&Number.isFinite(Number(item?.minutes))?String(Math.max(0,Number(item.minutes))):'';
  el.editNote.value=item?.note||'';
  el.itemEditor.showModal();
  requestAnimationFrame(()=>el.editLabel.focus());
