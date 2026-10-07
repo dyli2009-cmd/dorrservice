@@ -23,6 +23,45 @@ let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
 let selectedId=null,protocolScale=1,protocolRenderTask=null,currentOnly=false,restoreView=null,editingItem=null;
 
 function setState(text){el.state.textContent=text}
+function isNativeIos(){
+ try{return !!window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='ios'}catch(_){return false}
+}
+function getNativeFilePicker(){
+ if(!isNativeIos())return null;
+ try{
+  if(window.Capacitor?.registerPlugin)return window.Capacitor.registerPlugin('FilePicker');
+  return window.Capacitor?.Plugins?.FilePicker||null;
+ }catch(_){return null}
+}
+async function pickProjectPdfNative(){
+ const picker=getNativeFilePicker();
+ if(!picker){el.file.click();return}
+ setState('Öppnar Filer…');
+ try{
+  const result=await picker.pickFiles({types:['application/pdf'],limit:1});
+  const picked=result?.files?.[0];
+  if(!picked)return;
+  let blob=picked.blob||null;
+  if(!blob&&picked.webPath){
+   const response=await fetch(picked.webPath);
+   if(!response.ok)throw new Error('Kunde inte läsa den valda filen.');
+   blob=await response.blob();
+  }
+  if(!blob&&picked.path){
+   const response=await fetch(window.Capacitor?.convertFileSrc?.(picked.path)||picked.path);
+   if(!response.ok)throw new Error('Kunde inte läsa den valda filen.');
+   blob=await response.blob();
+  }
+  if(!blob)throw new Error('Den valda PDF-filen kunde inte läsas.');
+  const file=new File([blob],picked.name||'Projekt.pdf',{type:picked.mimeType||'application/pdf',lastModified:picked.modifiedAt||Date.now()});
+  await analyze(file);
+ }catch(err){
+  const message=String(err?.message||err||'');
+  if(/cancel|dismiss|avbr/i.test(message)){setState('Ingen fil vald.');return}
+  console.error(err);
+  setState('PDF-filen kunde inte öppnas från Filer: '+message);
+ }
+}
 function hashBytes(arr){let h=2166136261;const step=Math.max(1,Math.floor(arr.length/50000));for(let i=0;i<arr.length;i+=step){h^=arr[i];h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
 function storageKey(){return 'tillsyno-project-workspace-v2:'+(projectId||fileKey)}
 function stateTime(s){const t=Date.parse(String(s?.updatedAt||''));return Number.isFinite(t)?t:0}
@@ -449,6 +488,13 @@ async function analyze(file){
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file)analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})};
+document.querySelectorAll('label[for="pwFile"]').forEach(label=>{
+ label.addEventListener('click',e=>{
+  if(!isNativeIos())return;
+  e.preventDefault();
+  pickProjectPdfNative();
+ });
+});
 el.saveProject.onclick=savePortableProject;
 el.prev.onclick=async()=>{if(pdf&&page>1){page--;await renderDrawing();renderGroups()}};
 el.next.onclick=async()=>{if(pdf&&page<pdf.numPages){page++;await renderDrawing();renderGroups()}};
