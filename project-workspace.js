@@ -472,7 +472,7 @@ async function finishArrowNote(start,end){
 }
 function beginDrawingTool(e){
  if(!drawingTool||!pdf||e.pointerType==='mouse'&&e.button!==0)return false;
- if(e.target.closest?.('.pwToolbar,.pwSide,.pwShowPositions'))return false;
+ if(!el.stage.contains(e.target)||e.target.closest?.('.pwToolbar,.pwSide,.pwShowPositions'))return false;
  e.preventDefault();e.stopPropagation();
  const point=stagePoint(e.clientX,e.clientY);
  if(drawingTool==='text'){
@@ -846,6 +846,7 @@ function beginDrawingTouch(e){
  if(!pdf)return;
  if(e.touches.length>=2){
   e.preventDefault();
+  if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}
   const center=drawingTouchCenter(e.touches),focus=drawingFocusRatios(center.x,center.y);
   drawingTouch={mode:'pinch',startDistance:Math.max(1,drawingTouchDistance(e.touches)),startScale:scale,targetScale:scale,focus,center};
   el.stage.style.transformOrigin=(focus.x*100)+'% '+(focus.y*100)+'%';
