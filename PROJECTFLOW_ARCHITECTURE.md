@@ -63,6 +63,19 @@ Kontrollflödets lås ska respekteras.
 - För rena nummer som `140` används dörrkorts-/protokollmatchningen som extra signal för att minska risken att vanliga måttsiffror misstolkas.
 - samma normaliserade ID används för position, räkning, klickyta och matchning mot dörrkort/protokoll i samma PDF
 
+## Egenkontroll dörrautomatik i Projektflödet
+- Projektflödet har en fristående kopia av den befintliga `Egenkontroll dörrautomatik`-definitionen och får inte läsa eller importera Kontrollflödets runtime-kod.
+- Kontrollflödets källfiler används endast som referens när kopian skapas; de skyddade filerna ändras inte.
+- Kopian innehåller samma sex kontrollpunkter och samma listade dörrautomatikmodeller (kod 11–48) som befintlig Egenkontroll dörrautomatik.
+- Projektflödet söker efter textmarkeringen `DA` på ritningssidor och analyserar närliggande PDF-text för objektnummer, typ av automatik och antal/löpnummer.
+- Varje hittad DA-position får en egen klickbar Egenkontroll på ritningen och i Positioner-panelen.
+- Avlästa värden får korrigeras manuellt inne i egenkontrollen.
+- Projekt/objekt, objektnummer, AO, datum, kontaktperson, företag, tekniker/signatur och logotyp lagras en gång på projektnivå och används automatiskt av samtliga egenkontroller.
+- En logotyp som väljs från valfri egenkontroll sparas därför för hela projektet.
+- Egenkontrollens resultat använder samma tre val: `Ingår ej`, `Klart utan anmärkning` och `Klart med anmärkning`.
+- Projekt-PDF-statusen använder schema 5 och bäddar in projektuppgifter, logga och samtliga DA-egenkontroller tillsammans med övrig Projektflöde-status.
+- `Egenkontroller PDF` visar alla hittade automatiker, kan välja alla eller endast klara och skapar en separat kund-PDF för varje vald automatik. På plattformar som stöder delning av flera filer kan filerna delas tillsammans.
+
 ## Originalprotokoll – zoom
 - originalprotokollet ska kunna nypzoomas med två fingrar på telefon och iPad
 - en-fingersdrag används för att panorera när protokollet är inzoomat
