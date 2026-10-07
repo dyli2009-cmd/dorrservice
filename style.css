@@ -1833,3 +1833,82 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
 @media(max-width:620px){
   .appHome{background-size:cover,contain!important}
 }
+
+
+/* 2.4.175: responsive ambient security artwork; separate from the background image. */
+.appHome{
+  position:relative!important;
+  overflow:hidden!important;
+  background-image:
+    radial-gradient(circle at 50% 36%,rgba(44,93,116,.88) 0,rgba(24,62,80,.96) 42%,#102b39 100%)!important;
+  background-size:cover!important;
+  background-position:center!important;
+}
+.homeCctvCue{display:none!important}
+.homeAmbient{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:hidden;
+}
+.homeAmbientItem{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:rgba(232,244,249,.20);
+  opacity:1;
+  filter:drop-shadow(0 7px 22px rgba(2,12,18,.16));
+  transform-origin:center;
+}
+.homeAmbientItem svg{
+  width:clamp(72px,8vw,132px);
+  height:clamp(72px,8vw,132px);
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.45;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.homeAmbientItem small{
+  font-size:clamp(9px,.7vw,12px);
+  font-weight:750;
+  letter-spacing:.16em;
+  color:rgba(232,244,249,.22);
+}
+.homeAmbientCctv{left:5vw;top:8vh;transform:rotate(-5deg)}
+.homeAmbientAccess{right:6vw;top:9vh;transform:rotate(4deg)}
+.homeAmbientDoor{left:4vw;top:43%;transform:rotate(-3deg)}
+.homeAmbientFire{right:5vw;top:42%;transform:rotate(4deg)}
+.homeAmbientLock{left:9vw;bottom:8vh;transform:rotate(3deg)}
+.homeAmbientSensor{right:8vw;bottom:9vh;transform:rotate(-4deg)}
+.homeShell{position:relative!important;z-index:2!important}
+
+@media(min-width:621px) and (max-width:1180px){
+  .homeAmbientItem svg{width:clamp(66px,10vw,104px);height:clamp(66px,10vw,104px)}
+  .homeAmbientCctv{left:4vw;top:7vh}
+  .homeAmbientAccess{right:4vw;top:8vh}
+  .homeAmbientDoor{left:2vw;top:44%}
+  .homeAmbientFire{right:2vw;top:43%}
+  .homeAmbientLock{left:6vw;bottom:8vh}
+  .homeAmbientSensor{right:6vw;bottom:8vh}
+}
+@media(max-width:620px){
+  .homeAmbientItem{color:rgba(232,244,249,.16)}
+  .homeAmbientItem svg{width:58px;height:58px;stroke-width:1.35}
+  .homeAmbientItem small{font-size:7px;letter-spacing:.12em}
+  .homeAmbientCctv{left:-7px;top:max(14px,env(safe-area-inset-top));transform:rotate(-5deg)}
+  .homeAmbientAccess{right:-9px;top:max(18px,env(safe-area-inset-top));transform:rotate(5deg)}
+  .homeAmbientDoor{left:-21px;top:42%;transform:rotate(-3deg)}
+  .homeAmbientFire{right:-18px;top:43%;transform:rotate(5deg)}
+  .homeAmbientLock{left:-6px;bottom:max(13px,env(safe-area-inset-bottom));transform:rotate(3deg)}
+  .homeAmbientSensor{right:-7px;bottom:max(14px,env(safe-area-inset-bottom));transform:rotate(-4deg)}
+}
+@media(max-height:560px) and (orientation:landscape){
+  .homeAmbientItem svg{width:54px;height:54px}
+  .homeAmbientCctv{top:4vh}
+  .homeAmbientAccess{top:4vh}
+  .homeAmbientLock{bottom:4vh}
+  .homeAmbientSensor{bottom:4vh}
+}
