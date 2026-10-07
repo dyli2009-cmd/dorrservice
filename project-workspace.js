@@ -697,18 +697,28 @@ function renderAutomationChecks(o){
   const choices=document.createElement('div');choices.className='pwAutomationChoices';
   [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']].forEach(([value,label])=>{
    const b=document.createElement('button');b.type='button';b.dataset.v=value;b.textContent=label;b.classList.toggle('active',check.result===value);
-   b.onclick=()=>{check.result=check.result===value?'':value;if(value!=='remark'&&check.result!=='remark')check.note='';o.progress=automationProgressOf(o);save();renderAutomationProtocol(o);renderAutomationMarkers();renderGroups()};
+   b.onclick=()=>{check.result=value;if(value!=='remark')check.note='';o.progress=automationProgressOf(o);save();renderAutomationProtocol(o);renderAutomationMarkers();renderGroups()};
    choices.appendChild(b);
   });
   row.append(head,choices);
   if(check.result==='remark'){
    const fault=document.createElement('div');fault.className='pwAutomationFault';
+   const faults=PROJECT_AUTOMATION_FAULTS[id]||[];
    const select=document.createElement('select');select.innerHTML='<option value="">Välj anmärkning…</option>';
-   (PROJECT_AUTOMATION_FAULTS[id]||[]).forEach(v=>{const op=document.createElement('option');op.value=v;op.textContent=v;if(check.note===v)op.selected=true;select.appendChild(op)});
-   select.onchange=()=>{if(select.value){check.note=select.value;save()}};
-   const note=document.createElement('input');note.type='text';note.placeholder='Beskriv själv…';note.value=check.note||'';
-   note.onchange=()=>{check.note=note.value.trim();save()};
-   fault.append(select,note);row.appendChild(fault);
+   faults.forEach(v=>{const op=document.createElement('option');op.value=v;op.textContent=v;select.appendChild(op)});
+   const custom=document.createElement('option');custom.value='__custom__';custom.textContent='✎ Beskriv själv…';select.appendChild(custom);
+   const note=document.createElement('input');note.type='text';note.placeholder='Beskriv felet…';
+   const back=document.createElement('button');back.type='button';back.className='pwAutomationFaultBack';back.textContent='‹';back.setAttribute('aria-label','Till färdiga anmärkningar');
+   const known=faults.includes(check.note||'');select.value=known?check.note:'';note.value=known?'':(check.note||'');
+   const showCustom=show=>{select.hidden=show;note.hidden=!show;back.hidden=!show};showCustom(!!check.note&&!known);
+   select.onchange=()=>{
+    if(select.value==='__custom__'){check.note='';note.value='';showCustom(true);requestAnimationFrame(()=>note.focus());save();return}
+    check.note=select.value||'';save();
+   };
+   note.oninput=()=>{check.note=note.value;save()};
+   note.onblur=()=>{check.note=note.value.trim();note.value=check.note;save()};
+   back.onclick=()=>{check.note='';note.value='';select.value='';showCustom(false);save();select.focus()};
+   fault.append(select,note,back);row.appendChild(fault);
   }
   el.automationChecks.appendChild(row);
  });
@@ -758,7 +768,7 @@ function createAutomationSelfcheckPdf(o){
  const mark=(kind,cx,cy)=>{doc.setTextColor(20,20,20);if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('-',cx,cy+1,{align:'center'});return}doc.setFont('zapfdingbats','normal');doc.setFontSize(10.2);doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+1.2,{align:'center'})};
  doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);addLogo(left,8,58,18);doc.line(left+58,8,left+58,26);
  txt('Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
- txt('EGENKONTROLL DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
+ txt('CHECKLISTA REVISION DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
  txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
  cell('Bokat datum:',projectMeta.date,left,y,93);cell('Nästa provning:',projectMeta.nextDate,left+93,y,93);y+=7;
  cell('ANLÄGGNING:',projectMeta.projectName,left,y,93,7,true);cell('Anläggningsnr:',projectMeta.facilityNo,left+93,y,93,7,true);y+=7;
@@ -771,10 +781,11 @@ function createAutomationSelfcheckPdf(o){
  cell('Placering / Dörrlittra:',o.location,left,y,93,8);cell('Utförd av / tekniker:',projectMeta.technician,left+93,y,93,8,true);y+=10;
  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8);doc.setTextColor(35,35,35);const lines=t.split('\n'),hy=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,hy,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,hy,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
+ const notesReserve=30,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,PROJECT_AUTOMATION_CHECKS.length)));
  PROJECT_AUTOMATION_CHECKS.forEach(([id,title])=>{
-  const check=o.checks?.[id]||{},rowH=10;let xx=left;const vals=[id,title,'','','',projectMeta.signature||''];
+  const check=o.checks?.[id]||{};let xx=left;const vals=[id,title,'','','',projectMeta.signature||''];
   vals.forEach((v,i)=>{doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.rect(xx,y,ws[i],rowH,'FD');
-   if(i===1){doc.setFont('helvetica','normal');doc.setFontSize(7.4);doc.setTextColor(25,25,25);doc.text(doc.splitTextToSize(title,ws[i]-4).slice(0,2),xx+1.7,y+4.1,{lineHeightFactor:1})}
+   if(i===1){const titleSize=rowH<7?6.8:7.4,lines=doc.splitTextToSize(title,ws[i]-4).slice(0,2),step=rowH<7?2.4:2.7,startY=y+rowH/2-((lines.length-1)*step)/2+.7;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);doc.setTextColor(25,25,25);doc.text(lines,xx+1.7,startY,{lineHeightFactor:1})}
    else if(i===2&&check.result==='na')mark('na',xx+ws[i]/2,y+rowH/2);
    else if(i===3&&check.result==='ok')mark('ok',xx+ws[i]/2,y+rowH/2);
    else if(i===4&&check.result==='remark')mark('remark',xx+ws[i]/2,y+rowH/2);
@@ -785,7 +796,7 @@ function createAutomationSelfcheckPdf(o){
  });
  y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,8.2,true,[55,55,55]);y+=6;
  const issueText=[...PROJECT_AUTOMATION_CHECKS.flatMap(([id,title])=>{const c=o.checks?.[id];return c?.result==='remark'?[id+' – '+(c.note?.trim()||title)]:[]}),o.notes].filter(Boolean).join('  ·  ');
- const boxH=Math.max(30,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.rect(left,y,width,boxH,'FD');
+ const boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.rect(left,y,width,boxH,'FD');
  if(issueText){doc.setFont('helvetica','normal');doc.setFontSize(8.3);doc.setTextColor(35,35,35);doc.text(doc.splitTextToSize(issueText,width-7).slice(0,12),left+3,y+5,{lineHeightFactor:1.1})}
  doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([projectMeta.company,projectMeta.projectName||projectMeta.facilityNo].filter(Boolean).join(' · ')||'Tillsyno',left,289,7,false,[89,110,123]);txt('Sida 1 av 1',177,289,7,false,[89,110,123]);
  return doc;
@@ -825,9 +836,9 @@ async function exportSelectedSelfchecks(){
  if(!selected.length)return;
  el.selfcheckExportCreate.disabled=true;setState('Skapar '+selected.length+' egenkontroll-PDF…');
  try{
-  const files=selected.map(o=>{const doc=createAutomationSelfcheckPdf(o),blob=doc.output('blob'),name='Egenkontroll-'+safePdfName(automationDisplayId(o))+'.pdf';return new File([blob],name,{type:'application/pdf'})});
+  const files=selected.map(o=>{const doc=createAutomationSelfcheckPdf(o),blob=doc.output('blob'),name='Checklista-revision-'+safePdfName(automationDisplayId(o))+'.pdf';return new File([blob],name,{type:'application/pdf'})});
   if(navigator.share&&(!navigator.canShare||navigator.canShare({files}))){
-   try{await navigator.share({title:'Egenkontroll dörrautomatik',files});setState(files.length+' egenkontroller klara.');closeSelfcheckExport();return}catch(err){if(err?.name==='AbortError'){setState('Exporten avbröts.');return}}
+   try{await navigator.share({title:'Checklista revision dörrautomatik',files});setState(files.length+' egenkontroller klara.');closeSelfcheckExport();return}catch(err){if(err?.name==='AbortError'){setState('Exporten avbröts.');return}}
   }
   files.forEach((file,i)=>setTimeout(()=>downloadProjectFile(file),i*120));
   setState(files.length+' egenkontroller skapade som separata PDF-filer.');closeSelfcheckExport();
