@@ -894,3 +894,12 @@ body[data-overview-size="3"] #securityOverview .secSummaryMeta{font-size:17px}
  #securityOverview .overviewHead h2{font-size:12px}
  #secNavOverview .navLabel{font-size:8.5px}
 }
+
+/* 2.4.214: restore customer overview action and stop the filter picker opening on entry. */
+#securityOverview.overviewOpening .secOverviewFilters{pointer-events:none}
+#securityOverview .overviewHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#securityOverview .overviewHeadControls{display:flex;align-items:center;gap:5px}
+#securityOverview #secOverviewCustomerPreview{min-height:30px;padding:4px 8px;font-size:9.5px;white-space:nowrap}
+@media(max-width:800px){
+ #securityOverview #secOverviewCustomerPreview{min-height:27px;padding:3px 6px;font-size:8.5px}
+}
