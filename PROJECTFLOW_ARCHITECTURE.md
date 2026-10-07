@@ -35,6 +35,7 @@ Projektflödet ska:
 - samma projekt-PDF ska därför kunna flyttas till Files, iCloud Drive, OneDrive eller annan filplats utan separat sidofil
 - lokal autosparning får användas som extra skydd, men den portabla PDF-filen är den delbara projektbäraren
 - samtidig realtidsredigering av samma molnfil ingår inte i filformatet; den senast sparade filversionen är den som nästa tekniker öppnar
+- i iOS-appen ska Projektflödet använda native iOS-filväljare för PDF via Capacitor och falla tillbaka till vanlig HTML-filväljare utanför iOS
 
 ## Isolering
 Projektflödet får inte importera eller använda Kontrollflödets:
