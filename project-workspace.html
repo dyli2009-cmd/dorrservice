@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.216">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.217">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -105,14 +105,24 @@
     <aside class="pwChecklistPane">
       <div class="pwChecklistHead">
         <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
-        <small id="pwChecklistMeta">0 punkter</small>
+        <div class="pwChecklistHeadActions"><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
       </div>
-      <p class="pwChecklistIntro">Rubriker och beskrivande text bevaras. Korta tomma fältnamn utan innehåll tas inte med som kontrollpunkt.</p>
+      <p class="pwChecklistIntro">Rubriker och beskrivande text bevaras. Datum/version och administrativa leverans-/montagerader blir inte kontrollpunkter. Rader märkta DT visas som information men räknas inte som vårt montage.</p>
       <div id="pwChecklist" class="pwChecklist"></div>
     </aside>
   </div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.216"></script>
+<dialog id="pwItemEditor" class="pwItemEditor">
+  <div class="pwItemEditorHead"><div><span>ARBETSPROTOKOLL</span><strong id="pwItemEditorTitle">Ändra punkt</strong></div><button id="pwItemEditorClose" type="button" aria-label="Stäng">×</button></div>
+  <div class="pwItemEditorBody">
+    <label>Benämning<input id="pwEditLabel" type="text" placeholder="Exempel: Elbleck"></label>
+    <label>Typ / utförande<input id="pwEditValue" type="text" placeholder="Exempel: STEP 40"></label>
+    <label>Kommentar<textarea id="pwEditNote" rows="3" placeholder="Exempel: Bytt modell på plats – originaltypen gick inte att använda."></textarea></label>
+  </div>
+  <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
+</dialog>
+
+<script src="project-workspace.js?v=2.4.217"></script>
 </body>
 </html>
