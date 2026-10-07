@@ -1740,3 +1740,27 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
     padding:6px 8px!important;
   }
 }
+
+
+/* 2.4.167: Tillsyno test branding. */
+.homeBrand>div{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  line-height:1.1;
+}
+.homeBrand .homeTagline{
+  display:block;
+  margin-top:3px;
+  color:rgba(244,249,251,.78);
+  font-size:9.5px;
+  font-weight:550;
+  letter-spacing:.015em;
+  text-shadow:0 1px 7px #07182080;
+}
+@media(max-width:620px){
+  .homeBrand .homeTagline{
+    font-size:8.8px;
+    margin-top:2px;
+  }
+}
