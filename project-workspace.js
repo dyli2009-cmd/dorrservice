@@ -658,16 +658,16 @@ async function finishCalloutNote(target,label){
 function readImageFileCompressed(file){
  return new Promise((resolve,reject)=>{
   const reader=new FileReader();
-  reader.onerror=()=>reject(reader.error||new Error('Bilden kunde inte läsas.'));
+  reader.onerror=()=>reject(reader.error||new Error('Fotot kunde inte läsas.'));
   reader.onload=()=>{
    const img=new Image();
-   img.onerror=()=>reject(new Error('Bilden kunde inte öppnas.'));
+   img.onerror=()=>reject(new Error('Fotot kunde inte öppnas.'));
    img.onload=()=>{
     const max=1200,ratio=Math.min(1,max/Math.max(img.naturalWidth||1,img.naturalHeight||1)),w=Math.max(1,Math.round(img.naturalWidth*ratio)),h=Math.max(1,Math.round(img.naturalHeight*ratio));
     const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
     const c=canvas.getContext('2d');c.drawImage(img,0,0,w,h);
     let dataUrl;try{dataUrl=canvas.toDataURL('image/jpeg',.8)}catch(_){dataUrl=String(reader.result||'')}
-    resolve({dataUrl,width:w,height:h,name:file.name||'Bild'});
+    resolve({dataUrl,width:w,height:h,name:file.name||'Foto'});
    };
    img.src=String(reader.result||'');
   };
@@ -683,16 +683,16 @@ async function addImageNote(point){
  const left=Math.max(0,Math.min(vp.width-w,point.x-w/2)),top=Math.max(0,Math.min(vp.height-h,point.y-h/2));
  const a=vp.convertToPdfPoint(left,top),b=vp.convertToPdfPoint(left+w,top+h);
  rememberDrawingState();
- const note={id:'n'+Date.now().toString(36),type:'image',page,rect:[a[0],a[1],b[0],b[1]],dataUrl:pendingImage.dataUrl,name:pendingImage.name||'Bild'};
+ const note={id:'n'+Date.now().toString(36),type:'image',page,rect:[a[0],a[1],b[0],b[1]],dataUrl:pendingImage.dataUrl,name:pendingImage.name||'Foto'};
  drawingNotes.push(note);selectedDrawingNoteId=note.id;pendingImage=null;drawingTool='';save();renderDrawingNotes(vp);setDrawingTool('');
- setState('Bild tillagd. Markera bilden för att flytta, ändra storlek eller ta bort den.');
+ setState('Foto tillagt. Markera fotot för att flytta, ändra storlek eller ta bort det.');
 }
 async function chooseDrawingImage(file){
  if(!file)return;
  try{
-  setState('Förbereder bild…');pendingImage=await readImageFileCompressed(file);drawingTool='image';el.toolMenuButton.classList.add('active');el.viewer.classList.add('noteMode');closeToolMenu();
-  setState('Bilden är vald. Tryck på ritningen där du vill placera den.');
- }catch(err){console.error(err);pendingImage=null;setDrawingTool('');setState('Bilden kunde inte läggas till: '+(err?.message||err))}
+  setState('Förbereder foto…');pendingImage=await readImageFileCompressed(file);drawingTool='image';el.toolMenuButton.classList.add('active');el.viewer.classList.add('noteMode');closeToolMenu();
+  setState('Fotot är klart. Tryck på ritningen där du vill placera det.');
+ }catch(err){console.error(err);pendingImage=null;setDrawingTool('');setState('Fotot kunde inte läggas till: '+(err?.message||err))}
 }
 function deleteSelectedDrawingNote(){
  if(!selectedDrawingNoteId)return;
@@ -966,6 +966,35 @@ function resolveItemMinutes(item){
  if(loadDisabledTimeCategories().has(category.key))return {minutes:null,source:'disabled',category};
  return {minutes:timeCategoryMinutes(category),source:'category',category};
 }
+function parseDurationInput(value){
+ const raw=String(value??'').trim().replace(/\s+/g,'');
+ if(!raw)return null;
+ const match=raw.match(/^(\d+)(?:[,:.](\d{1,2}))?$/);
+ if(!match)return NaN;
+ const hours=Number(match[1]),minutes=match[2]===undefined?0:Number(match[2]);
+ if(!Number.isFinite(hours)||!Number.isFinite(minutes))return NaN;
+ return Math.max(0,Math.round(hours*60+minutes));
+}
+function formatDurationInput(minutes){
+ const total=Math.max(0,Math.round(Number(minutes)||0)),hours=Math.floor(total/60),rest=total%60;
+ if(!rest)return String(hours);
+ return hours+','+String(rest).padStart(2,'0');
+}
+function readDurationField(input,allowBlank=false){
+ const raw=String(input?.value||'').trim();
+ if(input)input.setCustomValidity('');
+ if(allowBlank&&!raw)return null;
+ const minutes=parseDurationInput(raw);
+ if(minutes===null&&!allowBlank)return 0;
+ if(!Number.isFinite(minutes)){
+  if(input){
+   input.setCustomValidity('Skriv tiden som timmar,minuter. Exempel: 8 eller 0,15 eller 3,10.');
+   input.reportValidity();input.focus();
+  }
+  return undefined;
+ }
+ return minutes;
+}
 function formatWorkMinutes(minutes){
  const m=Math.max(0,Math.round(Number(minutes)||0)),h=Math.floor(m/60),rest=m%60;
  if(!h)return m+' min';
@@ -1015,7 +1044,7 @@ function openTimeTypeEditor(def=null){
  editingTimeTypeKey=def?.custom?def.key:null;
  el.timeTypeTitle.textContent=editingTimeTypeKey?'Ändra tidstyp':'Lägg till tidstyp';
  el.timeTypeName.value=def?.label||'';
- el.timeTypeMinutes.value=def?String(Math.max(0,Number(def.minutes)||0)):'';
+ el.timeTypeMinutes.value=def?formatDurationInput(Math.max(0,Number(def.minutes)||0)):'';
  el.timeTypeTerms.value=def?.terms?.join(', ')||'';
  el.timeTypeEditor.showModal();
  requestAnimationFrame(()=>el.timeTypeName.focus());
@@ -1024,7 +1053,7 @@ function closeTimeTypeEditor(){if(el.timeTypeEditor.open)el.timeTypeEditor.close
 async function saveTimeTypeEditor(){
  const label=el.timeTypeName.value.trim();
  if(!label){el.timeTypeName.focus();return}
- const minutes=Math.max(0,Number(el.timeTypeMinutes.value)||0);
+ const minutes=readDurationField(el.timeTypeMinutes,false);if(minutes===undefined)return;
  let terms=el.timeTypeTerms.value.split(',').map(x=>x.trim().toLocaleLowerCase('sv')).filter(Boolean);
  if(!terms.length)terms=[label.toLocaleLowerCase('sv')];
  const list=loadCustomTimeCategories();
@@ -1063,13 +1092,19 @@ async function renderTimeReport(){
   if(r.disabled)details.push('borttagen från beräkning');
   small.textContent=details.join(' · ');name.append(strong,small);
 
-  const input=document.createElement('input');input.type='number';input.min='0';input.step='5';
+  const input=document.createElement('input');input.type='text';input.inputMode='decimal';
   if(r.isManual){input.value='';input.placeholder='Per punkt';input.disabled=true}
   else{
-   input.value=String(timeCategoryMinutes(r.def,report.settings));input.setAttribute('aria-label','Minuter per '+r.def.label);
+   const original=timeCategoryMinutes(r.def,report.settings);
+   input.value=formatDurationInput(original);input.placeholder='0,15';input.setAttribute('aria-label','Tid per '+r.def.label);
    input.disabled=r.disabled;
    input.onchange=async()=>{
-    const next=Math.max(0,Number(input.value)||0);
+    input.setCustomValidity('');
+    const next=parseDurationInput(input.value);
+    if(!Number.isFinite(next)){
+     input.setCustomValidity('Skriv tiden som timmar,minuter. Exempel: 8 eller 0,15 eller 3,10.');
+     input.reportValidity();input.value=formatDurationInput(original);return;
+    }
     if(r.def.custom){
      const list=loadCustomTimeCategories(),item=list.find(x=>x.key===r.def.key);if(item)item.minutes=next;saveCustomTimeCategories(list);
     }else{
@@ -1291,7 +1326,7 @@ function openItemEditor(o,item=null){
  el.itemEditorTitle.textContent=item?'Ändra punkt':'Lägg till punkt';
  el.editLabel.value=item?.label||'';
  el.editValue.value=item?.value||'';
- el.editMinutes.value=item?.minutes!==null&&item?.minutes!==''&&Number.isFinite(Number(item?.minutes))?String(Math.max(0,Number(item.minutes))):'';
+ el.editMinutes.value=item?.minutes!==null&&item?.minutes!==''&&Number.isFinite(Number(item?.minutes))?formatDurationInput(Math.max(0,Number(item.minutes))):'';
  el.editNote.value=item?.note||'';
  el.itemEditor.showModal();
  requestAnimationFrame(()=>el.editLabel.focus());
@@ -1300,7 +1335,7 @@ function closeItemEditor(){if(el.itemEditor.open)el.itemEditor.close();editingIt
 async function saveItemEditor(){
  const o=selectedInstance();if(!o||!editingItem)return;
  const label=el.editLabel.value.trim(),value=el.editValue.value.trim(),note=el.editNote.value.trim();
- const rawMinutes=el.editMinutes.value.trim(),minutes=rawMinutes===''?null:Math.max(0,Number(rawMinutes)||0);
+ const minutes=readDurationField(el.editMinutes,true);if(minutes===undefined)return;
  if(!label){el.editLabel.focus();return}
  if(!editingItem.key){
   const id='c'+Date.now().toString(36)+(o.customItems.length+1).toString(36);
