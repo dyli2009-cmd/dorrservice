@@ -10,8 +10,8 @@ const el={
  protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
  checklist:$('pwChecklist'),checklistMeta:$('pwChecklistMeta'),addChecklistItem:$('pwAddChecklistItem'),
  bulkBar:$('pwBulkBar'),bulkCount:$('pwBulkCount'),bulkPage:$('pwBulkPage'),bulkDone:$('pwBulkDone'),bulkClear:$('pwBulkClear'),
- timeDialog:$('pwTimeDialog'),timeClose:$('pwTimeClose'),timeTotal:$('pwTimeTotal'),timeDone:$('pwTimeDone'),timeLeft:$('pwTimeLeft'),timeUnknown:$('pwTimeUnknown'),timeRows:$('pwTimeRows'),
- itemEditor:$('pwItemEditor'),itemEditorTitle:$('pwItemEditorTitle'),itemEditorClose:$('pwItemEditorClose'),editLabel:$('pwEditLabel'),editValue:$('pwEditValue'),editNote:$('pwEditNote'),editCancel:$('pwEditCancel'),editSave:$('pwEditSave')
+ timeDialog:$('pwTimeDialog'),timeClose:$('pwTimeClose'),timeTotal:$('pwTimeTotal'),timeDone:$('pwTimeDone'),timeLeft:$('pwTimeLeft'),timeProgress:$('pwTimeProgress'),timeUnknown:$('pwTimeUnknown'),timeRows:$('pwTimeRows'),
+ itemEditor:$('pwItemEditor'),itemEditorTitle:$('pwItemEditorTitle'),itemEditorClose:$('pwItemEditorClose'),editLabel:$('pwEditLabel'),editValue:$('pwEditValue'),editMinutes:$('pwEditMinutes'),editNote:$('pwEditNote'),editCancel:$('pwEditCancel'),editSave:$('pwEditSave')
 };
 
 if(!window.pdfjsLib||!window.PDFLib){el.state.textContent='PDF-biblioteket kunde inte laddas.';return}
@@ -376,10 +376,10 @@ function effectiveChecks(o,def){
  const base=(def?.checks||[]).map(line=>{
   const override=o.overrides?.[line.key]||{};
   if(override.hidden)return null;
-  return {...line,label:override.label??line.label,value:override.value??line.value,note:override.note||'',source:'base'};
+  return {...line,label:override.label??line.label,value:override.value??line.value,note:override.note||'',minutes:Number.isFinite(Number(override.minutes))?Math.max(0,Number(override.minutes)):null,source:'base'};
  }).filter(Boolean);
  const custom=(o.customItems||[]).map(item=>({
-  key:item.id,label:item.label||'Egen punkt',value:item.value||'',note:item.note||'',source:'custom',actionable:true
+  key:item.id,label:item.label||'Egen punkt',value:item.value||'',note:item.note||'',minutes:Number.isFinite(Number(item.minutes))?Math.max(0,Number(item.minutes)):null,source:'custom',actionable:true
  }));
  return [...base,...custom];
 }
@@ -399,17 +399,33 @@ function buildInstances(){
 async function recalc(o){
  const def=await protocolDef(o.code);
  const checks=effectiveChecks(o,def);
- if(!checks.length){o.progress=0;return}
- const done=checks.filter(item=>!!o.checks[item.key]).length;
- o.progress=Math.round(done/checks.length*100);
+ if(!checks.length){o.progress=0;o.estimatedMinutes=0;o.doneMinutes=0;o.unknownTimeCount=0;return}
+ let totalMinutes=0,doneMinutes=0,unknownTimeCount=0;
+ checks.forEach(item=>{
+  const resolved=resolveItemMinutes(item);
+  if(resolved.minutes===null){unknownTimeCount++;return}
+  totalMinutes+=resolved.minutes;
+  if(o.checks[item.key])doneMinutes+=resolved.minutes;
+ });
+ const doneCount=checks.filter(item=>!!o.checks[item.key]).length;
+ const allDone=doneCount===checks.length;
+ o.estimatedMinutes=totalMinutes;o.doneMinutes=doneMinutes;o.unknownTimeCount=unknownTimeCount;
+ if(allDone){o.progress=100;return}
+ if(totalMinutes>0){o.progress=Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));return}
+ o.progress=Math.round(doneCount/checks.length*100);
 }
 async function recalcAll(){for(const o of instances)await recalc(o);save();updateStats();renderGroups();renderMarkers()}
 function updateStats(){
  el.positionCount.textContent=instances.length;
  el.matchedCount.textContent=instances.filter(o=>protocolMap[o.code]).length;
  el.doneCount.textContent=instances.filter(o=>o.progress===100).length;
- const avg=instances.length?Math.round(instances.reduce((a,o)=>a+o.progress,0)/instances.length):0;
- el.totalProgress.textContent=avg+'%';
+ const totalMinutes=instances.reduce((a,o)=>a+Math.max(0,Number(o.estimatedMinutes)||0),0);
+ const doneMinutes=instances.reduce((a,o)=>a+Math.max(0,Number(o.doneMinutes)||0),0);
+ const allDone=instances.length>0&&instances.every(o=>o.progress===100);
+ let progress;
+ if(totalMinutes>0)progress=allDone?100:Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));
+ else progress=instances.length?Math.round(instances.reduce((a,o)=>a+o.progress,0)/instances.length):0;
+ el.totalProgress.textContent=progress+'%';
 }
 async function renderDrawing(){
  if(!pdf)return;
@@ -734,9 +750,24 @@ function loadTimeSettings(){
 function saveTimeSettings(settings){
  try{localStorage.setItem('tillsyno-project-time-estimates-v1',JSON.stringify(settings))}catch(_){}
 }
+function loadDisabledTimeCategories(){
+ let saved=[];try{saved=JSON.parse(localStorage.getItem('tillsyno-project-time-disabled-v1')||'[]')}catch(_){}
+ return new Set(Array.isArray(saved)?saved:[]);
+}
+function saveDisabledTimeCategories(set){
+ try{localStorage.setItem('tillsyno-project-time-disabled-v1',JSON.stringify([...set]))}catch(_){}
+}
 function classifyTimeItem(item){
  const text=(String(item?.label||'')+' '+String(item?.value||'')+' '+String(item?.note||'')).toLocaleLowerCase('sv');
  return TIME_CATEGORY_DEFS.find(d=>d.rx.test(text))||null;
+}
+function resolveItemMinutes(item){
+ if(Number.isFinite(Number(item?.minutes)))return {minutes:Math.max(0,Number(item.minutes)),source:'item',category:classifyTimeItem(item)};
+ const category=classifyTimeItem(item);
+ if(!category)return {minutes:null,source:'none',category:null};
+ if(loadDisabledTimeCategories().has(category.key))return {minutes:null,source:'disabled',category};
+ const settings=loadTimeSettings();
+ return {minutes:Math.max(0,Number(settings[category.key])||0),source:'category',category};
 }
 function formatWorkMinutes(minutes){
  const m=Math.max(0,Math.round(Number(minutes)||0)),h=Math.floor(m/60),rest=m%60;
@@ -745,40 +776,78 @@ function formatWorkMinutes(minutes){
  return h+' h '+rest+' min';
 }
 async function calculateTimeReport(){
- const settings=loadTimeSettings(),rows={};TIME_CATEGORY_DEFS.forEach(d=>rows[d.key]={def:d,count:0,doneCount:0,totalMinutes:0,doneMinutes:0});
+ const settings=loadTimeSettings(),disabled=loadDisabledTimeCategories(),rows={};
+ TIME_CATEGORY_DEFS.forEach(d=>rows[d.key]={def:d,count:0,doneCount:0,manualCount:0,totalMinutes:0,doneMinutes:0,disabled:disabled.has(d.key)});
+ const manualOther={key:'manual',label:'Egna tider',count:0,doneCount:0,totalMinutes:0,doneMinutes:0};
  let unknown=0;
  for(const o of instances){
   const def=await protocolDef(o.code),checks=effectiveChecks(o,def);
   for(const item of checks){
-   const category=classifyTimeItem(item);
-   if(!category){unknown++;continue}
-   const r=rows[category.key],minutes=Math.max(0,Number(settings[category.key])||0);
-   r.count++;r.totalMinutes+=minutes;
-   if(o.checks[item.key]){r.doneCount++;r.doneMinutes+=minutes}
-   if(minutes<=0)unknown++;
+   const resolved=resolveItemMinutes(item),category=resolved.category;
+   if(resolved.minutes===null){unknown++;continue}
+   if(category){
+    const r=rows[category.key];r.count++;r.totalMinutes+=resolved.minutes;
+    if(resolved.source==='item')r.manualCount++;
+    if(o.checks[item.key]){r.doneCount++;r.doneMinutes+=resolved.minutes}
+   }else{
+    manualOther.count++;manualOther.totalMinutes+=resolved.minutes;
+    if(o.checks[item.key]){manualOther.doneCount++;manualOther.doneMinutes+=resolved.minutes}
+   }
   }
  }
  const list=TIME_CATEGORY_DEFS.map(d=>rows[d.key]);
- return {settings,rows:list,unknown,total:list.reduce((a,r)=>a+r.totalMinutes,0),done:list.reduce((a,r)=>a+r.doneMinutes,0)};
+ if(manualOther.count)list.push({def:{key:'manual',label:'Egna tider'},...manualOther,manualCount:manualOther.count,disabled:false,isManual:true});
+ const total=list.reduce((a,r)=>a+r.totalMinutes,0),done=list.reduce((a,r)=>a+r.doneMinutes,0);
+ const allChecksDone=instances.length>0&&instances.every(o=>o.progress===100);
+ const progress=total>0?(allChecksDone?100:Math.min(99,Math.max(0,Math.round(done/total*100)))):0;
+ return {settings,disabled,rows:list,unknown,total,done,progress};
+}
+async function refreshTimeDrivenProgress(){
+ await recalcAll();
+ if(el.timeDialog.open)await renderTimeReport();
 }
 async function renderTimeReport(){
- if(!pdf){return}
+ if(!pdf)return;
  el.timeRows.innerHTML='<p class="pwMuted">Räknar projektets kontrollpunkter…</p>';
  const report=await calculateTimeReport(),left=Math.max(0,report.total-report.done);
  el.timeTotal.textContent=formatWorkMinutes(report.total);
  el.timeDone.textContent=formatWorkMinutes(report.done);
  el.timeLeft.textContent=formatWorkMinutes(left);
+ el.timeProgress.textContent=report.progress+'%';
  el.timeUnknown.textContent=String(report.unknown);
  el.timeRows.replaceChildren();
  report.rows.forEach(r=>{
-  const row=document.createElement('div');row.className='pwTimeRow';
+  const row=document.createElement('div');row.className='pwTimeRow'+(r.disabled?' disabled':'');
   const name=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');
-  strong.textContent=r.def.label;small.textContent=r.count+' punkter';name.append(strong,small);
-  const input=document.createElement('input');input.type='number';input.min='0';input.step='5';input.value=String(report.settings[r.def.key]);input.setAttribute('aria-label','Minuter per '+r.def.label);
-  input.onchange=async()=>{const s=loadTimeSettings();s[r.def.key]=Math.max(0,Number(input.value)||0);saveTimeSettings(s);await renderTimeReport()};
+  strong.textContent=r.def.label;
+  const details=[r.count+' punkter'];
+  if(r.manualCount)details.push(r.manualCount+' egna tider');
+  if(r.disabled)details.push('borttagen från beräkning');
+  small.textContent=details.join(' · ');name.append(strong,small);
+
+  const input=document.createElement('input');input.type='number';input.min='0';input.step='5';
+  if(r.isManual){input.value='';input.placeholder='Per punkt';input.disabled=true}
+  else{
+   input.value=String(report.settings[r.def.key]);input.setAttribute('aria-label','Minuter per '+r.def.label);
+   input.disabled=r.disabled;
+   input.onchange=async()=>{const settings=loadTimeSettings();settings[r.def.key]=Math.max(0,Number(input.value)||0);saveTimeSettings(settings);await refreshTimeDrivenProgress()};
+  }
+
   const done=document.createElement('div');done.className='pwTimeStat';done.innerHTML='<small>Klart</small><br>'+r.doneCount+'/'+r.count;
   const remain=document.createElement('div');remain.className='pwTimeStat';remain.innerHTML='<small>Kvar</small><br>'+Math.max(0,r.count-r.doneCount);
-  row.append(name,input,done,remain);el.timeRows.appendChild(row);
+
+  const actions=document.createElement('div');actions.className='pwTimeActions';
+  if(!r.isManual){
+   const toggle=document.createElement('button');toggle.type='button';toggle.textContent=r.disabled?'Återställ':'Ta bort';
+   toggle.title=r.disabled?'Ta tillbaka tidsmallen i beräkningen':'Ta bort tidsmallen från beräkningen. Kontrollpunkterna finns kvar.';
+   toggle.onclick=async()=>{
+    const disabled=loadDisabledTimeCategories();
+    if(r.disabled)disabled.delete(r.def.key);else disabled.add(r.def.key);
+    saveDisabledTimeCategories(disabled);await refreshTimeDrivenProgress();
+   };
+   actions.appendChild(toggle);
+  }
+  row.append(name,input,done,remain,actions);el.timeRows.appendChild(row);
  });
 }
 async function openTimeReport(){
@@ -972,6 +1041,7 @@ function openItemEditor(o,item=null){
  el.itemEditorTitle.textContent=item?'Ändra punkt':'Lägg till punkt';
  el.editLabel.value=item?.label||'';
  el.editValue.value=item?.value||'';
+ el.editMinutes.value=Number.isFinite(Number(item?.minutes))?String(Math.max(0,Number(item.minutes))):'';
  el.editNote.value=item?.note||'';
  el.itemEditor.showModal();
  requestAnimationFrame(()=>el.editLabel.focus());
@@ -980,17 +1050,19 @@ function closeItemEditor(){if(el.itemEditor.open)el.itemEditor.close();editingIt
 async function saveItemEditor(){
  const o=selectedInstance();if(!o||!editingItem)return;
  const label=el.editLabel.value.trim(),value=el.editValue.value.trim(),note=el.editNote.value.trim();
+ const rawMinutes=el.editMinutes.value.trim(),minutes=rawMinutes===''?null:Math.max(0,Number(rawMinutes)||0);
  if(!label){el.editLabel.focus();return}
  if(!editingItem.key){
   const id='c'+Date.now().toString(36)+(o.customItems.length+1).toString(36);
-  o.customItems.push({id,label,value,note});
+  o.customItems.push({id,label,value,note,minutes});
  }else if(editingItem.source==='custom'){
   const item=o.customItems.find(x=>x.id===editingItem.key);
-  if(item)Object.assign(item,{label,value,note});
+  if(item)Object.assign(item,{label,value,note,minutes});
  }else{
-  o.overrides[editingItem.key]={...(o.overrides[editingItem.key]||{}),label,value,note,hidden:false};
+  o.overrides[editingItem.key]={...(o.overrides[editingItem.key]||{}),label,value,note,minutes,hidden:false};
  }
  await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();closeItemEditor();await renderChecklist(o);
+ if(el.timeDialog.open)await renderTimeReport();
 }
 async function removeChecklistItem(o,item){
  if(!o||!item)return;
@@ -1007,12 +1079,15 @@ function appendEditableCheck(o,item){
  const strong=document.createElement('strong');strong.textContent=item.label;
  content.appendChild(strong);
  if(item.value){const small=document.createElement('small');small.textContent=item.value;content.appendChild(small)}
+ const time=resolveItemMinutes(item),timeTag=document.createElement('span');timeTag.className='pwCheckTime'+(time.minutes===null?' missing':'');
+ timeTag.textContent=time.minutes===null?'⏱ Ingen tid':'⏱ '+formatWorkMinutes(time.minutes)+(time.source==='item'?' · egen':'');
+ content.appendChild(timeTag);
  if(item.note){const note=document.createElement('em');note.className='pwCheckComment';note.textContent=item.note;content.appendChild(note)}
  const actions=document.createElement('div');actions.className='pwCheckActions';
  const edit=document.createElement('button');edit.type='button';edit.textContent='Ändra';edit.onclick=()=>openItemEditor(o,item);
  const remove=document.createElement('button');remove.type='button';remove.className='pwRemoveItem';remove.textContent='Ta bort';remove.onclick=()=>removeChecklistItem(o,item);
  actions.append(edit,remove);row.append(input,content,actions);
- input.onchange=async()=>{o.checks[item.key]=input.checked;row.classList.toggle('done',input.checked);await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers()};
+ input.onchange=async()=>{o.checks[item.key]=input.checked;row.classList.toggle('done',input.checked);await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();if(el.timeDialog.open)await renderTimeReport()};
  el.checklist.appendChild(row);
 }
 async function renderChecklist(o){
