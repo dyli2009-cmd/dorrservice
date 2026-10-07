@@ -78,3 +78,10 @@ Kontrollflödets lås ska respekteras.
 - `✋ Hand` växlar till handverktyg; vänsterklick + dra panorerar ritningen
 - mittenknappen på musen kan panorera även utan att Hand är aktiverad
 - klick på GS-markeringar ska fortfarande öppna positionen och inte fångas av handverktyget
+
+## Positioner och sparande
+- Positioner-panelen ska kunna döljas helt och öppnas igen via en liten `Positioner`-knapp så ritningen får maximal arbetsyta
+- valet att dölja panelen får kommas ihåg lokalt på enheten
+- huvudknappen heter `Spara` och öppnar en Spara-meny i stället för att alltid göra samma export
+- Spara-menyn erbjuder: Projekt-PDF med aktuell arbetsstatus, PDF-kopia av hela filen utan nya inbäddade statusändringar, samt aktuell ritningssida som separat PDF
+- på iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination; på webben används nedladdning som reserv
