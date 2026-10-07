@@ -8,7 +8,7 @@
     objectCount:$('pfObjectCount'), doneCount:$('pfDoneCount'), totalProgress:$('pfTotalProgress'),
     prev:$('pfPrev'), next:$('pfNext'), pageInfo:$('pfPageInfo'), zoomOut:$('pfZoomOut'), zoomIn:$('pfZoomIn'), panMode:$('pfPanMode'),
     rescan:$('pfRescan'), wrap:$('pfViewerWrap'), stage:$('pfStage'), canvas:$('pfCanvas'), markers:$('pfMarkers'),
-    empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'),
+    empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'), side:$('pfSide'), sideToggle:$('pfSideToggle'),
     protocol:$('pfProtocol'), protocolType:$('pfProtocolType'), protocolTitle:$('pfProtocolTitle'),
     protocolPosition:$('pfProtocolPosition'), protocolPercent:$('pfProtocolPercent'), protocolBar:$('pfProtocolBar'),
     matchedText:$('pfMatchedProtocolText'), protocolCanvas:$('pfProtocolCanvas'),
@@ -31,7 +31,7 @@
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
   let drawingZoomBusy=false,drawingZoomQueued=null;
-  let panMode=true;
+  let panMode=true, highlightedId=null;
 
   function hashText(text){
     let h=2166136261;
@@ -487,6 +487,7 @@
       btn.className='pfMarkerHit';
       btn.dataset.id=o.id;
       btn.dataset.progress=String(o.progress);
+      if(o.id===highlightedId)btn.classList.add('isSelected');
       const pad=8, width=Math.max(38,r.width+pad*2), height=Math.max(38,r.height+pad*2);
       btn.style.left=(r.left+r.width/2-width/2)+'px';
       btn.style.top=(r.top+r.height/2-height/2)+'px';
@@ -528,7 +529,19 @@
         b.type='button';
         b.className='pfGroupItem';
         b.innerHTML='<span><strong>Position '+o.instance+'</strong><small>Sida '+o.page+' · '+progressLabel(o.progress)+'</small></span><b>'+o.progress+'%</b>';
-        b.addEventListener('click',async()=>{await renderPage(o.page);focusObject(o.id);openProtocol(o.id)});
+        b.addEventListener('click',async()=>{
+          await renderPage(o.page);
+          focusObject(o.id);
+          if(els.side&&matchMedia('(max-width:780px)').matches){
+            els.side.classList.remove('isOpen');
+            if(els.sideToggle){els.sideToggle.setAttribute('aria-expanded','false');els.sideToggle.textContent='Positioner'}
+          }
+          if(protocolPdf)openProtocol(o.id);
+          else{
+            els.state.textContent=o.code+' · Position '+o.instance+' markerad. Dörrkort ej kopplat ännu.';
+            els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
+          }
+        });
         items.appendChild(b);
       });
       const avgLine=document.createElement('small');
@@ -540,6 +553,8 @@
   }
 
   function focusObject(id){
+    highlightedId=id;
+    els.markers.querySelectorAll('.pfMarkerHit').forEach(m=>m.classList.toggle('isSelected',m.dataset.id===id));
     requestAnimationFrame(()=>{
       const marker=els.markers.querySelector('[data-id="'+CSS.escape(id)+'"]');
       if(marker)marker.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
@@ -667,6 +682,13 @@
       els.wrap.classList.toggle('isPanMode',panMode);
     });
   }
+  if(els.sideToggle&&els.side){
+    els.sideToggle.addEventListener('click',()=>{
+      const open=els.side.classList.toggle('isOpen');
+      els.sideToggle.setAttribute('aria-expanded',open?'true':'false');
+      els.sideToggle.textContent=open?'Stäng positioner':'Positioner';
+    });
+  }
   els.rescan.addEventListener('click',()=>scanDrawing().catch(err=>{
     console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false;
   }));
@@ -766,14 +788,20 @@
     const d=touchDistance(e.touches[0],e.touches[1]);
     pinchTarget=pinchStartScale*(d/Math.max(1,pinchStartDistance));
     pinchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
-    if(!pinchFrame)pinchFrame=requestAnimationFrame(async()=>{
-      pinchFrame=0;
-      await zoomTo(pinchTarget,pinchCenter.x,pinchCenter.y);
-    });
+    const preview=Math.max(.35,Math.min(4,pinchTarget))/Math.max(.001,scale);
+    els.stage.classList.add('isGesturePreview');
+    els.stage.style.transform='scale('+preview+')';
+    if(!pinchFrame)pinchFrame=requestAnimationFrame(()=>{pinchFrame=0});
   },{passive:false});
   els.wrap.addEventListener('touchend',e=>{
     if(pinching){
-      if(e.touches.length<2)pinching=false;
+      if(e.touches.length<2){
+        pinching=false;
+        els.stage.classList.remove('isGesturePreview');
+        els.stage.style.transform='';
+        const target=pinchTarget,center=pinchCenter;
+        zoomTo(target,center&&center.x,center&&center.y);
+      }
       return;
     }
     if(!drawingPdf||!e.changedTouches.length)return;
