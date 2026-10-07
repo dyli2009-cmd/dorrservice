@@ -70,16 +70,25 @@
       const content=await page.getTextContent();
       const pageText=content.items.map(i=>i.str||'').join(' ');
       const matches=[];
-      content.items.forEach(item=>{
-        const raw=String(item.str||'');
+      const addMatches=(raw,item)=>{
         regex.lastIndex=0;
         let m;
-        while((m=regex.exec(raw))){
+        while((m=regex.exec(String(raw||'')))){
           const code=normalizeCode(m[0]);
           const t=pdfjsLib.Util.transform(viewport.transform,item.transform);
           const x=Math.max(0,Math.min(1,t[4]/viewport.width));
           const y=Math.max(0,Math.min(1,t[5]/viewport.height));
           if(!matches.some(v=>v.code===code&&Math.abs(v.x-x)<0.015&&Math.abs(v.y-y)<0.015)) matches.push({code,x,y});
+        }
+      };
+      content.items.forEach((item,index)=>{
+        addMatches(item.str,item);
+        const next=content.items[index+1];
+        if(next){
+          const a=pdfjsLib.Util.transform(viewport.transform,item.transform);
+          const b=pdfjsLib.Util.transform(viewport.transform,next.transform);
+          const sameLine=Math.abs(a[5]-b[5])<Math.max(8,Math.abs(a[0])*1.4);
+          if(sameLine)addMatches(String(item.str||'')+' '+String(next.str||''),item);
         }
       });
       if(isProtocolish(pageText)){
