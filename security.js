@@ -1213,11 +1213,11 @@ async function renderCustomerPreview(){
  $('secPreviewPage').textContent=previewPage+' / '+previewPdf.numPages;
  $('secPreviewPrev').disabled=previewPage<=1;$('secPreviewNext').disabled=previewPage>=previewPdf.numPages;
 }
-async function openCustomerPreview(){
+async function openCustomerPreview(forceReport=false){
  try{
   const view=document.body.dataset.view||'drawing',overviewOpen=$('securityOverview')?.open,o=cur();
   if(previewPdf)try{await previewPdf.destroy()}catch(_){}
-  if(view==='drawing'&&!overviewOpen&&pdf&&sourceBytes){
+  if(!forceReport&&view==='drawing'&&!overviewOpen&&pdf&&sourceBytes){
    previewMode='drawing';previewPdf=await pdfjsLib.getDocument({data:sourceBytes.slice()}).promise;previewPage=Math.max(1,Math.min(previewPdf.numPages,page));$('secPreviewTitle').textContent='Ritning · sida '+previewPage;
   }else{
    previewMode='report';const report=reportDoc(),pageMap=report.__protocolPages||{},bytes=new Uint8Array(report.output('arraybuffer'));previewPdf=await pdfjsLib.getDocument({data:bytes}).promise;
@@ -1229,7 +1229,7 @@ async function openCustomerPreview(){
 }
 $('securityPreview').onclick=()=>{closeSecurityOverview();openCustomerPreview()};
 const overviewCustomerPreview=$('secOverviewCustomerPreview');
-if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>{closeSecurityOverview();openCustomerPreview()};
+if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>{closeSecurityOverview();openCustomerPreview(true)};
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
