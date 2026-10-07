@@ -1,0 +1,121 @@
+# Dörrservice – utvecklingsregler
+
+Det här dokumentet ska läsas innan någon ändring görs i Dörrservice.
+
+## 1. Grundregel: ändra bara rätt arbetsområde
+Varje arbetsområde behandlas som en egen modul.
+
+- Kontrollflöde
+- Dörrautomatik
+- Säkerhetsservice
+- Brand
+- Projektflöde
+- Ritningsverktyg
+
+Om en ändring gäller ett visst arbetsområde får andra arbetsområden inte ändras samtidigt, om det inte uttryckligen är nödvändigt och godkänt först.
+
+Exempel:
+- "Ändra Säkerhetsservice" betyder att bara Säkerhetsservice ska ändras.
+- "Ändra Projektflöde" betyder att bara Projektflöde ska ändras.
+- En förbättring i Projektflöde får inte automatiskt flyttas till Kontrollflöde.
+
+## 2. Projektflöde ska vara helt separat
+Projektflöde är ett eget systemflöde och ska hållas isolerat från Kontrollflöde.
+
+Regler:
+- Projektflöde får ha egen kod, egen logik, egen navigation och egen versionsserie.
+- Ändringar i Projektflöde får inte påverka Kontrollflöde.
+- Gemensam kod får bara användas om den är tydligt avgränsad och inte ändrar beteendet i Kontrollflöde.
+- Om en ändring i gemensam kod riskerar att påverka Projektflöde eller Kontrollflöde ska det sägas innan ändringen görs.
+
+## 3. Kontrollflöde
+Kontrollflöde är den gemensamma arbetsytan för kontroll/protokoll.
+
+Dörrautomatik, Säkerhetsservice och Brand får använda samma grundfunktioner, till exempel:
+- ritning
+- markering av objekt
+- checklista/protokoll
+- översikt
+- fel och anmärkningar
+- beskriv åtgärd
+- kundmall
+- spara PDF
+- projektuppgifter
+
+Texterna, kontrollpunkterna, benämningarna och innehållet får vara olika för respektive område.
+
+Målet är:
+**samma arbetssätt och funktion – olika protokollinnehåll.**
+
+En ändring i den gemensamma funktionen ska kontrolleras mot alla berörda protokoll innan den görs.
+
+## 4. Egna versionsnummer per modul
+Varje arbetsområde ska ha en egen versionsserie.
+
+Exempel:
+- Kontrollflöde v1.x
+- Dörrautomatik v1.x
+- Säkerhetsservice v1.x
+- Brand v1.x
+- Projektflöde v1.x
+- Ritningsverktyg v1.x
+
+Endast den modul som faktiskt ändras ska få höjt versionsnummer.
+
+Exempel:
+Om Säkerhetsservice ändras:
+- Säkerhetsservice v1.3 → v1.4
+- Dörrautomatik ligger kvar på sin version
+- Brand ligger kvar på sin version
+- Projektflöde ligger kvar på sin version
+
+Det får även finnas ett övergripande app-/buildnummer för teknisk distribution, men det ska inte ersätta modulernas egna versionsnummer.
+
+## 5. Stabil funktion ska inte ändras i onödan
+När en del är godkänd och fungerar ska den betraktas som stabil.
+
+Gör inte:
+- spontana designändringar
+- omstrukturering bara för att "städa"
+- ändringar i fungerande navigation
+- ändringar i protokoll som inte hör till uppgiften
+- massändringar i gemensam kod utan kontroll
+
+Gör minsta möjliga ändring för den aktuella uppgiften.
+
+## 6. Innan en ny ändring
+När arbete återupptas ska följande göras:
+
+1. Läs detta dokument.
+2. Kontrollera vilket arbetsområde användaren pratar om.
+3. Kontrollera senaste relevanta ändringarna i GitHub.
+4. Bekräfta vilken modul som ska ändras.
+5. Ändra bara den modulen.
+6. Kontrollera att andra moduler inte har påverkats.
+7. Spegla motsvarande ändring till iOS endast när samma modul ska finnas 1:1 där.
+
+Om användaren säger:
+"Kan du kolla vad vi gjorde sist?"
+ska senaste relevanta GitHub-ändringar för just den aktuella modulen kontrolleras innan fortsatt arbete.
+
+## 7. Gemensam kod
+Gemensam kod är tillåten för verkligt gemensamma funktioner, men ska behandlas försiktigt.
+
+Före ändring i gemensam kod:
+- identifiera vilka moduler som använder den
+- kontrollera risken för bieffekter
+- undvik att ändra beteendet för andra moduler
+- separera modulspecifik logik när det behövs
+
+Om en funktion börjar skilja sig mycket mellan två arbetsområden ska den hellre delas upp än fyllas med specialfall som gör systemen beroende av varandra.
+
+## 8. Webb och iOS
+Webb och iOS ska normalt ha samma funktionalitet för samma modul.
+
+Men:
+- ändring i webb ska inte automatiskt innebära förändring i andra arbetsområden
+- iOS-specifik kod får vara separat
+- native-anpassningar ska inte ändra webbflödets funktion
+
+## 9. Huvudprincip
+**Rätt ändring, på rätt plats, i rätt modul – utan att röra det som redan fungerar.**
