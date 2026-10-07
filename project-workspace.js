@@ -167,16 +167,21 @@ function decodePdfText(obj){
 }
 function normalizeCode(value){
  const raw=String(value||'').toUpperCase().replace(/\s+/g,' ').trim();
- const exact=raw.match(/^([A-ZÅÄÖ]{1,10})\s*[- ]?\s*(\d{1,5}[A-Z]?)$/);
- if(exact)return exact[1]+exact[2];
- const embedded=raw.match(/\b([A-ZÅÄÖ]{1,10})\s*[- ]?\s*(\d{1,5}[A-Z]?)\b/);
- return embedded?embedded[1]+embedded[2]:'';
+ if(!raw)return '';
+ // Projekt-ID kan vara t.ex. GS1, GSTD1, GSID, GSIDW eller GSIW.
+ // Om hela stämpelfältet är själva ID:t tillåts även mellanrum/bindestreck mellan tecknen.
+ const compactExact=raw.replace(/[\s_-]+/g,'');
+ if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compactExact))return compactExact;
+ // Om fältet innehåller mer text plockas ett sammanhängande GS-ID ut utan att äta upp efterföljande ord.
+ const embedded=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
+ return embedded?embedded[1]:'';
 }
 function codeRegex(code){
- const m=String(code||'').match(/^([A-ZÅÄÖ]+)(\d+)([A-Z]?)$/i);if(!m)return null;
+ const compact=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
+ if(!/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return null;
  const gap='[^A-ZÅÄÖ0-9]*';
- const spread=s=>String(s).split('').join(gap);
- return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread(m[1])+gap+spread(m[2])+(m[3]?gap+spread(m[3]):'')+'($|[^A-ZÅÄÖ0-9])','i');
+ const spread=compact.split('').join(gap);
+ return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
 }
 function stampCode(dict){
  const {PDFName}=PDFLib;
