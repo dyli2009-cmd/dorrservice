@@ -1575,7 +1575,7 @@ function renderMarkers(){
   automationItems.filter(o=>o.page===renderPage).forEach(o=>{
    const r=viewportRect(vp,o.rect);if(!Number.isFinite(r.left+r.top+r.width+r.height))return;
    const btn=document.createElement('button');btn.type='button';btn.className='pwAutomationMarker'+(o.sourceKind==='structured-id'?' structured':'');btn.dataset.progress=String(o.progress||0);
-   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(o.sourceKind==='structured-id'?34:28,r.width)+'px';btn.style.height=Math.max(o.sourceKind==='structured-id'?18:28,r.height)+'px';
+   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(o.sourceKind==='structured-id'?16:28,r.width)+'px';btn.style.height=Math.max(o.sourceKind==='structured-id'?14:28,r.height)+'px';
    btn.title='Egenkontroll · '+automationDisplayId(o)+(o.model?' · '+o.model:'')+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
    const badge=document.createElement('span');badge.textContent=o.progress===100?'✓':(o.sourceKind==='structured-id'?'EK':'DA');btn.appendChild(badge);
