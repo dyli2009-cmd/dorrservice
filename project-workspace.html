@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.232">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.233">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -20,9 +20,9 @@
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
-        <button id="pwSavePortable" type="button"><strong>Projekt-PDF med status</strong><small>För att fortsätta arbetet senare eller dela med nästa tekniker.</small></button>
-        <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar hela PDF-filen utan att bädda in nya statusändringar.</small></button>
-        <button id="pwSavePage" type="button"><strong>Aktuell ritningssida</strong><small>Sparar bara sidan du tittar på som en egen PDF.</small></button>
+        <button id="pwSavePortable" type="button"><strong>Spara projekt</strong><small>Sparar arbetsstatus tillbaka i samma PDF när datorns webbläsare stödjer det.</small></button>
+        <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Välj själv plats och filnamn, till exempel Skrivbord/Desktop.</small></button>
+        <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar en kopia av PDF-filen utan nya statusändringar.</small></button>
       </div>
     </div>
     <button id="pwOpenProject" class="pwOpen" type="button">Öppna projekt-PDF</button>
@@ -200,6 +200,6 @@
   <div class="pwItemEditorActions"><button id="pwTimeTypeCancel" type="button">Avbryt</button><button id="pwTimeTypeSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.232"></script>
+<script src="project-workspace.js?v=2.4.233"></script>
 </body>
 </html>
