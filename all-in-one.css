@@ -857,3 +857,27 @@ body.allInOneApp #allProtocolApply{margin-left:0!important}
     height:15px;
   }
 }
+
+
+/* 2.4.200: Overview is a full workspace view inside main, never underneath the app header/menu. */
+body.allInOneApp #securityOverview[open]{
+  position:absolute!important;
+  inset:6px!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:10px!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  border-radius:12px!important;
+  z-index:45!important;
+}
+body.allInOneApp #securityOverview .overviewHead{
+  position:sticky;
+  top:-10px;
+  z-index:3;
+  background:#fff;
+  padding-top:8px;
+}
