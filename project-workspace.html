@@ -17,7 +17,14 @@
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
   <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
   <div class="pwHeaderActions">
-    <button id="pwSaveProject" type="button" disabled>Spara projekt</button>
+    <div class="pwSaveWrap">
+      <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
+      <div id="pwSaveMenu" class="pwSaveMenu" hidden>
+        <button id="pwSavePortable" type="button"><strong>Projekt-PDF med status</strong><small>För att fortsätta arbetet senare eller dela med nästa tekniker.</small></button>
+        <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar hela PDF-filen utan att bädda in nya statusändringar.</small></button>
+        <button id="pwSavePage" type="button"><strong>Aktuell ritningssida</strong><small>Sparar bara sidan du tittar på som en egen PDF.</small></button>
+      </div>
+    </div>
     <button id="pwOpenProject" class="pwOpen" type="button">Öppna projekt-PDF</button>
   </div>
   <input id="pwFile" type="file" accept="application/pdf,.pdf" hidden>
@@ -63,13 +70,17 @@
     </div>
   </section>
 
-  <aside class="pwSide">
+  <aside id="pwSide" class="pwSide">
     <div class="pwSideHead">
       <div><span>PROJEKT</span><strong>Positioner</strong></div>
-      <button id="pwCurrentPageOnly" type="button" aria-pressed="false">Aktuell sida</button>
+      <div class="pwSideHeadActions">
+        <button id="pwCurrentPageOnly" type="button" aria-pressed="false">Aktuell sida</button>
+        <button id="pwHidePositions" type="button" title="Göm positioner">Dölj</button>
+      </div>
     </div>
     <div id="pwGroups" class="pwGroups"><p class="pwMuted">Positionerna visas här efter analys.</p></div>
   </aside>
+  <button id="pwShowPositions" class="pwShowPositions" type="button" hidden>Positioner</button>
 </main>
 
 <dialog id="pwProtocol" class="pwProtocol">
