@@ -3,9 +3,9 @@
 
 const $=id=>document.getElementById(id);
 const el={
- file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
+ file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),saveMenu:$('pwSaveMenu'),savePortable:$('pwSavePortable'),saveCopy:$('pwSaveCopy'),savePage:$('pwSavePage'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),panMode:$('pwPanMode'),rescan:$('pwRescan'),
- viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
+ viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),side:$('pwSide'),showPositions:$('pwShowPositions'),hidePositions:$('pwHidePositions'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
  protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
  checklist:$('pwChecklist'),checklistMeta:$('pwChecklistMeta'),addChecklistItem:$('pwAddChecklistItem'),
@@ -24,6 +24,28 @@ let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null;
 
 function setState(text){el.state.textContent=text}
+function setPositionsHidden(hidden){
+ const isHidden=!!hidden;
+ el.side.hidden=isHidden;
+ el.showPositions.hidden=!isHidden;
+ document.querySelector('.pwMain')?.classList.toggle('sideCollapsed',isHidden);
+ try{localStorage.setItem('tillsyno-project-positions-hidden',isHidden?'1':'0')}catch(_){}
+}
+function loadPositionsPreference(){
+ let hidden=false;
+ try{hidden=localStorage.getItem('tillsyno-project-positions-hidden')==='1'}catch(_){}
+ setPositionsHidden(hidden);
+}
+function closeSaveMenu(){
+ el.saveMenu.hidden=true;
+ el.saveProject.setAttribute('aria-expanded','false');
+}
+function toggleSaveMenu(){
+ if(el.saveProject.disabled)return;
+ const open=el.saveMenu.hidden;
+ el.saveMenu.hidden=!open;
+ el.saveProject.setAttribute('aria-expanded',String(open));
+}
 function isNativeIos(){
  try{return !!window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='ios'}catch(_){return false}
 }
@@ -138,25 +160,63 @@ function downloadProjectFile(file){
  a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+function fileStem(name){
+ return String(name||'Tillsyno-projekt.pdf').replace(/\.pdf$/i,'')||'Tillsyno-projekt';
+}
+async function deliverProjectFile(file,title,text){
+ let shared=false;
+ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+  try{
+   await navigator.share({title,text,files:[file]});
+   shared=true;
+  }catch(err){
+   if(err?.name==='AbortError')return false;
+  }
+ }
+ if(!shared)downloadProjectFile(file);
+ return true;
+}
 async function savePortableProject(){
  if(!bytes||!instances.length)return;
- el.saveProject.disabled=true;setState('Sparar projektstatus i PDF-filen…');
+ closeSaveMenu();el.saveProject.disabled=true;setState('Sparar projektstatus i PDF-filen…');
  try{
   const savedBytes=await buildPortableProjectPdf();
   const file=new File([savedBytes],currentFileName||'Tillsyno-projekt.pdf',{type:'application/pdf'});
-  let shared=false;
-  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
-   try{
-    await navigator.share({title:'Tillsyno Projektflöde',text:'Projektfil med sparad arbetsstatus',files:[file]});
-    shared=true;
-   }catch(err){
-    if(err?.name==='AbortError'){setState('Sparandet avbröts. Projektstatusen finns kvar på den här enheten.');return}
-   }
-  }
-  if(!shared)downloadProjectFile(file);
-  setState('Projektfilen innehåller nu avbockningar, kommentarer och procent. Spara den i Files eller valfri molnmapp och öppna samma PDF i Projektflödet nästa gång.');
+  const delivered=await deliverProjectFile(file,'Tillsyno Projektflöde','Projektfil med sparad arbetsstatus');
+  if(!delivered){setState('Sparandet avbröts. Projektstatusen finns kvar på den här enheten.');return}
+  setState('Projekt-PDF sparad med avbockningar, kommentarer och procent.');
  }catch(err){
   console.error(err);setState('Projektet kunde inte sparas i PDF-filen: '+(err?.message||err));
+ }finally{el.saveProject.disabled=false}
+}
+async function savePdfCopy(){
+ if(!bytes)return;
+ closeSaveMenu();el.saveProject.disabled=true;setState('Förbereder PDF-kopia…');
+ try{
+  const name=fileStem(currentFileName)+'-kopia.pdf';
+  const file=new File([bytes.slice()],name,{type:'application/pdf'});
+  const delivered=await deliverProjectFile(file,'Tillsyno PDF-kopia','Kopia av hela PDF-filen');
+  setState(delivered?'PDF-kopian är klar.':'Sparandet avbröts.');
+ }catch(err){
+  console.error(err);setState('PDF-kopian kunde inte sparas: '+(err?.message||err));
+ }finally{el.saveProject.disabled=false}
+}
+async function saveCurrentDrawingPage(){
+ if(!bytes||!pdf)return;
+ closeSaveMenu();el.saveProject.disabled=true;setState('Förbereder aktuell ritningssida…');
+ try{
+  const {PDFDocument}=PDFLib;
+  const source=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+  const output=await PDFDocument.create();
+  const copied=await output.copyPages(source,[Math.max(0,page-1)]);
+  output.addPage(copied[0]);
+  const onePage=await output.save({useObjectStreams:false});
+  const name=fileStem(currentFileName)+'-sida-'+page+'.pdf';
+  const file=new File([onePage],name,{type:'application/pdf'});
+  const delivered=await deliverProjectFile(file,'Tillsyno ritningssida','Aktuell ritningssida från Projektflödet');
+  setState(delivered?'Aktuell ritningssida är klar.':'Sparandet avbröts.');
+ }catch(err){
+  console.error(err);setState('Den aktuella sidan kunde inte sparas: '+(err?.message||err));
  }finally{el.saveProject.disabled=false}
 }
 function decodePdfText(obj){
@@ -719,7 +779,16 @@ async function analyze(file){
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file)analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})};
 el.openProject.onclick=openProjectPdf;
 el.openProjectEmpty.onclick=openProjectPdf;
-el.saveProject.onclick=savePortableProject;
+el.saveProject.onclick=toggleSaveMenu;
+el.savePortable.onclick=savePortableProject;
+el.saveCopy.onclick=savePdfCopy;
+el.savePage.onclick=saveCurrentDrawingPage;
+el.hidePositions.onclick=()=>setPositionsHidden(true);
+el.showPositions.onclick=()=>setPositionsHidden(false);
+document.addEventListener('pointerdown',e=>{
+ if(!el.saveMenu.hidden&&!e.target.closest('.pwSaveWrap'))closeSaveMenu();
+});
+loadPositionsPreference();
 el.prev.onclick=async()=>{if(pdf&&page>1){page--;await renderDrawing();renderGroups()}};
 el.next.onclick=async()=>{if(pdf&&page<pdf.numPages){page++;await renderDrawing();renderGroups()}};
 el.zoomOut.onclick=()=>setDrawingScale(scale-.2);
