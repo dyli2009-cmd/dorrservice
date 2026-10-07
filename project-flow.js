@@ -14,7 +14,8 @@
     matched:$('pfMatchedProtocol'), matchedText:$('pfMatchedProtocolText'), showProtocolPage:$('pfShowProtocolPage'),
     protocolPreview:$('pfProtocolPreview'), protocolCanvas:$('pfProtocolCanvas'),
     drawingPage:$('pfDrawingPage'), doorCardStatus:$('pfDoorCardStatus'),
-    templateName:$('pfTemplateName'), checks:$('pfChecks'), closeProtocol:$('pfCloseProtocol'),
+    metaId:$('pfMetaId'), metaPosition:$('pfMetaPosition'), doorCardRows:$('pfDoorCardRows'),
+    templateName:$('pfTemplateName'), checks:$('pfChecks'), approveAll:$('pfApproveAll'), closeProtocol:$('pfCloseProtocol'),
     backToDrawing:$('pfBackToDrawing')
   };
 
@@ -30,7 +31,7 @@
 
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, selectedId=null, restoreView=null;
-  let previewVisible=true;
+  let previewVisible=false;
 
   function hashText(text){
     let h=2166136261;
@@ -138,6 +139,70 @@
       });
     }
     return found;
+  }
+
+  const DOOR_CARD_SECTIONS=new Set(['DAGLÅSNING','NATTLÅSNING','DÖRRSTÄNGNING','LARM/PASSER','DÖRRFUNKTION','LARMFUNKTION','BRANDFUNKTION']);
+  const DOOR_CARD_LABELS=[
+    'Cylinder gångjärnssida','Cylinder anslagssida','Sensorlist gångjärnssida','Sensorlist anslagssida',
+    'Dörrstängningsarm','Dörrautomatik','Armbågskontakt','Kabelöverföring','Cylinderbehör',
+    'Utrymningsbehör','Dörrkoordinator','Magnetkontakt','Dörrcentral','Draghandtag','Öppnaknapp',
+    'Dörrstängare','Skyddsklass','Utrymningskrav','Återinrymning','Brandkrav','Dörrtyp','Littera',
+    'Antal','Hängning','Låshus','Slutbleck','slutbleck','Trycke','Kantregel','Kortläsare',
+    'Datum','Version','Objekt'
+  ].sort((a,b)=>b.length-a.length);
+
+  async function extractProtocolRows(pageNo){
+    if(!protocolPdf||!pageNo)return [];
+    const page=await protocolPdf.getPage(pageNo);
+    const content=await page.getTextContent();
+    const groups=[];
+    for(const item of content.items){
+      const text=String(item.str||'').trim();
+      if(!text)continue;
+      const t=pdfjsLib.Util.transform(page.getViewport({scale:1}).transform,item.transform);
+      const x=t[4], y=t[5];
+      let row=groups.find(g=>Math.abs(g.y-y)<3);
+      if(!row){row={y,items:[]};groups.push(row)}
+      row.items.push({x,text});
+    }
+    groups.sort((a,b)=>a.y-b.y);
+    return groups.map(g=>g.items.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+  }
+
+  function splitDoorCardRow(line){
+    const upper=line.toUpperCase();
+    if(DOOR_CARD_SECTIONS.has(upper))return {section:true,label:line,value:''};
+    for(const label of DOOR_CARD_LABELS){
+      if(upper.startsWith(label.toUpperCase()+' ')||upper===label.toUpperCase()){
+        return {section:false,label,value:line.slice(label.length).trim()};
+      }
+    }
+    return {section:false,label:'',value:line};
+  }
+
+  async function renderDoorCardRows(pageNo){
+    if(!els.doorCardRows)return;
+    if(!protocolPdf||!pageNo){
+      els.doorCardRows.innerHTML='<p class="pfMuted" style="padding:9px">Dörrkort saknas för den här positionen.</p>';
+      return;
+    }
+    const rows=await extractProtocolRows(pageNo);
+    els.doorCardRows.innerHTML='';
+    rows.forEach(line=>{
+      const p=splitDoorCardRow(line);
+      const row=document.createElement('div');
+      row.className='pfDoorCardRow'+(p.section?' pfDoorCardSection':'');
+      if(p.section){row.textContent=p.label}
+      else if(p.label){
+        const b=document.createElement('b'); b.textContent=p.label;
+        const span=document.createElement('span'); span.textContent=p.value||'–';
+        row.append(b,span);
+      }else{
+        const span=document.createElement('span'); span.style.gridColumn='1 / -1'; span.textContent=p.value;
+        row.appendChild(span);
+      }
+      els.doorCardRows.appendChild(row);
+    });
   }
 
   async function scanProtocolPdf(){
@@ -319,12 +384,14 @@
     const o=objects.find(x=>x.id===id);
     if(!o)return;
     selectedId=id;
-    restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop};
+    restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop,scale};
     const same=objects.filter(x=>x.code===o.code);
     els.protocolType.textContent='DÖRRKORT · '+o.code;
     els.protocolTitle.textContent=o.code+' · position '+o.instance;
     els.protocolPosition.textContent='Position '+o.instance+' av '+same.length+' · ritningssida '+o.page;
-    els.drawingPage.textContent='Sida '+o.page;
+    if(els.metaId)els.metaId.value=o.code;
+    if(els.metaPosition)els.metaPosition.value='Position '+o.instance+' av '+same.length;
+    els.drawingPage.value='Sida '+o.page;
     els.templateName.textContent=o.code;
     els.checks.innerHTML='';
 
@@ -357,13 +424,15 @@
     els.matched.hidden=!p;
     els.protocolPreview.hidden=!p || !previewVisible;
     if(!p){
-      els.doorCardStatus.textContent='Saknas';
+      els.doorCardStatus.value='Saknas';
+      await renderDoorCardRows(null);
       return;
     }
-    els.doorCardStatus.textContent=o.code+' · sida '+p;
+    els.doorCardStatus.value=o.code+' · sida '+p;
     els.matchedText.textContent=o.code+' är automatiskt kopplat till dörrkort sida '+p;
     els.showProtocolPage.dataset.page=String(p);
-    els.showProtocolPage.textContent=previewVisible?'Dölj dörrkort':'Visa dörrkort';
+    els.showProtocolPage.textContent=previewVisible?'Dölj originalkort':'Visa originalkort';
+    await renderDoorCardRows(p);
     if(previewVisible && (forceRender || !els.protocolPreview.hidden))await renderProtocolPreview(p);
   }
 
@@ -388,11 +457,12 @@
   async function closeProtocol(restore=true){
     if(els.protocol.open)els.protocol.close();
     if(restore&&restoreView&&drawingPdf){
-      if(currentPage!==restoreView.page)await renderPage(restoreView.page);
+      const needsRender=currentPage!==restoreView.page||Math.abs(scale-restoreView.scale)>.001;
+      scale=restoreView.scale;
+      if(needsRender)await renderPage(restoreView.page);
       requestAnimationFrame(()=>{
         els.wrap.scrollLeft=restoreView.left;
         els.wrap.scrollTop=restoreView.top;
-        focusObject(selectedId);
       });
     }
   }
@@ -405,6 +475,23 @@
     els.totalProgress.textContent=avg+'%';
   }
 
+  async function zoomTo(nextScale,clientX=null,clientY=null){
+    if(!drawingPdf)return;
+    const oldScale=scale;
+    nextScale=Math.max(.35,Math.min(4,nextScale));
+    if(Math.abs(nextScale-oldScale)<.001)return;
+    const rect=els.wrap.getBoundingClientRect();
+    const localX=clientX==null?els.wrap.clientWidth/2:clientX-rect.left;
+    const localY=clientY==null?els.wrap.clientHeight/2:clientY-rect.top;
+    const docX=els.wrap.scrollLeft+localX;
+    const docY=els.wrap.scrollTop+localY;
+    const ratio=nextScale/oldScale;
+    scale=nextScale;
+    await renderPage(currentPage);
+    els.wrap.scrollLeft=docX*ratio-localX;
+    els.wrap.scrollTop=docY*ratio-localY;
+  }
+
   els.drawingFile.addEventListener('change',e=>openDrawing(e.target.files&&e.target.files[0]).catch(err=>{
     console.error(err);els.state.textContent='Kunde inte öppna ritningen: '+err.message;els.rescan.disabled=false;
   }));
@@ -413,8 +500,8 @@
   }));
   els.prev.addEventListener('click',()=>renderPage(currentPage-1));
   els.next.addEventListener('click',()=>renderPage(currentPage+1));
-  els.zoomOut.addEventListener('click',()=>{scale=Math.max(.55,scale-.15);renderPage(currentPage)});
-  els.zoomIn.addEventListener('click',()=>{scale=Math.min(2.8,scale+.15);renderPage(currentPage)});
+  els.zoomOut.addEventListener('click',()=>zoomTo(scale-.18));
+  els.zoomIn.addEventListener('click',()=>zoomTo(scale+.18));
   els.rescan.addEventListener('click',()=>scanDrawing().catch(err=>{
     console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false;
   }));
@@ -426,13 +513,53 @@
     previewVisible=!previewVisible;
     await updateMatchedProtocol(o,true);
   });
-  els.focusCurrent.addEventListener('click',()=>drawingPdf&&renderPage(currentPage));
+  if(els.approveAll)els.approveAll.addEventListener('click',async()=>{
+    const o=objects.find(x=>x.id===selectedId);
+    if(!o)return;
+    o.checks=Array(CHECK_POINTS.length).fill(true);
+    o.progress=100;
+    saveAll();updateProtocol(o);updateSummary();renderGroups();
+    [...els.checks.querySelectorAll('input[type="checkbox"]')].forEach(cb=>cb.checked=true);
+    const page=await drawingPdf.getPage(currentPage);
+    renderMarkers(page.getViewport({scale}));
+  });
+    els.focusCurrent.addEventListener('click',()=>drawingPdf&&renderPage(currentPage));
 
-  let touchStartX=0,touchStartY=0;
+  els.wrap.addEventListener('wheel',e=>{
+    if(!drawingPdf)return;
+    e.preventDefault();
+    const factor=e.deltaY<0?1.12:.89;
+    zoomTo(scale*factor,e.clientX,e.clientY);
+  },{passive:false});
+
+  let touchStartX=0,touchStartY=0,pinchStartDistance=0,pinchStartScale=scale,pinching=false,pinchCenter=null,pinchFrame=0,pinchTarget=scale;
+  function touchDistance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
   els.wrap.addEventListener('touchstart',e=>{
-    if(e.touches.length===1){touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY}
+    if(e.touches.length===2){
+      pinching=true;
+      pinchStartDistance=touchDistance(e.touches[0],e.touches[1]);
+      pinchStartScale=scale;
+      pinchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+    }else if(e.touches.length===1&&!pinching){
+      touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;
+    }
   },{passive:true});
+  els.wrap.addEventListener('touchmove',e=>{
+    if(!drawingPdf||e.touches.length!==2||!pinching)return;
+    e.preventDefault();
+    const d=touchDistance(e.touches[0],e.touches[1]);
+    pinchTarget=pinchStartScale*(d/Math.max(1,pinchStartDistance));
+    pinchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+    if(!pinchFrame)pinchFrame=requestAnimationFrame(async()=>{
+      pinchFrame=0;
+      await zoomTo(pinchTarget,pinchCenter.x,pinchCenter.y);
+    });
+  },{passive:false});
   els.wrap.addEventListener('touchend',e=>{
+    if(pinching){
+      if(e.touches.length<2)pinching=false;
+      return;
+    }
     if(!drawingPdf||!e.changedTouches.length)return;
     const dx=e.changedTouches[0].clientX-touchStartX,dy=e.changedTouches[0].clientY-touchStartY;
     if(Math.abs(dx)>90&&Math.abs(dx)>Math.abs(dy)*1.5){dx<0?renderPage(currentPage+1):renderPage(currentPage-1)}
