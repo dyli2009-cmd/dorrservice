@@ -918,7 +918,7 @@ function showOverview(){
 $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
 function navigateSecurity(view){closeSecurityOverview();go(view)}
-$('secNavOverview').onclick=()=>{showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
+$('secNavOverview').onclick=()=>{showOverview();const d=$('securityOverview');if(!d.open)d.showModal();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
 $('secCloseOverview').onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
 $('secNavDrawing').onclick=()=>navigateSecurity('drawing');
 $('secNavProtocol').onclick=()=>navigateSecurity('protocol');
