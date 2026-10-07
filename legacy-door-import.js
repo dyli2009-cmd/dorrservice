@@ -1,3 +1,12 @@
+/* DÖRRAUTOMATIK ONLY — PERMANENT REGRESSION LOCK.
+   This legacy Bluebeam import behavior belongs ONLY to Door Automation (Dörrautomatik).
+   Do not reuse it for Security Service, Project Flow, or other protocol types.
+   Confirmed working behavior in v2.4.193:
+   P/GoTo = exact Door Automation protocol; matching blue Bluebeam callout/object text = same automation;
+   the callout ARROW TIP is the authoritative new marker position even when far from P;
+   after import the old Bluebeam annotation disappears and the new app marker/protocol link remains.
+   DO NOT REMOVE, GENERALIZE, OR CHANGE THIS CONTRACT unless the user explicitly requests a Door Automation change.
+
 /* LOCKED CORE BEHAVIOR — DO NOT REMOVE OR CHANGE WITHOUT EXPLICIT USER REQUEST.
    Door Automation legacy Service DA import contract:
    1) Bluebeam P/GoTo link selects the correct inspection protocol/checklist.
