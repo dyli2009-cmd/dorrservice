@@ -71,3 +71,10 @@ Kontrollflödets lås ska respekteras.
 - detta ska ta hänsyn till sidrotation, CropBox/viewBox och PDF-koordinatsystem så klickytan ligger exakt över den gula stämpeln
 - samma viewport-transform ska användas när en position väljs från listan och centreras på ritningen
 - alla hittade positioner visas med en diskret färgad overlay och ID-etikett så det går att kontrollera visuellt var systemet har positionerat dem
+
+## Ritning – datornavigation
+- mushjulet zoomar ritningen in/ut kring muspekaren
+- zoomförhandsvisning sker direkt och högupplöst PDF-rendering görs efter en kort paus för snabb känsla på stora ritningar
+- `✋ Hand` växlar till handverktyg; vänsterklick + dra panorerar ritningen
+- mittenknappen på musen kan panorera även utan att Hand är aktiverad
+- klick på GS-markeringar ska fortfarande öppna positionen och inte fångas av handverktyget
