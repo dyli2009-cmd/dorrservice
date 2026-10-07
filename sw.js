@@ -1,4 +1,4 @@
-const CACHE='dorrservice-2.4.189';
+const CACHE='dorrservice-2.4.190';
 const CORE=['./','./index.html','./style.css','./home-bg-data.js','./app.js','./reports.js','./v2.js','./session-history.js','./ui-text-scale.js','./customer-preview-pager.js','./customer-preview-pager.css','./security-compact.css','./manifest.webmanifest','./icon-180.png','./icon-192.png','./icon-512.png','./security.html','./security.css','./security.js','./all-in-one.html','./all-in-one.css','./all-in-one.js','./project-flow.html','./project-flow.css','./project-flow.js','./drawing-tools.html','./drawing-tools.css','./drawing-tools.js','./drawing-annotations.js','./vendor/pdf-lib.min.js','./vendor/pdf.min.js','./vendor/pdf.worker.min.js'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('dorrservice-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
