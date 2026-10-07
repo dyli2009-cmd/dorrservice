@@ -65,3 +65,9 @@ Kontrollflödets lås ska respekteras.
 - `Passa` visar hela protokollsidan direkt och `300%` zoomar direkt till maxnivån
 - plus/minus ändrar zoom i större steg upp till 300%
 - på dator/trackpad kan Ctrl/Cmd + hjul/pinch zooma kring pekarens position
+
+## Projektpositioner på ritning
+- stämpelns PDF-annoteringsrektangel ska mappas genom PDF.js viewport (`convertToViewportRectangle`) i stället för egen x/y-formel
+- detta ska ta hänsyn till sidrotation, CropBox/viewBox och PDF-koordinatsystem så klickytan ligger exakt över den gula stämpeln
+- samma viewport-transform ska användas när en position väljs från listan och centreras på ritningen
+- alla hittade positioner visas med en diskret färgad overlay och ID-etikett så det går att kontrollera visuellt var systemet har positionerat dem
