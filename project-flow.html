@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#132b38">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-flow.css?v=2.4.178">
+<link rel="stylesheet" href="project-flow.css?v=2.4.179">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -82,51 +82,34 @@
     <div class="pfProgressTrack"><i id="pfProtocolBar"></i></div>
   </div>
 
-  <details class="pfMetaPanel" open>
-    <summary><span>Objektuppgifter</span><span>Visa / dölj</span></summary>
-    <div class="pfMetaGrid">
-      <label>Projekt-ID<input id="pfMetaId" readonly></label>
-      <label>Position<input id="pfMetaPosition" readonly></label>
-      <label>Ritningssida<input id="pfDrawingPage" readonly></label>
-      <label>Dörrkort<input id="pfDoorCardStatus" readonly></label>
-    </div>
-  </details>
-
-  <div id="pfMatchedProtocol" class="pfMatchedProtocol" hidden>
+  <div class="pfProtocolTools">
     <div>
-      <strong>Matchat dörrkort</strong>
-      <small id="pfMatchedProtocolText"></small>
+      <strong id="pfMatchedProtocolText">Matchat dörrkort</strong>
+      <small>Tryck direkt i originalprotokollets kontrollrutor.</small>
     </div>
-    <button id="pfShowProtocolPage" type="button">Visa originalkort</button>
+    <div class="pfProtocolZoom">
+      <button id="pfCardZoomOut" type="button" aria-label="Zooma ut dörrkort">−</button>
+      <span id="pfCardZoomInfo">100%</span>
+      <button id="pfCardZoomIn" type="button" aria-label="Zooma in dörrkort">+</button>
+    </div>
   </div>
 
-  <section id="pfProtocolPreview" class="pfProtocolPreview" hidden>
-    <canvas id="pfProtocolCanvas"></canvas>
+  <section id="pfProtocolDocument" class="pfProtocolDocument">
+    <div id="pfProtocolStage" class="pfProtocolStage">
+      <canvas id="pfProtocolCanvas"></canvas>
+      <div id="pfProtocolHotspots" class="pfProtocolHotspots" aria-label="Klickbara kontrollrutor"></div>
+    </div>
+    <div id="pfProtocolMissing" class="pfProtocolMissing" hidden>Dörrkort saknas för den här märkningen.</div>
   </section>
 
-  <section class="pfDoorCardData">
-    <div class="pfDoorCardHead">
-      <div><span>DÖRRKORTSINNEHÅLL</span><strong>All information från matchat kort</strong></div>
-    </div>
-    <div id="pfDoorCardRows" class="pfDoorCardRows">
-      <p class="pfMuted">Ladda dörrkorts-PDF för att visa informationen.</p>
-    </div>
-  </section>
-
-  <section class="pfChecklist">
-    <div class="pfChecklistHead">
-      <div><span>ARBETSMOMENT</span><strong id="pfTemplateName">ID</strong></div>
-      <small>Samma arbetsdesign som kontrollflödet · separat status per fysisk position</small>
-    </div>
-    <div class="pfChecklistActions">
-      <button id="pfApproveAll" type="button">✓ Godkänn alla</button>
-    </div>
-    <div id="pfChecks"></div>
-  </section>
+  <div class="pfProtocolLegend">
+    <span><i></i> Klicka Montering klar, Driftsättning klar eller Provad</span>
+    <span>Varje fysisk position sparas separat.</span>
+  </div>
 
   <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Till samma position på ritningen</button>
 </dialog>
 
-<script src="project-flow.js?v=2.4.178"></script>
+<script src="project-flow.js?v=2.4.179"></script>
 </body>
 </html>
