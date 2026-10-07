@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#132b38">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-flow.css?v=2.4.185">
+<link rel="stylesheet" href="project-flow.css?v=2.4.186">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
 <body>
 <header class="pfHeader">
   <a class="pfHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div><strong>Projektflöde</strong><small>Ritning → projektposition → rätt dörrkort → egen status · v2.4.185</small></div>
+  <div><strong>Projektflöde</strong><small>Ritning → projektposition → rätt dörrkort → egen status · v2.4.186</small></div>
   <label class="pfOpen" for="pfDrawingFile">Öppna ritning</label>
   <input id="pfDrawingFile" type="file" accept="application/pdf" hidden>
 </header>
@@ -39,7 +39,7 @@
   <button id="pfPanMode" class="pfPanMode active" type="button" aria-pressed="true" title="Dra ritningen med mus eller finger">✋ Hand</button>
   <label class="pfOpen pfOpenCompact" for="pfProtocolFile">Dörrkort PDF</label>
   <input id="pfProtocolFile" type="file" accept="application/pdf" hidden>
-  <button id="pfRescan" type="button">Analysera igen</button>
+  <button id="pfRescan" type="button" hidden>Analysera igen</button>
 </section>
 
 <main class="pfMain">
@@ -57,7 +57,7 @@
     </div>
   </section>
 
-  <aside class="pfSide">
+  <button id="pfSideToggle" class="pfSideToggle" type="button" aria-expanded="false" aria-controls="pfSide">Positioner</button>\n  <aside id="pfSide" class="pfSide">
     <div class="pfSideHead">
       <div><span>PROJEKTÖVERSIKT</span><strong>projektpositioner</strong></div>
       <button id="pfFocusCurrent" type="button">Aktuell sida</button>
@@ -103,6 +103,6 @@
   </section>
 </dialog>
 
-<script src="project-flow.js?v=2.4.185"></script>
+<script src="project-flow.js?v=2.4.186"></script>
 </body>
 </html>
