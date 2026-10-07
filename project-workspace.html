@@ -51,7 +51,9 @@
   <span id="pwZoomInfo">100%</span>
   <button id="pwZoomIn" type="button" aria-label="Zooma in">+</button>
   <button id="pwFit" type="button">Passa</button>
-  <button id="pwPanMode" type="button" aria-pressed="false" title="Handverktyg – dra ritningen med musen">✋ Hand</button>
+  <button id="pwToolText" type="button" aria-pressed="false" title="Lägg text på ritningen">Text</button>
+  <button id="pwToolArrow" type="button" aria-pressed="false" title="Rita en pil på ritningen">Pil</button>
+  <button id="pwToolUndo" type="button" title="Ta bort senaste texten eller pilen på aktuell sida">Ångra</button>
   <button id="pwRescan" type="button" hidden>Analysera igen</button>
 </section>
 
@@ -59,6 +61,7 @@
   <section id="pwViewer" class="pwViewer">
     <div id="pwStage" class="pwStage">
       <canvas id="pwCanvas"></canvas>
+      <svg id="pwDrawingNotes" class="pwDrawingNotes" aria-hidden="true"></svg>
       <div id="pwMarkers" class="pwMarkers"></div>
     </div>
     <div id="pwEmpty" class="pwEmpty">
