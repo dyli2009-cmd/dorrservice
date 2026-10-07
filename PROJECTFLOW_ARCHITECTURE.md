@@ -89,8 +89,10 @@ Kontrollflödets lås ska respekteras.
 - på iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination; på webben används nedladdning som reserv
 
 ## Ritningsanteckningar
-- Projektflödet har enkla verktyg för `Text`, `Pil` och `Ångra` på ritningen.
-- Text och pilar sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
+- Projektflödet har ritverktyg för `Text`, `Text + pil`, `Pil`, `Ångra` och `Gör om` på ritningen.
+- Text kan flyttas efter placering. `Text + pil` är en sammanhållen markering där textläget och pilspetsen kan flyttas separat; hela markeringen kan också flyttas via linjen. Fristående pilar kan flyttas och finjusteras via ändpunkterna.
+- Ångra/gör om använder vänster/höger historikpilar och omfattar nya ritanteckningar och flyttningar i den aktuella arbetssessionen.
+- Text, text+pilar och pilar sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
 - Text och pilar är i denna version inte plattade som synliga objekt i en vanlig kund-PDF eller i `Aktuell ritningssida`; kundexport/klart-markering lämnas till senare beslut.
 
 ## Massmarkering och tidsrapport
