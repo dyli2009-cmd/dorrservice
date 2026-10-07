@@ -357,23 +357,36 @@ async function renderDrawing(){
  el.pageInfo.textContent='Sida '+page+' / '+pdf.numPages;el.zoomInfo.textContent=Math.round(scale*100)+'%';
  renderMarkers();
 }
+function viewportRect(viewport,rect){
+ try{
+  const mapped=viewport.convertToViewportRectangle(rect);
+  const left=Math.min(mapped[0],mapped[2]),top=Math.min(mapped[1],mapped[3]);
+  return {left,top,width:Math.abs(mapped[2]-mapped[0]),height:Math.abs(mapped[3]-mapped[1])};
+ }catch(_){
+  const [x1,y1,x2,y2]=rect;
+  const p1=viewport.convertToViewportPoint(x1,y1),p2=viewport.convertToViewportPoint(x2,y2);
+  return {left:Math.min(p1[0],p2[0]),top:Math.min(p1[1],p2[1]),width:Math.abs(p2[0]-p1[0]),height:Math.abs(p2[1]-p1[1])};
+ }
+}
 function renderMarkers(){
  el.markers.replaceChildren();if(!pdf)return;
- const pageItems=instances.filter(o=>o.page===page);
- pdf.getPage(page).then(pg=>{
-  const base=pg.getViewport({scale:1}),w=base.width,h=base.height;
+ const renderPage=page,pageItems=instances.filter(o=>o.page===renderPage);
+ pdf.getPage(renderPage).then(pg=>{
+  if(renderPage!==page)return;
+  const vp=pg.getViewport({scale});
   pageItems.forEach(o=>{
-   const [x1,y1,x2,y2]=o.rect,rx=Math.min(x1,x2),rw=Math.abs(x2-x1),rh=Math.abs(y2-y1);
+   const r=viewportRect(vp,o.rect);
+   if(!Number.isFinite(r.left+r.top+r.width+r.height)||r.width<=0||r.height<=0)return;
    const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);
-   btn.style.left=(rx/w*100)+'%';btn.style.width=(rw/w*100)+'%';
-   btn.style.top=((h-Math.max(y1,y2))/h*100)+'%';btn.style.height=(rh/h*100)+'%';
+   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(10,r.width)+'px';btn.style.height=Math.max(10,r.height)+'px';
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
+   const tag=document.createElement('span');tag.className='pwStampCode';tag.textContent=o.code;btn.appendChild(tag);
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();openProtocol(o)};
    el.markers.appendChild(btn);
   });
- });
+ }).catch(console.error);
 }
 function renderGroups(){
  const groups={};
@@ -398,9 +411,11 @@ function renderGroups(){
  });
 }
 async function focusInstance(o){
- if(page!==o.page){page=o.page;await renderDrawing()} selectedId=o.id;
- const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),[x1,y1,x2,y2]=o.rect;
- const cx=(Math.min(x1,x2)+Math.abs(x2-x1)/2)*scale,cy=(vp.height-(Math.min(y1,y2)+Math.abs(y2-y1)/2)*scale);
+ if(page!==o.page){page=o.page;await renderDrawing()}
+ selectedId=o.id;
+ const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),r=viewportRect(vp,o.rect);
+ const cx=r.left+r.width/2,cy=r.top+r.height/2;
+ renderMarkers();
  el.viewer.scrollTo({left:Math.max(0,cx-el.viewer.clientWidth/2),top:Math.max(0,cy-el.viewer.clientHeight/2),behavior:'smooth'});
 }
 function clampProtocolScale(value){return Math.max(.4,Math.min(3,Number(value)||1))}
