@@ -60,3 +60,129 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
  .pfDoorCardRow{grid-template-columns:minmax(88px,.8fr) minmax(0,2.2fr);font-size:9.5px}
  .pfDoorCardRows{max-height:28dvh}
 }
+
+
+/* 2.4.179: original door-card PDF is the interactive protocol. */
+.pfProtocol{
+  width:min(1120px,calc(100vw - 18px))!important;
+  height:min(96dvh,1040px)!important;
+  max-height:96dvh!important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden!important;
+}
+.pfProtocolHead{flex:none}
+.pfProtocolProgress{flex:none}
+.pfProtocolTools{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 12px;
+  background:#f6f9fa;
+  border-bottom:1px solid var(--line);
+}
+.pfProtocolTools>div:first-child{min-width:0}
+.pfProtocolTools strong{display:block;font-size:11px}
+.pfProtocolTools small{display:block;margin-top:2px;font-size:9px;color:var(--muted)}
+.pfProtocolZoom{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.pfProtocolZoom button{min-width:32px;min-height:30px;padding:3px 8px}
+.pfProtocolZoom span{min-width:48px;text-align:center;font-size:10px;font-weight:750;color:#526774}
+.pfProtocolDocument{
+  position:relative;
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:10px;
+  background:#cfd8dd;
+  overscroll-behavior:contain;
+  touch-action:pan-x pan-y;
+}
+.pfProtocolStage{
+  position:relative;
+  width:max-content;
+  height:max-content;
+  margin:0 auto;
+  background:#fff;
+  box-shadow:0 3px 16px #0003;
+}
+.pfProtocolStage[hidden]{display:none!important}
+.pfProtocolStage canvas{display:block;background:#fff}
+.pfProtocolHotspots{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.pfProtocolHotspot{
+  position:absolute;
+  z-index:3;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid transparent!important;
+  border-radius:2px!important;
+  background:transparent!important;
+  color:#176a43!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  pointer-events:auto;
+}
+.pfProtocolHotspot:hover,.pfProtocolHotspot:focus-visible{
+  outline:none!important;
+  border-color:#116a99!important;
+  background:#116a9918!important;
+}
+.pfProtocolHotspot.active{
+  border-color:#238354!important;
+  background:#49a87542!important;
+  box-shadow:inset 0 0 0 1px #ffffffaa;
+}
+.pfProtocolMissing{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:30px;
+  text-align:center;
+  color:#526774;
+  font-weight:750;
+}
+.pfProtocolMissing[hidden]{display:none}
+.pfProtocolLegend{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:6px 12px;
+  border-top:1px solid var(--line);
+  background:#fff;
+  color:#657a85;
+  font-size:9px;
+}
+.pfProtocolLegend span:first-child{display:flex;align-items:center;gap:5px}
+.pfProtocolLegend i{
+  width:12px;height:9px;border:1px solid #238354;border-radius:2px;background:#49a87542;
+}
+.pfBackToDrawing{flex:none;margin-top:8px!important}
+@media(max-width:650px){
+  .pfProtocol{
+    width:100vw!important;
+    height:100dvh!important;
+    max-height:none!important;
+    border-radius:0!important;
+  }
+  .pfProtocolHead{padding:10px 11px!important}
+  .pfProtocolHead h2{font-size:17px!important}
+  .pfProtocolProgress{padding:8px 11px!important}
+  .pfProtocolProgress strong{font-size:19px!important}
+  .pfProtocolTools{padding:6px 8px}
+  .pfProtocolTools small{display:none}
+  .pfProtocolDocument{padding:6px}
+  .pfProtocolLegend{padding:5px 8px;font-size:8px}
+  .pfProtocolLegend span:last-child{display:none}
+  .pfBackToDrawing{margin:6px 8px max(8px,env(safe-area-inset-bottom))!important;width:calc(100% - 16px)!important}
+}
