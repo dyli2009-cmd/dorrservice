@@ -6,7 +6,7 @@
     drawingFile:$('pfDrawingFile'), protocolFile:$('pfProtocolFile'),
     fileName:$('pfFileName'), protocolFileName:$('pfProtocolFileName'), state:$('pfState'),
     objectCount:$('pfObjectCount'), doneCount:$('pfDoneCount'), totalProgress:$('pfTotalProgress'),
-    prev:$('pfPrev'), next:$('pfNext'), pageInfo:$('pfPageInfo'), zoomOut:$('pfZoomOut'), zoomIn:$('pfZoomIn'),
+    prev:$('pfPrev'), next:$('pfNext'), pageInfo:$('pfPageInfo'), zoomOut:$('pfZoomOut'), zoomIn:$('pfZoomIn'), panMode:$('pfPanMode'),
     rescan:$('pfRescan'), wrap:$('pfViewerWrap'), stage:$('pfStage'), canvas:$('pfCanvas'), markers:$('pfMarkers'),
     empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'),
     protocol:$('pfProtocol'), protocolType:$('pfProtocolType'), protocolTitle:$('pfProtocolTitle'),
@@ -30,7 +30,7 @@
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
-  let drawingZoomBusy=false,drawingZoomQueued=null;
+  let drawingZoomBusy=false,drawingZoomQueued=null;\n  let panMode=true;
 
   function hashText(text){
     let h=2166136261;
@@ -657,6 +657,15 @@
   els.next.addEventListener('click',()=>renderPage(currentPage+1));
   els.zoomOut.addEventListener('click',()=>zoomTo((drawingZoomQueued?drawingZoomQueued.nextScale:scale)-.18));
   els.zoomIn.addEventListener('click',()=>zoomTo((drawingZoomQueued?drawingZoomQueued.nextScale:scale)+.18));
+  if(els.panMode){
+    els.wrap.classList.add('isPanMode');
+    els.panMode.addEventListener('click',()=>{
+      panMode=!panMode;
+      els.panMode.classList.toggle('active',panMode);
+      els.panMode.setAttribute('aria-pressed',panMode?'true':'false');
+      els.wrap.classList.toggle('isPanMode',panMode);
+    });
+  }
   els.rescan.addEventListener('click',()=>scanDrawing().catch(err=>{
     console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false;
   }));
@@ -708,7 +717,7 @@
 
   let mousePanning=false,panPointerId=null,panStartX=0,panStartY=0,panStartLeft=0,panStartTop=0;
   els.wrap.addEventListener('pointerdown',e=>{
-    if(!drawingPdf||e.pointerType!=='mouse'||e.button!==0)return;
+    if(!drawingPdf||!panMode||e.pointerType!=='mouse'||e.button!==0)return;
     if(e.target.closest&&e.target.closest('button,a,input,label'))return;
     mousePanning=true;
     panPointerId=e.pointerId;
