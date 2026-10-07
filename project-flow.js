@@ -11,12 +11,10 @@
     empty:$('pfEmpty'), groups:$('pfGroups'), focusCurrent:$('pfFocusCurrent'),
     protocol:$('pfProtocol'), protocolType:$('pfProtocolType'), protocolTitle:$('pfProtocolTitle'),
     protocolPosition:$('pfProtocolPosition'), protocolPercent:$('pfProtocolPercent'), protocolBar:$('pfProtocolBar'),
-    matched:$('pfMatchedProtocol'), matchedText:$('pfMatchedProtocolText'), showProtocolPage:$('pfShowProtocolPage'),
-    protocolPreview:$('pfProtocolPreview'), protocolCanvas:$('pfProtocolCanvas'),
-    drawingPage:$('pfDrawingPage'), doorCardStatus:$('pfDoorCardStatus'),
-    metaId:$('pfMetaId'), metaPosition:$('pfMetaPosition'), doorCardRows:$('pfDoorCardRows'),
-    templateName:$('pfTemplateName'), checks:$('pfChecks'), approveAll:$('pfApproveAll'), closeProtocol:$('pfCloseProtocol'),
-    backToDrawing:$('pfBackToDrawing')
+    matchedText:$('pfMatchedProtocolText'), protocolCanvas:$('pfProtocolCanvas'),
+    protocolDocument:$('pfProtocolDocument'), protocolStage:$('pfProtocolStage'), protocolHotspots:$('pfProtocolHotspots'),
+    protocolMissing:$('pfProtocolMissing'), cardZoomOut:$('pfCardZoomOut'), cardZoomIn:$('pfCardZoomIn'), cardZoomInfo:$('pfCardZoomInfo'),
+    closeProtocol:$('pfCloseProtocol'), backToDrawing:$('pfBackToDrawing')
   };
 
   if (!window.pdfjsLib || !window.PDFLib) {
@@ -30,8 +28,8 @@
   const CHECK_POINTS=['Daglåsning','Nattlåsning','Dörrstängning','Larm / passer','Dörrfunktion','Larmfunktion','Brandfunktion'];
 
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
-  let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, selectedId=null, restoreView=null;
-  let previewVisible=false;
+  let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
+  let cardScale=1, cardPage=0;
 
   function hashText(text){
     let h=2166136261;
@@ -46,7 +44,7 @@
   function saveAll(){
     if(!drawingKey)return;
     const payload={version:2,updatedAt:new Date().toISOString(),objects:{}};
-    objects.forEach(o=>payload.objects[o.id]={checks:o.checks||[],progress:o.progress||0});
+    objects.forEach(o=>payload.objects[o.id]={checks:o.checks||[],cardMarks:o.cardMarks||{},progress:o.progress||0});
     try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
   }
   function normalizeCode(value){
@@ -74,8 +72,20 @@
     });
   }
   function objectProgress(o){
+    const def=protocolDefsByCode[o.code];
+    if(def&&def.cells&&def.cells.length){
+      const marks=o.cardMarks||{};
+      const done=def.cells.filter(cell=>!!marks[cell.key]).length;
+      return Math.round(done/def.cells.length*100);
+    }
     const done=(o.checks||[]).filter(Boolean).length;
     return Math.round(done/CHECK_POINTS.length*100);
+  }
+  function refreshObjectProgress(){
+    objects.forEach(o=>o.progress=objectProgress(o));
+    saveAll();
+    renderGroups();
+    updateSummary();
   }
   function progressLabel(p){return p===0?'Ej kontrollerad':p===100?'Klar':p+'% klart'}
   function decodePdfText(obj){
@@ -142,67 +152,140 @@
   }
 
   const DOOR_CARD_SECTIONS=new Set(['DAGLÅSNING','NATTLÅSNING','DÖRRSTÄNGNING','LARM/PASSER','DÖRRFUNKTION','LARMFUNKTION','BRANDFUNKTION']);
+  const FUNCTION_ROWS=new Set(['DÖRRFUNKTION','LARMFUNKTION','BRANDFUNKTION']);
   const DOOR_CARD_LABELS=[
     'Cylinder gångjärnssida','Cylinder anslagssida','Sensorlist gångjärnssida','Sensorlist anslagssida',
     'Dörrstängningsarm','Dörrautomatik','Armbågskontakt','Kabelöverföring','Cylinderbehör',
     'Utrymningsbehör','Dörrkoordinator','Magnetkontakt','Dörrcentral','Draghandtag','Öppnaknapp',
-    'Dörrstängare','Skyddsklass','Utrymningskrav','Återinrymning','Brandkrav','Dörrtyp','Littera',
-    'Antal','Hängning','Låshus','Slutbleck','slutbleck','Trycke','Kantregel','Kortläsare',
-    'Datum','Version','Objekt'
+    'Dörrstängare','Klämfri bakkant','Brytskydd','Skyddsklass','Utrymningskrav','Återinrymning',
+    'Brandkrav','Dörrtyp','Littera','Antal','Hängning','Låshus','Slutbleck','slutbleck','Trycke',
+    'Kantregel','Kortläsare'
   ].sort((a,b)=>b.length-a.length);
+  const NON_WORK_LABELS=new Set(['SKYDDSKLASS','UTRYMNINGSKRAV','ÅTERINRYMNING','BRANDKRAV','DÖRRTYP','LITTERA','ANTAL','HÄNGNING']);
+  const CARD_COLUMNS=[
+    {key:'mount',label:'Montering klar',x1:.612,x2:.687},
+    {key:'commission',label:'Driftsättning klar',x1:.687,x2:.758},
+    {key:'tested',label:'Provad',x1:.758,x2:.827}
+  ];
 
-  async function extractProtocolRows(pageNo){
-    if(!protocolPdf||!pageNo)return [];
+  async function extractProtocolGeometry(pageNo){
+    if(!protocolPdf||!pageNo)return {width:595,height:842,cells:[]};
     const page=await protocolPdf.getPage(pageNo);
+    const viewport=page.getViewport({scale:1});
     const content=await page.getTextContent();
     const groups=[];
     for(const item of content.items){
       const text=String(item.str||'').trim();
       if(!text)continue;
-      const t=pdfjsLib.Util.transform(page.getViewport({scale:1}).transform,item.transform);
-      const x=t[4], y=t[5];
-      let row=groups.find(g=>Math.abs(g.y-y)<3);
+      const t=pdfjsLib.Util.transform(viewport.transform,item.transform);
+      const x=t[4],y=t[5];
+      let row=groups.find(g=>Math.abs(g.y-y)<2.8);
       if(!row){row={y,items:[]};groups.push(row)}
       row.items.push({x,text});
     }
     groups.sort((a,b)=>a.y-b.y);
-    return groups.map(g=>g.items.sort((a,b)=>a.x-b.x).map(i=>i.text).join(' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+    const cells=[];
+    for(const group of groups){
+      group.items.sort((a,b)=>a.x-b.x);
+      const line=group.items.map(i=>i.text).join(' ').replace(/\s+/g,' ').trim();
+      const upper=line.toUpperCase();
+      if(FUNCTION_ROWS.has(upper)){
+        CARD_COLUMNS.forEach(col=>cells.push({key:upper+'|'+col.key,label:line,stage:col.label,y:group.y,x1:col.x1,x2:col.x2}));
+        continue;
+      }
+      if(DOOR_CARD_SECTIONS.has(upper))continue;
+      let label='';
+      for(const candidate of DOOR_CARD_LABELS){
+        if(upper.startsWith(candidate.toUpperCase()+' ')||upper===candidate.toUpperCase()){label=candidate;break}
+      }
+      if(!label||NON_WORK_LABELS.has(label.toUpperCase()))continue;
+      const remainder=line.slice(label.length).trim();
+      const hasAssignment=/\b(GS|DT|EL)\b/i.test(line);
+      const hasValue=!!remainder&&remainder!=='-';
+      if(!hasAssignment&&!hasValue)continue;
+      const rowKey=(label+'@'+Math.round(group.y*10)).replace(/\s+/g,'_');
+      CARD_COLUMNS.forEach(col=>cells.push({key:rowKey+'|'+col.key,label,stage:col.label,y:group.y,x1:col.x1,x2:col.x2}));
+    }
+    return {width:viewport.width,height:viewport.height,cells};
   }
 
-  function splitDoorCardRow(line){
-    const upper=line.toUpperCase();
-    if(DOOR_CARD_SECTIONS.has(upper))return {section:true,label:line,value:''};
-    for(const label of DOOR_CARD_LABELS){
-      if(upper.startsWith(label.toUpperCase()+' ')||upper===label.toUpperCase()){
-        return {section:false,label,value:line.slice(label.length).trim()};
-      }
+  async function buildProtocolDefinitions(){
+    protocolDefsByCode={};
+    for(const [code,pageNo] of Object.entries(protocolPages)){
+      protocolDefsByCode[code]=await extractProtocolGeometry(pageNo);
     }
-    return {section:false,label:'',value:line};
+    refreshObjectProgress();
   }
 
-  async function renderDoorCardRows(pageNo){
-    if(!els.doorCardRows)return;
-    if(!protocolPdf||!pageNo){
-      els.doorCardRows.innerHTML='<p class="pfMuted" style="padding:9px">Dörrkort saknas för den här positionen.</p>';
-      return;
+  async function renderInteractiveProtocol(pageNo,o,keepScale=false){
+    if(!protocolPdf||!pageNo||!o)return;
+    const page=await protocolPdf.getPage(pageNo);
+    const base=page.getViewport({scale:1});
+    if(!keepScale){
+      const available=Math.max(280,(els.protocolDocument&&els.protocolDocument.clientWidth?els.protocolDocument.clientWidth:window.innerWidth)-24);
+      cardScale=Math.max(.48,Math.min(2.2,available/base.width));
     }
-    const rows=await extractProtocolRows(pageNo);
-    els.doorCardRows.innerHTML='';
-    rows.forEach(line=>{
-      const p=splitDoorCardRow(line);
-      const row=document.createElement('div');
-      row.className='pfDoorCardRow'+(p.section?' pfDoorCardSection':'');
-      if(p.section){row.textContent=p.label}
-      else if(p.label){
-        const b=document.createElement('b'); b.textContent=p.label;
-        const span=document.createElement('span'); span.textContent=p.value||'–';
-        row.append(b,span);
-      }else{
-        const span=document.createElement('span'); span.style.gridColumn='1 / -1'; span.textContent=p.value;
-        row.appendChild(span);
-      }
-      els.doorCardRows.appendChild(row);
+    cardPage=pageNo;
+    const viewport=page.getViewport({scale:cardScale});
+    els.protocolCanvas.width=Math.ceil(viewport.width);
+    els.protocolCanvas.height=Math.ceil(viewport.height);
+    els.protocolCanvas.style.width=viewport.width+'px';
+    els.protocolCanvas.style.height=viewport.height+'px';
+    els.protocolStage.style.width=viewport.width+'px';
+    els.protocolStage.style.height=viewport.height+'px';
+    await page.render({canvasContext:protocolCtx,viewport}).promise;
+    els.protocolHotspots.innerHTML='';
+    const def=protocolDefsByCode[o.code]||await extractProtocolGeometry(pageNo);
+    protocolDefsByCode[o.code]=def;
+    const marks=o.cardMarks||(o.cardMarks={});
+    def.cells.forEach(cell=>{
+      const b=document.createElement('button');
+      b.type='button';
+      b.className='pfProtocolHotspot'+(marks[cell.key]?' active':'');
+      b.style.left=(cell.x1*viewport.width)+'px';
+      b.style.width=((cell.x2-cell.x1)*viewport.width)+'px';
+      const h=Math.max(5,7.5*cardScale);
+      b.style.top=(cell.y*cardScale-h*.72)+'px';
+      b.style.height=h+'px';
+      b.title=cell.label+' – '+cell.stage;
+      b.setAttribute('aria-label',cell.label+', '+cell.stage);
+      if(marks[cell.key])b.textContent='✓';
+      b.addEventListener('click',async e=>{
+        e.stopPropagation();
+        marks[cell.key]=!marks[cell.key];
+        if(!marks[cell.key])delete marks[cell.key];
+        b.classList.toggle('active',!!marks[cell.key]);
+        b.textContent=marks[cell.key]?'✓':'';
+        o.progress=objectProgress(o);
+        saveAll();
+        updateProtocol(o);
+        updateSummary();
+        renderGroups();
+        if(drawingPdf){
+          const drawingPage=await drawingPdf.getPage(currentPage);
+          renderMarkers(drawingPage.getViewport({scale}));
+        }
+      });
+      els.protocolHotspots.appendChild(b);
     });
+    if(els.cardZoomInfo)els.cardZoomInfo.textContent=Math.round(cardScale*100)+'%';
+  }
+
+  async function zoomProtocol(nextScale,clientX=null,clientY=null){
+    const o=objects.find(x=>x.id===selectedId);
+    if(!o||!cardPage)return;
+    const wrap=els.protocolDocument;
+    const old=cardScale;
+    nextScale=Math.max(.42,Math.min(3.5,nextScale));
+    if(Math.abs(nextScale-old)<.001)return;
+    const rect=wrap.getBoundingClientRect();
+    const localX=clientX==null?wrap.clientWidth/2:clientX-rect.left;
+    const localY=clientY==null?wrap.clientHeight/2:clientY-rect.top;
+    const docX=wrap.scrollLeft+localX,docY=wrap.scrollTop+localY,ratio=nextScale/old;
+    cardScale=nextScale;
+    await renderInteractiveProtocol(cardPage,o,true);
+    wrap.scrollLeft=docX*ratio-localX;
+    wrap.scrollTop=docY*ratio-localY;
   }
 
   async function scanProtocolPdf(){
@@ -216,6 +299,7 @@
       protocolPageTexts[pageNo]=content.items.map(i=>String(i.str||'')).join(' ');
     }
     rebuildProtocolMap();
+    await buildProtocolDefinitions();
     renderGroups();
     updateState();
     if(selectedId && els.protocol.open){
@@ -240,7 +324,8 @@
       const old=(saved.objects&&saved.objects[id])||{};
       const checks=Array.isArray(old.checks)?old.checks.slice(0,CHECK_POINTS.length):Array(CHECK_POINTS.length).fill(false);
       while(checks.length<CHECK_POINTS.length)checks.push(false);
-      const obj={...o,id,instance:counts[o.code],checks,progress:0};
+      const cardMarks=old.cardMarks&&typeof old.cardMarks==='object'?old.cardMarks:{};
+      const obj={...o,id,instance:counts[o.code],checks,cardMarks,progress:0};
       obj.progress=objectProgress(obj);
       return obj;
     });
@@ -389,64 +474,24 @@
     els.protocolType.textContent='DÖRRKORT · '+o.code;
     els.protocolTitle.textContent=o.code+' · position '+o.instance;
     els.protocolPosition.textContent='Position '+o.instance+' av '+same.length+' · ritningssida '+o.page;
-    if(els.metaId)els.metaId.value=o.code;
-    if(els.metaPosition)els.metaPosition.value='Position '+o.instance+' av '+same.length;
-    els.drawingPage.value='Sida '+o.page;
-    els.templateName.textContent=o.code;
-    els.checks.innerHTML='';
-
-    CHECK_POINTS.forEach((label,index)=>{
-      const row=document.createElement('label');
-      row.className='pfCheck';
-      const cb=document.createElement('input');
-      cb.type='checkbox';
-      cb.checked=!!o.checks[index];
-      cb.addEventListener('change',async()=>{
-        o.checks[index]=cb.checked;
-        o.progress=objectProgress(o);
-        saveAll();updateProtocol(o);updateSummary();renderGroups();
-        const page=await drawingPdf.getPage(currentPage);
-        renderMarkers(page.getViewport({scale}));
-      });
-      const span=document.createElement('span');
-      span.textContent=label;
-      row.append(cb,span);
-      els.checks.appendChild(row);
-    });
-
     updateProtocol(o);
     if(typeof els.protocol.showModal==='function')els.protocol.showModal();else els.protocol.setAttribute('open','');
-    await updateMatchedProtocol(o,true);
+    await updateMatchedProtocol(o);
   }
 
-  async function updateMatchedProtocol(o,forceRender=false){
+  async function updateMatchedProtocol(o){
     const p=protocolPages[o.code];
-    els.matched.hidden=!p;
-    els.protocolPreview.hidden=!p || !previewVisible;
     if(!p){
-      els.doorCardStatus.value='Saknas';
-      await renderDoorCardRows(null);
+      els.protocolMissing.hidden=false;
+      els.protocolStage.hidden=true;
+      els.matchedText.textContent=o.code+' – dörrkort saknas';
+      cardPage=0;
       return;
     }
-    els.doorCardStatus.value=o.code+' · sida '+p;
-    els.matchedText.textContent=o.code+' är automatiskt kopplat till dörrkort sida '+p;
-    els.showProtocolPage.dataset.page=String(p);
-    els.showProtocolPage.textContent=previewVisible?'Dölj originalkort':'Visa originalkort';
-    await renderDoorCardRows(p);
-    if(previewVisible && (forceRender || !els.protocolPreview.hidden))await renderProtocolPreview(p);
-  }
-
-  async function renderProtocolPreview(pageNo){
-    if(!protocolPdf || !pageNo)return;
-    const page=await protocolPdf.getPage(pageNo);
-    const base=page.getViewport({scale:1});
-    const target=Math.min(1.35,Math.max(.72,520/base.width));
-    const viewport=page.getViewport({scale:target});
-    els.protocolCanvas.width=Math.ceil(viewport.width);
-    els.protocolCanvas.height=Math.ceil(viewport.height);
-    els.protocolCanvas.style.width='100%';
-    els.protocolCanvas.style.height='auto';
-    await page.render({canvasContext:protocolCtx,viewport}).promise;
+    els.protocolMissing.hidden=true;
+    els.protocolStage.hidden=false;
+    els.matchedText.textContent=o.code+' · original dörrkort · sida '+p;
+    await renderInteractiveProtocol(p,o,false);
   }
 
   function updateProtocol(o){
@@ -507,23 +552,15 @@
   }));
   els.closeProtocol.addEventListener('click',()=>closeProtocol(true));
   els.backToDrawing.addEventListener('click',()=>closeProtocol(true));
-  els.showProtocolPage.addEventListener('click',async()=>{
-    const o=objects.find(x=>x.id===selectedId);
-    if(!o)return;
-    previewVisible=!previewVisible;
-    await updateMatchedProtocol(o,true);
-  });
-  if(els.approveAll)els.approveAll.addEventListener('click',async()=>{
-    const o=objects.find(x=>x.id===selectedId);
-    if(!o)return;
-    o.checks=Array(CHECK_POINTS.length).fill(true);
-    o.progress=100;
-    saveAll();updateProtocol(o);updateSummary();renderGroups();
-    [...els.checks.querySelectorAll('input[type="checkbox"]')].forEach(cb=>cb.checked=true);
-    const page=await drawingPdf.getPage(currentPage);
-    renderMarkers(page.getViewport({scale}));
-  });
-    els.focusCurrent.addEventListener('click',()=>drawingPdf&&renderPage(currentPage));
+  if(els.cardZoomOut)els.cardZoomOut.addEventListener('click',()=>zoomProtocol(cardScale-.14));
+  if(els.cardZoomIn)els.cardZoomIn.addEventListener('click',()=>zoomProtocol(cardScale+.14));
+  els.focusCurrent.addEventListener('click',()=>drawingPdf&&renderPage(currentPage));
+
+  if(els.protocolDocument)els.protocolDocument.addEventListener('wheel',e=>{
+    if(!cardPage)return;
+    e.preventDefault();
+    zoomProtocol(cardScale*(e.deltaY<0?1.12:.89),e.clientX,e.clientY);
+  },{passive:false});
 
   els.wrap.addEventListener('wheel',e=>{
     if(!drawingPdf)return;
