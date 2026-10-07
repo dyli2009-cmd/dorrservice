@@ -30,6 +30,11 @@ Projektflödet ska:
 - varje fysisk position får egna tillagda, ändrade eller borttagna arbetskontrollpunkter samt kommentarer utan att original-PDF:en ändras
 - spara avbockning och procent separat per fysisk position
 - återgå till samma ritningssida, zoom och position efter protokollarbete
+- projektstatus ska kunna bäddas in direkt i den sparade projekt-PDF:en, inklusive avbockningar, kommentarer, ändringar, egna punkter och procent
+- när en sådan PDF öppnas igen ska Projektflödet automatiskt läsa tillbaka den inbäddade statusen
+- samma projekt-PDF ska därför kunna flyttas till Files, iCloud Drive, OneDrive eller annan filplats utan separat sidofil
+- lokal autosparning får användas som extra skydd, men den portabla PDF-filen är den delbara projektbäraren
+- samtidig realtidsredigering av samma molnfil ingår inte i filformatet; den senast sparade filversionen är den som nästa tekniker öppnar
 
 ## Isolering
 Projektflödet får inte importera eller använda Kontrollflödets:
