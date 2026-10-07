@@ -331,6 +331,7 @@
     });
 
     rebuildProtocolMap();
+    if(protocolPdf)await buildProtocolDefinitions();
     saveAll();
     renderGroups();
     updateSummary();
@@ -568,6 +569,32 @@
     const factor=e.deltaY<0?1.12:.89;
     zoomTo(scale*factor,e.clientX,e.clientY);
   },{passive:false});
+
+  let cardPinching=false,cardPinchStartDistance=0,cardPinchStartScale=1,cardPinchFrame=0,cardPinchTarget=1,cardPinchCenter=null;
+  function cardTouchDistance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+  if(els.protocolDocument){
+    els.protocolDocument.addEventListener('touchstart',e=>{
+      if(e.touches.length!==2||!cardPage)return;
+      cardPinching=true;
+      cardPinchStartDistance=cardTouchDistance(e.touches[0],e.touches[1]);
+      cardPinchStartScale=cardScale;
+      cardPinchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+    },{passive:true});
+    els.protocolDocument.addEventListener('touchmove',e=>{
+      if(!cardPinching||e.touches.length!==2||!cardPage)return;
+      e.preventDefault();
+      const distance=cardTouchDistance(e.touches[0],e.touches[1]);
+      cardPinchTarget=cardPinchStartScale*(distance/Math.max(1,cardPinchStartDistance));
+      cardPinchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+      if(!cardPinchFrame)cardPinchFrame=requestAnimationFrame(async()=>{
+        cardPinchFrame=0;
+        await zoomProtocol(cardPinchTarget,cardPinchCenter.x,cardPinchCenter.y);
+      });
+    },{passive:false});
+    els.protocolDocument.addEventListener('touchend',e=>{
+      if(e.touches.length<2)cardPinching=false;
+    },{passive:true});
+  }
 
   let touchStartX=0,touchStartY=0,pinchStartDistance=0,pinchStartScale=scale,pinching=false,pinchCenter=null,pinchFrame=0,pinchTarget=scale;
   function touchDistance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
