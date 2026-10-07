@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id);
 const el={
  file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),saveMenu:$('pwSaveMenu'),savePortable:$('pwSavePortable'),saveCopy:$('pwSaveCopy'),savePage:$('pwSavePage'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
- prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),bulkSelect:$('pwBulkSelect'),timeReport:$('pwTimeReport'),toolText:$('pwToolText'),toolArrow:$('pwToolArrow'),toolUndo:$('pwToolUndo'),rescan:$('pwRescan'),
+ prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),bulkSelect:$('pwBulkSelect'),timeReport:$('pwTimeReport'),toolText:$('pwToolText'),toolCallout:$('pwToolCallout'),toolArrow:$('pwToolArrow'),toolUndo:$('pwToolUndo'),toolRedo:$('pwToolRedo'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),drawingNotes:$('pwDrawingNotes'),selectionRect:$('pwSelectionRect'),markers:$('pwMarkers'),empty:$('pwEmpty'),side:$('pwSide'),showPositions:$('pwShowPositions'),hidePositions:$('pwHidePositions'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
  protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
@@ -22,7 +22,7 @@ const protocolCtx=el.protocolCanvas.getContext('2d');
 
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',embeddedState={},page=1,scale=1.1,renderTask=null;
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
-let drawingTool='',drawingToolGesture=null,drawingNotes=[];
+let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[];
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
 let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null;
@@ -414,7 +414,7 @@ function updateStats(){
 async function renderDrawing(){
  if(!pdf)return;
  if(renderTask)try{renderTask.cancel()}catch(_){}
- const pg=await pdf.getPage(page),vp=pg.getViewport({scale});
+ const pg=await pdf.getPage(page),vp=pg.getViewport({scale});drawingViewport=vp;
  el.canvas.width=Math.ceil(vp.width);el.canvas.height=Math.ceil(vp.height);
  el.canvas.style.width=vp.width+'px';el.canvas.style.height=vp.height+'px';
  el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
@@ -431,28 +431,63 @@ function ensureArrowMarker(svg){
  path.setAttribute('d','M 0 0 L 10 5 L 0 10 z');path.setAttribute('fill','#173746');
  marker.appendChild(path);defs.appendChild(marker);svg.appendChild(defs);
 }
+function cloneDrawingNotes(list=drawingNotes){return list.map(n=>({...n}))}
+function rememberDrawingState(snapshot=cloneDrawingNotes()){
+ drawingUndoStack.push(snapshot);
+ if(drawingUndoStack.length>60)drawingUndoStack.shift();
+ drawingRedoStack=[];
+ updateDrawingHistoryButtons();
+}
+function updateDrawingHistoryButtons(){
+ if(el.toolUndo)el.toolUndo.disabled=!drawingUndoStack.length&&!drawingNotes.some(n=>Number(n.page)===page);
+ if(el.toolRedo)el.toolRedo.disabled=!drawingRedoStack.length;
+}
+function noteById(id){return drawingNotes.find(n=>n.id===id)||null}
+function addNoteHitAttributes(node,noteId,part){
+ node.dataset.noteId=noteId;node.dataset.notePart=part||'whole';node.setAttribute('aria-hidden','true');
+}
+function appendNoteHandle(svg,x,y,noteId,part){
+ const c=svgNode('circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r','7');c.setAttribute('class','pwNoteHandle');addNoteHitAttributes(c,noteId,part);svg.appendChild(c);
+}
+function appendTextNote(svg,viewport,n){
+ const p=viewport.convertToViewportPoint(Number(n.x),Number(n.y));
+ const t=svgNode('text');t.setAttribute('x',p[0]);t.setAttribute('y',p[1]);t.setAttribute('class','pwNoteText'+(n.id===selectedDrawingNoteId?' selected':''));t.textContent=String(n.text||'');svg.appendChild(t);
+ const hit=svgNode('text');hit.setAttribute('x',p[0]);hit.setAttribute('y',p[1]);hit.setAttribute('class','pwNoteTextHit');hit.textContent=String(n.text||'');addNoteHitAttributes(hit,n.id,'label');svg.appendChild(hit);
+ if(n.id===selectedDrawingNoteId)appendNoteHandle(svg,p[0],p[1],n.id,'label');
+}
+function appendArrowNote(svg,viewport,n){
+ const a=viewport.convertToViewportPoint(Number(n.x1),Number(n.y1)),b=viewport.convertToViewportPoint(Number(n.x2),Number(n.y2));
+ const line=svgNode('line');line.setAttribute('x1',a[0]);line.setAttribute('y1',a[1]);line.setAttribute('x2',b[0]);line.setAttribute('y2',b[1]);line.setAttribute('class','pwNoteArrow'+(n.id===selectedDrawingNoteId?' selected':''));line.setAttribute('marker-end','url(#pwArrowHead)');svg.appendChild(line);
+ const hit=svgNode('line');hit.setAttribute('x1',a[0]);hit.setAttribute('y1',a[1]);hit.setAttribute('x2',b[0]);hit.setAttribute('y2',b[1]);hit.setAttribute('class','pwNoteLineHit');addNoteHitAttributes(hit,n.id,'whole');svg.appendChild(hit);
+ if(n.id===selectedDrawingNoteId){appendNoteHandle(svg,a[0],a[1],n.id,'start');appendNoteHandle(svg,b[0],b[1],n.id,'end')}
+}
+function appendCalloutNote(svg,viewport,n){
+ const target=viewport.convertToViewportPoint(Number(n.x1),Number(n.y1)),label=viewport.convertToViewportPoint(Number(n.x2),Number(n.y2));
+ const line=svgNode('line');line.setAttribute('x1',label[0]);line.setAttribute('y1',label[1]);line.setAttribute('x2',target[0]);line.setAttribute('y2',target[1]);line.setAttribute('class','pwNoteArrow pwNoteCalloutLine'+(n.id===selectedDrawingNoteId?' selected':''));line.setAttribute('marker-end','url(#pwArrowHead)');svg.appendChild(line);
+ const lineHit=svgNode('line');lineHit.setAttribute('x1',label[0]);lineHit.setAttribute('y1',label[1]);lineHit.setAttribute('x2',target[0]);lineHit.setAttribute('y2',target[1]);lineHit.setAttribute('class','pwNoteLineHit');addNoteHitAttributes(lineHit,n.id,'whole');svg.appendChild(lineHit);
+ const t=svgNode('text');t.setAttribute('x',label[0]+9);t.setAttribute('y',label[1]-9);t.setAttribute('class','pwNoteText pwNoteCalloutText'+(n.id===selectedDrawingNoteId?' selected':''));t.textContent=String(n.text||'');svg.appendChild(t);
+ const textHit=svgNode('text');textHit.setAttribute('x',label[0]+9);textHit.setAttribute('y',label[1]-9);textHit.setAttribute('class','pwNoteTextHit');textHit.textContent=String(n.text||'');addNoteHitAttributes(textHit,n.id,'label');svg.appendChild(textHit);
+ if(n.id===selectedDrawingNoteId){appendNoteHandle(svg,target[0],target[1],n.id,'target');appendNoteHandle(svg,label[0],label[1],n.id,'label')}
+}
 function renderDrawingNotes(viewport){
+ drawingViewport=viewport;
  const svg=el.drawingNotes;svg.replaceChildren();
  svg.setAttribute('viewBox','0 0 '+viewport.width+' '+viewport.height);
  svg.setAttribute('width',viewport.width);svg.setAttribute('height',viewport.height);
  svg.style.width=viewport.width+'px';svg.style.height=viewport.height+'px';
  ensureArrowMarker(svg);
  drawingNotes.filter(n=>Number(n.page)===page).forEach(n=>{
-  if(n.type==='text'){
-   const p=viewport.convertToViewportPoint(Number(n.x),Number(n.y)),t=svgNode('text');
-   t.setAttribute('x',p[0]);t.setAttribute('y',p[1]);t.setAttribute('class','pwNoteText');t.textContent=String(n.text||'');
-   svg.appendChild(t);
-  }else if(n.type==='arrow'){
-   const a=viewport.convertToViewportPoint(Number(n.x1),Number(n.y1)),b=viewport.convertToViewportPoint(Number(n.x2),Number(n.y2)),line=svgNode('line');
-   line.setAttribute('x1',a[0]);line.setAttribute('y1',a[1]);line.setAttribute('x2',b[0]);line.setAttribute('y2',b[1]);line.setAttribute('class','pwNoteArrow');line.setAttribute('marker-end','url(#pwArrowHead)');
-   svg.appendChild(line);
-  }
+  if(n.type==='text')appendTextNote(svg,viewport,n);
+  else if(n.type==='arrow')appendArrowNote(svg,viewport,n);
+  else if(n.type==='callout')appendCalloutNote(svg,viewport,n);
  });
+ updateDrawingHistoryButtons();
 }
 function setDrawingTool(tool){
  if(tool&&bulkSelectMode)setBulkSelectMode(false);
  drawingTool=drawingTool===tool?'':tool;
  el.toolText.setAttribute('aria-pressed',String(drawingTool==='text'));
+ el.toolCallout.setAttribute('aria-pressed',String(drawingTool==='callout'));
  el.toolArrow.setAttribute('aria-pressed',String(drawingTool==='arrow'));
  el.viewer.classList.toggle('noteMode',!!drawingTool);
 }
@@ -465,14 +500,27 @@ async function addTextNote(point){
  const value=window.prompt('Skriv text på ritningen:','');
  if(!value||!value.trim())return;
  const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),pdfPoint=vp.convertToPdfPoint(point.x,point.y);
- drawingNotes.push({id:'n'+Date.now().toString(36),type:'text',page,x:pdfPoint[0],y:pdfPoint[1],text:value.trim()});
- save();renderDrawingNotes(vp);
+ rememberDrawingState();
+ const note={id:'n'+Date.now().toString(36),type:'text',page,x:pdfPoint[0],y:pdfPoint[1],text:value.trim()};
+ drawingNotes.push(note);selectedDrawingNoteId=note.id;save();renderDrawingNotes(vp);
 }
 async function finishArrowNote(start,end){
  if(!pdf||Math.hypot(end.x-start.x,end.y-start.y)<8)return;
  const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),a=vp.convertToPdfPoint(start.x,start.y),b=vp.convertToPdfPoint(end.x,end.y);
- drawingNotes.push({id:'n'+Date.now().toString(36),type:'arrow',page,x1:a[0],y1:a[1],x2:b[0],y2:b[1]});
- save();renderDrawingNotes(vp);
+ rememberDrawingState();
+ const note={id:'n'+Date.now().toString(36),type:'arrow',page,x1:a[0],y1:a[1],x2:b[0],y2:b[1]};
+ drawingNotes.push(note);selectedDrawingNoteId=note.id;save();renderDrawingNotes(vp);
+}
+async function finishCalloutNote(target,label){
+ if(!pdf)return;
+ let labelPoint=label;
+ if(Math.hypot(label.x-target.x,label.y-target.y)<18)labelPoint={x:target.x+90,y:Math.max(18,target.y-42)};
+ const value=window.prompt('Skriv text till pilen:','');
+ if(!value||!value.trim())return;
+ const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),a=vp.convertToPdfPoint(target.x,target.y),b=vp.convertToPdfPoint(labelPoint.x,labelPoint.y);
+ rememberDrawingState();
+ const note={id:'n'+Date.now().toString(36),type:'callout',page,x1:a[0],y1:a[1],x2:b[0],y2:b[1],text:value.trim()};
+ drawingNotes.push(note);selectedDrawingNoteId=note.id;save();renderDrawingNotes(vp);
 }
 function beginDrawingTool(e){
  if(!drawingTool||!pdf||e.pointerType==='mouse'&&e.button!==0)return false;
@@ -483,9 +531,14 @@ function beginDrawingTool(e){
   drawingToolGesture={pointerId:e.pointerId,type:'text',start:point};
  }else{
   const line=svgNode('line');
-  line.setAttribute('x1',point.x);line.setAttribute('y1',point.y);line.setAttribute('x2',point.x);line.setAttribute('y2',point.y);line.setAttribute('class','pwNotePreview');line.setAttribute('marker-end','url(#pwArrowHead)');
+  if(drawingTool==='callout'){
+   line.setAttribute('x1',point.x);line.setAttribute('y1',point.y);line.setAttribute('x2',point.x);line.setAttribute('y2',point.y);
+  }else{
+   line.setAttribute('x1',point.x);line.setAttribute('y1',point.y);line.setAttribute('x2',point.x);line.setAttribute('y2',point.y);
+  }
+  line.setAttribute('class','pwNotePreview');line.setAttribute('marker-end','url(#pwArrowHead)');
   el.drawingNotes.appendChild(line);
-  drawingToolGesture={pointerId:e.pointerId,type:'arrow',start:point,preview:line};
+  drawingToolGesture={pointerId:e.pointerId,type:drawingTool,start:point,preview:line};
  }
  try{el.viewer.setPointerCapture(e.pointerId)}catch(_){}
  return true;
@@ -493,9 +546,12 @@ function beginDrawingTool(e){
 function moveDrawingTool(e){
  if(!drawingToolGesture||drawingToolGesture.pointerId!==e.pointerId)return false;
  e.preventDefault();e.stopPropagation();
+ const point=stagePoint(e.clientX,e.clientY);
  if(drawingToolGesture.type==='arrow'){
-  const point=stagePoint(e.clientX,e.clientY);
   drawingToolGesture.preview?.setAttribute('x2',point.x);drawingToolGesture.preview?.setAttribute('y2',point.y);
+ }else if(drawingToolGesture.type==='callout'){
+  drawingToolGesture.preview?.setAttribute('x1',point.x);drawingToolGesture.preview?.setAttribute('y1',point.y);
+  drawingToolGesture.preview?.setAttribute('x2',drawingToolGesture.start.x);drawingToolGesture.preview?.setAttribute('y2',drawingToolGesture.start.y);
  }
  return true;
 }
@@ -504,15 +560,76 @@ async function endDrawingTool(e){
  e.preventDefault();e.stopPropagation();
  const g=drawingToolGesture;drawingToolGesture=null;
  try{el.viewer.releasePointerCapture(e.pointerId)}catch(_){}
- const end=stagePoint(e.clientX,e.clientY);
+ const end=stagePoint(e.clientX,e.clientY);g.preview?.remove();
  if(g.type==='text')await addTextNote(end);
- else{g.preview?.remove();await finishArrowNote(g.start,end)}
+ else if(g.type==='callout')await finishCalloutNote(g.start,end);
+ else await finishArrowNote(g.start,end);
  return true;
 }
-function undoDrawingNote(){
- for(let i=drawingNotes.length-1;i>=0;i--){
-  if(Number(drawingNotes[i].page)===page){drawingNotes.splice(i,1);save();pdf.getPage(page).then(pg=>renderDrawingNotes(pg.getViewport({scale})));return}
+function beginNoteDrag(e){
+ const hit=e.target.closest?.('[data-note-id]');if(!hit||!pdf||bulkSelectMode||!drawingViewport)return false;
+ if(e.pointerType==='mouse'&&e.button!==0)return false;
+ const note=noteById(hit.dataset.noteId);if(!note||Number(note.page)!==page)return false;
+ e.preventDefault();e.stopPropagation();
+ selectedDrawingNoteId=note.id;
+ const point=stagePoint(e.clientX,e.clientY),pdfPoint=drawingViewport.convertToPdfPoint(point.x,point.y);
+ drawingNoteDrag={pointerId:e.pointerId,id:note.id,part:hit.dataset.notePart||'whole',startPoint:point,startPdf:pdfPoint,beforeNote:{...note},beforeNotes:cloneDrawingNotes(),moved:false};
+ renderDrawingNotes(drawingViewport);
+ try{el.viewer.setPointerCapture(e.pointerId)}catch(_){}
+ return true;
+}
+function moveNoteFromDrag(g,currentPoint){
+ const note=noteById(g.id);if(!note||!drawingViewport)return;
+ const pdfPoint=drawingViewport.convertToPdfPoint(currentPoint.x,currentPoint.y),dx=pdfPoint[0]-g.startPdf[0],dy=pdfPoint[1]-g.startPdf[1],b=g.beforeNote;
+ if(note.type==='text'){note.x=Number(b.x)+dx;note.y=Number(b.y)+dy;return}
+ const moveBoth=g.part==='whole';
+ if(note.type==='arrow'){
+  if(moveBoth||g.part==='start'){note.x1=Number(b.x1)+dx;note.y1=Number(b.y1)+dy}
+  if(moveBoth||g.part==='end'){note.x2=Number(b.x2)+dx;note.y2=Number(b.y2)+dy}
+ }else if(note.type==='callout'){
+  if(moveBoth||g.part==='target'){note.x1=Number(b.x1)+dx;note.y1=Number(b.y1)+dy}
+  if(moveBoth||g.part==='label'){note.x2=Number(b.x2)+dx;note.y2=Number(b.y2)+dy}
  }
+}
+function moveNoteDrag(e){
+ if(!drawingNoteDrag||drawingNoteDrag.pointerId!==e.pointerId)return false;
+ e.preventDefault();e.stopPropagation();
+ const point=stagePoint(e.clientX,e.clientY);
+ drawingNoteDrag.moved=drawingNoteDrag.moved||Math.hypot(point.x-drawingNoteDrag.startPoint.x,point.y-drawingNoteDrag.startPoint.y)>2;
+ moveNoteFromDrag(drawingNoteDrag,point);renderDrawingNotes(drawingViewport);return true;
+}
+function endNoteDrag(e){
+ if(!drawingNoteDrag||drawingNoteDrag.pointerId!==e.pointerId)return false;
+ e.preventDefault();e.stopPropagation();
+ const g=drawingNoteDrag;drawingNoteDrag=null;
+ try{el.viewer.releasePointerCapture(e.pointerId)}catch(_){}
+ if(g.moved){
+  drawingUndoStack.push(g.beforeNotes);if(drawingUndoStack.length>60)drawingUndoStack.shift();drawingRedoStack=[];save();
+ }
+ renderDrawingNotes(drawingViewport);return true;
+}
+function cancelNoteDrag(e){
+ if(!drawingNoteDrag)return false;
+ const g=drawingNoteDrag;drawingNoteDrag=null;drawingNotes=g.beforeNotes;selectedDrawingNoteId=g.id;
+ try{if(e)el.viewer.releasePointerCapture(e.pointerId)}catch(_){}
+ if(drawingViewport)renderDrawingNotes(drawingViewport);return true;
+}
+function applyDrawingSnapshot(snapshot){
+ drawingNotes=cloneDrawingNotes(snapshot);selectedDrawingNoteId='';save();
+ if(drawingViewport)renderDrawingNotes(drawingViewport);
+}
+function undoDrawingNote(){
+ if(drawingUndoStack.length){
+  drawingRedoStack.push(cloneDrawingNotes());applyDrawingSnapshot(drawingUndoStack.pop());updateDrawingHistoryButtons();return;
+ }
+ const index=drawingNotes.map((n,i)=>({n,i})).filter(x=>Number(x.n.page)===page).pop()?.i;
+ if(Number.isInteger(index)){
+  drawingRedoStack.push(cloneDrawingNotes());const next=cloneDrawingNotes();next.splice(index,1);applyDrawingSnapshot(next);updateDrawingHistoryButtons();
+ }
+}
+function redoDrawingNote(){
+ if(!drawingRedoStack.length)return;
+ drawingUndoStack.push(cloneDrawingNotes());applyDrawingSnapshot(drawingRedoStack.pop());updateDrawingHistoryButtons();
 }
 function viewportRect(viewport,rect){
  try{
@@ -992,7 +1109,7 @@ function previewDrawingWheelZoom(nextScale,focus){
 function drawingTouchCenter(touches){return{x:(touches[0].clientX+touches[1].clientX)/2,y:(touches[0].clientY+touches[1].clientY)/2}}
 function drawingTouchDistance(touches){return Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY)}
 function beginDrawingTouch(e){
- if(!pdf)return;
+ if(!pdf||drawingNoteDrag)return;
  if(e.touches.length>=2){
   e.preventDefault();
   if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}
@@ -1058,7 +1175,7 @@ async function fitDrawing(){
 async function analyze(file){
  setState('Läser projekt-PDF…');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('pf-'+fileKey));
- pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
+ pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser gula PDF-stämplar och deras positioner…');
@@ -1097,12 +1214,14 @@ el.timeReport.onclick=openTimeReport;
 el.timeClose.onclick=closeTimeReport;
 el.timeDialog.addEventListener('cancel',e=>{e.preventDefault();closeTimeReport()});
 el.toolText.onclick=()=>setDrawingTool('text');
+el.toolCallout.onclick=()=>setDrawingTool('callout');
 el.toolArrow.onclick=()=>setDrawingTool('arrow');
 el.toolUndo.onclick=undoDrawingNote;
-el.viewer.addEventListener('pointerdown',e=>{if(!beginBulkDrag(e)&&!beginDrawingTool(e))beginDrawingPan(e)});
-el.viewer.addEventListener('pointermove',e=>{if(!moveBulkDrag(e)&&!moveDrawingTool(e))moveDrawingPan(e)});
-el.viewer.addEventListener('pointerup',e=>{if(bulkDrag)endBulkDrag(e);else if(drawingToolGesture)endDrawingTool(e);else endDrawingPan(e)});
-el.viewer.addEventListener('pointercancel',e=>{if(bulkDrag){bulkDrag=null;el.selectionRect.hidden=true}if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}endDrawingPan(e)});
+el.toolRedo.onclick=redoDrawingNote;
+el.viewer.addEventListener('pointerdown',e=>{if(!beginNoteDrag(e)&&!beginBulkDrag(e)&&!beginDrawingTool(e))beginDrawingPan(e)});
+el.viewer.addEventListener('pointermove',e=>{if(!moveNoteDrag(e)&&!moveBulkDrag(e)&&!moveDrawingTool(e))moveDrawingPan(e)});
+el.viewer.addEventListener('pointerup',e=>{if(drawingNoteDrag)endNoteDrag(e);else if(bulkDrag)endBulkDrag(e);else if(drawingToolGesture)endDrawingTool(e);else endDrawingPan(e)});
+el.viewer.addEventListener('pointercancel',e=>{if(drawingNoteDrag)cancelNoteDrag(e);if(bulkDrag){bulkDrag=null;el.selectionRect.hidden=true}if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}endDrawingPan(e)});
 el.viewer.addEventListener('touchstart',beginDrawingTouch,{passive:false});
 el.viewer.addEventListener('touchmove',moveDrawingTouch,{passive:false});
 el.viewer.addEventListener('touchend',endDrawingTouch,{passive:false});
