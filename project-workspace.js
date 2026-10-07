@@ -130,7 +130,7 @@ async function buildProtocolMap(){
 }
 function isAdministrativeWorkLine(text,label){
  const t=(String(label||'')+' '+String(text||'')).toLocaleLowerCase('sv');
- return /\b(datum|version|revision|rev\.?|levereras?\s+av|leverantör|monteras?\s+av|avmonter\w*|avser)\b/.test(t);
+ return /\b(datum|version|revision|rev\.?|leverer\w*|leverans\w*|leverantör|monteras?\s+av|ansluts?\s+av|avmonter\w*|avser|ansvar\w*)\b/.test(t);
 }
 function isDtWorkReference(value){
  return /(^|[\s:;,\-])DT($|[\s:;,\-])/i.test(String(value||'').trim());
