@@ -11,6 +11,9 @@ const el={
  checklist:$('pwChecklist'),checklistMeta:$('pwChecklistMeta'),addChecklistItem:$('pwAddChecklistItem'),
  bulkBar:$('pwBulkBar'),bulkCount:$('pwBulkCount'),bulkPage:$('pwBulkPage'),bulkDone:$('pwBulkDone'),bulkClear:$('pwBulkClear'),
  timeDialog:$('pwTimeDialog'),timeClose:$('pwTimeClose'),timeTotal:$('pwTimeTotal'),timeDone:$('pwTimeDone'),timeLeft:$('pwTimeLeft'),timeProgress:$('pwTimeProgress'),timeUnknown:$('pwTimeUnknown'),timeRows:$('pwTimeRows'),timeAddType:$('pwTimeAddType'),timeSummaryText:$('pwTimeSummaryText'),timeTypeEditor:$('pwTimeTypeEditor'),timeTypeTitle:$('pwTimeTypeTitle'),timeTypeClose:$('pwTimeTypeClose'),timeTypeName:$('pwTimeTypeName'),timeTypeMinutes:$('pwTimeTypeMinutes'),timeTypeTerms:$('pwTimeTypeTerms'),timeTypeCancel:$('pwTimeTypeCancel'),timeTypeSave:$('pwTimeTypeSave'),
+ selfcheckExport:$('pwSelfcheckExport'),automationDialog:$('pwAutomationDialog'),automationClose:$('pwAutomationClose'),automationIdentity:$('pwAutomationIdentity'),automationModel:$('pwAutomationModel'),automationSerial:$('pwAutomationSerial'),automationId:$('pwAutomationId'),automationLocation:$('pwAutomationLocation'),automationProgress:$('pwAutomationProgress'),automationApproveAll:$('pwAutomationApproveAll'),automationChecks:$('pwAutomationChecks'),automationNotes:$('pwAutomationNotes'),
+ projectName:$('pwProjectName'),projectFacility:$('pwProjectFacility'),projectOrder:$('pwProjectOrder'),projectDate:$('pwProjectDate'),projectContact:$('pwProjectContact'),projectCompany:$('pwProjectCompany'),projectTechnician:$('pwProjectTechnician'),projectSignature:$('pwProjectSignature'),projectLogo:$('pwProjectLogo'),projectLogoRemove:$('pwProjectLogoRemove'),projectLogoStatus:$('pwProjectLogoStatus'),projectLogoPreview:$('pwProjectLogoPreview'),
+ selfcheckExportDialog:$('pwSelfcheckExportDialog'),selfcheckExportClose:$('pwSelfcheckExportClose'),selfcheckSelectAll:$('pwSelfcheckSelectAll'),selfcheckSelectDone:$('pwSelfcheckSelectDone'),selfcheckExportList:$('pwSelfcheckExportList'),selfcheckExportCount:$('pwSelfcheckExportCount'),selfcheckExportCreate:$('pwSelfcheckExportCreate'),
  itemEditor:$('pwItemEditor'),itemEditorTitle:$('pwItemEditorTitle'),itemEditorClose:$('pwItemEditorClose'),editLabel:$('pwEditLabel'),editValue:$('pwEditValue'),editMinutes:$('pwEditMinutes'),editNote:$('pwEditNote'),editCancel:$('pwEditCancel'),editSave:$('pwEditSave')
 };
 
@@ -24,8 +27,37 @@ let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projek
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[],pendingImage=null;
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
-let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
+let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='';
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
+
+const PROJECT_AUTOMATION_CHECKS=[
+ ['1.1','Okulär kontroll av dörrautomatik och dörrmiljö.'],
+ ['1.2','Kontroll av infästning och mekaniska delar.'],
+ ['1.3','Funktionsprov öppning och stängning.'],
+ ['1.4','Kontroll av impulsgivare och säkerhetssensorer.'],
+ ['1.5','Kontroll av låsning och dörrfunktion.'],
+ ['1.6','Dokumentera avvikelse eller utförd justering.']
+];
+const PROJECT_AUTOMATION_FAULTS={
+ '1.1':['Skada eller slitage upptäckt','Dörrmiljö behöver justeras'],
+ '1.2':['Infästning lös','Mekanisk del behöver justeras'],
+ '1.3':['Öppning/stängning avviker','Dörr går inte hela vägen'],
+ '1.4':['Impulsgivare fungerar inte','Säkerhetssensor behöver justeras'],
+ '1.5':['Låsning fungerar inte korrekt','Dörrfunktion behöver justeras'],
+ '1.6':['Åtgärd krävs','Fortsatt kontroll krävs']
+};
+const PROJECT_AUTOMATION_MODELS=[
+ ['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],
+ ['15','Besam Powerswing'],['16','Besam SW100'],['17','Dorma ED 200'],['18','Tormax'],['19','Record standardarm'],
+ ['20','Powerswing pardörr'],['21','Geze TSA 160'],['22','Record glidarm'],['23','Gilgen FDC'],['24','Dorma ED 100'],
+ ['25','Besam SDE'],['26','Ditec hissmonterad'],['27','SR 2000'],['28','OVE'],['29','Dorma CD 80'],
+ ['30','Cibes hissöppnare'],['31','Geze TSA 160 dubbeldörr'],['32','Dorma ED 180'],['33','Geze EC Turn'],
+ ['34','Besam DHE'],['35','Entramatic PLS 100'],['36','Entramatic PLS 150'],['37','Dorma ED 250'],
+ ['38','Geze Powerdrive skjutdörr'],['39','Geze EC Drive skjutdörr'],['40','Geze SL skjutdörr'],
+ ['41','Faac 930 skjutdörr'],['42','Faac A140 skjutdörr'],['43','Dorma TS 93 + brandstängning'],
+ ['44','Dorma TS 93'],['45','Entramatic SW 300'],['46','Unislide dubbel flyglig'],['47','Unislide enkel flyglig'],
+ ['48','Entramatic SL500']
+];
 
 function setState(text){el.state.textContent=text}
 function setPositionsHidden(hidden){
