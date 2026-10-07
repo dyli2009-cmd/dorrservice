@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.231">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.232">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -54,15 +54,24 @@
   <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
   <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
   <div class="pwDrawTools" aria-label="Ritverktyg">
-    <button id="pwToolText" type="button" aria-pressed="false" title="Lägg text på ritningen">Text</button>
-    <button id="pwToolCallout" type="button" aria-pressed="false" title="Lägg text med pil och flytta text/pilspets separat">Text + pil</button>
-    <button id="pwToolArrow" type="button" aria-pressed="false" title="Rita en pil på ritningen">Pil</button>
+    <div class="pwToolWrap">
+      <button id="pwToolMenuButton" type="button" aria-expanded="false">Verktyg ▾</button>
+      <div id="pwToolMenu" class="pwToolMenu" hidden>
+        <button id="pwToolText" type="button" aria-pressed="false"><strong>Text</strong><small>Lägg text och flytta den fritt.</small></button>
+        <button id="pwToolCallout" type="button" aria-pressed="false"><strong>Text + pil</strong><small>Markera något med pil och tillhörande text.</small></button>
+        <button id="pwToolArrow" type="button" aria-pressed="false"><strong>Pil</strong><small>Rita och finjustera en pil.</small></button>
+        <button id="pwToolImage" type="button"><strong>Bild</strong><small>Lägg in en bild på ritningen.</small></button>
+        <div class="pwToolMenuDivider"></div>
+        <button id="pwToolDelete" class="pwToolDelete" type="button" disabled><strong>Ta bort markerad</strong><small>Tar bort vald text, pil eller bild.</small></button>
+      </div>
+    </div>
     <span class="pwToolHistory" aria-label="Ångra och gör om">
       <button id="pwToolUndo" class="pwToolIcon" type="button" title="Ångra" aria-label="Ångra">↶</button>
       <button id="pwToolRedo" class="pwToolIcon" type="button" title="Gör om" aria-label="Gör om" disabled>↷</button>
     </span>
   </div>
   <button id="pwRescan" type="button" hidden>Analysera igen</button>
+  <input id="pwImageFile" type="file" accept="image/*" hidden>
 </section>
 
 <main class="pwMain">
@@ -172,11 +181,25 @@
       <div><span>Projekt klart</span><strong id="pwTimeProgress">0%</strong></div>
       <div><span>Utan tidsestimat</span><strong id="pwTimeUnknown">0</strong></div>
     </div>
-    <p class="pwTimeIntro">Tiden är en uppskattning utifrån projektets GS-kontrollpunkter. Ändra standardtid, ta bort en tidsmall från beräkningen eller sätt en egen tid direkt på en kontrollpunkt. Projektprocenten vägs efter minuter.</p>
+    <div class="pwTimeSubhead">
+      <p class="pwTimeIntro">Tiden är en uppskattning utifrån projektets GS-kontrollpunkter. Ändra standardtid, lägg till egna tidstyper eller sätt en egen tid direkt på en kontrollpunkt. Projektprocenten vägs efter minuter.</p>
+      <button id="pwTimeAddType" type="button">＋ Lägg till tidstyp</button>
+    </div>
+    <p id="pwTimeSummaryText" class="pwTimeSummaryText">0 arbetsmoment</p>
     <div id="pwTimeRows" class="pwTimeRows"></div>
   </div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.231"></script>
+<dialog id="pwTimeTypeEditor" class="pwTimeTypeEditor">
+  <div class="pwItemEditorHead"><div><span>TIDSMALL</span><strong id="pwTimeTypeTitle">Lägg till tidstyp</strong></div><button id="pwTimeTypeClose" type="button" aria-label="Stäng">×</button></div>
+  <div class="pwItemEditorBody">
+    <label>Namn<input id="pwTimeTypeName" type="text" placeholder="Exempel: Dörrstopp"></label>
+    <label>Tid per punkt (minuter)<input id="pwTimeTypeMinutes" type="number" min="0" step="5" inputmode="numeric" placeholder="Exempel: 15"></label>
+    <label>Sökord<input id="pwTimeTypeTerms" type="text" placeholder="Exempel: dörrstopp, dörr stopp"><small>Orden används för att känna igen rätt kontrollpunkter automatiskt. Separera flera ord med kommatecken.</small></label>
+  </div>
+  <div class="pwItemEditorActions"><button id="pwTimeTypeCancel" type="button">Avbryt</button><button id="pwTimeTypeSave" type="button">Spara</button></div>
+</dialog>
+
+<script src="project-workspace.js?v=2.4.232"></script>
 </body>
 </html>
