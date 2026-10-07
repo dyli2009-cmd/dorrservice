@@ -16,7 +16,10 @@
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
   <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
-  <label class="pwOpen" for="pwFile">Öppna projekt-PDF</label>
+  <div class="pwHeaderActions">
+    <button id="pwSaveProject" type="button" disabled>Spara projekt</button>
+    <label class="pwOpen" for="pwFile">Öppna projekt-PDF</label>
+  </div>
   <input id="pwFile" type="file" accept="application/pdf" hidden>
 </header>
 
@@ -123,6 +126,6 @@
   <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.218"></script>
+<script src="project-workspace.js?v=2.4.219"></script>
 </body>
 </html>
