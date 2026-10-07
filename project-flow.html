@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#132b38">
+<title>Projektflöde – Tillsyno</title>
+<link rel="stylesheet" href="project-flow.css?v=2.4.169">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+<header class="pfHeader">
+  <a class="pfHome" href="./" aria-label="Hem">‹ Hem</a>
+  <div><strong>Projektflöde</strong><small>Ritning → objekt → protokoll → status</small></div>
+  <label class="pfOpen" for="pfFile">Öppna PDF</label>
+  <input id="pfFile" type="file" accept="application/pdf" hidden>
+</header>
+
+<section class="pfSummary">
+  <div><strong id="pfFileName">Ingen ritning</strong><small id="pfState">Öppna en planerad PDF för att börja.</small></div>
+  <div class="pfStats">
+    <span><b id="pfObjectCount">0</b> objekt</span>
+    <span><b id="pfDoneCount">0</b> klara</span>
+    <span><b id="pfTotalProgress">0%</b> totalt</span>
+  </div>
+</section>
+
+<section class="pfControls">
+  <button id="pfPrev" type="button" aria-label="Föregående sida">‹</button>
+  <span id="pfPageInfo">Ingen sida</span>
+  <button id="pfNext" type="button" aria-label="Nästa sida">›</button>
+  <button id="pfZoomOut" type="button">A−</button>
+  <button id="pfZoomIn" type="button">A+</button>
+  <label class="pfPrefix">Märkning
+    <input id="pfPrefixes" value="GS" inputmode="text" aria-label="Prefix som ska hittas">
+  </label>
+  <button id="pfRescan" type="button">Analysera igen</button>
+</section>
+
+<main class="pfMain">
+  <section id="pfViewerWrap" class="pfViewerWrap">
+    <div id="pfStage" class="pfStage">
+      <canvas id="pfCanvas"></canvas>
+      <div id="pfMarkers"></div>
+    </div>
+    <div id="pfEmpty" class="pfEmpty">
+      <div class="pfEmptyIcon">⌖</div>
+      <h1>Ritningen blir projektets arbetsyta</h1>
+      <p>Projektflöde hittar märkningar som GS1, GS2 och GS10, skiljer på varje fysisk position och sparar status separat.</p>
+      <label class="pfOpen pfOpenLarge" for="pfFile">Öppna PDF</label>
+      <small>Första versionen fungerar med textbaserade PDF-ritningar.</small>
+    </div>
+  </section>
+
+  <aside class="pfSide">
+    <div class="pfSideHead">
+      <div><span>PROJEKTÖVERSIKT</span><strong>Hittade objekt</strong></div>
+      <button id="pfFocusCurrent" type="button">Aktuell sida</button>
+    </div>
+    <div id="pfGroups" class="pfGroups">
+      <p class="pfMuted">Objekten visas här efter analys.</p>
+    </div>
+  </aside>
+</main>
+
+<dialog id="pfProtocol" class="pfProtocol">
+  <div class="pfProtocolHead">
+    <div>
+      <span id="pfProtocolType">OBJEKT</span>
+      <h2 id="pfProtocolTitle">GS4</h2>
+      <p id="pfProtocolPosition"></p>
+    </div>
+    <button id="pfCloseProtocol" type="button" aria-label="Tillbaka till ritningen">×</button>
+  </div>
+
+  <div class="pfProtocolProgress">
+    <div><strong id="pfProtocolPercent">0%</strong><span>klart på den här positionen</span></div>
+    <div class="pfProgressTrack"><i id="pfProtocolBar"></i></div>
+  </div>
+
+  <div id="pfMatchedProtocol" class="pfMatchedProtocol" hidden>
+    <div>
+      <strong>Matchad protokollsida i PDF</strong>
+      <small id="pfMatchedProtocolText"></small>
+    </div>
+    <button id="pfShowProtocolPage" type="button">Visa sida</button>
+  </div>
+
+  <section class="pfInstanceInfo">
+    <div><span>Intern instans</span><strong id="pfInstanceId"></strong></div>
+    <div><span>PDF-position</span><strong id="pfPdfPosition"></strong></div>
+  </section>
+
+  <section class="pfChecklist">
+    <div class="pfChecklistHead">
+      <div><span>PROTOKOLLMALL</span><strong id="pfTemplateName">GS4</strong></div>
+      <small>Samma mall – separat status per position</small>
+    </div>
+    <div id="pfChecks"></div>
+  </section>
+
+  <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Till samma position på ritningen</button>
+</dialog>
+
+<script src="project-flow.js?v=2.4.169"></script>
+</body>
+</html>
