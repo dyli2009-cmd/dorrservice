@@ -174,7 +174,13 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     const protocol=protocols.get(link.targetPage),id=protocol?.id;
     if(!id||used.has(id))continue;used.add(id);
     const viewport=viewportMap.get(link.drawingPage);if(!viewport)continue;
-    const nearby=classicCallouts.filter(item=>item.drawingPage===link.drawingPage&&idsInText(item.text).length).sort((a,b)=>rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect))[0]||null;
+    const pageCallouts=classicCallouts.filter(item=>item.drawingPage===link.drawingPage&&idsInText(item.text).length);
+    // LOCKED MATCHING: prefer the Bluebeam callout whose printed object/ID equals
+    // the Id nummermaskin on the protocol reached by this P/GoTo link.
+    // Only older drawings without that ID may use nearest-callout fallback.
+    const exactCallouts=pageCallouts.filter(item=>idsInText(item.text).some(value=>cleanValue(value)===cleanValue(id)));
+    const nearby=(exactCallouts.length?exactCallouts:pageCallouts).sort((a,b)=>rectDistance(link.rect,a.rect)-rectDistance(link.rect,b.rect))[0]||null;
+    const exactCalloutMatch=!!(nearby&&exactCallouts.includes(nearby));
     const vr=viewport.convertToViewportRectangle(link.rect);let x=Math.max(0,Math.min(1,((vr[0]+vr[2])/2)/viewport.width)),y=Math.max(0,Math.min(1,((vr[1]+vr[3])/2)/viewport.height)),labelX,labelY,legacyLabelText='';
     if(nearby&&rectDistance(link.rect,nearby.rect)<=Math.max(90,Math.min(viewport.width,viewport.height)*.12)){
      const tip=viewport.convertToViewportPoint(nearby.points[0],nearby.points[1]),lr=viewport.convertToViewportRectangle(nearby.rect);
@@ -185,7 +191,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     CHECKS.forEach(([n])=>checks[n]={result:'',note:''});
     doors.push(normalize({
      uid:'legacy:'+link.targetPage+':'+id,id,machineId:id,page:pageMap.get(link.drawingPage),x,y,labelX,labelY,
-     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',legacyLabelText,legacyPlacementSource:nearby?'bluebeam-callout':'bluebeam-button',
+     serialNumber:String(Number(parsed.serial||doors.length+1)),modelCode:parsed.modelCode||'',model:modelEntry?.[1]||'',idMode:'manual',legacyLabelText,legacyPlacementSource:nearby?(exactCalloutMatch?'bluebeam-callout-id':'bluebeam-callout-nearest'):'bluebeam-button',legacyCalloutMatchedById:exactCalloutMatch,
      location:getField(protocol.fields,'Placering/Dörrlittra'),ao:'',nextDate:'',signature:'',status:'untested',notes:'',checks,remediationDate:'',remediationSignature:'',
      previousServiceDate:getField(protocol.fields,'Datum'),previousNextDate:getField(protocol.fields,'näst datum','Nästa provning datum'),previousOrder:getField(protocol.fields,'Order').replace(/,00$/,''),legacyProtocolPage:link.targetPage
     }))
@@ -237,7 +243,7 @@ window.inspectLegacyLinkedPdf=async function(bytes,fileName,onProgress=()=>{}){
     drawingBytes,
     work:{version:2,doors,importQueue:[],project,logoData:''},
     classicImport:true,
-    summaryText:'Klassisk Bluebeam-koppling använd. '+doors.length+' automatiker hittades och placerades. '+doors.filter(d=>d.legacyPlacementSource==='bluebeam-callout').length+' fick exakt position från gammal text/pil. '+perDrawing+'. Projektfält ifyllda: '+projectFieldCount+'.'
+    summaryText:'Klassisk Bluebeam-koppling använd. '+doors.length+' automatiker hittades och placerades. '+doors.filter(d=>String(d.legacyPlacementSource||'').startsWith('bluebeam-callout')).length+' fick position från gammal text/pil, varav '+doors.filter(d=>d.legacyPlacementSource==='bluebeam-callout-id').length+' matchades direkt på samma objekt-ID som P-protokollet. '+perDrawing+'. Projektfält ifyllda: '+projectFieldCount+'.'
    }
   }catch(error){
    console.warn('Klassisk äldre PDF-import misslyckades',error);
