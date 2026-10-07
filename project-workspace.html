@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.220">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.221">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -18,9 +18,9 @@
   <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
   <div class="pwHeaderActions">
     <button id="pwSaveProject" type="button" disabled>Spara projekt</button>
-    <label class="pwOpen" for="pwFile">Öppna projekt-PDF</label>
+    <button id="pwOpenProject" class="pwOpen" type="button">Öppna projekt-PDF</button>
   </div>
-  <input id="pwFile" type="file" accept="application/pdf" hidden>
+  <input id="pwFile" type="file" accept="application/pdf,.pdf" hidden>
 </header>
 
 <section class="pwProjectBar">
@@ -57,7 +57,7 @@
       <div class="pwEmptyIcon">⌖</div>
       <h1>Projekt-PDF:en är arbetsytan</h1>
       <p>Projektflödet läser riktiga PDF-stämplar, räknar varje fysisk position och matchar stämpelns ID mot rätt protokollsida i samma fil.</p>
-      <label class="pwOpen pwOpenLarge" for="pwFile">Öppna projekt-PDF</label>
+      <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
       <small>Kontrollflödet används inte av den här sidan.</small>
     </div>
   </section>
@@ -126,6 +126,6 @@
   <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.220"></script>
+<script src="project-workspace.js?v=2.4.221"></script>
 </body>
 </html>
