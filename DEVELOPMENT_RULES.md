@@ -89,13 +89,13 @@ Det separata låsdokumentet `CONTROLFLOW_LOCK.md` ska också kontrolleras innan 
 
 Tillsyno ska ha **en enda synlig versionsserie** för hela appen.
 
-Aktuell version: **v2.4.220**
+Aktuell version: **v2.4.221**
 
 Regler:
 - Samma appversion gäller Kontrollflöde, Dörrautomatik, Säkerhetsservice, Brand, Projektflöde och Ritningsverktyg.
 - Visa inte separata versionsnummer för enskilda moduler.
 - Varje användarsynlig uppdatering ska höja Tillsyno-versionen med ett steg.
-- Exempel: v2.4.220 → v2.4.221 → v2.4.222.
+- Exempel: v2.4.221 → v2.4.222 → v2.4.223.
 - Versionsnumret ska visas på Home så att det är enkelt att kontrollera vilken uppdatering som körs.
 - Tekniskt buildnummer för TestFlight får finnas separat, men den synliga versionsbeteckningen ska följa Tillsyno-versionen.
 - När en ny version görs ska webb och iOS speglas till samma Tillsyno-version.
