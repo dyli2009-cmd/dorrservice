@@ -58,16 +58,9 @@
   function codeRegex(code){
     const m=String(code||'').match(/^([A-ZÅÄÖ]+)(\d+[A-Z]?)$/);
     if(!m)return null;
-    const a=m[1].replace(/[.*+?^$()|[\]\\]/g,'\\  function normalizeCode(value){
-    const m=String(value||'').toUpperCase().trim().match(/^GS\s*[- ]?\s*(\d{1,3})$/);
-    return m?'GS'+m[1]:'';
-  }');
-    const b=m[2].replace(/[.*+?^$()|[\]\\]/g,'\\  function normalizeCode(value){
-    const m=String(value||'').toUpperCase().trim().match(/^GS\s*[- ]?\s*(\d{1,3})$/);
-    return m?'GS'+m[1]:'';
-  }');
-    return new RegExp('\\b'+a+'\\s*[- ]?\\s*'+b+'\\b','i');
+    return new RegExp('\\b'+m[1]+'\\s*[- ]?\\s*'+m[2]+'\\b','i');
   }
+
   function rebuildProtocolMap(){
     protocolPages={};
     const codes=[...new Set(objects.map(o=>o.code))];
