@@ -68,7 +68,7 @@ Kontrollflödets lås ska respekteras.
 - Kontrollflödets källfiler används endast som referens när kopian skapas; de skyddade filerna ändras inte.
 - Kopian innehåller samma sex kontrollpunkter och samma listade dörrautomatikmodeller (kod 11–48) som befintlig Egenkontroll dörrautomatik.
 - Projektflödet söker i första hand efter den strukturerade automatikmärkningen på ritningen. Exempel: `7-0-54-28-24-2` tolkas som objektdel `7-0-54-28`, automatkod `24` och löpnummer `2`. Automatkod måste finnas i Projektflödets kopierade automatlista.
-- När en strukturerad märkning hittas läggs klickytan direkt över märkningstexten; en liten `EK`-indikering visar att egenkontroll finns. Texten `DA` används endast som reservsignal när strukturerad märkning inte kan hittas.
+- När en strukturerad märkning hittas byggs klickytans rektangel från exakt de PDF-textobjekt som tillsammans bildar märkningen, inte från hela textraden eller DA-positionen. Marginalen hålls liten så klickytan följer objektnummer + automatkod + löpnummer visuellt. En liten `EK`-indikering visar att egenkontroll finns. Texten `DA` används endast som reservsignal när strukturerad märkning inte kan hittas.
 - Strukturerade ID:n accepteras bara på rader som i huvudsak består av själva märkningen/DA, så att motsvarande ID inne på protokollsidor inte felaktigt skapar nya ritningspositioner.
 - Varje hittad automatik får en egen klickbar Egenkontroll på ritningen och i Positioner-panelen.
 - Avlästa värden får korrigeras manuellt inne i egenkontrollen.
