@@ -51,6 +51,8 @@
   <span id="pwZoomInfo">100%</span>
   <button id="pwZoomIn" type="button" aria-label="Zooma in">+</button>
   <button id="pwFit" type="button">Passa</button>
+  <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
+  <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
   <button id="pwToolText" type="button" aria-pressed="false" title="Lägg text på ritningen">Text</button>
   <button id="pwToolArrow" type="button" aria-pressed="false" title="Rita en pil på ritningen">Pil</button>
   <button id="pwToolUndo" type="button" title="Ta bort senaste texten eller pilen på aktuell sida">Ångra</button>
@@ -62,6 +64,7 @@
     <div id="pwStage" class="pwStage">
       <canvas id="pwCanvas"></canvas>
       <svg id="pwDrawingNotes" class="pwDrawingNotes" aria-hidden="true"></svg>
+      <div id="pwSelectionRect" class="pwSelectionRect" hidden></div>
       <div id="pwMarkers" class="pwMarkers"></div>
     </div>
     <div id="pwEmpty" class="pwEmpty">
@@ -84,6 +87,12 @@
     <div id="pwGroups" class="pwGroups"><p class="pwMuted">Positionerna visas här efter analys.</p></div>
   </aside>
   <button id="pwShowPositions" class="pwShowPositions" type="button" hidden>Positioner</button>
+  <div id="pwBulkBar" class="pwBulkBar" hidden>
+    <strong id="pwBulkCount">0 valda</strong>
+    <button id="pwBulkPage" type="button">Alla på sidan</button>
+    <button id="pwBulkDone" type="button">Klarmarkera</button>
+    <button id="pwBulkClear" type="button">Avmarkera</button>
+  </div>
 </main>
 
 <dialog id="pwProtocol" class="pwProtocol">
@@ -141,6 +150,23 @@
     <label>Kommentar<textarea id="pwEditNote" rows="3" placeholder="Exempel: Bytt modell på plats – originaltypen gick inte att använda."></textarea></label>
   </div>
   <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
+</dialog>
+
+<dialog id="pwTimeDialog" class="pwTimeDialog">
+  <div class="pwTimeHead">
+    <div><span>PROJEKTRAPPORT</span><strong>Beräknad arbetstid</strong></div>
+    <button id="pwTimeClose" type="button" aria-label="Stäng">×</button>
+  </div>
+  <div class="pwTimeBody">
+    <div class="pwTimeSummary">
+      <div><span>Totalt</span><strong id="pwTimeTotal">0 h</strong></div>
+      <div><span>Beräknat utfört</span><strong id="pwTimeDone">0 h</strong></div>
+      <div><span>Kvar</span><strong id="pwTimeLeft">0 h</strong></div>
+      <div><span>Utan tidsestimat</span><strong id="pwTimeUnknown">0</strong></div>
+    </div>
+    <p class="pwTimeIntro">Tiden är en uppskattning utifrån projektets GS-kontrollpunkter. Ändra minuterna nedan så räknas rapporten om direkt.</p>
+    <div id="pwTimeRows" class="pwTimeRows"></div>
+  </div>
 </dialog>
 
 <script src="project-workspace.js?v=2.4.228"></script>
