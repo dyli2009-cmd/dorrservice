@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.229">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.230">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -53,9 +53,15 @@
   <button id="pwFit" type="button">Passa</button>
   <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
   <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
-  <button id="pwToolText" type="button" aria-pressed="false" title="Lägg text på ritningen">Text</button>
-  <button id="pwToolArrow" type="button" aria-pressed="false" title="Rita en pil på ritningen">Pil</button>
-  <button id="pwToolUndo" type="button" title="Ta bort senaste texten eller pilen på aktuell sida">Ångra</button>
+  <div class="pwDrawTools" aria-label="Ritverktyg">
+    <button id="pwToolText" type="button" aria-pressed="false" title="Lägg text på ritningen">Text</button>
+    <button id="pwToolCallout" type="button" aria-pressed="false" title="Lägg text med pil och flytta text/pilspets separat">Text + pil</button>
+    <button id="pwToolArrow" type="button" aria-pressed="false" title="Rita en pil på ritningen">Pil</button>
+    <span class="pwToolHistory" aria-label="Ångra och gör om">
+      <button id="pwToolUndo" class="pwToolIcon" type="button" title="Ångra" aria-label="Ångra">↶</button>
+      <button id="pwToolRedo" class="pwToolIcon" type="button" title="Gör om" aria-label="Gör om" disabled>↷</button>
+    </span>
+  </div>
   <button id="pwRescan" type="button" hidden>Analysera igen</button>
 </section>
 
@@ -169,6 +175,6 @@
   </div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.229"></script>
+<script src="project-workspace.js?v=2.4.230"></script>
 </body>
 </html>
