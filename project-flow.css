@@ -313,3 +313,7 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
   .pfProtocolZoom span{min-width:38px;font-size:9px}
   .pfProtocolDocument{padding:4px!important}
 }
+
+
+/* v2.4.181 dialog visibility fix */
+.pfProtocol:not([open]){display:none!important}
