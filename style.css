@@ -1835,9 +1835,16 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
 }
 
 
-/* 2.4.175: responsive ambient security artwork; separate from the background image. */
+/* 2.4.176: responsive ambient security artwork, always full viewport. */
 .appHome{
-  position:relative!important;
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  height:100dvh!important;
+  min-width:100vw!important;
+  min-height:100vh!important;
+  min-height:100dvh!important;
   overflow:hidden!important;
   background-image:
     radial-gradient(circle at 50% 36%,rgba(44,93,116,.88) 0,rgba(24,62,80,.96) 42%,#102b39 100%)!important;
