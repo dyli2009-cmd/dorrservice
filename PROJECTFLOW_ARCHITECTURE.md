@@ -1,0 +1,37 @@
+# Projektflöde – egen arkitektur
+
+Status: Aktivt utvecklingsområde.
+
+Projektflödet är ett separat system från Kontrollflödet.
+
+## Egna filer
+- `project-workspace.html`
+- `project-workspace.css`
+- `project-workspace.js`
+
+## Grundprincip
+En och samma projekt-PDF är källan för:
+1. ritningssidor
+2. gula PDF-stämplar / projekt-ID
+3. protokollsidor
+
+Projektflödet ska:
+- läsa riktiga PDF Stamp-annoteringar och deras exakta koordinater
+- behandla varje fysisk stämpelträff som en egen position
+- räkna hur många positioner som finns per ID, oavsett om ID heter GS1, GS2 eller något annat
+- matcha stämpel-ID mot protokollsidan med samma ID i samma PDF
+- visa originalprotokollet utan att tappa rubriker, text eller layout
+- bygga ett separat interaktivt arbetsprotokoll från originalets innehåll
+- ta med ifyllda komponentrader som kontrollpunkter
+- inte göra korta tomma fältnamn till kontrollpunkter
+- spara avbockning och procent separat per fysisk position
+- återgå till samma ritningssida, zoom och position efter protokollarbete
+
+## Isolering
+Projektflödet får inte importera eller använda Kontrollflödets:
+- `security.js`
+- `security.css`
+- `all-in-one.html`
+- `all-in-one.css`
+
+Kontrollflödets lås ska respekteras.
