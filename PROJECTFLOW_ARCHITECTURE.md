@@ -45,3 +45,10 @@ Projektflödet får inte importera eller använda Kontrollflödets:
 - `all-in-one.css`
 
 Kontrollflödets lås ska respekteras.
+
+## iOS PDF-import
+- använd explicit öppna-knapp i Projektflödet, inte en label som indirekt aktiverar ett dolt filfält
+- kontrollera `Capacitor.isPluginAvailable('FilePicker')` innan native filväljare används
+- native iOS använder FilePicker; webb använder vanligt file input
+- om native-plugin saknas faller Projektflödet tillbaka till vanlig filväljare och visar tydlig status
+- efter filval läses i första hand `webPath`, därefter konverterad `path`
