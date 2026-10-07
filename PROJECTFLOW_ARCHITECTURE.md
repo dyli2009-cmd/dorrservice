@@ -98,6 +98,9 @@ Kontrollflödets lås ska respekteras.
 ## Massmarkering och tidsrapport
 - `Välj` gör GS-positioner valbara utan att öppna protokollet. På dator kan användaren dra en markeringsruta över flera positioner; på touch kan positioner väljas en och en. `Alla på sidan` väljer alla positioner på aktuell ritningssida.
 - `Klarmarkera` bockar automatiskt av alla effektiva GS-kontrollpunkter för de valda positionerna. När positionens protokoll öppnas efteråt ska samma punkter redan vara ikryssade och progressen vara 100% när alla punkter finns.
-- `Tid` öppnar en beräknad projektrapport baserad endast på effektiva GS-kontrollpunkter. Rapporten visar total beräknad tid, beräknat utfört, kvar samt antal punkter utan tidsestimat.
+- `Tid` öppnar en beräknad projektrapport baserad endast på effektiva GS-kontrollpunkter. Rapporten visar total beräknad tid, beräknat utfört, kvar, tidsvägd projektprocent samt antal punkter utan tidsestimat.
 - Grundvärden: WC/toalettbehör 10 min, cylinder 15 min, slutbleck 10 min, trycke 10 min, låshus 30 min, dörrstängare 30 min, dörrautomatik 480 min, armbågskontakt 150 min och magnet 480 min.
-- Alla tidsvärden är redigerbara i rapporten och sparas lokalt på enheten. Detta är uppskattad arbetstid från komponenterna, inte en faktisk tidsstämpel/timer.
+- Standardtider kan ändras direkt i tidsrapporten. En tidskategori kan tas bort från beräkningen och senare återställas utan att kontrollpunkterna tas bort.
+- Varje enskild kontrollpunkt kan få en egen tid i minuter via `Ändra`. Tomt tidsfält använder standardtiden för kategorin; `0 min` gör att punkten inte väger tid i beräkningen.
+- Projekt- och positionsprocent vägs efter beräknade minuter i stället för att varje kontrollpunkt väger lika. En position kan dock bara bli 100% när alla dess kontrollpunkter är klarmarkerade.
+- Tidsinställningarna är uppskattad arbetstid, inte en faktisk tidsstämpel/timer.
