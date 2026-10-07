@@ -233,3 +233,69 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwEmptyMark{width:64px;height:64px}
  .pwEmptyCard h1{font-size:22px}
 }
+
+
+/* 2.4.237: Projektflöde cloned Door Automation selfcheck. */
+.pwAutomationMarker{
+ position:absolute;z-index:8;display:grid;place-items:center;pointer-events:auto;
+ min-width:28px!important;min-height:28px!important;padding:0!important;border:2px solid #176f9a!important;border-radius:50%!important;
+ background:#e8f4f8e8!important;color:#125474!important;box-shadow:0 2px 8px #0003,0 0 0 2px #fff9 inset!important;
+ font-size:9px!important;font-weight:900!important;
+}
+.pwAutomationMarker[data-progress="100"]{border-color:var(--green)!important;background:#e8f5ed!important;color:var(--green)!important}
+.pwAutomationMarker span{font-size:8px!important;color:inherit!important}
+.pwAutomationGroup{border-color:#a9cfdd}.pwAutomationGroup>.pwGroupTitle{background:#eef7fa}.pwAutomationPosition b{color:#176f9a}.pwAutomationPosition:has(b:last-child){}
+
+.pwAutomationDialog{width:min(800px,calc(100vw - 20px));max-height:min(95dvh,980px);padding:0;border:0;border-radius:14px;overflow:hidden;color:#203440;box-shadow:0 24px 80px #0006}
+.pwAutomationDialog::backdrop,.pwSelfcheckExportDialog::backdrop{background:#0a1d27b8;backdrop-filter:blur(2px)}
+.pwAutomationHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--navy);color:#fff}
+.pwAutomationHead>div{min-width:0}.pwAutomationHead span{display:block;font-size:7px;letter-spacing:1px;color:#bed0d9;font-weight:850}
+.pwAutomationHead strong{display:block;font-size:16px}.pwAutomationHead small{display:block;margin-top:2px;font-size:9px;color:#c7d7df;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pwAutomationHead>button{min-height:32px;padding:1px 9px;font-size:20px}
+.pwAutomationBody{padding:10px;max-height:calc(95dvh - 54px);overflow:auto;background:#f7f9fa}
+.pwAutomationMeta,.pwAutomationProject{margin:0 0 9px;border:1px solid #d7e0e4;border-radius:9px;background:#fff;overflow:hidden}
+.pwAutomationMeta>summary,.pwAutomationProject>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#edf2f5;cursor:pointer;font-size:10px;font-weight:800}
+.pwAutomationMeta>summary span:last-child,.pwAutomationProject>summary span:last-child{font-size:8px;color:var(--muted);font-weight:600}
+.pwAutomationMetaGrid,.pwAutomationProjectGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:9px}
+.pwAutomationMetaGrid label,.pwAutomationProjectGrid label{display:grid;gap:3px;font-size:9px;font-weight:800;color:#526974}
+.pwAutomationMetaGrid input,.pwAutomationMetaGrid select,.pwAutomationProjectGrid input{width:100%;min-height:34px;border:1px solid #c8d4da;border-radius:6px;background:#fff;padding:6px 7px;font:inherit;font-size:11px;color:#203440}
+.pwProjectLogoField{grid-column:1/-1;display:grid;gap:6px;padding:8px;border:1px dashed #cbd8de;border-radius:8px;background:#f8fafb}
+.pwProjectLogoField>span{font-size:9px;font-weight:800;color:#526974}.pwProjectLogoField>div:first-of-type{display:flex;align-items:center;gap:6px}
+.pwLogoButton{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:5px 9px;border-radius:7px;background:var(--navy);color:#fff;font-size:9px;font-weight:800;cursor:pointer}
+.pwProjectLogoField button{min-height:32px;font-size:9px}.pwProjectLogoField small{font-size:8px;color:var(--muted)}
+#pwProjectLogoPreview img{display:block;max-width:180px;max-height:70px;object-fit:contain;background:#fff;border:1px solid #e1e7ea;border-radius:6px;padding:4px}
+
+.pwAutomationProgress{display:flex;align-items:center;gap:7px;margin:10px 0;padding:7px 8px;border:1px solid #d9e2e6;border-radius:8px;background:#fff}
+.pwAutomationProgress strong{font-size:16px}.pwAutomationProgress span{font-size:9px;color:var(--muted);flex:1}.pwAutomationProgress button{min-height:31px;padding:4px 8px;font-size:9px;background:var(--blue);border-color:var(--blue);color:#fff}
+.pwAutomationChecks{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.pwAutomationCheck{padding:7px;border-top:1px solid #e6ecef;background:#fff}.pwAutomationCheck:first-child{border-top:0}
+.pwAutomationCheckHead{display:flex;gap:6px;align-items:flex-start;font-size:11px;line-height:1.3}.pwAutomationCheckHead strong{min-width:25px}.pwAutomationCheckHead span{flex:1}
+.pwAutomationChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:5px}
+.pwAutomationChoices button{min-height:30px;padding:3px 4px;font-size:9px;line-height:1.15;border-radius:5px;background:#f2f5f7}
+.pwAutomationChoices button.active[data-v="ok"]{background:#e2f2e8;border-color:#4a9770;color:#1c7147}
+.pwAutomationChoices button.active[data-v="remark"]{background:#fbe5e2;border-color:#c57168;color:#ad3630}
+.pwAutomationChoices button.active[data-v="na"]{background:#e1e7eb;border-color:#8898a3}
+.pwAutomationFault{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px;margin-top:5px;padding:6px;background:#fbf5f3;border-radius:6px}
+.pwAutomationFault select,.pwAutomationFault input{width:100%;min-height:31px;border:1px solid #d5c5c0;border-radius:5px;padding:4px 6px;font:inherit;font-size:9px;background:#fff}
+.pwAutomationNotes{display:grid;gap:4px;margin-top:9px;font-size:9px;font-weight:800;color:#526974}.pwAutomationNotes textarea{width:100%;border:1px solid #cad6dc;border-radius:7px;padding:8px;font:inherit;font-size:10px;resize:vertical;background:#fff}
+
+.pwSelfcheckExportDialog{width:min(620px,calc(100vw - 20px));max-height:min(88dvh,780px);padding:0;border:0;border-radius:13px;overflow:hidden;color:#203440;box-shadow:0 22px 70px #0006}
+.pwSelfcheckExportBody{padding:10px;background:#f8fafb;max-height:calc(88dvh - 55px);overflow:auto}
+.pwSelfcheckExportActions{display:flex;gap:6px;margin-bottom:8px}.pwSelfcheckExportActions button{min-height:31px;font-size:9px}
+.pwSelfcheckExportList{display:grid;gap:5px}.pwSelfcheckExportRow{display:grid;grid-template-columns:22px minmax(0,1fr);gap:7px;align-items:center;padding:8px;border:1px solid #d8e1e5;border-radius:8px;background:#fff;cursor:pointer}
+.pwSelfcheckExportRow input{width:17px;height:17px}.pwSelfcheckExportRow strong{display:block;font-size:10px}.pwSelfcheckExportRow small{display:block;margin-top:2px;font-size:8px;color:var(--muted)}
+.pwSelfcheckExportFooter{position:sticky;bottom:-10px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px -10px -10px;padding:9px 10px;background:#fff;border-top:1px solid #d5e0e5}
+.pwSelfcheckExportFooter span{font-size:9px;font-weight:800}.pwSelfcheckExportFooter button{background:var(--navy);border-color:var(--navy);color:#fff;font-size:9px}
+
+@media(min-width:600px){
+ .pwAutomationCheck{display:grid;grid-template-columns:minmax(0,1fr) 300px;align-items:center;gap:5px 10px}
+ .pwAutomationChoices{margin-top:0}.pwAutomationFault{grid-column:1/-1}
+}
+@media(max-width:620px){
+ .pwAutomationDialog{width:100%;height:100dvh;max-height:none;border-radius:0}
+ .pwAutomationBody{max-height:calc(100dvh - 56px)}
+ .pwAutomationMetaGrid,.pwAutomationProjectGrid{grid-template-columns:1fr 1fr;gap:5px}
+ .pwAutomationChoices button{font-size:8px;min-height:29px;padding:2px}
+ .pwAutomationFault{grid-template-columns:1fr}
+ .pwSelfcheckExportDialog{width:calc(100vw - 12px)}
+}
