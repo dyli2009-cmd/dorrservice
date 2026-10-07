@@ -8,11 +8,11 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.235">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.236">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
-<body>
+<body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
   <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
@@ -25,7 +25,6 @@
         <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar en kopia av PDF-filen utan nya statusändringar.</small></button>
       </div>
     </div>
-    <button id="pwOpenProject" class="pwOpen" type="button">Öppna projekt-PDF</button>
   </div>
   <input id="pwFile" type="file" accept="application/pdf,.pdf" hidden>
 </header>
@@ -83,11 +82,33 @@
       <div id="pwMarkers" class="pwMarkers"></div>
     </div>
     <div id="pwEmpty" class="pwEmpty">
-      <div class="pwEmptyIcon">⌖</div>
-      <h1>Projekt-PDF:en är arbetsytan</h1>
-      <p>Projektflödet läser markerade dörr-ID:n, räknar varje fysisk position och matchar ID:t mot rätt dörrkort eller protokollsida i samma fil.</p>
-      <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
-      <small>Kontrollflödet används inte av den här sidan.</small>
+      <div class="pwProjectBackdrop" aria-hidden="true">
+        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+          <g class="pwPlanLines">
+            <path d="M80 120H420V310H560V120H920V255H1110"/>
+            <path d="M145 520V360H350V590H650V430H850V565H1060V320"/>
+            <path d="M420 120V55M560 310V420M920 255V355M350 360V270"/>
+            <path d="M180 205h120v90H180zM715 125h125v105H715zM865 430h125v95H865z"/>
+          </g>
+          <g class="pwDoorSymbols">
+            <path d="M420 235v75h75M420 310a75 75 0 0 1 75-75"/>
+            <path d="M650 430v75h75M650 505a75 75 0 0 0 75-75"/>
+            <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
+          </g>
+          <g class="pwProjectMarks">
+            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v18"/>
+            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v18"/>
+            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v18"/>
+          </g>
+        </svg>
+      </div>
+      <div class="pwEmptyCard">
+        <div class="pwEmptyMark" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M11 51V13h27v38"/><path d="M18 51V20h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
+        </div>
+        <h1>Projektflöde</h1>
+        <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
+      </div>
     </div>
   </section>
 
@@ -200,6 +221,6 @@
   <div class="pwItemEditorActions"><button id="pwTimeTypeCancel" type="button">Avbryt</button><button id="pwTimeTypeSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.235"></script>
+<script src="project-workspace.js?v=2.4.236"></script>
 </body>
 </html>
