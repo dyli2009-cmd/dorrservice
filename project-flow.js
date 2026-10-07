@@ -109,12 +109,21 @@
   function rebuildProtocolMap(){
     protocolPages={};
     const codes=[...new Set(objects.map(o=>o.code))];
+    const pageEntries=Object.entries(protocolPageTexts).map(([pageNo,text])=>({
+      pageNo:Number(pageNo),
+      text:String(text||''),
+      normalized:String(text||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]+/g,'')
+    }));
     codes.forEach(code=>{
+      const normalizedCode=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]+/g,'');
       const rx=codeRegex(code);
-      if(!rx)return;
-      for(const [pageNo,text] of Object.entries(protocolPageTexts)){
-        if(rx.test(text)){protocolPages[code]=Number(pageNo);break}
-      }
+      if(!normalizedCode)return;
+      // Door-card pages use headings such as "GS 5" while drawing stamps use "GS5".
+      // Prefer the heading at the beginning/top of the extracted page text, then fall back
+      // to the older tolerant regex match.
+      let match=pageEntries.find(p=>p.normalized.startsWith(normalizedCode));
+      if(!match && rx)match=pageEntries.find(p=>rx.test(p.text));
+      if(match)protocolPages[code]=match.pageNo;
     });
   }
   function objectProgress(o){
