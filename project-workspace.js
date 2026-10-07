@@ -1894,6 +1894,48 @@ el.timeTypeClose.onclick=closeTimeTypeEditor;
 el.timeTypeCancel.onclick=closeTimeTypeEditor;
 el.timeTypeSave.onclick=saveTimeTypeEditor;
 el.timeTypeEditor.addEventListener('cancel',e=>{e.preventDefault();closeTimeTypeEditor()});
+
+PROJECT_AUTOMATION_MODELS.forEach(([code,name])=>{const op=document.createElement('option');op.value=code;op.textContent=code+' · '+name;el.automationModel.appendChild(op)});
+{const op=document.createElement('option');op.value='custom';op.textContent='Annan modell…';el.automationModel.appendChild(op)}
+el.automationClose.onclick=closeAutomationProtocol;
+el.automationDialog.addEventListener('cancel',e=>{e.preventDefault();closeAutomationProtocol()});
+el.automationModel.onchange=()=>{
+ const o=selectedAutomation();if(!o)return;
+ if(el.automationModel.value==='custom'){
+  const entered=window.prompt('Skriv modell / typ av automatik:',o.model||'');
+  if(entered&&entered.trim()){o.modelCode=entered.trim();o.model=entered.trim()}else renderAutomationProtocol(o);
+ }else{
+  const known=PROJECT_AUTOMATION_MODELS.find(([code])=>code===el.automationModel.value);
+  if(known){o.modelCode=known[0];o.model=known[1]}else{o.modelCode='';o.model=''}
+ }
+ save();renderAutomationProtocol(o);renderGroups();renderMarkers();
+};
+el.automationSerial.onchange=()=>{const o=selectedAutomation();if(!o)return;o.serialNumber=el.automationSerial.value.trim();save();renderAutomationProtocol(o);renderGroups();renderMarkers()};
+el.automationId.oninput=()=>{const o=selectedAutomation();if(!o)return;o.objectNo=el.automationId.value.trim();save();el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');renderGroups()};
+el.automationLocation.oninput=()=>{const o=selectedAutomation();if(!o)return;o.location=el.automationLocation.value;save()};
+el.automationNotes.oninput=()=>{const o=selectedAutomation();if(!o)return;o.notes=el.automationNotes.value;save()};
+el.automationApproveAll.onclick=()=>{const o=selectedAutomation();if(!o)return;PROJECT_AUTOMATION_CHECKS.forEach(([id])=>o.checks[id]={...(o.checks[id]||{}),result:'ok',note:''});o.progress=100;save();renderAutomationProtocol(o);renderMarkers();renderGroups()};
+
+[
+ [el.projectName,'projectName'],[el.projectFacility,'facilityNo'],[el.projectOrder,'order'],[el.projectDate,'date'],
+ [el.projectContact,'contact'],[el.projectCompany,'company'],[el.projectTechnician,'technician'],[el.projectSignature,'signature']
+].forEach(([input,key])=>input.oninput=()=>{projectMeta[key]=input.value;save()});
+el.projectLogo.onchange=async e=>{
+ const input=e.currentTarget,file=input.files?.[0];if(!file)return;
+ el.projectLogoStatus.textContent='Läser in loggan…';
+ try{projectLogoData=await prepareProjectLogoFile(file);save();refreshProjectLogoPreview()}
+ catch(err){console.error(err);el.projectLogoStatus.textContent=err?.message||'Kunde inte lägga in loggan.'}
+ finally{input.value=''}
+};
+el.projectLogoRemove.onclick=()=>{projectLogoData='';save();refreshProjectLogoPreview()};
+
+el.selfcheckExport.onclick=openSelfcheckExport;
+el.selfcheckExportClose.onclick=closeSelfcheckExport;
+el.selfcheckExportDialog.addEventListener('cancel',e=>{e.preventDefault();closeSelfcheckExport()});
+el.selfcheckSelectAll.onclick=()=>{el.selfcheckExportList.querySelectorAll('input[type="checkbox"]').forEach(x=>x.checked=true);updateSelfcheckExportCount()};
+el.selfcheckSelectDone.onclick=()=>{el.selfcheckExportList.querySelectorAll('input[type="checkbox"]').forEach(x=>{const o=automationItems.find(a=>a.id===x.value);x.checked=o?.progress===100});updateSelfcheckExportCount()};
+el.selfcheckExportCreate.onclick=exportSelectedSelfchecks;
+
 el.toolMenuButton.onclick=toggleToolMenu;
 el.toolText.onclick=()=>setDrawingTool('text');
 el.toolCallout.onclick=()=>setDrawingTool('callout');
