@@ -103,4 +103,5 @@ Kontrollflödets lås ska respekteras.
 - Standardtider kan ändras direkt i tidsrapporten. En tidskategori kan tas bort från beräkningen och senare återställas utan att kontrollpunkterna tas bort.
 - Varje enskild kontrollpunkt kan få en egen tid i minuter via `Ändra`. Tomt tidsfält använder standardtiden för kategorin; `0 min` gör att punkten inte väger tid i beräkningen.
 - Projekt- och positionsprocent vägs efter beräknade minuter i stället för att varje kontrollpunkt väger lika. En position kan dock bara bli 100% när alla dess kontrollpunkter är klarmarkerade.
+- Positioner utan effektiva GS-kontrollpunkter räknas inte in i projektprocenten eller den tidsvägda färdigställandegraden.
 - Tidsinställningarna är uppskattad arbetstid, inte en faktisk tidsstämpel/timer.
