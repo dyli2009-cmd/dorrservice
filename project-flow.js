@@ -500,7 +500,7 @@
         badge.textContent=o.progress===100?'✓':o.progress+'%';
         btn.appendChild(badge);
       }
-      btn.addEventListener('click',()=>openProtocol(o.id));
+      btn.addEventListener('click',()=>{highlightedId=o.id;focusObject(o.id);openProtocol(o.id)});
       els.markers.appendChild(btn);
     });
   }
@@ -565,10 +565,12 @@
     const o=objects.find(x=>x.id===id);
     if(!o)return;
     if(!protocolPdf){
-      els.state.textContent='Dörrkortsfil saknas i projektet. Koppla den en gång med knappen “Dörrkort PDF” ovanför ritningen.';
+      focusObject(id);
+      els.state.textContent=o.code+' · Position '+o.instance+' markerad. Dörrkort ej kopplat ännu.';
       els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
       return;
     }
+    highlightedId=id;
     selectedId=id;
     restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop,scale};
     const same=objects.filter(x=>x.code===o.code);
