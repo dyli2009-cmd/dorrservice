@@ -30,7 +30,6 @@
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
-  let pendingProtocolObjectId=null;
   let drawingZoomBusy=false,drawingZoomQueued=null;
 
   function hashText(text){
@@ -48,6 +47,47 @@
     const payload={version:2,updatedAt:new Date().toISOString(),objects:{}};
     objects.forEach(o=>payload.objects[o.id]={checks:o.checks||[],cardMarks:o.cardMarks||{},progress:o.progress||0});
     try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
+  }
+
+  const PROJECT_DB_NAME='tillsyno-project-flow-files';
+  const PROJECT_DB_STORE='projectFiles';
+  function openProjectDb(){
+    return new Promise((resolve,reject)=>{
+      const req=indexedDB.open(PROJECT_DB_NAME,1);
+      req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(PROJECT_DB_STORE))req.result.createObjectStore(PROJECT_DB_STORE,{keyPath:'key'})};
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error||new Error('Kunde inte öppna lokal projektlagring'));
+    });
+  }
+  async function saveProtocolForProject(file,bytes){
+    if(!drawingKey||!file||!bytes)return;
+    const db=await openProjectDb();
+    const data=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(PROJECT_DB_STORE,'readwrite');
+      tx.objectStore(PROJECT_DB_STORE).put({
+        key:drawingKey,
+        name:file.name||'Dörrkort.pdf',
+        type:file.type||'application/pdf',
+        lastModified:file.lastModified||Date.now(),
+        data
+      });
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error||new Error('Kunde inte spara dörrkortsfilen'));
+    });
+    db.close();
+  }
+  async function loadProtocolForProject(){
+    if(!drawingKey)return null;
+    const db=await openProjectDb();
+    const record=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(PROJECT_DB_STORE,'readonly');
+      const req=tx.objectStore(PROJECT_DB_STORE).get(drawingKey);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>reject(req.error||new Error('Kunde inte läsa kopplad dörrkortsfil'));
+    });
+    db.close();
+    return record;
   }
   function normalizeCode(value){
     const text=String(value||'').toUpperCase().trim();
@@ -365,23 +405,52 @@
     drawingKey=hashText([file.name,file.size,file.lastModified].join('|'));
     els.fileName.textContent=file.name;
     els.state.textContent='Öppnar ritningen…';
+
+    protocolPdf=null;
+    protocolBytes=null;
+    protocolPages={};
+    protocolPageTexts={};
+    protocolDefsByCode={};
+    cardPage=0;
+    selectedId=null;
+    els.protocolFileName.textContent='Söker kopplat dörrkort…';
+
     drawingPdf=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;
     currentPage=1;
     els.empty.hidden=true;
     await scanDrawing();
+
+    try{
+      const savedProtocol=await loadProtocolForProject();
+      if(savedProtocol&&savedProtocol.data){
+        protocolBytes=new Uint8Array(savedProtocol.data);
+        protocolPdf=await pdfjsLib.getDocument({data:protocolBytes.slice()}).promise;
+        els.protocolFileName.textContent=(savedProtocol.name||'Dörrkort.pdf')+' · kopplat till projektet';
+        await scanProtocolPdf();
+      }else{
+        els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
+        updateState();
+      }
+    }catch(err){
+      console.warn('Kunde inte återställa dörrkortsfil',err);
+      els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
+      updateState();
+    }
   }
 
   async function openProtocolFile(file){
     if(!file)return;
     protocolBytes=new Uint8Array(await file.arrayBuffer());
-    els.protocolFileName.textContent=file.name;
+    els.protocolFileName.textContent=file.name+' · kopplas till projektet';
     els.state.textContent='Öppnar dörrkorten…';
     protocolPdf=await pdfjsLib.getDocument({data:protocolBytes.slice()}).promise;
     await scanProtocolPdf();
-    if(pendingProtocolObjectId){
-      const id=pendingProtocolObjectId;
-      pendingProtocolObjectId=null;
-      await openProtocol(id);
+    try{
+      await saveProtocolForProject(file,protocolBytes);
+      els.protocolFileName.textContent=file.name+' · kopplat till projektet';
+    }catch(err){
+      console.warn('Kunde inte spara dörrkortsfilen lokalt',err);
+      els.protocolFileName.textContent=file.name+' · laddat för denna session';
     }
   }
 
@@ -480,10 +549,8 @@
     const o=objects.find(x=>x.id===id);
     if(!o)return;
     if(!protocolPdf){
-      pendingProtocolObjectId=id;
-      els.state.textContent='Välj dörrkorts-PDF för '+o.code+'. När filen är vald öppnas dörrkortet automatiskt.';
-      els.protocolFile.value='';
-      els.protocolFile.click();
+      els.state.textContent='Dörrkortsfil saknas i projektet. Koppla den en gång med knappen “Dörrkort PDF” ovanför ritningen.';
+      els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
       return;
     }
     selectedId=id;
@@ -584,7 +651,6 @@
   }));
   els.protocolFile.addEventListener('change',e=>openProtocolFile(e.target.files&&e.target.files[0]).catch(err=>{
     console.error(err);
-    pendingProtocolObjectId=null;
     els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
   }));
   els.prev.addEventListener('click',()=>renderPage(currentPage-1));
