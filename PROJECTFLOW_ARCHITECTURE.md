@@ -52,3 +52,9 @@ Kontrollflödets lås ska respekteras.
 - native iOS använder FilePicker; webb använder vanligt file input
 - om native-plugin saknas faller Projektflödet tillbaka till vanlig filväljare och visar tydlig status
 - efter filval läses i första hand `webPath`, därefter konverterad `path`
+
+## Projekt-ID
+- gula projektstämplar får använda alla GS-prefixade ID:n, inte bara `GS` + siffra
+- exempel som ska behandlas på samma sätt: `GS1`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`
+- ID:t normaliseras så att enkla mellanrum/bindestreck i själva stämpeln inte hindrar matchning
+- samma normaliserade ID används för position, räkning, klickyta och matchning mot protokoll i samma PDF
