@@ -382,7 +382,6 @@ function renderMarkers(){
    btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(10,r.width)+'px';btn.style.height=Math.max(10,r.height)+'px';
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
-   const tag=document.createElement('span');tag.className='pwStampCode';tag.textContent=o.code;btn.appendChild(tag);
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();openProtocol(o)};
    el.markers.appendChild(btn);
