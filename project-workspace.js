@@ -524,6 +524,79 @@ function viewportRect(viewport,rect){
   return {left:Math.min(p1[0],p2[0]),top:Math.min(p1[1],p2[1]),width:Math.abs(p2[0]-p1[0]),height:Math.abs(p2[1]-p1[1])};
  }
 }
+function updateBulkBar(){
+ el.bulkBar.hidden=!bulkSelectMode;
+ el.bulkCount.textContent=bulkSelected.size+' valda';
+ el.bulkDone.disabled=bulkSelected.size===0;
+ el.bulkClear.disabled=bulkSelected.size===0;
+}
+function clearBulkSelection(){
+ bulkSelected.clear();updateBulkBar();renderMarkers();
+}
+function setBulkSelectMode(enabled){
+ bulkSelectMode=!!enabled;
+ if(bulkSelectMode)setDrawingTool('');
+ else bulkSelected.clear();
+ el.bulkSelect.setAttribute('aria-pressed',String(bulkSelectMode));
+ el.selectionRect.hidden=true;bulkDrag=null;
+ updateBulkBar();renderMarkers();
+}
+function toggleBulkInstance(o){
+ if(bulkSelected.has(o.id))bulkSelected.delete(o.id);else bulkSelected.add(o.id);
+ updateBulkBar();renderMarkers();
+}
+function selectAllOnPage(){
+ instances.filter(o=>o.page===page).forEach(o=>bulkSelected.add(o.id));
+ updateBulkBar();renderMarkers();
+}
+function beginBulkDrag(e){
+ if(!bulkSelectMode||!pdf||e.pointerType!=='mouse'||e.button!==0||e.target.closest?.('.pwStampHit'))return false;
+ if(!el.stage.contains(e.target))return false;
+ e.preventDefault();e.stopPropagation();
+ const p=stagePoint(e.clientX,e.clientY);
+ bulkDrag={pointerId:e.pointerId,start:p,last:p};
+ el.selectionRect.hidden=false;
+ el.selectionRect.style.left=p.x+'px';el.selectionRect.style.top=p.y+'px';el.selectionRect.style.width='0px';el.selectionRect.style.height='0px';
+ try{el.viewer.setPointerCapture(e.pointerId)}catch(_){}
+ return true;
+}
+function moveBulkDrag(e){
+ if(!bulkDrag||bulkDrag.pointerId!==e.pointerId)return false;
+ e.preventDefault();e.stopPropagation();
+ const p=stagePoint(e.clientX,e.clientY);bulkDrag.last=p;
+ const l=Math.min(bulkDrag.start.x,p.x),t=Math.min(bulkDrag.start.y,p.y),w=Math.abs(p.x-bulkDrag.start.x),h=Math.abs(p.y-bulkDrag.start.y);
+ el.selectionRect.style.left=l+'px';el.selectionRect.style.top=t+'px';el.selectionRect.style.width=w+'px';el.selectionRect.style.height=h+'px';
+ return true;
+}
+async function endBulkDrag(e){
+ if(!bulkDrag||bulkDrag.pointerId!==e.pointerId)return false;
+ e.preventDefault();e.stopPropagation();
+ const g=bulkDrag;bulkDrag=null;el.selectionRect.hidden=true;
+ try{el.viewer.releasePointerCapture(e.pointerId)}catch(_){}
+ const x1=Math.min(g.start.x,g.last.x),x2=Math.max(g.start.x,g.last.x),y1=Math.min(g.start.y,g.last.y),y2=Math.max(g.start.y,g.last.y);
+ if(x2-x1<6&&y2-y1<6)return true;
+ const pg=await pdf.getPage(page),vp=pg.getViewport({scale});
+ instances.filter(o=>o.page===page).forEach(o=>{
+  const r=viewportRect(vp,o.rect),rx2=r.left+r.width,ry2=r.top+r.height;
+  if(r.left<=x2&&rx2>=x1&&r.top<=y2&&ry2>=y1)bulkSelected.add(o.id);
+ });
+ updateBulkBar();renderMarkers();return true;
+}
+async function markBulkDone(){
+ if(!bulkSelected.size)return;
+ el.bulkDone.disabled=true;setState('Klarmarkerar '+bulkSelected.size+' valda positioner…');
+ let changed=0,withoutChecks=0;
+ for(const id of [...bulkSelected]){
+  const o=instances.find(x=>x.id===id);if(!o)continue;
+  const def=await protocolDef(o.code),checks=effectiveChecks(o,def);
+  if(!checks.length){withoutChecks++;continue}
+  checks.forEach(item=>o.checks[item.key]=true);
+  await recalc(o);changed++;
+ }
+ save();updateStats();renderGroups();renderMarkers();bulkSelected.clear();updateBulkBar();
+ setState(changed+' positioner klarmarkerade'+(withoutChecks?' · '+withoutChecks+' saknade kontrollpunkter':'')+'.');
+ if(el.timeDialog.open)await renderTimeReport();
+}
 function renderMarkers(){
  el.markers.replaceChildren();if(!pdf)return;
  const renderPage=page,pageItems=instances.filter(o=>o.page===renderPage);
@@ -533,12 +606,12 @@ function renderMarkers(){
   pageItems.forEach(o=>{
    const r=viewportRect(vp,o.rect);
    if(!Number.isFinite(r.left+r.top+r.width+r.height)||r.width<=0||r.height<=0)return;
-   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);if(o.id===selectedId)btn.classList.add('selected');
+   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);if(o.id===selectedId)btn.classList.add('selected');if(bulkSelected.has(o.id))btn.classList.add('bulkSelected');
    btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(10,r.width)+'px';btn.style.height=Math.max(10,r.height)+'px';
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
-   btn.onclick=e=>{e.preventDefault();e.stopPropagation();openProtocol(o)};
+   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode)toggleBulkInstance(o);else openProtocol(o)};
    el.markers.appendChild(btn);
   });
  }).catch(console.error);
@@ -566,6 +639,7 @@ function renderGroups(){
  });
 }
 async function focusInstance(o){
+ if(bulkSelectMode){toggleBulkInstance(o);return}
  if(page!==o.page){page=o.page;await renderDrawing()}
  selectedId=o.id;
  const pg=await pdf.getPage(page),vp=pg.getViewport({scale}),r=viewportRect(vp,o.rect);
@@ -807,7 +881,7 @@ async function setDrawingScale(nextScale,clientX,clientY){
  requestAnimationFrame(()=>restoreDrawingFocus(focus));
 }
 function beginDrawingPan(e){
- if(!pdf||drawingTool||e.pointerType!=='mouse')return;
+ if(!pdf||drawingTool||bulkSelectMode||e.pointerType!=='mouse')return;
  if(e.button!==0&&e.button!==1)return;
  if(e.button===0&&e.target.closest?.('.pwStampHit'))return;
  e.preventDefault();
