@@ -12,14 +12,16 @@ Projektflödet är ett separat system från Kontrollflödet.
 ## Grundprincip
 En och samma projekt-PDF är källan för:
 1. ritningssidor
-2. gula PDF-stämplar / projekt-ID
-3. protokollsidor
+2. markerade dörr-/projekt-ID:n
+3. dörrkort/protokollsidor
 
 Projektflödet ska:
-- läsa riktiga PDF Stamp-annoteringar och deras exakta koordinater
-- behandla varje fysisk stämpelträff som en egen position
-- räkna hur många positioner som finns per ID, oavsett om ID heter GS1, GS2 eller något annat
-- matcha stämpel-ID mot protokollsidan med samma ID i samma PDF
+- läsa flera typer av PDF-markeringar och deras exakta koordinater, inklusive Stamp, Highlight, Square, Circle, FreeText, Ink, Underline och Squiggly
+- färgen på markeringen ska inte styra identifieringen
+- om markeringen inte själv innehåller ett läsbart ID ska Projektflödet försöka läsa den markerade texten innanför markeringens rektangel
+- behandla varje fysisk markering som en egen position
+- räkna hur många positioner som finns per ID
+- matcha dörr-/projekt-ID mot dörrkortet eller protokollsidan med samma ID i samma PDF
 - visa originalprotokollet utan att tappa rubriker, text eller layout
 - bygga ett separat interaktivt arbetsprotokoll från originalets innehåll
 - ta med ifyllda komponentrader som kontrollpunkter
@@ -54,10 +56,12 @@ Kontrollflödets lås ska respekteras.
 - efter filval läses i första hand `webPath`, därefter konverterad `path`
 
 ## Projekt-ID
-- gula projektstämplar får använda alla GS-prefixade ID:n, inte bara `GS` + siffra
-- exempel som ska behandlas på samma sätt: `GS1`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`
-- ID:t normaliseras så att enkla mellanrum/bindestreck i själva stämpeln inte hindrar matchning
-- samma normaliserade ID används för position, räkning, klickyta och matchning mot protokoll i samma PDF
+- Projektflödet får använda både befintliga GS-ID:n och generella dörr-/kort-ID:n.
+- GS-exempel: `GS1`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`.
+- Generella exempel: `140`, `815 C`, `815A`, `310 A`, `310 B`.
+- Mellanrum, bindestreck och utspridda tecken normaliseras så att exempelvis `815 C`, `815-C`, `815C` och `8 1 5 C` kan matchas mot samma dörrkort.
+- För rena nummer som `140` används dörrkorts-/protokollmatchningen som extra signal för att minska risken att vanliga måttsiffror misstolkas.
+- samma normaliserade ID används för position, räkning, klickyta och matchning mot dörrkort/protokoll i samma PDF
 
 ## Originalprotokoll – zoom
 - originalprotokollet ska kunna nypzoomas med två fingrar på telefon och iPad
