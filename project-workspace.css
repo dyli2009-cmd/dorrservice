@@ -369,3 +369,14 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwAutomationHeadActions{gap:4px}
  .pwAutomationHeadActions #pwAutomationPreview{font-size:8px;padding:4px 6px}
 }
+
+
+/* 2.4.240: automation positions are fully separate from GS/project positions. */
+.pwAutomationMarkers{
+ position:absolute;
+ inset:0;
+ z-index:4;
+ pointer-events:none;
+}
+.pwAutomationMarkers .pwAutomationMarker{pointer-events:auto}
+.pwViewer.noteMode .pwAutomationMarkers .pwAutomationMarker{pointer-events:none}
