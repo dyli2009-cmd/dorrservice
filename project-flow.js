@@ -29,7 +29,7 @@
   const CHECK_POINTS=['Daglåsning','Nattlåsning','Dörrstängning','Larm / passer','Dörrfunktion','Larmfunktion','Brandfunktion'];
 
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
-  let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, selectedId=null, restoreView=null;
+  let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, selectedId=null, restoreView=null;
   let previewVisible=true;
 
   function hashText(text){
@@ -49,8 +49,35 @@
     try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
   }
   function normalizeCode(value){
+    const text=String(value||'').toUpperCase().trim();
+    const exact=text.match(/^([A-ZÅÄÖ]{1,8})\s*[- ]?\s*(\d{1,4}[A-Z]?)$/);
+    if(exact)return exact[1]+exact[2];
+    const embedded=text.match(/\b([A-ZÅÄÖ]{1,8})\s*[- ]?\s*(\d{1,4}[A-Z]?)\b/);
+    return embedded?embedded[1]+embedded[2]:'';
+  }
+  function codeRegex(code){
+    const m=String(code||'').match(/^([A-ZÅÄÖ]+)(\d+[A-Z]?)$/);
+    if(!m)return null;
+    const a=m[1].replace(/[.*+?^$()|[\]\\]/g,'\\  function normalizeCode(value){
     const m=String(value||'').toUpperCase().trim().match(/^GS\s*[- ]?\s*(\d{1,3})$/);
     return m?'GS'+m[1]:'';
+  }');
+    const b=m[2].replace(/[.*+?^$()|[\]\\]/g,'\\  function normalizeCode(value){
+    const m=String(value||'').toUpperCase().trim().match(/^GS\s*[- ]?\s*(\d{1,3})$/);
+    return m?'GS'+m[1]:'';
+  }');
+    return new RegExp('\\b'+a+'\\s*[- ]?\\s*'+b+'\\b','i');
+  }
+  function rebuildProtocolMap(){
+    protocolPages={};
+    const codes=[...new Set(objects.map(o=>o.code))];
+    codes.forEach(code=>{
+      const rx=codeRegex(code);
+      if(!rx)return;
+      for(const [pageNo,text] of Object.entries(protocolPageTexts)){
+        if(rx.test(text)){protocolPages[code]=Number(pageNo);break}
+      }
+    });
   }
   function objectProgress(o){
     const done=(o.checks||[]).filter(Boolean).length;
@@ -96,8 +123,10 @@
   }
 
   async function fallbackTextObjects(){
+    // Reservmetod endast när PDF-stämplar saknas. Vi söker efter samma projekt-ID-format,
+    // men den normala vägen är alltid riktiga stämplar/annoteringar från projekteringen.
     const found=[];
-    const rx=/\bGS\s*[- ]?\s*\d{1,3}\b/gi;
+    const rx=/\b[A-ZÅÄÖ]{1,8}\s*[- ]?\s*\d{1,4}[A-Z]?\b/g;
     for(let pageNo=1;pageNo<=drawingPdf.numPages;pageNo++){
       const page=await drawingPdf.getPage(pageNo);
       const viewport=page.getViewport({scale:1});
@@ -105,7 +134,7 @@
       content.items.forEach(item=>{
         rx.lastIndex=0;
         let m;
-        while((m=rx.exec(String(item.str||'')))){
+        while((m=rx.exec(String(item.str||'').toUpperCase()))){
           const code=normalizeCode(m[0]);
           if(!code)continue;
           const t=pdfjsLib.Util.transform(viewport.transform,item.transform);
@@ -119,19 +148,16 @@
   }
 
   async function scanProtocolPdf(){
+    protocolPageTexts={};
     protocolPages={};
     if(!protocolPdf){updateState();return}
     els.state.textContent='Läser dörrkorten…';
     for(let pageNo=1;pageNo<=protocolPdf.numPages;pageNo++){
       const page=await protocolPdf.getPage(pageNo);
       const content=await page.getTextContent();
-      const text=content.items.map(i=>String(i.str||'')).join(' ');
-      const match=text.match(/\bGS\s*[- ]?\s*(\d{1,3})\b/i);
-      if(match){
-        const code='GS'+match[1];
-        if(!protocolPages[code])protocolPages[code]=pageNo;
-      }
+      protocolPageTexts[pageNo]=content.items.map(i=>String(i.str||'')).join(' ');
     }
+    rebuildProtocolMap();
     renderGroups();
     updateState();
     if(selectedId && els.protocol.open){
@@ -142,7 +168,7 @@
 
   async function scanDrawing(){
     if(!drawingPdf || !drawingBytes)return;
-    els.state.textContent='Läser GS-stämplarna i ritningen…';
+    els.state.textContent='Läser projektstämplarna i ritningen…';
     els.rescan.disabled=true;
     let raw=[];
     try{raw=await extractStampObjects(drawingBytes)}catch(err){console.warn('Stamp scan failed, fallback to text',err)}
@@ -161,6 +187,7 @@
       return obj;
     });
 
+    rebuildProtocolMap();
     saveAll();
     renderGroups();
     updateSummary();
@@ -177,10 +204,10 @@
     const codes=[...new Set(objects.map(o=>o.code))];
     const matched=codes.filter(c=>protocolPages[c]).length;
     if(!protocolPdf){
-      els.state.textContent='Hittade '+objects.length+' GS-positioner. Ladda dörrkorts-PDF:en för automatisk koppling.';
+      els.state.textContent='Hittade '+objects.length+' projektpositioner. Ladda dörrkorts-PDF:en för automatisk koppling.';
       return;
     }
-    els.state.textContent='Hittade '+objects.length+' GS-positioner. '+matched+' av '+codes.length+' GS-typer är matchade mot dörrkort.';
+    els.state.textContent='Hittade '+objects.length+' projektpositioner. '+matched+' av '+codes.length+' ID-typer är matchade mot dörrkort.';
   }
 
   async function openDrawing(file){
@@ -260,7 +287,7 @@
   }
 
   function renderGroups(){
-    if(!objects.length){els.groups.innerHTML='<p class="pfMuted">Inga GS-positioner hittades.</p>';return}
+    if(!objects.length){els.groups.innerHTML='<p class="pfMuted">Inga projektpositioner hittades.</p>';return}
     els.groups.innerHTML='';
     groupData().forEach(([code,list])=>{
       const box=document.createElement('section');
