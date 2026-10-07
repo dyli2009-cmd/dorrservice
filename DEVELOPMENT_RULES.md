@@ -49,41 +49,20 @@ Målet är:
 
 En ändring i den gemensamma funktionen ska kontrolleras mot alla berörda protokoll innan den görs.
 
-## 4. Egna versionsnummer per modul
-Varje arbetsområde ska ha en egen versionsserie.
+## 4. En gemensam synlig appversion
 
-Exempel:
-- Kontrollflöde v1.x
-- Dörrautomatik v1.x
-- Säkerhetsservice v1.x
-- Brand v1.x
-- Projektflöde v1.x
-- Ritningsverktyg v1.x
+Tillsyno ska ha **en enda synlig versionsserie** för hela appen.
 
-Endast den modul som faktiskt ändras ska få höjt versionsnummer.
+Aktuell version: **v2.4.207**
 
-Exempel:
-Om Säkerhetsservice ändras:
-- Säkerhetsservice v1.3 → v1.4
-- Dörrautomatik ligger kvar på sin version
-- Brand ligger kvar på sin version
-- Projektflöde ligger kvar på sin version
-
-Det får även finnas ett övergripande app-/buildnummer för teknisk distribution, men det ska inte ersätta modulernas egna versionsnummer.
-
-## 4A. Aktuella synliga versionsserier
-
-Det här är de synliga modulversionerna från och med versionsuppdelningen:
-
-- Tillsyno: v2.0
-- Kontrollflöde: v1.0
-- Dörrautomatik: v1.0
-- Säkerhetsservice: v1.0
-- Brand: v1.0
-- Projektflöde: v1.0
-- Ritningsverktyg: v1.0
-
-Tekniska cache-/buildnummer som 2.4.xxx får finnas kvar internt i filnamn, query strings och byggsystem, men ska inte användas som modulernas synliga versionsnummer.
+Regler:
+- Samma appversion gäller Kontrollflöde, Dörrautomatik, Säkerhetsservice, Brand, Projektflöde och Ritningsverktyg.
+- Visa inte separata versionsnummer för enskilda moduler.
+- Varje användarsynlig uppdatering ska höja Tillsyno-versionen med ett steg.
+- Exempel: v2.4.207 → v2.4.208 → v2.4.209.
+- Versionsnumret ska visas på Home så att det är enkelt att kontrollera vilken uppdatering som körs.
+- Tekniskt buildnummer för TestFlight får finnas separat, men den synliga versionsbeteckningen ska följa Tillsyno-versionen.
+- När en ny version görs ska webb och iOS speglas till samma Tillsyno-version.
 
 ## 5. Stabil funktion ska inte ändras i onödan
 När en del är godkänd och fungerar ska den betraktas som stabil.
