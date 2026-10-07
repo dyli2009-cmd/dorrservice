@@ -55,9 +55,13 @@
     return embedded?embedded[1]+embedded[2]:'';
   }
   function codeRegex(code){
-    const m=String(code||'').match(/^([A-ZÅÄÖ]+)(\d+[A-Z]?)$/);
+    const m=String(code||'').toUpperCase().match(/^([A-ZÅÄÖ]+)(\\d+)([A-Z]?)$/);
     if(!m)return null;
-    return new RegExp('\\b'+m[1]+'\\s*[- ]?\\s*'+m[2]+'\\b','i');
+    const gap='[^A-ZÅÄÖ0-9]*';
+    const escapeChar=ch=>ch.replace(/[.*+?^$()|[\\]\\\\]/g,'\\\\$&');
+    const spread=value=>String(value||'').split('').map(escapeChar).join(gap);
+    const body=spread(m[1])+gap+spread(m[2])+(m[3]?gap+spread(m[3]):'');
+    return new RegExp('(^|[^A-ZÅÄÖ0-9])'+body+'($|[^A-ZÅÄÖ0-9])','i');
   }
 
   function rebuildProtocolMap(){
@@ -481,11 +485,24 @@
   }
 
   async function updateMatchedProtocol(o){
-    const p=protocolPages[o.code];
+    if(!protocolPdf){
+      els.protocolMissing.hidden=false;
+      els.protocolStage.hidden=true;
+      els.protocolMissing.textContent='Ladda dörrkorts-PDF:en först för att öppna '+o.code+'.';
+      els.matchedText.textContent=o.code+' – dörrkorts-PDF inte laddad';
+      cardPage=0;
+      return;
+    }
+    let p=protocolPages[o.code];
+    if(!p){
+      rebuildProtocolMap();
+      p=protocolPages[o.code];
+    }
     if(!p){
       els.protocolMissing.hidden=false;
       els.protocolStage.hidden=true;
-      els.matchedText.textContent=o.code+' – dörrkort saknas';
+      els.protocolMissing.textContent=o.code+' hittades inte i den laddade dörrkorts-PDF:en.';
+      els.matchedText.textContent=o.code+' – ingen matchning hittad';
       cardPage=0;
       return;
     }
