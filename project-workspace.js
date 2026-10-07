@@ -338,8 +338,8 @@ function normalizeCode(value){
  const embeddedGs=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
  if(embeddedGs)return embeddedGs[1];
 
- // Generella dörr-/kort-ID:n: 140, 815 C, 815A, 310-B osv.
- const exactGeneric=raw.match(/^(\d{1,6})(?:[\s_-]*([A-ZÅÄÖ]{1,3}))?$/);
+ // Generella dörr-/kort-ID:n: 140, 815 C, 815A, 310-B och även utspridda tecken som 8 1 5 C.
+ const exactGeneric=compactExact.match(/^(\d{1,6})([A-ZÅÄÖ]{0,3})$/);
  if(exactGeneric)return exactGeneric[1]+(exactGeneric[2]?' '+exactGeneric[2]:'');
  const labelled=raw.match(/\b(?:DÖRR|DORR|DOOR|ID|LITTERA|KORT|DÖRRKORT|DORRKORT)\s*[:#-]?\s*(\d{1,6})(?:[\s_-]*([A-ZÅÄÖ]{1,3}))?\b/);
  if(labelled)return labelled[1]+(labelled[2]?' '+labelled[2]:'');
