@@ -49,6 +49,26 @@ Målet är:
 
 En ändring i den gemensamma funktionen ska kontrolleras mot alla berörda protokoll innan den görs.
 
+## 3A. KONTROLLFLÖDE ÄR LÅST
+
+**STATUS: LÅST från och med Tillsyno v2.4.215.**
+
+Kontrollflöde får inte ändras så länge detta lås är aktivt.
+
+Det innebär:
+- gör inga ändringar i Kontrollflödes funktion, design, navigation, protokoll, översikt, kundmall, PDF-flöde eller projektdata
+- ändra inte gemensam kod om ändringen kan påverka Kontrollflöde
+- ändra inte `all-in-one.html`, `all-in-one.css`, `security.js`, `security.css` eller andra filer som påverkar Kontrollflöde, om inte Kontrollflöde först uttryckligen har låsts upp
+- en ändring i en annan modul får inte användas som anledning att samtidigt justera Kontrollflöde
+- cache-/versionsändringar får inte i sig användas för att smyga in funktionella ändringar i Kontrollflöde
+
+Kontrollflödet får endast låsas upp efter en **uttrycklig instruktion från användaren**, till exempel:
+**"Lås upp Kontrollflödet."**
+
+När användaren låser upp Kontrollflödet får endast den uttryckligen beställda ändringen göras. Efter avslutat arbete ska Kontrollflödet betraktas som låst igen om användaren inte tydligt säger att det ska fortsätta vara upplåst.
+
+Det separata låsdokumentet `CONTROLFLOW_LOCK.md` ska också kontrolleras innan arbete som kan påverka Kontrollflöde.
+
 ## 4. En gemensam synlig appversion
 
 Tillsyno ska ha **en enda synlig versionsserie** för hela appen.
