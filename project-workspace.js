@@ -571,58 +571,62 @@ function itemsForStructuredAutomationId(items,matchText){
  }
  return best;
 }
+function looksLikeAutomationProtocolPage(raw){
+ const t=String(raw||'').toLocaleLowerCase('sv');
+ return /egenkontroll\s+d[oö]rrautomatik|checklista\s+revision\s+d[oö]rrautomatik|dokumentnr\s*:?\s*2519-1|kundrapport/.test(t);
+}
 async function discoverDoorAutomations(){
  const saved=loadSaved(),savedItems=Array.isArray(saved.automationItems)?saved.automationItems:[],savedByIdentity=new Map();
  savedItems.forEach(o=>{const key=automationDisplayId(o);if(key&&!savedByIdentity.has(key))savedByIdentity.set(key,o)});
- const found=[],usedIdentity=new Set();
+ const found=[];
 
  for(let p=1;p<=pdf.numPages;p++){
-  const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items),structuredOnPage=[];
-  rows.forEach((row,rowIndex)=>{
-   const parsed=parseStructuredAutomationId(row.text);if(!parsed)return;
-   const remainder=row.text.replace(parsed.matchText,'').replace(/\b(?:DA|DÖRRAUTOMATIK)\b/ig,'').replace(/[^A-ZÅÄÖa-zåäö0-9]+/g,'').trim();
-   if(remainder.length>8)return;
-   const exactItems=itemsForStructuredAutomationId(row.items,parsed.matchText);
-   const matchingItems=exactItems.length?exactItems:row.items.filter(item=>String(item.text||'').match(/\d|-/));
-   const rect=rectForTextItems(matchingItems.length?matchingItems:row.items,2.5);if(!rect)return;
-   const identity=parsed.fullId;
-   const occurrence=structuredOnPage.filter(x=>x.identity===identity).length+1;
-   const id='daid@'+p+':'+identity+':'+occurrence;
-   const old=savedItems.find(x=>x.id===id)||savedByIdentity.get(identity)||{};
-   const item={
-    id,page:p,rect,objectNo:old.objectNo??parsed.objectNo,modelCode:old.modelCode??parsed.modelCode,model:old.model??parsed.model,
-    serialNumber:old.serialNumber??parsed.serialNumber,location:old.location||'',sourceText:row.text,checks:old.checks&&typeof old.checks==='object'?old.checks:{},
-    notes:old.notes||'',progress:0,sourceKind:'structured-id'
-   };
-   item.progress=automationProgressOf(item);structuredOnPage.push({...item,identity});found.push(item);usedIdentity.add(identity);
-  });
+  const text=await readPageText(p);
+  if(looksLikeAutomationProtocolPage(text.raw))continue;
 
-  const daItems=text.items.filter(item=>/^(DA|D\.?A\.?)$/i.test(String(item.text||'').trim())||/^DÖRRAUTOMATIK$/i.test(String(item.text||'').trim()));
-  for(const da of daItems){
-   const cx=da.x+Math.max(da.w,da.h)/2,cy=da.y;
-   const closeStructured=structuredOnPage.some(o=>{
-    const r=o.rect,scx=(r[0]+r[2])/2,scy=(r[1]+r[3])/2;
-    return Math.hypot(scx-cx,scy-cy)<300;
-   });
-   if(closeStructured)continue;
-   const nearby=text.items.map(item=>({...item,_distance:Math.hypot((item.x+Math.max(item.w,1)/2)-cx,(item.y||0)-cy)}))
-    .filter(item=>Math.abs((item.y||0)-cy)<=52&&item._distance<=270)
-    .sort((a,b)=>a._distance-b._distance);
-   const sourceText=nearby.slice(0,16).sort((a,b)=>a.x-b.x).map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
-   const structured=parseStructuredAutomationId(sourceText),model=structured?{code:structured.modelCode,name:structured.model}:automationModelFromText(sourceText);
-   const objectNo=structured?.objectNo||automationObjectNoFromItems(nearby,model),serial=structured?.serialNumber||automationSerialFromText(sourceText);
-   const identity=structured?.fullId||[objectNo,model?.code||'',serial].filter(Boolean).join('-');
-   const id='da@'+p+':'+Math.round(cx)+':'+Math.round(cy);
+  const rows=groupTextRowsForAutomation(text.items);
+  const occurrences=new Map();
+
+  for(const row of rows){
+   const parsed=parseStructuredAutomationId(row.text);
+   if(!parsed)continue;
+
+   const remainder=row.text
+    .replace(parsed.matchText,'')
+    .replace(/\b(?:DA|DH|DÖRRAUTOMATIK|DORRAUTOMATIK)\b/ig,'')
+    .replace(/[^A-ZÅÄÖa-zåäö0-9]+/g,'')
+    .trim();
+   if(remainder.length>8)continue;
+
+   const exactItems=itemsForStructuredAutomationId(row.items,parsed.matchText);
+   if(!exactItems.length)continue;
+
+   const rect=rectForTextItems(exactItems,2.5);
+   if(!rect)continue;
+
+   const identity=parsed.fullId;
+   const occurrence=(occurrences.get(identity)||0)+1;
+   occurrences.set(identity,occurrence);
+
+   const id='automation@'+p+':'+identity+':'+occurrence;
    const old=savedItems.find(x=>x.id===id)||savedByIdentity.get(identity)||{};
-   const nearbySameLine=nearby.filter(item=>Math.abs((item.y||0)-cy)<=18);
-   const structuredItems=structured?itemsForStructuredAutomationId(nearbySameLine,structured.matchText):[];
-   const rect=structuredItems.length?rectForTextItems(structuredItems,2.5):[da.x-5,da.y-Math.max(da.h,12)-5,da.x+Math.max(da.w,18)+5,da.y+6];
    const item={
-    id,page:p,rect,objectNo:old.objectNo??objectNo,modelCode:old.modelCode??(model?.code||''),model:old.model??(model?.name||''),
-    serialNumber:old.serialNumber??serial,location:old.location||'',sourceText,checks:old.checks&&typeof old.checks==='object'?old.checks:{},
-    notes:old.notes||'',progress:0,sourceKind:structuredItems.length?'structured-id':'da-fallback'
+    id,
+    page:p,
+    rect,
+    objectNo:old.objectNo??parsed.objectNo,
+    modelCode:old.modelCode??parsed.modelCode,
+    model:old.model??parsed.model,
+    serialNumber:old.serialNumber??parsed.serialNumber,
+    location:old.location||'',
+    sourceText:row.text,
+    checks:old.checks&&typeof old.checks==='object'?old.checks:{},
+    notes:old.notes||'',
+    progress:0,
+    sourceKind:'structured-id'
    };
-   item.progress=automationProgressOf(item);found.push(item);
+   item.progress=automationProgressOf(item);
+   found.push(item);
   }
  }
  automationItems=found;
