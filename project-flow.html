@@ -5,21 +5,26 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#132b38">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-flow.css?v=2.4.169">
+<link rel="stylesheet" href="project-flow.css?v=2.4.170">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
 </head>
 <body>
 <header class="pfHeader">
   <a class="pfHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div><strong>Projektflöde</strong><small>Ritning → objekt → protokoll → status</small></div>
-  <label class="pfOpen" for="pfFile">Öppna PDF</label>
-  <input id="pfFile" type="file" accept="application/pdf" hidden>
+  <div><strong>Projektflöde</strong><small>Ritning → GS-position → rätt dörrkort → egen status</small></div>
+  <label class="pfOpen" for="pfDrawingFile">Öppna ritning</label>
+  <input id="pfDrawingFile" type="file" accept="application/pdf" hidden>
 </header>
 
 <section class="pfSummary">
-  <div><strong id="pfFileName">Ingen ritning</strong><small id="pfState">Öppna en planerad PDF för att börja.</small></div>
+  <div>
+    <strong id="pfFileName">Ingen ritning</strong>
+    <small id="pfProtocolFileName">Inget dörrkort laddat</small>
+    <small id="pfState">Öppna ritningen och dörrkorts-PDF:en för att börja.</small>
+  </div>
   <div class="pfStats">
-    <span><b id="pfObjectCount">0</b> objekt</span>
+    <span><b id="pfObjectCount">0</b> positioner</span>
     <span><b id="pfDoneCount">0</b> klara</span>
     <span><b id="pfTotalProgress">0%</b> totalt</span>
   </div>
@@ -31,9 +36,8 @@
   <button id="pfNext" type="button" aria-label="Nästa sida">›</button>
   <button id="pfZoomOut" type="button">A−</button>
   <button id="pfZoomIn" type="button">A+</button>
-  <label class="pfPrefix">Märkning
-    <input id="pfPrefixes" value="GS" inputmode="text" aria-label="Prefix som ska hittas">
-  </label>
+  <label class="pfOpen pfOpenCompact" for="pfProtocolFile">Dörrkort PDF</label>
+  <input id="pfProtocolFile" type="file" accept="application/pdf" hidden>
   <button id="pfRescan" type="button">Analysera igen</button>
 </section>
 
@@ -45,20 +49,20 @@
     </div>
     <div id="pfEmpty" class="pfEmpty">
       <div class="pfEmptyIcon">⌖</div>
-      <h1>Ritningen blir projektets arbetsyta</h1>
-      <p>Projektflöde hittar märkningar som GS1, GS2 och GS10, skiljer på varje fysisk position och sparar status separat.</p>
-      <label class="pfOpen pfOpenLarge" for="pfFile">Öppna PDF</label>
-      <small>Första versionen fungerar med textbaserade PDF-ritningar.</small>
+      <h1>Ritningen är projektets arbetsyta</h1>
+      <p>Appen läser GS-stämplarna direkt ur PDF:en, skiljer varje fysisk position åt och kopplar samma GS-kod till rätt dörrkort.</p>
+      <label class="pfOpen pfOpenLarge" for="pfDrawingFile">Öppna ritning</label>
+      <small>Dörrkorts-PDF:en laddar du i raden ovan.</small>
     </div>
   </section>
 
   <aside class="pfSide">
     <div class="pfSideHead">
-      <div><span>PROJEKTÖVERSIKT</span><strong>Hittade objekt</strong></div>
+      <div><span>PROJEKTÖVERSIKT</span><strong>GS-positioner</strong></div>
       <button id="pfFocusCurrent" type="button">Aktuell sida</button>
     </div>
     <div id="pfGroups" class="pfGroups">
-      <p class="pfMuted">Objekten visas här efter analys.</p>
+      <p class="pfMuted">Positionerna visas här efter analys.</p>
     </div>
   </aside>
 </main>
@@ -66,7 +70,7 @@
 <dialog id="pfProtocol" class="pfProtocol">
   <div class="pfProtocolHead">
     <div>
-      <span id="pfProtocolType">OBJEKT</span>
+      <span id="pfProtocolType">DÖRRKORT</span>
       <h2 id="pfProtocolTitle">GS4</h2>
       <p id="pfProtocolPosition"></p>
     </div>
@@ -74,27 +78,31 @@
   </div>
 
   <div class="pfProtocolProgress">
-    <div><strong id="pfProtocolPercent">0%</strong><span>klart på den här positionen</span></div>
+    <div><strong id="pfProtocolPercent">0%</strong><span>klart på just den här positionen</span></div>
     <div class="pfProgressTrack"><i id="pfProtocolBar"></i></div>
   </div>
 
   <div id="pfMatchedProtocol" class="pfMatchedProtocol" hidden>
     <div>
-      <strong>Matchad protokollsida i PDF</strong>
+      <strong>Matchat dörrkort</strong>
       <small id="pfMatchedProtocolText"></small>
     </div>
-    <button id="pfShowProtocolPage" type="button">Visa sida</button>
+    <button id="pfShowProtocolPage" type="button">Dölj dörrkort</button>
   </div>
 
+  <section id="pfProtocolPreview" class="pfProtocolPreview" hidden>
+    <canvas id="pfProtocolCanvas"></canvas>
+  </section>
+
   <section class="pfInstanceInfo">
-    <div><span>Intern instans</span><strong id="pfInstanceId"></strong></div>
-    <div><span>PDF-position</span><strong id="pfPdfPosition"></strong></div>
+    <div><span>Ritning</span><strong id="pfDrawingPage"></strong></div>
+    <div><span>Dörrkort</span><strong id="pfDoorCardStatus"></strong></div>
   </section>
 
   <section class="pfChecklist">
     <div class="pfChecklistHead">
-      <div><span>PROTOKOLLMALL</span><strong id="pfTemplateName">GS4</strong></div>
-      <small>Samma mall – separat status per position</small>
+      <div><span>ARBETSMOMENT</span><strong id="pfTemplateName">GS4</strong></div>
+      <small>Samma dörrkort – separat status per fysisk position</small>
     </div>
     <div id="pfChecks"></div>
   </section>
@@ -102,6 +110,6 @@
   <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Till samma position på ritningen</button>
 </dialog>
 
-<script src="project-flow.js?v=2.4.169"></script>
+<script src="project-flow.js?v=2.4.170"></script>
 </body>
 </html>
