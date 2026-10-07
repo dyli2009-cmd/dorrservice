@@ -377,7 +377,7 @@ function renderMarkers(){
   pageItems.forEach(o=>{
    const r=viewportRect(vp,o.rect);
    if(!Number.isFinite(r.left+r.top+r.width+r.height)||r.width<=0||r.height<=0)return;
-   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);
+   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);if(o.id===selectedId)btn.classList.add('selected');
    btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(10,r.width)+'px';btn.style.height=Math.max(10,r.height)+'px';
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
