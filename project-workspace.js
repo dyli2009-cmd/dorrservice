@@ -470,6 +470,146 @@ async function readPageText(pageNo){
  pageTexts[pageNo]={raw,items};
  return pageTexts[pageNo];
 }
+
+function compactAutomationText(value){return String(value||'').toLocaleLowerCase('sv').replace(/[^a-z0-9åäö]+/g,'')}
+function automationModelFromText(value){
+ const compact=compactAutomationText(value);
+ const aliases={
+  '11':['gezeemd','emdstandardarm'],'12':['gezeemdglidarm','emdglidarm'],'13':['faacstandard'],'14':['faacglidarm'],
+  '15':['powerswing'],'16':['sw100'],'17':['ed200'],'18':['tormax'],'19':['recordstandardarm'],
+  '20':['powerswingpardörr','powerswingpardorr'],'21':['tsa160'],'22':['recordglidarm'],'23':['gilgenfdc','fdc'],'24':['ed100'],
+  '25':['besamsde','sde'],'26':['ditechissmonterad'],'27':['sr2000'],'28':['ove'],'29':['cd80'],
+  '30':['cibeshissöppnare','cibeshissoppnare'],'31':['tsa160dubbeldörr','tsa160dubbeldorr'],'32':['ed180'],'33':['ecturn'],
+  '34':['besamdhe','dhe'],'35':['pls100'],'36':['pls150'],'37':['ed250'],'38':['powerdrive'],
+  '39':['ecdrive'],'40':['gezeslskjutdörr','gezeslskjutdorr'],'41':['faac930'],'42':['faaca140'],
+  '43':['ts93brandstängning','ts93brandstangning'],'44':['dormats93','ts93'],'45':['sw300'],
+  '46':['unislidedubbelflyglig'],'47':['unislideenkel flyglig','unislideenkel flyglig'.replace(/\s/g,'')],'48':['sl500']
+ };
+ for(const [code,name] of PROJECT_AUTOMATION_MODELS){
+  const full=compactAutomationText(name);
+  if(full&&compact.includes(full))return {code,name};
+  if((aliases[code]||[]).some(a=>a&&compact.includes(compactAutomationText(a))))return {code,name};
+ }
+ return null;
+}
+function automationObjectNoFromItems(items,model){
+ const text=items.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+ const labelled=text.match(/\b(?:objektnr|objektnummer|objekt|id|märkning|markning|littera)\s*[:#-]?\s*([A-ZÅÄÖ]?\d{2,6}(?:[-/]\d{1,4})?(?:\s*[A-ZÅÄÖ])?)\b/i);
+ if(labelled)return labelled[1].toUpperCase().replace(/\s+/g,' ').trim();
+ const modelCompact=compactAutomationText(model?.name||'');
+ const ordered=[...items].sort((a,b)=>a._distance-b._distance);
+ for(const item of ordered){
+  const t=String(item.text||'').trim();
+  if(!t||/^DA$/i.test(t)||/dörr.?automatik/i.test(t)||compactAutomationText(t)&&modelCompact.includes(compactAutomationText(t)))continue;
+  const m=t.match(/\b([A-ZÅÄÖ]?\d{2,6}(?:[-/]\d{1,4})?(?:\s*[A-ZÅÄÖ])?)\b/i);
+  if(m)return m[1].toUpperCase().replace(/\s+/g,' ').trim();
+ }
+ return '';
+}
+function automationSerialFromText(value){
+ const text=String(value||'');
+ const labelled=text.match(/\b(?:antal|löpnummer|lopnummer|nr)\s*[:#-]?\s*(\d{1,6})\b/i);
+ return labelled?String(Number(labelled[1])||1):'';
+}
+function automationProgressOf(o){
+ const done=PROJECT_AUTOMATION_CHECKS.filter(([id])=>['ok','remark','na'].includes(o?.checks?.[id]?.result)).length;
+ return Math.round(done/PROJECT_AUTOMATION_CHECKS.length*100);
+}
+async function discoverDoorAutomations(){
+ const saved=loadSaved(),savedMap=new Map((Array.isArray(saved.automationItems)?saved.automationItems:[]).map(o=>[o.id,o]));
+ const found=[];
+ for(let p=1;p<=pdf.numPages;p++){
+  const text=await readPageText(p);
+  const daItems=text.items.filter(item=>/^(DA|D\.?A\.?)$/i.test(String(item.text||'').trim())||/^DÖRRAUTOMATIK$/i.test(String(item.text||'').trim()));
+  for(const da of daItems){
+   const cx=da.x+Math.max(da.w,da.h)/2,cy=da.y;
+   const nearby=text.items.map(item=>({...item,_distance:Math.hypot((item.x+Math.max(item.w,1)/2)-cx,(item.y||0)-cy)}))
+    .filter(item=>Math.abs((item.y||0)-cy)<=52&&item._distance<=270)
+    .sort((a,b)=>a._distance-b._distance);
+   const sourceText=nearby.slice(0,16).sort((a,b)=>a.x-b.x).map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+   const model=automationModelFromText(sourceText);
+   const objectNo=automationObjectNoFromItems(nearby,model);
+   const serial=automationSerialFromText(sourceText);
+   const id='da@'+p+':'+Math.round(cx)+':'+Math.round(cy);
+   const old=savedMap.get(id)||{};
+   const rect=[da.x-7,da.y-Math.max(da.h,12)-7,da.x+Math.max(da.w,18)+7,da.y+8];
+   const item={
+    id,page:p,rect,objectNo:old.objectNo??objectNo,modelCode:old.modelCode??(model?.code||''),model:old.model??(model?.name||''),
+    serialNumber:old.serialNumber??serial,location:old.location||'',sourceText,checks:old.checks&&typeof old.checks==='object'?old.checks:{},
+    notes:old.notes||'',progress:0
+   };
+   item.progress=automationProgressOf(item);found.push(item);
+  }
+ }
+ automationItems=found;
+}
+function selectedAutomation(){return automationItems.find(o=>o.id===selectedAutomationId)||null}
+function automationDisplayId(o){
+ const parts=[o?.objectNo,o?.modelCode,o?.serialNumber].filter(Boolean);
+ return parts.length?parts.join('-'):(o?.objectNo||'Dörrautomatik');
+}
+function syncAutomationModelFromCode(o){
+ const known=PROJECT_AUTOMATION_MODELS.find(([code,name])=>code===String(o.modelCode||'')||name.toLocaleLowerCase('sv')===String(o.model||'').toLocaleLowerCase('sv'));
+ if(known){o.modelCode=known[0];o.model=known[1]}
+}
+function syncProjectMetaInputs(){
+ el.projectName.value=projectMeta.projectName||'';el.projectFacility.value=projectMeta.facilityNo||'';el.projectOrder.value=projectMeta.order||'';
+ el.projectDate.value=projectMeta.date||localProjectDate();el.projectContact.value=projectMeta.contact||'';el.projectCompany.value=projectMeta.company||'';
+ el.projectTechnician.value=projectMeta.technician||'';el.projectSignature.value=projectMeta.signature||'';
+ refreshProjectLogoPreview();
+}
+function refreshProjectLogoPreview(){
+ el.projectLogoPreview.replaceChildren();
+ if(projectLogoData){const img=document.createElement('img');img.src=projectLogoData;img.alt='Företagslogotyp';el.projectLogoPreview.appendChild(img)}
+ el.projectLogoStatus.textContent=projectLogoData?'Logotyp inlagd och sparad för alla egenkontroller.':'Ingen logotyp vald.';
+ el.projectLogoRemove.hidden=!projectLogoData;
+}
+async function prepareProjectLogoFile(file){
+ if(!file||!file.type.startsWith('image/'))throw new Error('Välj en bildfil.');
+ const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(new Error('Kunde inte läsa bilden.'));r.readAsDataURL(file)});
+ const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('Bildformatet kunde inte läsas. Prova PNG eller JPG.'));im.src=data});
+ const maxW=1000,maxH=500,scale=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+ const cv=document.createElement('canvas');cv.width=w;cv.height=h;const c=cv.getContext('2d');c.clearRect(0,0,w,h);c.drawImage(img,0,0,w,h);
+ return cv.toDataURL('image/png');
+}
+function renderAutomationChecks(o){
+ el.automationChecks.replaceChildren();
+ PROJECT_AUTOMATION_CHECKS.forEach(([id,title])=>{
+  const check=o.checks[id]||(o.checks[id]={result:'',note:''});
+  const row=document.createElement('div');row.className='pwAutomationCheck '+(check.result?'result-'+check.result:'');
+  const head=document.createElement('div');head.className='pwAutomationCheckHead';head.innerHTML='<strong>'+id+'</strong><span></span>';head.querySelector('span').textContent=title;
+  const choices=document.createElement('div');choices.className='pwAutomationChoices';
+  [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']].forEach(([value,label])=>{
+   const b=document.createElement('button');b.type='button';b.dataset.v=value;b.textContent=label;b.classList.toggle('active',check.result===value);
+   b.onclick=()=>{check.result=check.result===value?'':value;if(value!=='remark'&&check.result!=='remark')check.note='';o.progress=automationProgressOf(o);save();renderAutomationProtocol(o);renderMarkers();renderGroups()};
+   choices.appendChild(b);
+  });
+  row.append(head,choices);
+  if(check.result==='remark'){
+   const fault=document.createElement('div');fault.className='pwAutomationFault';
+   const select=document.createElement('select');select.innerHTML='<option value="">Välj anmärkning…</option>';
+   (PROJECT_AUTOMATION_FAULTS[id]||[]).forEach(v=>{const op=document.createElement('option');op.value=v;op.textContent=v;if(check.note===v)op.selected=true;select.appendChild(op)});
+   select.onchange=()=>{if(select.value){check.note=select.value;save()}};
+   const note=document.createElement('input');note.type='text';note.placeholder='Beskriv själv…';note.value=check.note||'';
+   note.onchange=()=>{check.note=note.value.trim();save()};
+   fault.append(select,note);row.appendChild(fault);
+  }
+  el.automationChecks.appendChild(row);
+ });
+}
+function renderAutomationProtocol(o){
+ if(!o)return;
+ syncAutomationModelFromCode(o);
+ el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ')||'Dörrautomatik';
+ el.automationModel.value=PROJECT_AUTOMATION_MODELS.some(([code])=>code===o.modelCode)?o.modelCode:'';
+ el.automationSerial.value=o.serialNumber||'';el.automationId.value=o.objectNo||'';el.automationLocation.value=o.location||'';el.automationNotes.value=o.notes||'';
+ o.progress=automationProgressOf(o);el.automationProgress.textContent=o.progress+'%';
+ syncProjectMetaInputs();renderAutomationChecks(o);
+}
+function openAutomationProtocol(o){
+ if(!o)return;selectedAutomationId=o.id;renderAutomationProtocol(o);el.automationDialog.showModal();
+}
+function closeAutomationProtocol(){if(el.automationDialog.open)el.automationDialog.close();selectedAutomationId=''}
 function protocolScore(code,pageNo,text,drawingPages){
  const rx=codeRegex(code);if(!rx||!rx.test(text.raw))return -1;
  let score=10;
