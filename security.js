@@ -926,7 +926,7 @@ function showOverview(){
 $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
 function navigateSecurity(view){closeSecurityOverview();go(view)}
-$('secNavOverview').onclick=()=>{const filter=$('secOverviewFilter'),search=$('secOverviewSearch'),d=$('securityOverview');if(filter){filter.value='summary';filter.blur()}if(search){search.value='';search.blur()}document.activeElement?.blur?.();showOverview();if(!d.open)d.show();try{d.focus({preventScroll:true})}catch(_){d.focus()}$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
+$('secNavOverview').onclick=()=>{const filter=$('secOverviewFilter'),search=$('secOverviewSearch'),d=$('securityOverview');if(filter){filter.value='summary';filter.blur()}if(search){search.value='';search.blur()}document.activeElement?.blur?.();d?.classList.add('overviewOpening');showOverview();if(!d.open)d.show();try{d.focus({preventScroll:true})}catch(_){d.focus()}setTimeout(()=>d?.classList.remove('overviewOpening'),420);$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
 const secCloseOverview=$('secCloseOverview');if(secCloseOverview)secCloseOverview.onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
 $('secNavDrawing').onclick=()=>navigateSecurity('drawing');
 $('secNavProtocol').onclick=()=>navigateSecurity('protocol');
@@ -1242,6 +1242,8 @@ $('securityPreview').onclick=()=>{
  const fromOverview=!!$('securityOverview')?.open;
  openCustomerPreview(fromOverview||!ALL_IN_ONE);
 };
+const secOverviewCustomerPreview=$('secOverviewCustomerPreview');
+if(secOverviewCustomerPreview)secOverviewCustomerPreview.onclick=e=>{e.stopPropagation();openCustomerPreview(true)};
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
