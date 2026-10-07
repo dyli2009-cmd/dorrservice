@@ -32,20 +32,44 @@ let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automatio
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
 
 const PROJECT_AUTOMATION_CHECKS=[
- ['1.1','Okulär kontroll av dörrautomatik och dörrmiljö.'],
- ['1.2','Kontroll av infästning och mekaniska delar.'],
- ['1.3','Funktionsprov öppning och stängning.'],
- ['1.4','Kontroll av impulsgivare och säkerhetssensorer.'],
- ['1.5','Kontroll av låsning och dörrfunktion.'],
- ['1.6','Dokumentera avvikelse eller utförd justering.']
+ ['1.1','Samtal med nyttjaren.'],
+ ['1.2','Okulärbesiktning av dörrautomatik/dörrmiljö.'],
+ ['1.3','Kontroll av eventuella ombyggnader.'],
+ ['1.4','Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar.'],
+ ['1.5','Funktionskontroll manuell och automatisk öppning (kraft, dämpning & hastighet).'],
+ ['1.6','Funktionskontroll manuell och automatisk stängning (kraft, dämpning & hastighet).'],
+ ['1.7','Funktionskontroll öppnings- & stängningstider.'],
+ ['1.8','Funktionskontroll av nödöppning & utrymning.'],
+ ['1.9','Funktionskontroll/justering koordinator och armsystem.'],
+ ['1.10','Funktionskontroll impulsgivare (radar, armbågskontakter etc).'],
+ ['1.11','Sensorlister och säkerhetsanordningar.'],
+ ['1.12','Funktionskontroll låsfunktioner (dörrblad, elslutbleck, motorlås, ellås, låshus).'],
+ ['1.13','Kontroll/justering uppställningsmagnet & dörrstopp.'],
+ ['1.14','Kontroll gummiupphängningar, fjädrar, tryckslangar & tätning.'],
+ ['1.15','Kontroll motor, pump, hydraulik och drivaxel.'],
+ ['1.16','Kontroll säkringar / programväljare / styrmodul.'],
+ ['1.17','Behovsrengöring dörrautomatik och sensorlister.'],
+ ['1.18','Mindre justering.']
 ];
 const PROJECT_AUTOMATION_FAULTS={
- '1.1':['Skada eller slitage upptäckt','Dörrmiljö behöver justeras'],
- '1.2':['Infästning lös','Mekanisk del behöver justeras'],
- '1.3':['Öppning/stängning avviker','Dörr går inte hela vägen'],
- '1.4':['Impulsgivare fungerar inte','Säkerhetssensor behöver justeras'],
- '1.5':['Låsning fungerar inte korrekt','Dörrfunktion behöver justeras'],
- '1.6':['Åtgärd krävs','Fortsatt kontroll krävs']
+ '1.1':['Nyttjaren uppger återkommande driftstörning','Nyttjaren uppger avvikande funktion','Användning eller förutsättningar har ändrats'],
+ '1.2':['Skada/slitage i dörrmiljön','Lösa eller skadade delar','Dörrblad/karm behöver justeras'],
+ '1.3':['Ombyggnad påverkar dörrmiljön','Ändrad dörrmiljö kräver ny riskbedömning','Ny eller ändrad utrustning behöver kontrolleras'],
+ '1.4':['Infästning lös, efterdragning krävs','Skruvar saknas/lösa','Automatikhus/arm sitter löst'],
+ '1.5':['För hög öppningskraft','Fel öppningshastighet','Dämpning behöver justeras','Dörr öppnar inte fullt'],
+ '1.6':['För hög stängningskraft','Fel stängningshastighet','Dämpning behöver justeras','Dörr stänger inte helt'],
+ '1.7':['Öppningstid behöver justeras','Stängningstid behöver justeras','Öppethållandetid behöver justeras'],
+ '1.8':['Nödöppning fungerar ej','Utrymningsfunktion behöver åtgärdas'],
+ '1.9':['Armsystem behöver justeras','Koordinator fungerar ej korrekt','Glapp/slitage i armsystem'],
+ '1.10':['Radar/impulsgivare fungerar ej','Armbågskontakt fungerar ej','Impulsgivare behöver justeras'],
+ '1.11':['Säkerhetssensor saknas, komplettera enligt SS-EN 16005 och aktuell riskbedömning','Klämskydd saknas, komplettera enligt SS-EN 16005 där aktuell riskbedömning visar klämrisk','Säkerhetssensor/sensorlist fungerar ej','Säkerhetssensor täcker inte riskområdet','Klämskydd saknas eller är otillräckligt','Komplettera med säkerhetssensor eller klämskydd'],
+ '1.12':['Elslutbleck fungerar ej korrekt','Lås släpper för sent/kort tid','Motorlås/ellås fungerar ej','Dörr/lås behöver justeras'],
+ '1.13':['Dörrstopp saknas, komplettera med dörrstopp för att begränsa öppningsvinkeln till 90° där detta är angiven maxvinkel för aktuell automatik/installation','Dörrstopp saknas eller är felplacerat','Dörr öppnar för långt / fel öppningsvinkel','Uppställningsmagnet fungerar ej','Arm eller drivaxel belastas i öppet ändläge','Dörrstopp/öppningsvinkel behöver justeras enligt tillverkarens anvisning'],
+ '1.14':['Gummiupphängning sliten','Fjäder behöver bytas/justeras','Tryckslang/tätning behöver åtgärdas'],
+ '1.15':['Motor missljud/slitage','Pump/hydraulik läcker','Drivaxel glapp/slitage'],
+ '1.16':['Programväljare fungerar ej','Styrmodul fel','Säkring/strömförsörjning behöver åtgärdas'],
+ '1.17':['Rengöring av automatik krävs','Rengöring av sensor/sensorlist krävs'],
+ '1.18':['Mindre justering utförd','Ytterligare justering krävs']
 };
 const PROJECT_AUTOMATION_MODELS=[
  ['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],
