@@ -30,6 +30,8 @@
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
+  let pendingProtocolObjectId=null;
+  let drawingZoomBusy=false,drawingZoomQueued=null;
 
   function hashText(text){
     let h=2166136261;
@@ -376,6 +378,11 @@
     els.state.textContent='Öppnar dörrkorten…';
     protocolPdf=await pdfjsLib.getDocument({data:protocolBytes.slice()}).promise;
     await scanProtocolPdf();
+    if(pendingProtocolObjectId){
+      const id=pendingProtocolObjectId;
+      pendingProtocolObjectId=null;
+      await openProtocol(id);
+    }
   }
 
   async function renderPage(pageNo){
@@ -472,6 +479,13 @@
   async function openProtocol(id){
     const o=objects.find(x=>x.id===id);
     if(!o)return;
+    if(!protocolPdf){
+      pendingProtocolObjectId=id;
+      els.state.textContent='Välj dörrkorts-PDF för '+o.code+'. När filen är vald öppnas dörrkortet automatiskt.';
+      els.protocolFile.value='';
+      els.protocolFile.click();
+      return;
+    }
     selectedId=id;
     restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop,scale};
     const same=objects.filter(x=>x.code===o.code);
@@ -539,31 +553,44 @@
 
   async function zoomTo(nextScale,clientX=null,clientY=null){
     if(!drawingPdf)return;
-    const oldScale=scale;
     nextScale=Math.max(.35,Math.min(4,nextScale));
-    if(Math.abs(nextScale-oldScale)<.001)return;
-    const rect=els.wrap.getBoundingClientRect();
-    const localX=clientX==null?els.wrap.clientWidth/2:clientX-rect.left;
-    const localY=clientY==null?els.wrap.clientHeight/2:clientY-rect.top;
-    const docX=els.wrap.scrollLeft+localX;
-    const docY=els.wrap.scrollTop+localY;
-    const ratio=nextScale/oldScale;
-    scale=nextScale;
-    await renderPage(currentPage);
-    els.wrap.scrollLeft=docX*ratio-localX;
-    els.wrap.scrollTop=docY*ratio-localY;
+    drawingZoomQueued={nextScale,clientX,clientY};
+    if(drawingZoomBusy)return;
+    drawingZoomBusy=true;
+    try{
+      while(drawingZoomQueued){
+        const req=drawingZoomQueued;
+        drawingZoomQueued=null;
+        const oldScale=scale;
+        if(Math.abs(req.nextScale-oldScale)<.001)continue;
+        const rect=els.wrap.getBoundingClientRect();
+        const localX=req.clientX==null?els.wrap.clientWidth/2:req.clientX-rect.left;
+        const localY=req.clientY==null?els.wrap.clientHeight/2:req.clientY-rect.top;
+        const docX=els.wrap.scrollLeft+localX;
+        const docY=els.wrap.scrollTop+localY;
+        const ratio=req.nextScale/oldScale;
+        scale=req.nextScale;
+        await renderPage(currentPage);
+        els.wrap.scrollLeft=docX*ratio-localX;
+        els.wrap.scrollTop=docY*ratio-localY;
+      }
+    }finally{
+      drawingZoomBusy=false;
+    }
   }
 
   els.drawingFile.addEventListener('change',e=>openDrawing(e.target.files&&e.target.files[0]).catch(err=>{
     console.error(err);els.state.textContent='Kunde inte öppna ritningen: '+err.message;els.rescan.disabled=false;
   }));
   els.protocolFile.addEventListener('change',e=>openProtocolFile(e.target.files&&e.target.files[0]).catch(err=>{
-    console.error(err);els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
+    console.error(err);
+    pendingProtocolObjectId=null;
+    els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
   }));
   els.prev.addEventListener('click',()=>renderPage(currentPage-1));
   els.next.addEventListener('click',()=>renderPage(currentPage+1));
-  els.zoomOut.addEventListener('click',()=>zoomTo(scale-.18));
-  els.zoomIn.addEventListener('click',()=>zoomTo(scale+.18));
+  els.zoomOut.addEventListener('click',()=>zoomTo((drawingZoomQueued?drawingZoomQueued.nextScale:scale)-.18));
+  els.zoomIn.addEventListener('click',()=>zoomTo((drawingZoomQueued?drawingZoomQueued.nextScale:scale)+.18));
   els.rescan.addEventListener('click',()=>scanDrawing().catch(err=>{
     console.error(err);els.state.textContent='Analysen misslyckades: '+err.message;els.rescan.disabled=false;
   }));
@@ -582,8 +609,9 @@
   els.wrap.addEventListener('wheel',e=>{
     if(!drawingPdf)return;
     e.preventDefault();
-    const factor=e.deltaY<0?1.12:.89;
-    zoomTo(scale*factor,e.clientX,e.clientY);
+    const factor=e.deltaY<0?1.10:.91;
+    const base=drawingZoomQueued?drawingZoomQueued.nextScale:scale;
+    zoomTo(base*factor,e.clientX,e.clientY);
   },{passive:false});
 
   let cardPinching=false,cardPinchStartDistance=0,cardPinchStartScale=1,cardPinchFrame=0,cardPinchTarget=1,cardPinchCenter=null;
@@ -611,6 +639,38 @@
       if(e.touches.length<2)cardPinching=false;
     },{passive:true});
   }
+
+  let mousePanning=false,panPointerId=null,panStartX=0,panStartY=0,panStartLeft=0,panStartTop=0;
+  els.wrap.addEventListener('pointerdown',e=>{
+    if(!drawingPdf||e.pointerType!=='mouse'||e.button!==0)return;
+    if(e.target.closest&&e.target.closest('button,a,input,label'))return;
+    mousePanning=true;
+    panPointerId=e.pointerId;
+    panStartX=e.clientX;
+    panStartY=e.clientY;
+    panStartLeft=els.wrap.scrollLeft;
+    panStartTop=els.wrap.scrollTop;
+    els.wrap.classList.add('isPanning');
+    try{els.wrap.setPointerCapture(e.pointerId)}catch(_){}
+    e.preventDefault();
+  });
+  els.wrap.addEventListener('pointermove',e=>{
+    if(!mousePanning||e.pointerId!==panPointerId)return;
+    els.wrap.scrollLeft=panStartLeft-(e.clientX-panStartX);
+    els.wrap.scrollTop=panStartTop-(e.clientY-panStartY);
+    e.preventDefault();
+  });
+  function stopMousePan(e){
+    if(!mousePanning)return;
+    if(e&&panPointerId!==null&&e.pointerId!==panPointerId)return;
+    mousePanning=false;
+    els.wrap.classList.remove('isPanning');
+    try{if(e)els.wrap.releasePointerCapture(e.pointerId)}catch(_){}
+    panPointerId=null;
+  }
+  els.wrap.addEventListener('pointerup',stopMousePan);
+  els.wrap.addEventListener('pointercancel',stopMousePan);
+  els.wrap.addEventListener('lostpointercapture',()=>stopMousePan());
 
   let touchStartX=0,touchStartY=0,pinchStartDistance=0,pinchStartScale=scale,pinching=false,pinchCenter=null,pinchFrame=0,pinchTarget=scale;
   function touchDistance(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
