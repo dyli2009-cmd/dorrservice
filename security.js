@@ -1136,7 +1136,7 @@ function reportDoc(){
   txt('Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
   txt(customerProtocolTitle(o.type),left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
   if(continuation){txt('fortsättning',left+58+(width-58)/2,23,6,false,[70,70,70],{align:'center'});y=31;cell('Objekt:',o.id,left,y,62,8);cell('Placering/Dörrlittra:',o.location,left+62,y,62,8);cell('Ao nummer:',project.order,left+124,y,62,8);y+=12;return}
-  doc.setDrawColor(155,155,155);doc.setLineWidth(.22);doc.line(left,36.2,left+width,36.2);doc.setFillColor(255,255,255);doc.rect(left,31.8,28,7,'F');txt('SERVICE',left+1.5,36.7,11.4,true,[25,25,25]);y=40;
+  txt('SERVICE',left+1.5,36.7,11.4,true,[25,25,25]);y=40;
   cell('Bokat datum:',project.date,left,y,93);cell('Nästa provning:',project.nextDate,left+93,y,93);y+=7;
   cell('ANLÄGGNING:',project.projectName,left,y,93,7,true);cell('Anläggningsnr:',project.facilityNo,left+93,y,93,7,true);y+=7;
   cell('SERVICEFÖRETAG:',project.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',project.customer,left+93,y,93,7,true);y+=7;
