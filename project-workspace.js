@@ -784,7 +784,14 @@ async function calculateTimeReport(){
   const def=await protocolDef(o.code),checks=effectiveChecks(o,def);
   for(const item of checks){
    const resolved=resolveItemMinutes(item),category=resolved.category;
-   if(resolved.minutes===null){unknown++;continue}
+   if(resolved.minutes===null){
+    unknown++;
+    if(category){
+     const r=rows[category.key];r.count++;
+     if(o.checks[item.key])r.doneCount++;
+    }
+    continue;
+   }
    if(category){
     const r=rows[category.key];r.count++;r.totalMinutes+=resolved.minutes;
     if(resolved.source==='item')r.manualCount++;
