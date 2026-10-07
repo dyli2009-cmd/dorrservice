@@ -58,3 +58,10 @@ Kontrollflödets lås ska respekteras.
 - exempel som ska behandlas på samma sätt: `GS1`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`
 - ID:t normaliseras så att enkla mellanrum/bindestreck i själva stämpeln inte hindrar matchning
 - samma normaliserade ID används för position, räkning, klickyta och matchning mot protokoll i samma PDF
+
+## Originalprotokoll – zoom
+- originalprotokollet ska kunna nypzoomas med två fingrar på telefon och iPad
+- en-fingersdrag används för att panorera när protokollet är inzoomat
+- `Passa` visar hela protokollsidan direkt och `300%` zoomar direkt till maxnivån
+- plus/minus ändrar zoom i större steg upp till 300%
+- på dator/trackpad kan Ctrl/Cmd + hjul/pinch zooma kring pekarens position
