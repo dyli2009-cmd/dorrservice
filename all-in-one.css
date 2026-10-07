@@ -773,3 +773,31 @@ body.allInOneApp .allProtocolLead{
     padding-top:8px;
   }
 }
+
+
+/* 2.4.199: Overview fills the full workspace on every screen size while bottom navigation stays clickable. */
+body.allInOneApp #securityOverview[open]{
+  position:fixed!important;
+  inset:6px 6px calc(58px + env(safe-area-inset-bottom,0px)) 6px!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:10px!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  border-radius:12px!important;
+  z-index:45!important;
+}
+body.allInOneApp #securityOverview .overviewHead{
+  position:sticky;
+  top:-10px;
+  z-index:3;
+  background:#fff;
+  padding-top:8px;
+}
+body.allInOneApp #mobileBar{
+  position:relative;
+  z-index:60;
+}
