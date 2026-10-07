@@ -28,7 +28,7 @@ let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projek
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[],pendingImage=null;
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
-let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='';
+let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='',automationPreviewPdf=null,automationPreviewRenderTask=null;
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
 
 const PROJECT_AUTOMATION_CHECKS=[
@@ -611,7 +611,11 @@ function syncAutomationModelFromCode(o){
 }
 function syncProjectMetaInputs(){
  el.projectName.value=projectMeta.projectName||'';el.projectFacility.value=projectMeta.facilityNo||'';el.projectOrder.value=projectMeta.order||'';
- el.projectDate.value=projectMeta.date||localProjectDate();el.projectContact.value=projectMeta.contact||'';el.projectCompany.value=projectMeta.company||'';
+ el.projectDate.value=projectMeta.date||localProjectDate();el.projectNextDate.value=projectMeta.nextDate||'';
+ el.projectCustomer.value=projectMeta.customer||'';el.projectAgreement.value=projectMeta.agreement||'';el.projectContact.value=projectMeta.contact||'';
+ el.projectPhone.value=projectMeta.phone||'';el.projectAddress.value=projectMeta.address||'';el.projectPostalCode.value=projectMeta.postalCode||'';el.projectPostalCity.value=projectMeta.postalCity||'';
+ el.projectCompany.value=projectMeta.company||'';el.projectCompanyContact.value=projectMeta.companyContact||'';el.projectCompanyPhone.value=projectMeta.companyPhone||'';
+ el.projectCompanyAddress.value=projectMeta.companyAddress||'';el.projectCompanyPostalCode.value=projectMeta.companyPostalCode||'';el.projectCompanyPostalCity.value=projectMeta.companyPostalCity||'';
  el.projectTechnician.value=projectMeta.technician||'';el.projectSignature.value=projectMeta.signature||'';
  refreshProjectLogoPreview();
 }
@@ -1508,11 +1512,11 @@ function renderMarkers(){
   });
   automationItems.filter(o=>o.page===renderPage).forEach(o=>{
    const r=viewportRect(vp,o.rect);if(!Number.isFinite(r.left+r.top+r.width+r.height))return;
-   const btn=document.createElement('button');btn.type='button';btn.className='pwAutomationMarker';btn.dataset.progress=String(o.progress||0);
-   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(28,r.width)+'px';btn.style.height=Math.max(28,r.height)+'px';
-   btn.title='Egenkontroll DA · '+automationDisplayId(o)+(o.model?' · '+o.model:'')+' · '+o.progress+'%';
+   const btn=document.createElement('button');btn.type='button';btn.className='pwAutomationMarker'+(o.sourceKind==='structured-id'?' structured':'');btn.dataset.progress=String(o.progress||0);
+   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(o.sourceKind==='structured-id'?34:28,r.width)+'px';btn.style.height=Math.max(o.sourceKind==='structured-id'?18:28,r.height)+'px';
+   btn.title='Egenkontroll · '+automationDisplayId(o)+(o.model?' · '+o.model:'')+' · '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
-   const badge=document.createElement('span');badge.textContent=o.progress===100?'✓':'DA';btn.appendChild(badge);
+   const badge=document.createElement('span');badge.textContent=o.progress===100?'✓':(o.sourceKind==='structured-id'?'EK':'DA');btn.appendChild(badge);
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)openAutomationProtocol(o)};
    el.markers.appendChild(btn);
   });
