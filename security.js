@@ -1229,7 +1229,7 @@ async function openCustomerPreview(forceReport=false){
 }
 $('securityPreview').onclick=()=>{closeSecurityOverview();openCustomerPreview()};
 const overviewCustomerPreview=$('secOverviewCustomerPreview');
-if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>{closeSecurityOverview();openCustomerPreview(true)};
+if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>openCustomerPreview(true);
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
