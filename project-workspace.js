@@ -597,6 +597,77 @@ async function markBulkDone(){
  setState(changed+' positioner klarmarkerade'+(withoutChecks?' · '+withoutChecks+' saknade kontrollpunkter':'')+'.');
  if(el.timeDialog.open)await renderTimeReport();
 }
+const TIME_CATEGORY_DEFS=[
+ {key:'wc',label:'WC-/toalettbehör',minutes:10,rx:/(wc[\s-]*behör|toalettbehör|toalett)/i},
+ {key:'cylinder',label:'Cylinder / cylinder-sida',minutes:15,rx:/(cylinder|gångjärnssida|gangjarnssida|anslagssida)/i},
+ {key:'strike',label:'Slutbleck / elslutbleck',minutes:10,rx:/(slutbleck|elslutbleck|elbleck|step[\s-]*(40|92))/i},
+ {key:'handle',label:'Trycke / handtag',minutes:10,rx:/(trycke|handtag)/i},
+ {key:'lockcase',label:'Låshus',minutes:30,rx:/(låshus|lashus|låskista|laskista)/i},
+ {key:'closer',label:'Dörrstängare',minutes:30,rx:/(dörrstäng|dorrstang)/i},
+ {key:'automation',label:'Dörrautomatik',minutes:480,rx:/(dörrautom|dorautom|automatik|sw100|sw200|sw300|ed100|ed250|emsw)/i},
+ {key:'elbow',label:'Armbågskontakt',minutes:150,rx:/(armbåg|armbag|\bak\b)/i},
+ {key:'magnet',label:'Magnet',minutes:480,rx:/(magnet|maglås|maglas)/i}
+];
+function loadTimeSettings(){
+ let saved={};try{saved=JSON.parse(localStorage.getItem('tillsyno-project-time-estimates-v1')||'{}')}catch(_){}
+ const out={};TIME_CATEGORY_DEFS.forEach(d=>out[d.key]=Number.isFinite(Number(saved[d.key]))?Math.max(0,Number(saved[d.key])):d.minutes);
+ return out;
+}
+function saveTimeSettings(settings){
+ try{localStorage.setItem('tillsyno-project-time-estimates-v1',JSON.stringify(settings))}catch(_){}
+}
+function classifyTimeItem(item){
+ const text=(String(item?.label||'')+' '+String(item?.value||'')+' '+String(item?.note||'')).toLocaleLowerCase('sv');
+ return TIME_CATEGORY_DEFS.find(d=>d.rx.test(text))||null;
+}
+function formatWorkMinutes(minutes){
+ const m=Math.max(0,Math.round(Number(minutes)||0)),h=Math.floor(m/60),rest=m%60;
+ if(!h)return m+' min';
+ if(!rest)return h+' h';
+ return h+' h '+rest+' min';
+}
+async function calculateTimeReport(){
+ const settings=loadTimeSettings(),rows={};TIME_CATEGORY_DEFS.forEach(d=>rows[d.key]={def:d,count:0,doneCount:0,totalMinutes:0,doneMinutes:0});
+ let unknown=0;
+ for(const o of instances){
+  const def=await protocolDef(o.code),checks=effectiveChecks(o,def);
+  for(const item of checks){
+   const category=classifyTimeItem(item);
+   if(!category){unknown++;continue}
+   const r=rows[category.key],minutes=Math.max(0,Number(settings[category.key])||0);
+   r.count++;r.totalMinutes+=minutes;
+   if(o.checks[item.key]){r.doneCount++;r.doneMinutes+=minutes}
+   if(minutes<=0)unknown++;
+  }
+ }
+ const list=TIME_CATEGORY_DEFS.map(d=>rows[d.key]);
+ return {settings,rows:list,unknown,total:list.reduce((a,r)=>a+r.totalMinutes,0),done:list.reduce((a,r)=>a+r.doneMinutes,0)};
+}
+async function renderTimeReport(){
+ if(!pdf){return}
+ el.timeRows.innerHTML='<p class="pwMuted">Räknar projektets kontrollpunkter…</p>';
+ const report=await calculateTimeReport(),left=Math.max(0,report.total-report.done);
+ el.timeTotal.textContent=formatWorkMinutes(report.total);
+ el.timeDone.textContent=formatWorkMinutes(report.done);
+ el.timeLeft.textContent=formatWorkMinutes(left);
+ el.timeUnknown.textContent=String(report.unknown);
+ el.timeRows.replaceChildren();
+ report.rows.forEach(r=>{
+  const row=document.createElement('div');row.className='pwTimeRow';
+  const name=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');
+  strong.textContent=r.def.label;small.textContent=r.count+' punkter';name.append(strong,small);
+  const input=document.createElement('input');input.type='number';input.min='0';input.step='5';input.value=String(report.settings[r.def.key]);input.setAttribute('aria-label','Minuter per '+r.def.label);
+  input.onchange=async()=>{const s=loadTimeSettings();s[r.def.key]=Math.max(0,Number(input.value)||0);saveTimeSettings(s);await renderTimeReport()};
+  const done=document.createElement('div');done.className='pwTimeStat';done.innerHTML='<small>Klart</small><br>'+r.doneCount+'/'+r.count;
+  const remain=document.createElement('div');remain.className='pwTimeStat';remain.innerHTML='<small>Kvar</small><br>'+Math.max(0,r.count-r.doneCount);
+  row.append(name,input,done,remain);el.timeRows.appendChild(row);
+ });
+}
+async function openTimeReport(){
+ if(!pdf)return;
+ el.timeDialog.showModal();await renderTimeReport();
+}
+function closeTimeReport(){if(el.timeDialog.open)el.timeDialog.close()}
 function renderMarkers(){
  el.markers.replaceChildren();if(!pdf)return;
  const renderPage=page,pageItems=instances.filter(o=>o.page===renderPage);
