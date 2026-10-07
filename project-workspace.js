@@ -170,8 +170,13 @@ async function openProjectPdf(){
 function hashBytes(arr){let h=2166136261;const step=Math.max(1,Math.floor(arr.length/50000));for(let i=0;i<arr.length;i+=step){h^=arr[i];h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
 function storageKey(){return 'tillsyno-project-workspace-v2:'+(projectId||fileKey)}
 function stateTime(s){const t=Date.parse(String(s?.updatedAt||''));return Number.isFinite(t)?t:0}
+function localProjectDate(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
+function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date:localProjectDate(),contact:'',company:'',technician:'',signature:''}}
+function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
 function makeProjectPayload(){
- const payload={schema:4,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),instances:{}};
+ const payload={schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
+  id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
+ })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
   checks:o.checks||{},progress:o.progress||0,overrides:o.overrides||{},customItems:o.customItems||[]
  });
@@ -179,9 +184,11 @@ function makeProjectPayload(){
 }
 function loadSaved(){
  let local={};try{local=JSON.parse(localStorage.getItem(storageKey())||'{}')}catch(_){}
- const embedded=embeddedState&&embeddedState.instances?embeddedState:{};
- if(!local.instances)return embedded;
- if(!embedded.instances)return local;
+ const embedded=embeddedState&&typeof embeddedState==='object'?embeddedState:{};
+ const localValid=local&&typeof local==='object'&&Object.keys(local).length;
+ const embeddedValid=embedded&&typeof embedded==='object'&&Object.keys(embedded).length;
+ if(!localValid)return embedded;
+ if(!embeddedValid)return local;
  return stateTime(embedded)>stateTime(local)?embedded:local;
 }
 function save(){
@@ -209,7 +216,7 @@ async function buildPortableProjectPdf(){
  const payload=makeProjectPayload();
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
  doc.catalog.set(PDFName.of('TillsynoProjectData'),PDFHexString.fromText(JSON.stringify(payload)));
- doc.catalog.set(PDFName.of('TillsynoProjectSchema'),PDFString.of('4'));
+ doc.catalog.set(PDFName.of('TillsynoProjectSchema'),PDFString.of('5'));
  const saved=await doc.save({useObjectStreams:false});
  embeddedState=payload;
  bytes=new Uint8Array(saved);
@@ -555,6 +562,8 @@ function effectiveChecks(o,def){
 function buildInstances(){
  const saved=loadSaved(),counts={};
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
+ projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
+ automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  instances=stamps.map((s,index)=>{
   counts[s.code]=(counts[s.code]||0)+1;
