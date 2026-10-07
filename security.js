@@ -1228,6 +1228,8 @@ async function openCustomerPreview(){
  }catch(e){console.error(e);msg('Kunde inte visa kundmallen.',true)}
 }
 $('securityPreview').onclick=()=>{closeSecurityOverview();openCustomerPreview()};
+const overviewCustomerPreview=$('secOverviewCustomerPreview');
+if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>{closeSecurityOverview();openCustomerPreview()};
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
