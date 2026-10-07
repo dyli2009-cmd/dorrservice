@@ -44,7 +44,7 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
 
 /* 2.4.224: visible position overlays make PDF annotation alignment easy to verify. */
 
-/* 2.4.225: desktop wheel zoom + hand panning for Projektflöde drawing. */
+/* 2.4.225: desktop wheel zoom + mouse panning for Projektflöde drawing. */
 @media(pointer:fine){.pwViewer{overscroll-behavior:contain}}
 
 /* 2.4.227: collapsible positions and save menu. */
