@@ -271,7 +271,7 @@ function syncStatus(o){
  return o.status
 }
 function nextNumber(type){const nums=items.filter(x=>x.type===type).map(x=>Number(x.number)||0);return Math.max(0,...nums)+1}
-function nextAutomationSerial(){const nums=items.filter(isDoorAutomationItem).map(o=>Number(o.serialNumber)||0);return String(Math.max(0,...nums)+1)}
+function nextAutomationSerial(){const used=new Set(items.filter(isDoorAutomationItem).map(o=>Number(o.serialNumber)).filter(n=>Number.isInteger(n)&&n>0));let next=1;while(used.has(next))next++;return String(next)}
 function automationProposedId(o){return isDoorAutomationItem(o)&&project.facilityNo&&o.modelCode&&o.serialNumber?[project.facilityNo.trim(),o.modelCode,String(Number(o.serialNumber)||o.serialNumber)].join('-'):null}
 function applyAutomationId(o){
  if(!isDoorAutomationItem(o)||o.idMode==='manual')return false;
@@ -292,7 +292,7 @@ function renumberLegacySecurityItems(list){
 }
 function securityDrawingLabel(o){const cfg=SYSTEMS[o.type];return isDoorAutomationItem(o)?(o.id||('D'+(o.serialNumber||o.number||1))):(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1)}
 function createItem(type,x,y){
- const n=nextNumber(type),cfg=SYSTEMS[type],automation=ALL_IN_ONE&&(type==='automation'||type==='automation_selfcheck'),serial=automation?nextAutomationSerial():'',label=automation?'D'+serial:(cfg.markerLabel||cfg.label)+' '+n;
+ const cfg=SYSTEMS[type],automation=ALL_IN_ONE&&(type==='automation'||type==='automation_selfcheck'),serial=automation?nextAutomationSerial():'',n=automation?Number(serial):nextNumber(type),label=automation?'D'+serial:(cfg.markerLabel||cfg.label)+' '+n;
  const o=normalize({uid:crypto.randomUUID(),type,number:n,id:label,idMode:automation?'auto':'manual',serialNumber:serial,modelCode:'',model:'',page,x,y,labelX:Math.max(.035,Math.min(.965,x+(x>.78?-.075:.075))),labelY:Math.max(.035,Math.min(.965,y-.045)),checks:{},customChecks:[],status:'untested',remediationDate:'',remediationSignature:''});
  applyAutomationId(o);items.push(o);selected=o.uid;addType=null;document.body.classList.remove('secAdding');save();drawMarkers();showSelected();go('drawing');$('secHint').textContent=securityDrawingLabel(o)+' är tillagd. På telefon: dra i den stora cirkeln för att flytta pilspetsen. Dra etiketten separat till rätt läge.';$('secHint').hidden=false
 }
