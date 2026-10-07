@@ -186,3 +186,130 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
   .pfProtocolLegend span:last-child{display:none}
   .pfBackToDrawing{margin:6px 8px max(8px,env(safe-area-inset-bottom))!important;width:calc(100% - 16px)!important}
 }
+
+/* v2.4.180 original protocol workspace */
+.pfProtocol{
+  width:min(1180px,calc(100vw - 20px))!important;
+  height:calc(100dvh - 20px)!important;
+  max-height:none!important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:12px!important;
+  background:#cfd8dd;
+}
+.pfProtocolToolbar{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:48px;
+  padding:6px 8px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+}
+.pfProtocolToolbar .pfBackToDrawing{
+  width:auto!important;
+  margin:0!important;
+  min-height:34px!important;
+  padding:5px 9px!important;
+  white-space:nowrap;
+  background:var(--navy);
+  color:#fff;
+  border-color:var(--navy);
+}
+.pfProtocolIdentity{
+  min-width:0;
+  flex:1;
+  display:flex;
+  align-items:baseline;
+  gap:7px;
+}
+.pfProtocolIdentity span{
+  flex:none;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.8px;
+  color:#718590;
+}
+.pfProtocolIdentity strong{
+  flex:none;
+  font-size:14px;
+}
+.pfProtocolIdentity small{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--muted);
+  font-size:9px;
+}
+.pfProtocolStatus{
+  width:92px;
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.pfProtocolStatus strong{
+  width:34px;
+  text-align:right;
+  font-size:11px;
+}
+.pfProtocolStatus .pfProgressTrack{
+  flex:1;
+  height:5px;
+  margin:0;
+}
+.pfProtocolClose{
+  min-width:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  font-size:22px!important;
+}
+.pfProtocolDocument{
+  flex:1;
+  min-height:0;
+  padding:10px!important;
+  background:#cfd8dd;
+}
+.pfProtocolStage{
+  margin:0 auto;
+  background:#fff;
+  box-shadow:0 3px 16px #0003;
+}
+.pfProtocolHotspot{
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.pfProtocolHotspot:hover,.pfProtocolHotspot:focus-visible{
+  border-color:#116a99!important;
+  background:#116a9910!important;
+}
+.pfProtocolHotspot.active{
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#173746!important;
+  text-shadow:0 0 1px #fff;
+}
+@media(max-width:650px){
+  .pfProtocol{
+    width:100vw!important;
+    height:100dvh!important;
+    border-radius:0!important;
+  }
+  .pfProtocolToolbar{
+    padding-top:max(6px,env(safe-area-inset-top));
+    gap:5px;
+  }
+  .pfProtocolIdentity span{display:none}
+  .pfProtocolIdentity strong{font-size:12px}
+  .pfProtocolIdentity small{font-size:8px}
+  .pfProtocolStatus{width:65px}
+  .pfProtocolStatus .pfProgressTrack{display:none}
+  .pfProtocolZoom button{min-width:30px;min-height:30px;padding:2px 7px}
+  .pfProtocolZoom span{min-width:38px;font-size:9px}
+  .pfProtocolDocument{padding:4px!important}
+}
