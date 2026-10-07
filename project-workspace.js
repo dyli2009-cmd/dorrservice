@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const el={
  file:$('pwFile'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),saveMenu:$('pwSaveMenu'),savePortable:$('pwSavePortable'),saveAs:$('pwSaveAs'),saveCopy:$('pwSaveCopy'),saveSelfchecks:$('pwSaveSelfchecks'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),bulkSelect:$('pwBulkSelect'),timeReport:$('pwTimeReport'),toolMenuButton:$('pwToolMenuButton'),toolMenu:$('pwToolMenu'),toolText:$('pwToolText'),toolCallout:$('pwToolCallout'),toolArrow:$('pwToolArrow'),toolImage:$('pwToolImage'),toolDelete:$('pwToolDelete'),toolUndo:$('pwToolUndo'),toolRedo:$('pwToolRedo'),imageFile:$('pwImageFile'),rescan:$('pwRescan'),
- viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),drawingNotes:$('pwDrawingNotes'),selectionRect:$('pwSelectionRect'),markers:$('pwMarkers'),empty:$('pwEmpty'),side:$('pwSide'),showPositions:$('pwShowPositions'),hidePositions:$('pwHidePositions'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
+ viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),drawingNotes:$('pwDrawingNotes'),selectionRect:$('pwSelectionRect'),markers:$('pwMarkers'),automationMarkers:$('pwAutomationMarkers'),empty:$('pwEmpty'),side:$('pwSide'),showPositions:$('pwShowPositions'),hidePositions:$('pwHidePositions'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
  protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
  checklist:$('pwChecklist'),checklistMeta:$('pwChecklistMeta'),addChecklistItem:$('pwAddChecklistItem'),
@@ -954,6 +954,7 @@ async function renderDrawing(){
  el.pageInfo.textContent='Sida '+page+' / '+pdf.numPages;el.zoomInfo.textContent=Math.round(scale*100)+'%';
  renderDrawingNotes(vp);
  renderMarkers();
+ renderAutomationMarkers();
 }
 function svgNode(name){return document.createElementNS('http://www.w3.org/2000/svg',name)}
 function ensureArrowMarker(svg){
