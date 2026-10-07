@@ -399,7 +399,7 @@ function buildInstances(){
 async function recalc(o){
  const def=await protocolDef(o.code);
  const checks=effectiveChecks(o,def);
- if(!checks.length){o.progress=0;o.estimatedMinutes=0;o.doneMinutes=0;o.unknownTimeCount=0;return}
+ if(!checks.length){o.progress=0;o.workItemCount=0;o.estimatedMinutes=0;o.doneMinutes=0;o.unknownTimeCount=0;return}
  let totalMinutes=0,doneMinutes=0,unknownTimeCount=0;
  checks.forEach(item=>{
   const resolved=resolveItemMinutes(item);
@@ -409,7 +409,7 @@ async function recalc(o){
  });
  const doneCount=checks.filter(item=>!!o.checks[item.key]).length;
  const allDone=doneCount===checks.length;
- o.estimatedMinutes=totalMinutes;o.doneMinutes=doneMinutes;o.unknownTimeCount=unknownTimeCount;
+ o.workItemCount=checks.length;o.estimatedMinutes=totalMinutes;o.doneMinutes=doneMinutes;o.unknownTimeCount=unknownTimeCount;
  if(allDone){o.progress=100;return}
  if(totalMinutes>0){o.progress=Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));return}
  o.progress=Math.round(doneCount/checks.length*100);
@@ -419,12 +419,13 @@ function updateStats(){
  el.positionCount.textContent=instances.length;
  el.matchedCount.textContent=instances.filter(o=>protocolMap[o.code]).length;
  el.doneCount.textContent=instances.filter(o=>o.progress===100).length;
- const totalMinutes=instances.reduce((a,o)=>a+Math.max(0,Number(o.estimatedMinutes)||0),0);
- const doneMinutes=instances.reduce((a,o)=>a+Math.max(0,Number(o.doneMinutes)||0),0);
- const allDone=instances.length>0&&instances.every(o=>o.progress===100);
+ const trackable=instances.filter(o=>(Number(o.workItemCount)||0)>0);
+ const totalMinutes=trackable.reduce((a,o)=>a+Math.max(0,Number(o.estimatedMinutes)||0),0);
+ const doneMinutes=trackable.reduce((a,o)=>a+Math.max(0,Number(o.doneMinutes)||0),0);
+ const allDone=trackable.length>0&&trackable.every(o=>o.progress===100);
  let progress;
  if(totalMinutes>0)progress=allDone?100:Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));
- else progress=instances.length?Math.round(instances.reduce((a,o)=>a+o.progress,0)/instances.length):0;
+ else progress=trackable.length?Math.round(trackable.reduce((a,o)=>a+o.progress,0)/trackable.length):0;
  el.totalProgress.textContent=progress+'%';
 }
 async function renderDrawing(){
@@ -805,7 +806,7 @@ async function calculateTimeReport(){
  const list=TIME_CATEGORY_DEFS.map(d=>rows[d.key]);
  if(manualOther.count)list.push({def:{key:'manual',label:'Egna tider'},...manualOther,manualCount:manualOther.count,disabled:false,isManual:true});
  const total=list.reduce((a,r)=>a+r.totalMinutes,0),done=list.reduce((a,r)=>a+r.doneMinutes,0);
- const allChecksDone=instances.length>0&&instances.every(o=>o.progress===100);
+ const trackable=instances.filter(o=>(Number(o.workItemCount)||0)>0),allChecksDone=trackable.length>0&&trackable.every(o=>o.progress===100);
  const progress=total>0?(allChecksDone?100:Math.min(99,Math.max(0,Math.round(done/total*100)))):0;
  return {settings,disabled,rows:list,unknown,total,done,progress};
 }
