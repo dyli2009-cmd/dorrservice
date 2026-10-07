@@ -1170,7 +1170,7 @@ function reportDoc(){
    });y+=rowH;
   });
   y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.setLineWidth(.2);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,8.2,true,[55,55,55]);y+=6;
-  const remediationDescription=String(o.remediationDescription||'').trim();const remediationNote=isSecurityRemediated(o)?'Åtgärdad '+o.remediationDate+' · Signatur: '+o.remediationSignature+(remediationDescription?' · Åtgärd: '+remediationDescription:''):'';const protocolIssues=allChecks(o).flatMap(([n,t])=>{const check=o.checks[n];return check?.result==='remark'?[n+' – '+(check.note?.trim()||t)]:[]});const noteLines=[...protocolIssues,remediationNote,o.notes].filter(Boolean);
+  const protocolIssues=allChecks(o).flatMap(([n,t])=>{const check=o.checks[n];return check?.result==='remark'?[n+' – '+(check.note?.trim()||t)]:[]});const noteLines=[...protocolIssues,o.notes].filter(Boolean);
   const noteText=noteLines.join('  ·  '),boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.setLineWidth(.18);doc.rect(left,y,width,boxH,'FD');
   if(noteText){let fs=8.3,lines=doc.splitTextToSize(noteText,width-7),maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)));while(lines.length>maxLines&&fs>6.7){fs-=.3;doc.setFontSize(fs);lines=doc.splitTextToSize(noteText,width-7);maxLines=Math.max(1,Math.floor((boxH-4)/(fs*.42)))}if(lines.length>maxLines){lines=lines.slice(0,maxLines);lines[maxLines-1]=String(lines[maxLines-1]).replace(/\s*$/,'')+' …'}doc.setFont('helvetica','normal');doc.setFontSize(fs);doc.setTextColor(35,35,35);doc.text(lines,left+3,y+4.5,{lineHeightFactor:1.1})}
  });
