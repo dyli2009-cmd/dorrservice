@@ -1376,14 +1376,37 @@ function renderMarkers(){
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode)toggleBulkInstance(o);else openProtocol(o)};
    el.markers.appendChild(btn);
   });
+  automationItems.filter(o=>o.page===renderPage).forEach(o=>{
+   const r=viewportRect(vp,o.rect);if(!Number.isFinite(r.left+r.top+r.width+r.height))return;
+   const btn=document.createElement('button');btn.type='button';btn.className='pwAutomationMarker';btn.dataset.progress=String(o.progress||0);
+   btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(28,r.width)+'px';btn.style.height=Math.max(28,r.height)+'px';
+   btn.title='Egenkontroll DA · '+automationDisplayId(o)+(o.model?' · '+o.model:'')+' · '+o.progress+'%';
+   btn.setAttribute('aria-label',btn.title);
+   const badge=document.createElement('span');badge.textContent=o.progress===100?'✓':'DA';btn.appendChild(badge);
+   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)openAutomationProtocol(o)};
+   el.markers.appendChild(btn);
+  });
  }).catch(console.error);
 }
 function renderGroups(){
  const groups={};
  instances.filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
+ const visibleAutomations=automationItems.filter(o=>!currentOnly||o.page===page);
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
- if(!codes.length){const p=document.createElement('p');p.className='pwMuted';p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';el.groups.appendChild(p);return}
+ if(!codes.length&&!visibleAutomations.length){const p=document.createElement('p');p.className='pwMuted';p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';el.groups.appendChild(p);return}
+ if(visibleAutomations.length){
+  const wrap=document.createElement('section');wrap.className='pwGroup pwAutomationGroup';
+  const title=document.createElement('div');title.className='pwGroupTitle';title.innerHTML='<strong>DA · Egenkontroller</strong><span>'+visibleAutomations.length+' automatiker</span>';wrap.appendChild(title);
+  const list=document.createElement('div');list.className='pwGroupItems';
+  visibleAutomations.forEach(o=>{
+   const b=document.createElement('button');b.type='button';b.className='pwPosition pwAutomationPosition';
+   const left=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
+   strong.textContent=automationDisplayId(o);small.textContent='Sida '+o.page+(o.model?' · '+o.model:' · typ ej avläst');pct.textContent=o.progress+'%';
+   left.append(strong,small);b.append(left,pct);b.onclick=()=>openAutomationProtocol(o);list.appendChild(b);
+  });
+  wrap.appendChild(list);el.groups.appendChild(wrap);
+ }
  codes.forEach(code=>{
   const wrap=document.createElement('section');wrap.className='pwGroup';
   const title=document.createElement('div');title.className='pwGroupTitle';
@@ -1759,12 +1782,13 @@ async function analyze(file){
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
  stamps=await extractStamps();buildInstances();
- if(!stamps.length){setState('Inga läsbara projektmarkeringar med dörr-ID hittades. Markera ID:t med en PDF-markering eller stämpel så kan Projektflödet matcha det mot dörrkortet.');protocolMap={};updateStats();renderGroups();await renderDrawing();return}
  await buildProtocolMap();
+ await discoverDoorAutomations();
  await recalcAll();
  const codes=[...new Set(stamps.map(s=>s.code))],matched=codes.filter(c=>protocolMap[c]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- setState(stamps.length+' positioner hittade · '+codes.length+' märkningar · '+matched+' av '+codes.length+' protokolltyper matchade'+restored+'.');
+ if(!stamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller DA-positioner hittades i den här PDF-filen.');
+ else setState(stamps.length+' projektpositioner · '+automationItems.length+' dörrautomatiker · '+matched+' matchade dörrkort/protokoll'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
