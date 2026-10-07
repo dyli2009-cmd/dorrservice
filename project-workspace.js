@@ -527,7 +527,7 @@ function parseStructuredAutomationId(value){
   if(!known||!Number(serialNumber))continue;
   const objectNo=parts.slice(0,-2).join('-');
   if(!objectNo)continue;
-  return {fullId:[objectNo,modelCode,serialNumber].join('-'),objectNo,modelCode,model:known[1],serialNumber};
+  return {fullId:[objectNo,modelCode,serialNumber].join('-'),objectNo,modelCode,model:known[1],serialNumber,matchText:raw};
  }
  return null;
 }
@@ -558,6 +558,8 @@ async function discoverDoorAutomations(){
   const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items),structuredOnPage=[];
   rows.forEach((row,rowIndex)=>{
    const parsed=parseStructuredAutomationId(row.text);if(!parsed)return;
+   const remainder=row.text.replace(parsed.matchText,'').replace(/\b(?:DA|DÖRRAUTOMATIK)\b/ig,'').replace(/[^A-ZÅÄÖa-zåäö0-9]+/g,'').trim();
+   if(remainder.length>8)return;
    const matchingItems=row.items.filter(item=>String(item.text||'').match(/\d|-/));
    const rect=rectForTextItems(matchingItems.length?matchingItems:row.items,6);if(!rect)return;
    const identity=parsed.fullId;
