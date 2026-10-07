@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.237">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.238">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -24,6 +24,7 @@
         <button id="pwSavePortable" type="button"><strong>Spara projekt</strong><small>Sparar arbetsstatus tillbaka i samma PDF när datorns webbläsare stödjer det.</small></button>
         <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Välj själv plats och filnamn, till exempel Skrivbord/Desktop.</small></button>
         <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar en kopia av PDF-filen utan nya statusändringar.</small></button>
+        <button id="pwSaveSelfchecks" type="button"><strong>Egenkontroller PDF</strong><small>Välj vilka dörrautomatiker som ska sparas som kundprotokoll.</small></button>
       </div>
     </div>
   </div>
@@ -53,7 +54,6 @@
   <button id="pwFit" type="button">Passa</button>
   <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
   <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
-  <button id="pwSelfcheckExport" type="button" title="Välj och exportera egenkontroller">Egenkontroller PDF</button>
   <div class="pwDrawTools" aria-label="Ritverktyg">
     <div class="pwToolWrap">
       <button id="pwToolMenuButton" type="button" aria-expanded="false">Verktyg ▾</button>
@@ -184,7 +184,7 @@
 <dialog id="pwAutomationDialog" class="pwAutomationDialog">
   <div class="pwAutomationHead">
     <div><span>EGENKONTROLL</span><strong>Dörrautomatik</strong><small id="pwAutomationIdentity">–</small></div>
-    <button id="pwAutomationClose" type="button" aria-label="Stäng">×</button>
+    <div class="pwAutomationHeadActions"><button id="pwAutomationPreview" type="button">Kundmall</button><button id="pwAutomationClose" type="button" aria-label="Stäng">×</button></div>
   </div>
   <div class="pwAutomationBody">
     <details class="pwAutomationMeta" open>
@@ -204,8 +204,23 @@
         <label>Objektnummer<input id="pwProjectFacility"></label>
         <label>Ordernummer / AO<input id="pwProjectOrder"></label>
         <label>Datum<input id="pwProjectDate" type="date"></label>
+        <label>Nästa provning<input id="pwProjectNextDate" type="date"></label>
+
+        <label>Beställare / kund<input id="pwProjectCustomer"></label>
+        <label>Avtalsnummer<input id="pwProjectAgreement"></label>
         <label>Kontaktperson<input id="pwProjectContact"></label>
-        <label>Företag<input id="pwProjectCompany"></label>
+        <label>Telefonnummer<input id="pwProjectPhone" type="tel"></label>
+        <label>Adress<input id="pwProjectAddress"></label>
+        <label>Postnummer<input id="pwProjectPostalCode"></label>
+        <label>Postadress<input id="pwProjectPostalCity"></label>
+
+        <label>Serviceföretag<input id="pwProjectCompany"></label>
+        <label>Kontaktman på objektet<input id="pwProjectCompanyContact"></label>
+        <label>Telefonnummer företag<input id="pwProjectCompanyPhone" type="tel"></label>
+        <label>Företagsadress<input id="pwProjectCompanyAddress"></label>
+        <label>Postnummer företag<input id="pwProjectCompanyPostalCode"></label>
+        <label>Postadress företag<input id="pwProjectCompanyPostalCity"></label>
+
         <label>Utförd av / tekniker<input id="pwProjectTechnician"></label>
         <label>Signatur<input id="pwProjectSignature" placeholder="Namn / initialer"></label>
         <div class="pwProjectLogoField">
@@ -221,6 +236,15 @@
     <div id="pwAutomationChecks" class="pwAutomationChecks"></div>
     <label class="pwAutomationNotes">Allmän anmärkning<textarea id="pwAutomationNotes" rows="3"></textarea></label>
   </div>
+</dialog>
+
+
+<dialog id="pwAutomationPreviewDialog" class="pwAutomationPreviewDialog">
+  <div class="pwAutomationHead">
+    <div><span>KUNDMALL</span><strong>Egenkontroll dörrautomatik</strong><small id="pwAutomationPreviewTitle">–</small></div>
+    <button id="pwAutomationPreviewClose" type="button" aria-label="Stäng">×</button>
+  </div>
+  <div id="pwAutomationPreviewWrap" class="pwAutomationPreviewWrap"><canvas id="pwAutomationPreviewCanvas"></canvas></div>
 </dialog>
 
 <dialog id="pwSelfcheckExportDialog" class="pwSelfcheckExportDialog">
@@ -278,6 +302,6 @@
   <div class="pwItemEditorActions"><button id="pwTimeTypeCancel" type="button">Avbryt</button><button id="pwTimeTypeSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.237"></script>
+<script src="project-workspace.js?v=2.4.238"></script>
 </body>
 </html>
