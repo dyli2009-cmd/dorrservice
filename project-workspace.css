@@ -137,3 +137,99 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwTimeActions{flex-direction:column;align-items:stretch}
  .pwTimeActions button{width:100%}
 }
+
+
+/* 2.4.236: simplified and centered Projektflöde start view. */
+.pwHeader{grid-template-columns:1fr auto 1fr}
+.pwHome{justify-self:start}
+.pwTitle{text-align:center}
+.pwHeaderActions{justify-self:end}
+
+.pwStartMode .pwProjectBar,
+.pwStartMode .pwToolbar,
+.pwStartMode .pwSide,
+.pwStartMode .pwShowPositions,
+.pwStartMode .pwBulkBar{display:none!important}
+.pwStartMode .pwMain{grid-template-columns:1fr}
+.pwStartMode .pwViewer{
+ overflow:hidden;
+ background:
+  radial-gradient(circle at 50% 38%,#f8fbfc 0,#edf3f5 42%,#dce6ea 100%);
+}
+.pwStartMode .pwStage{display:none}
+.pwStartMode .pwEmpty{
+ inset:0;
+ padding:20px;
+ overflow:hidden;
+ isolation:isolate;
+ color:#173746;
+}
+.pwProjectBackdrop{
+ position:absolute;
+ inset:0;
+ z-index:-2;
+ opacity:.82;
+ pointer-events:none;
+}
+.pwProjectBackdrop svg{width:100%;height:100%}
+.pwPlanLines{fill:none;stroke:#6f8792;stroke-width:3;opacity:.18}
+.pwDoorSymbols{fill:none;stroke:#126f9d;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.2}
+.pwProjectMarks{fill:#fff;stroke:#126f9d;stroke-width:3;opacity:.22}
+.pwProjectBackdrop:after{
+ content:"";
+ position:absolute;
+ inset:0;
+ background:
+  linear-gradient(90deg,#fff0 49.8%,#6f87920d 50%,#fff0 50.2%),
+  linear-gradient(#fff0 49.8%,#6f87920d 50%,#fff0 50.2%);
+ background-size:52px 52px;
+}
+.pwEmptyCard{
+ position:relative;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ min-width:min(320px,86vw);
+ padding:34px 38px 32px;
+ border:1px solid #cbd9df;
+ border-radius:20px;
+ background:#ffffffdd;
+ box-shadow:0 20px 55px #17374618;
+ backdrop-filter:blur(8px);
+ -webkit-backdrop-filter:blur(8px);
+}
+.pwEmptyMark{
+ display:grid;
+ place-items:center;
+ width:72px;
+ height:72px;
+ margin-bottom:12px;
+ border-radius:18px;
+ background:#edf5f8;
+ color:#173746;
+ box-shadow:inset 0 0 0 1px #d7e4e9;
+}
+.pwEmptyMark svg{width:46px;height:46px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pwEmptyCard h1{margin:0 0 20px;font-size:25px;letter-spacing:-.45px}
+.pwEmptyCard .pwOpenLarge{
+ min-height:44px;
+ padding:9px 18px;
+ border-radius:10px;
+ font-size:12px;
+ box-shadow:0 8px 20px #126f9d22;
+}
+@media(max-width:820px){
+ .pwHeader{grid-template-columns:1fr auto 1fr}
+ .pwTitle{text-align:center}
+}
+@media(max-width:520px){
+ .pwHeader{grid-template-columns:1fr auto 1fr}
+ .pwHome{font-size:10px}
+ .pwTitle strong{font-size:14px}
+ .pwHeaderActions{min-width:48px}
+ .pwStartMode .pwHeaderActions .pwSaveWrap{visibility:hidden}
+ .pwEmptyCard{min-width:min(290px,88vw);padding:28px 24px 26px;border-radius:17px}
+ .pwEmptyMark{width:64px;height:64px}
+ .pwEmptyCard h1{font-size:22px}
+}
