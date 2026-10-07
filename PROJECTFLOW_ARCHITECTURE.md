@@ -24,6 +24,9 @@ Projektflödet ska:
 - bygga ett separat interaktivt arbetsprotokoll från originalets innehåll
 - ta med ifyllda komponentrader som kontrollpunkter
 - inte göra korta tomma fältnamn till kontrollpunkter
+- Datum, version och administrativa leverans-/montagerader ska inte räknas som kontrollpunkter
+- Rader där värdet är `DT` ska visas som information men inte räknas som vårt montage eller i procenten
+- varje fysisk position får egna tillagda, ändrade eller borttagna arbetskontrollpunkter samt kommentarer utan att original-PDF:en ändras
 - spara avbockning och procent separat per fysisk position
 - återgå till samma ritningssida, zoom och position efter protokollarbete
 
