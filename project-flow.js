@@ -55,11 +55,10 @@
     return embedded?embedded[1]+embedded[2]:'';
   }
   function codeRegex(code){
-    const m=String(code||'').toUpperCase().match(/^([A-ZÅÄÖ]+)(\\d+)([A-Z]?)$/);
+    const m=String(code||'').toUpperCase().match(/^([A-ZÅÄÖ]+)(\d+)([A-Z]?)$/);
     if(!m)return null;
     const gap='[^A-ZÅÄÖ0-9]*';
-    const escapeChar=ch=>ch.replace(/[.*+?^$()|[\\]\\\\]/g,'\\\\$&');
-    const spread=value=>String(value||'').split('').map(escapeChar).join(gap);
+    const spread=value=>String(value||'').split('').join(gap);
     const body=spread(m[1])+gap+spread(m[2])+(m[3]?gap+spread(m[3]):'');
     return new RegExp('(^|[^A-ZÅÄÖ0-9])'+body+'($|[^A-ZÅÄÖ0-9])','i');
   }
