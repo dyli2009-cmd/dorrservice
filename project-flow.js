@@ -691,13 +691,25 @@
     }
   }
 
-  els.drawingFile.addEventListener('change',e=>openDrawing(e.target.files&&e.target.files[0]).catch(err=>{
-    console.error(err);els.state.textContent='Kunde inte öppna ritningen: '+err.message;els.rescan.disabled=false;
-  }));
-  els.protocolFile.addEventListener('change',e=>openProtocolFile(e.target.files&&e.target.files[0]).catch(err=>{
-    console.error(err);
-    els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
-  }));
+  els.drawingFile.addEventListener('click',e=>{ e.currentTarget.value=''; });
+  els.drawingFile.addEventListener('change',e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    openDrawing(file).catch(err=>{
+      console.error(err);
+      els.state.textContent='Kunde inte öppna ritningen: '+err.message;
+      if(els.rescan)els.rescan.disabled=false;
+    });
+  });
+  els.protocolFile.addEventListener('click',e=>{ e.currentTarget.value=''; });
+  els.protocolFile.addEventListener('change',e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    openProtocolFile(file).catch(err=>{
+      console.error(err);
+      els.state.textContent='Kunde inte öppna dörrkorten: '+err.message;
+    });
+  });
   els.prev.addEventListener('click',()=>renderPage(currentPage-1));
   els.next.addEventListener('click',()=>renderPage(currentPage+1));
   els.zoomOut.addEventListener('click',()=>zoomTo((drawingZoomQueued?drawingZoomQueued.nextScale:scale)-.18));
