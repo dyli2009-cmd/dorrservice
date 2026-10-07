@@ -68,9 +68,12 @@ Kontrollflödets lås ska respekteras.
 - Dörrautomatik skapas endast när Projektflödet kan läsa en strukturerad märkning som består av objektnummer + känd automatkod + löpnummer/antal, exempelvis `7-0-54-28-24-2`.
 - Texten `DA`/`DH` används inte längre som positionsankare eller fallback för egenkontrollen. Om den strukturerade märkningen inte kan läsas skapas ingen automatikposition hellre än att den placeras fel.
 - Klickytans PDF-rektangel byggs endast från de textobjekt som tillsammans bildar den strukturerade märkningen. GS-markeringar påverkar varken upptäckt, koordinater eller klickyta.
-- Projektflödet har en fristående kopia av den befintliga `Egenkontroll dörrautomatik`-definitionen och får inte läsa eller importera Kontrollflödets runtime-kod.
+- Projektflödet har en fristående kopia av den befintliga `Checklista revision dörrautomatik`-definitionen och får inte läsa eller importera Kontrollflödets runtime-kod.
 - Kontrollflödets källfiler används endast som referens när kopian skapas; de skyddade filerna ändras inte.
-- Kopian innehåller samma sex kontrollpunkter och samma listade dörrautomatikmodeller (kod 11–48) som befintlig Egenkontroll dörrautomatik.
+- När användaren i Projektflödet säger `egenkontroll` avses denna revisionschecklista.
+- Kopian innehåller exakt samma 18 grundkontrollpunkter (1.1–1.18), samma färdiga anmärkningstexter och samma listade dörrautomatikmodeller (kod 11–48) som `Checklista revision dörrautomatik` i Kontrollflödet.
+- Kontrollpunkterna använder samma val som originalet: `Ingår ej`, `Klart utan anmärkning`, `Klart med anmärkning`; vid anmärkning finns originalets färdiga felval samt `Beskriv själv`.
+- Kundmall och exporterad PDF heter `CHECKLISTA REVISION DÖRRAUTOMATIK` och radhöjden anpassas för att samtliga 18 kontrollpunkter ska rymmas på protokollsidan.
 - Projektflödet söker i första hand efter den strukturerade automatikmärkningen på ritningen. Exempel: `7-0-54-28-24-2` tolkas som objektdel `7-0-54-28`, automatkod `24` och löpnummer `2`. Automatkod måste finnas i Projektflödets kopierade automatlista.
 - När en strukturerad märkning hittas byggs klickytans rektangel från exakt de PDF-textobjekt som tillsammans bildar märkningen, inte från hela textraden eller DA-positionen. Marginalen hålls liten så klickytan följer objektnummer + automatkod + löpnummer visuellt. En liten `EK`-indikering visar att egenkontroll finns. Texten `DA` används endast som reservsignal när strukturerad märkning inte kan hittas.
 - Strukturerade ID:n accepteras bara på rader som i huvudsak består av själva märkningen/DA, så att motsvarande ID inne på protokollsidor inte felaktigt skapar nya ritningspositioner.
