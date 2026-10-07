@@ -30,7 +30,8 @@
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
-  let drawingZoomBusy=false,drawingZoomQueued=null;\n  let panMode=true;
+  let drawingZoomBusy=false,drawingZoomQueued=null;
+  let panMode=true;
 
   function hashText(text){
     let h=2166136261;
