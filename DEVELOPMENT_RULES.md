@@ -28,6 +28,21 @@ Regler:
 - Gemensam kod får bara användas om den är tydligt avgränsad och inte ändrar beteendet i Kontrollflöde.
 - Om en ändring i gemensam kod riskerar att påverka Projektflöde eller Kontrollflöde ska det sägas innan ändringen görs.
 
+## 2A. Projektflöde – strikt isolering
+
+Projektflöde ska behandlas som ett **eget system** och utvecklas så separat som möjligt från Kontrollflöde.
+
+Regler:
+- när användaren pratar om Projektflöde ska arbetet avgränsas till Projektflöde
+- återanvänd inte Kontrollflödets UI, navigation, protokoll- eller arbetslogik bara för att det är enklare
+- skapa egen HTML, CSS, JavaScript, state/lagring, PDF-logik och projektlogik där det är praktiskt möjligt
+- ändringar i Projektflöde får inte kräva ändringar i Kontrollflöde
+- gemensamma hjälpfunktioner får bara användas om de är neutrala och inte skapar beroende mellan systemen
+- Projektflöde får ha egna idéer, egna arbetssteg, egna verktyg och egen UX
+- Kontrollflödets lås gäller fortfarande och får inte kringgås genom ändringar i Projektflöde
+
+När Projektflöde diskuteras ska fokus ligga på Projektflöde och inga ändringar göras i Kontrollflöde om användaren inte uttryckligen först låser upp Kontrollflödet.
+
 ## 3. Kontrollflöde
 Kontrollflöde är den gemensamma arbetsytan för kontroll/protokoll.
 
