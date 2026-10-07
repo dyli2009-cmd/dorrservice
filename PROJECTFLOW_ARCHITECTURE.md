@@ -64,6 +64,10 @@ Kontrollflödets lås ska respekteras.
 - samma normaliserade ID används för position, räkning, klickyta och matchning mot dörrkort/protokoll i samma PDF
 
 ## Egenkontroll dörrautomatik i Projektflödet
+- **Positionering är helt separerad från GS-systemet.** GS1/GS2 och övriga projektstämplar fortsätter använda `instances` + `pwMarkers`. Dörrautomatik använder `automationItems` + ett eget `pwAutomationMarkers`-lager och får aldrig ärva koordinater från GS-positioner.
+- Dörrautomatik skapas endast när Projektflödet kan läsa en strukturerad märkning som består av objektnummer + känd automatkod + löpnummer/antal, exempelvis `7-0-54-28-24-2`.
+- Texten `DA`/`DH` används inte längre som positionsankare eller fallback för egenkontrollen. Om den strukturerade märkningen inte kan läsas skapas ingen automatikposition hellre än att den placeras fel.
+- Klickytans PDF-rektangel byggs endast från de textobjekt som tillsammans bildar den strukturerade märkningen. GS-markeringar påverkar varken upptäckt, koordinater eller klickyta.
 - Projektflödet har en fristående kopia av den befintliga `Egenkontroll dörrautomatik`-definitionen och får inte läsa eller importera Kontrollflödets runtime-kod.
 - Kontrollflödets källfiler används endast som referens när kopian skapas; de skyddade filerna ändras inte.
 - Kopian innehåller samma sex kontrollpunkter och samma listade dörrautomatikmodeller (kod 11–48) som befintlig Egenkontroll dörrautomatik.
