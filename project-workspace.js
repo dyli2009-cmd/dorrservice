@@ -673,7 +673,7 @@ function renderAutomationChecks(o){
   const choices=document.createElement('div');choices.className='pwAutomationChoices';
   [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']].forEach(([value,label])=>{
    const b=document.createElement('button');b.type='button';b.dataset.v=value;b.textContent=label;b.classList.toggle('active',check.result===value);
-   b.onclick=()=>{check.result=check.result===value?'':value;if(value!=='remark'&&check.result!=='remark')check.note='';o.progress=automationProgressOf(o);save();renderAutomationProtocol(o);renderMarkers();renderGroups()};
+   b.onclick=()=>{check.result=check.result===value?'':value;if(value!=='remark'&&check.result!=='remark')check.note='';o.progress=automationProgressOf(o);save();renderAutomationProtocol(o);renderAutomationMarkers();renderGroups()};
    choices.appendChild(b);
   });
   row.append(head,choices);
@@ -2045,13 +2045,13 @@ el.automationModel.onchange=()=>{
   const known=PROJECT_AUTOMATION_MODELS.find(([code])=>code===el.automationModel.value);
   if(known){o.modelCode=known[0];o.model=known[1]}else{o.modelCode='';o.model=''}
  }
- save();renderAutomationProtocol(o);renderGroups();renderMarkers();
+ save();renderAutomationProtocol(o);renderGroups();renderAutomationMarkers();
 };
-el.automationSerial.onchange=()=>{const o=selectedAutomation();if(!o)return;o.serialNumber=el.automationSerial.value.trim();save();renderAutomationProtocol(o);renderGroups();renderMarkers()};
+el.automationSerial.onchange=()=>{const o=selectedAutomation();if(!o)return;o.serialNumber=el.automationSerial.value.trim();save();renderAutomationProtocol(o);renderGroups();renderAutomationMarkers()};
 el.automationId.oninput=()=>{const o=selectedAutomation();if(!o)return;o.objectNo=el.automationId.value.trim();save();el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');renderGroups()};
 el.automationLocation.oninput=()=>{const o=selectedAutomation();if(!o)return;o.location=el.automationLocation.value;save()};
 el.automationNotes.oninput=()=>{const o=selectedAutomation();if(!o)return;o.notes=el.automationNotes.value;save()};
-el.automationApproveAll.onclick=()=>{const o=selectedAutomation();if(!o)return;PROJECT_AUTOMATION_CHECKS.forEach(([id])=>o.checks[id]={...(o.checks[id]||{}),result:'ok',note:''});o.progress=100;save();renderAutomationProtocol(o);renderMarkers();renderGroups()};
+el.automationApproveAll.onclick=()=>{const o=selectedAutomation();if(!o)return;PROJECT_AUTOMATION_CHECKS.forEach(([id])=>o.checks[id]={...(o.checks[id]||{}),result:'ok',note:''});o.progress=100;save();renderAutomationProtocol(o);renderAutomationMarkers();renderGroups()};
 
 [
  [el.projectName,'projectName'],[el.projectFacility,'facilityNo'],[el.projectOrder,'order'],[el.projectDate,'date'],[el.projectNextDate,'nextDate'],
