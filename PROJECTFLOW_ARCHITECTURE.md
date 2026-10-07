@@ -84,9 +84,12 @@ Kontrollflödets lås ska respekteras.
 ## Positioner och sparande
 - Positioner-panelen ska kunna döljas helt och öppnas igen via en liten `Positioner`-knapp så ritningen får maximal arbetsyta
 - valet att dölja panelen får kommas ihåg lokalt på enheten
-- huvudknappen heter `Spara` och öppnar en Spara-meny i stället för att alltid göra samma export
-- Spara-menyn erbjuder: Projekt-PDF med aktuell arbetsstatus, PDF-kopia av hela filen utan nya inbäddade statusändringar, samt aktuell ritningssida som separat PDF
-- på iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination; på webben används nedladdning som reserv
+- huvudknappen heter `Spara` och öppnar en Spara-meny.
+- `Aktuell ritningssida` finns inte längre som separat export i Projektflödet.
+- På dator med stöd för File System Access API öppnas projekt-PDF via systemets filväljare och filhandtaget behålls, så `Spara projekt` kan skriva arbetsstatus tillbaka till samma PDF-fil.
+- `Spara som…` öppnar datorns riktiga filväljare så användaren kan välja exempelvis Skrivbord/Desktop och valfritt filnamn; den valda filen blir därefter den aktuella projektfilen för fortsatt `Spara projekt`.
+- `PDF-kopia` sparar en oförändrad kopia och byter inte aktuell projektfil.
+- I webbläsare utan stöd för systemets filskrivning används vanlig nedladdning som reserv. På iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination.
 
 ## Ritningsanteckningar
 - Ritverktygen ligger samlade under en kompakt `Verktyg`-meny med `Text`, `Text + pil`, `Pil`, `Bild` och `Ta bort markerad`; `Ångra` och `Gör om` ligger direkt bredvid.
