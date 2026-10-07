@@ -72,12 +72,14 @@ Kontrollflödets lås ska respekteras.
 - samma viewport-transform ska användas när en position väljs från listan och centreras på ritningen
 - alla hittade positioner visas med en diskret färgad overlay så det går att kontrollera visuellt var systemet har positionerat dem; ingen extra ID-etikett läggs ovanpå ritningens egen GS-text
 
-## Ritning – datornavigation
+## Ritning – navigation
 - mushjulet zoomar ritningen in/ut kring muspekaren
 - zoomförhandsvisning sker direkt och högupplöst PDF-rendering görs efter en kort paus för snabb känsla på stora ritningar
-- `✋ Hand` växlar till handverktyg; vänsterklick + dra panorerar ritningen
-- mittenknappen på musen kan panorera även utan att Hand är aktiverad
-- klick på GS-markeringar ska fortfarande öppna positionen och inte fångas av handverktyget
+- Hand-knappen visas inte längre; på dator kan vänsterklick + dra på tom ritningsyta panorera och mittenknappen fungerar också
+- på telefon och iPad kan ritningen nypzoomas med två fingrar
+- en-fingersdrag panorerar när ritningen är horisontellt inzoomad; när den inte är horisontellt inzoomad används horisontell swipe för sidbyte
+- enligt önskat flöde går swipe åt höger till nästa PDF-sida och swipe åt vänster till föregående
+- klick på GS-markeringar ska fortfarande öppna positionen
 
 ## Positioner och sparande
 - Positioner-panelen ska kunna döljas helt och öppnas igen via en liten `Positioner`-knapp så ritningen får maximal arbetsyta
@@ -85,3 +87,8 @@ Kontrollflödets lås ska respekteras.
 - huvudknappen heter `Spara` och öppnar en Spara-meny i stället för att alltid göra samma export
 - Spara-menyn erbjuder: Projekt-PDF med aktuell arbetsstatus, PDF-kopia av hela filen utan nya inbäddade statusändringar, samt aktuell ritningssida som separat PDF
 - på iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination; på webben används nedladdning som reserv
+
+## Ritningsanteckningar
+- Projektflödet har enkla verktyg för `Text`, `Pil` och `Ångra` på ritningen.
+- Text och pilar sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
+- Text och pilar är i denna version inte plattade som synliga objekt i en vanlig kund-PDF eller i `Aktuell ritningssida`; kundexport/klart-markering lämnas till senare beslut.
