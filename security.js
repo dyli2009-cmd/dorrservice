@@ -884,7 +884,8 @@ function syncSecurityOverviewCard(card,badge,o){
 }
 function showOverview(){
  const list=$('secOverviewList');if(!list)return;list.replaceChildren();setSecurityOverviewSummary();
- const filter=$('secOverviewFilter')?.value||'all',query=($('secOverviewSearch')?.value||'').trim().toLocaleLowerCase('sv');
+ const filter=$('secOverviewFilter')?.value||'summary',query=($('secOverviewSearch')?.value||'').trim().toLocaleLowerCase('sv');
+ if(filter==='summary'&&!query)return;
  const visible=visibleItems().filter(o=>{
   const st=statusOf(o);
   if(filter==='problems'&&!hasSecurityProblem(o))return false;
@@ -925,7 +926,7 @@ function showOverview(){
 $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=showOverview;
 function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
 function navigateSecurity(view){closeSecurityOverview();go(view)}
-$('secNavOverview').onclick=()=>{showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
+$('secNavOverview').onclick=()=>{const filter=$('secOverviewFilter'),search=$('secOverviewSearch');if(filter)filter.value='summary';if(search)search.value='';showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
 const secCloseOverview=$('secCloseOverview');if(secCloseOverview)secCloseOverview.onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
 $('secNavDrawing').onclick=()=>navigateSecurity('drawing');
 $('secNavProtocol').onclick=()=>navigateSecurity('protocol');
