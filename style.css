@@ -1764,3 +1764,54 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
     margin-top:2px;
   }
 }
+
+
+/* 2.4.168: responsive home art on tablets + CCTV cue. */
+.homeCctvCue{
+  position:absolute;
+  z-index:1;
+  left:6%;
+  top:10%;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 7px;
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;
+  background:rgba(9,28,40,.22);
+  color:rgba(241,249,252,.66);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  pointer-events:none;
+  font-size:8px;
+  font-weight:750;
+  letter-spacing:.08em;
+}
+.homeCctvCue svg{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+@media(min-width:621px) and (max-width:1180px){
+  .appHome{
+    background-size:cover,contain!important;
+    background-position:center center,center center!important;
+    background-color:#173746!important;
+  }
+  .homeCctvCue{
+    left:8%;
+    top:8%;
+  }
+}
+@media(max-width:620px){
+  .homeCctvCue{
+    left:10px;
+    top:max(14px,env(safe-area-inset-top));
+    padding:4px 6px;
+    font-size:7.5px;
+  }
+}
