@@ -70,7 +70,7 @@ Kontrollflödets lås ska respekteras.
 - stämpelns PDF-annoteringsrektangel ska mappas genom PDF.js viewport (`convertToViewportRectangle`) i stället för egen x/y-formel
 - detta ska ta hänsyn till sidrotation, CropBox/viewBox och PDF-koordinatsystem så klickytan ligger exakt över den gula stämpeln
 - samma viewport-transform ska användas när en position väljs från listan och centreras på ritningen
-- alla hittade positioner visas med en diskret färgad overlay och ID-etikett så det går att kontrollera visuellt var systemet har positionerat dem
+- alla hittade positioner visas med en diskret färgad overlay så det går att kontrollera visuellt var systemet har positionerat dem; ingen extra ID-etikett läggs ovanpå ritningens egen GS-text
 
 ## Ritning – datornavigation
 - mushjulet zoomar ritningen in/ut kring muspekaren
