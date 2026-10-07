@@ -1,3 +1,10 @@
+/* LOCKED CORE BEHAVIOR — DO NOT REMOVE OR CHANGE WITHOUT EXPLICIT USER REQUEST.
+   Door Automation legacy Service DA import contract:
+   1) Bluebeam P/GoTo link selects the correct inspection protocol/checklist.
+   2) The associated FreeTextCallout arrow TIP supplies the new automation marker x/y position.
+   3) The callout text box supplies label position/text when available.
+   4) Never fall back to the P-button center when a valid associated callout arrow exists.
+   This behavior must remain intact through UI/refactors/version changes. */
 /* Core legacy Door Automation PDF importer.
    REGRESSION CONTRACT: Service DA P/GoTo link chooses the inspection protocol.
    A nearby FreeTextCallout arrow tip chooses the exact drawing position; its text keeps the label position.
