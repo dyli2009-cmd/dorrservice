@@ -71,6 +71,20 @@ Om Säkerhetsservice ändras:
 
 Det får även finnas ett övergripande app-/buildnummer för teknisk distribution, men det ska inte ersätta modulernas egna versionsnummer.
 
+## 4A. Aktuella synliga versionsserier
+
+Det här är de synliga modulversionerna från och med versionsuppdelningen:
+
+- Tillsyno: v2.0
+- Kontrollflöde: v1.0
+- Dörrautomatik: v1.0
+- Säkerhetsservice: v1.0
+- Brand: v1.0
+- Projektflöde: v1.0
+- Ritningsverktyg: v1.0
+
+Tekniska cache-/buildnummer som 2.4.xxx får finnas kvar internt i filnamn, query strings och byggsystem, men ska inte användas som modulernas synliga versionsnummer.
+
 ## 5. Stabil funktion ska inte ändras i onödan
 När en del är godkänd och fungerar ska den betraktas som stabil.
 
