@@ -53,13 +53,13 @@ En ändring i den gemensamma funktionen ska kontrolleras mot alla berörda proto
 
 Tillsyno ska ha **en enda synlig versionsserie** för hela appen.
 
-Aktuell version: **v2.4.211**
+Aktuell version: **v2.4.212**
 
 Regler:
 - Samma appversion gäller Kontrollflöde, Dörrautomatik, Säkerhetsservice, Brand, Projektflöde och Ritningsverktyg.
 - Visa inte separata versionsnummer för enskilda moduler.
 - Varje användarsynlig uppdatering ska höja Tillsyno-versionen med ett steg.
-- Exempel: v2.4.211 → v2.4.212 → v2.4.213.
+- Exempel: v2.4.212 → v2.4.213 → v2.4.214.
 - Versionsnumret ska visas på Home så att det är enkelt att kontrollera vilken uppdatering som körs.
 - Tekniskt buildnummer för TestFlight får finnas separat, men den synliga versionsbeteckningen ska följa Tillsyno-versionen.
 - När en ny version görs ska webb och iOS speglas till samma Tillsyno-version.
