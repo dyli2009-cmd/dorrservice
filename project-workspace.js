@@ -448,7 +448,7 @@ function ensureArrowMarker(svg){
  path.setAttribute('d','M 0 0 L 10 5 L 0 10 z');path.setAttribute('fill','#173746');
  marker.appendChild(path);defs.appendChild(marker);svg.appendChild(defs);
 }
-function cloneDrawingNotes(list=drawingNotes){return list.map(n=>({...n}))}
+function cloneDrawingNotes(list=drawingNotes){return list.map(n=>({...n,rect:Array.isArray(n.rect)?[...n.rect]:n.rect}))}
 function rememberDrawingState(snapshot=cloneDrawingNotes()){
  drawingUndoStack.push(snapshot);
  if(drawingUndoStack.length>60)drawingUndoStack.shift();
@@ -458,6 +458,7 @@ function rememberDrawingState(snapshot=cloneDrawingNotes()){
 function updateDrawingHistoryButtons(){
  if(el.toolUndo)el.toolUndo.disabled=!drawingUndoStack.length&&!drawingNotes.some(n=>Number(n.page)===page);
  if(el.toolRedo)el.toolRedo.disabled=!drawingRedoStack.length;
+ if(el.toolDelete)el.toolDelete.disabled=!selectedDrawingNoteId||!noteById(selectedDrawingNoteId);
 }
 function noteById(id){return drawingNotes.find(n=>n.id===id)||null}
 function addNoteHitAttributes(node,noteId,part){
@@ -486,6 +487,15 @@ function appendCalloutNote(svg,viewport,n){
  const textHit=svgNode('text');textHit.setAttribute('x',label[0]+9);textHit.setAttribute('y',label[1]-9);textHit.setAttribute('class','pwNoteTextHit');textHit.textContent=String(n.text||'');addNoteHitAttributes(textHit,n.id,'label');svg.appendChild(textHit);
  if(n.id===selectedDrawingNoteId){appendNoteHandle(svg,target[0],target[1],n.id,'target');appendNoteHandle(svg,label[0],label[1],n.id,'label')}
 }
+function appendImageNote(svg,viewport,n){
+ if(!Array.isArray(n.rect)||n.rect.length<4||!n.dataUrl)return;
+ const r=viewportRect(viewport,n.rect);
+ const image=svgNode('image');image.setAttribute('x',r.left);image.setAttribute('y',r.top);image.setAttribute('width',Math.max(10,r.width));image.setAttribute('height',Math.max(10,r.height));image.setAttribute('href',n.dataUrl);image.setAttribute('preserveAspectRatio','xMidYMid meet');image.setAttribute('class','pwNoteImage'+(n.id===selectedDrawingNoteId?' selected':''));addNoteHitAttributes(image,n.id,'whole');svg.appendChild(image);
+ if(n.id===selectedDrawingNoteId){
+  const frame=svgNode('rect');frame.setAttribute('x',r.left);frame.setAttribute('y',r.top);frame.setAttribute('width',Math.max(10,r.width));frame.setAttribute('height',Math.max(10,r.height));frame.setAttribute('class','pwNoteImageFrame');svg.appendChild(frame);
+  appendNoteHandle(svg,r.left+r.width,r.top+r.height,n.id,'resize');
+ }
+}
 function renderDrawingNotes(viewport){
  drawingViewport=viewport;
  const svg=el.drawingNotes;svg.replaceChildren();
@@ -497,8 +507,13 @@ function renderDrawingNotes(viewport){
   if(n.type==='text')appendTextNote(svg,viewport,n);
   else if(n.type==='arrow')appendArrowNote(svg,viewport,n);
   else if(n.type==='callout')appendCalloutNote(svg,viewport,n);
+  else if(n.type==='image')appendImageNote(svg,viewport,n);
  });
  updateDrawingHistoryButtons();
+}
+function closeToolMenu(){el.toolMenu.hidden=true;el.toolMenuButton.setAttribute('aria-expanded','false')}
+function toggleToolMenu(){
+ const open=el.toolMenu.hidden;el.toolMenu.hidden=!open;el.toolMenuButton.setAttribute('aria-expanded',String(open));
 }
 function setDrawingTool(tool){
  if(tool&&bulkSelectMode)setBulkSelectMode(false);
@@ -506,7 +521,9 @@ function setDrawingTool(tool){
  el.toolText.setAttribute('aria-pressed',String(drawingTool==='text'));
  el.toolCallout.setAttribute('aria-pressed',String(drawingTool==='callout'));
  el.toolArrow.setAttribute('aria-pressed',String(drawingTool==='arrow'));
+ el.toolMenuButton.classList.toggle('active',!!drawingTool);
  el.viewer.classList.toggle('noteMode',!!drawingTool);
+ closeToolMenu();
 }
 function stagePoint(clientX,clientY){
  const r=el.stage.getBoundingClientRect();
@@ -539,11 +556,59 @@ async function finishCalloutNote(target,label){
  const note={id:'n'+Date.now().toString(36),type:'callout',page,x1:a[0],y1:a[1],x2:b[0],y2:b[1],text:value.trim()};
  drawingNotes.push(note);selectedDrawingNoteId=note.id;save();renderDrawingNotes(vp);
 }
+function readImageFileCompressed(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onerror=()=>reject(reader.error||new Error('Bilden kunde inte läsas.'));
+  reader.onload=()=>{
+   const img=new Image();
+   img.onerror=()=>reject(new Error('Bilden kunde inte öppnas.'));
+   img.onload=()=>{
+    const max=1200,ratio=Math.min(1,max/Math.max(img.naturalWidth||1,img.naturalHeight||1)),w=Math.max(1,Math.round(img.naturalWidth*ratio)),h=Math.max(1,Math.round(img.naturalHeight*ratio));
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const c=canvas.getContext('2d');c.drawImage(img,0,0,w,h);
+    let dataUrl;try{dataUrl=canvas.toDataURL('image/jpeg',.8)}catch(_){dataUrl=String(reader.result||'')}
+    resolve({dataUrl,width:w,height:h,name:file.name||'Bild'});
+   };
+   img.src=String(reader.result||'');
+  };
+  reader.readAsDataURL(file);
+ });
+}
+async function addImageNote(point){
+ if(!pdf||!pendingImage)return;
+ const pg=await pdf.getPage(page),vp=pg.getViewport({scale});
+ const ratio=Math.max(.25,Math.min(4,pendingImage.width/Math.max(1,pendingImage.height)));
+ let w=Math.min(220,Math.max(110,vp.width*.22)),h=w/ratio;
+ if(h>180){h=180;w=h*ratio}
+ const left=Math.max(0,Math.min(vp.width-w,point.x-w/2)),top=Math.max(0,Math.min(vp.height-h,point.y-h/2));
+ const a=vp.convertToPdfPoint(left,top),b=vp.convertToPdfPoint(left+w,top+h);
+ rememberDrawingState();
+ const note={id:'n'+Date.now().toString(36),type:'image',page,rect:[a[0],a[1],b[0],b[1]],dataUrl:pendingImage.dataUrl,name:pendingImage.name||'Bild'};
+ drawingNotes.push(note);selectedDrawingNoteId=note.id;pendingImage=null;drawingTool='';save();renderDrawingNotes(vp);setDrawingTool('');
+ setState('Bild tillagd. Markera bilden för att flytta, ändra storlek eller ta bort den.');
+}
+async function chooseDrawingImage(file){
+ if(!file)return;
+ try{
+  setState('Förbereder bild…');pendingImage=await readImageFileCompressed(file);drawingTool='image';el.toolMenuButton.classList.add('active');el.viewer.classList.add('noteMode');closeToolMenu();
+  setState('Bilden är vald. Tryck på ritningen där du vill placera den.');
+ }catch(err){console.error(err);pendingImage=null;setDrawingTool('');setState('Bilden kunde inte läggas till: '+(err?.message||err))}
+}
+function deleteSelectedDrawingNote(){
+ if(!selectedDrawingNoteId)return;
+ const index=drawingNotes.findIndex(n=>n.id===selectedDrawingNoteId);if(index<0)return;
+ rememberDrawingState();drawingNotes.splice(index,1);selectedDrawingNoteId='';save();closeToolMenu();
+ if(drawingViewport)renderDrawingNotes(drawingViewport);
+}
 function beginDrawingTool(e){
  if(!drawingTool||!pdf||e.pointerType==='mouse'&&e.button!==0)return false;
  if(!el.stage.contains(e.target)||e.target.closest?.('.pwToolbar,.pwSide,.pwShowPositions'))return false;
  e.preventDefault();e.stopPropagation();
  const point=stagePoint(e.clientX,e.clientY);
+ if(drawingTool==='image'){
+  addImageNote(point);return true;
+ }
  if(drawingTool==='text'){
   drawingToolGesture={pointerId:e.pointerId,type:'text',start:point};
  }else{
@@ -590,7 +655,7 @@ function beginNoteDrag(e){
  e.preventDefault();e.stopPropagation();
  selectedDrawingNoteId=note.id;
  const point=stagePoint(e.clientX,e.clientY),pdfPoint=drawingViewport.convertToPdfPoint(point.x,point.y);
- drawingNoteDrag={pointerId:e.pointerId,id:note.id,part:hit.dataset.notePart||'whole',startPoint:point,startPdf:pdfPoint,beforeNote:{...note},beforeNotes:cloneDrawingNotes(),moved:false};
+ drawingNoteDrag={pointerId:e.pointerId,id:note.id,part:hit.dataset.notePart||'whole',startPoint:point,startPdf:pdfPoint,beforeNote:{...note,rect:Array.isArray(note.rect)?[...note.rect]:note.rect},beforeNotes:cloneDrawingNotes(),moved:false};
  renderDrawingNotes(drawingViewport);
  try{el.viewer.setPointerCapture(e.pointerId)}catch(_){}
  return true;
@@ -606,6 +671,12 @@ function moveNoteFromDrag(g,currentPoint){
  }else if(note.type==='callout'){
   if(moveBoth||g.part==='target'){note.x1=Number(b.x1)+dx;note.y1=Number(b.y1)+dy}
   if(moveBoth||g.part==='label'){note.x2=Number(b.x2)+dx;note.y2=Number(b.y2)+dy}
+ }else if(note.type==='image'&&Array.isArray(b.rect)){
+  if(g.part==='resize'){
+   note.rect=[b.rect[0],b.rect[1],pdfPoint[0],pdfPoint[1]];
+  }else{
+   note.rect=[Number(b.rect[0])+dx,Number(b.rect[1])+dy,Number(b.rect[2])+dx,Number(b.rect[3])+dy];
+  }
  }
 }
 function moveNoteDrag(e){
@@ -1330,7 +1401,7 @@ async function fitDrawing(){
 async function analyze(file){
  setState('Läser projekt-PDF…');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('pf-'+fileKey));
- pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
+ pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];pendingImage=null;bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser gula PDF-stämplar och deras positioner…');
