@@ -3,7 +3,7 @@
 
 const $=id=>document.getElementById(id);
 const el={
- file:$('pwFile'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
+ file:$('pwFile'),saveProject:$('pwSaveProject'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
  prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
@@ -18,21 +18,85 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
 const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
-let pdf=null,bytes=null,fileKey='',page=1,scale=1.1,renderTask=null;
+let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',embeddedState={},page=1,scale=1.1,renderTask=null;
 let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
 let selectedId=null,protocolScale=1,protocolRenderTask=null,currentOnly=false,restoreView=null,editingItem=null;
 
 function setState(text){el.state.textContent=text}
 function hashBytes(arr){let h=2166136261;const step=Math.max(1,Math.floor(arr.length/50000));for(let i=0;i<arr.length;i+=step){h^=arr[i];h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
-function storageKey(){return 'tillsyno-project-workspace-v1:'+fileKey}
-function loadSaved(){try{return JSON.parse(localStorage.getItem(storageKey())||'{}')}catch(_){return {}}}
-function save(){
- if(!fileKey)return;
- const payload={version:2,updatedAt:new Date().toISOString(),instances:{}};
+function storageKey(){return 'tillsyno-project-workspace-v2:'+(projectId||fileKey)}
+function stateTime(s){const t=Date.parse(String(s?.updatedAt||''));return Number.isFinite(t)?t:0}
+function makeProjectPayload(){
+ const payload={schema:3,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
   checks:o.checks||{},progress:o.progress||0,overrides:o.overrides||{},customItems:o.customItems||[]
  });
+ return payload;
+}
+function loadSaved(){
+ let local={};try{local=JSON.parse(localStorage.getItem(storageKey())||'{}')}catch(_){}
+ const embedded=embeddedState&&embeddedState.instances?embeddedState:{};
+ if(!local.instances)return embedded;
+ if(!embedded.instances)return local;
+ return stateTime(embedded)>stateTime(local)?embedded:local;
+}
+function save(){
+ if(!fileKey)return;
+ const payload=makeProjectPayload();
  try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
+ return payload;
+}
+async function readEmbeddedProjectState(){
+ try{
+  const {PDFDocument,PDFName}=PDFLib;
+  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+  const raw=doc.catalog.get(PDFName.of('TillsynoProjectData'));
+  if(!raw)return {};
+  const json=decodePdfText(raw);
+  const parsed=JSON.parse(json);
+  return parsed&&typeof parsed==='object'?parsed:{};
+ }catch(err){
+  console.warn('Kunde inte läsa inbäddad projektstatus',err);
+  return {};
+ }
+}
+async function buildPortableProjectPdf(){
+ const {PDFDocument,PDFName,PDFHexString,PDFString}=PDFLib;
+ const payload=makeProjectPayload();
+ const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+ doc.catalog.set(PDFName.of('TillsynoProjectData'),PDFHexString.fromText(JSON.stringify(payload)));
+ doc.catalog.set(PDFName.of('TillsynoProjectSchema'),PDFString.of('3'));
+ const saved=await doc.save({useObjectStreams:false});
+ embeddedState=payload;
+ bytes=new Uint8Array(saved);
+ try{localStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
+ return bytes;
+}
+function downloadProjectFile(file){
+ const url=URL.createObjectURL(file),a=document.createElement('a');
+ a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+async function savePortableProject(){
+ if(!bytes||!instances.length)return;
+ el.saveProject.disabled=true;setState('Sparar projektstatus i PDF-filen…');
+ try{
+  const savedBytes=await buildPortableProjectPdf();
+  const file=new File([savedBytes],currentFileName||'Tillsyno-projekt.pdf',{type:'application/pdf'});
+  let shared=false;
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+   try{
+    await navigator.share({title:'Tillsyno Projektflöde',text:'Projektfil med sparad arbetsstatus',files:[file]});
+    shared=true;
+   }catch(err){
+    if(err?.name==='AbortError'){setState('Sparandet avbröts. Projektstatusen finns kvar på den här enheten.');return}
+   }
+  }
+  if(!shared)downloadProjectFile(file);
+  setState('Projektfilen innehåller nu avbockningar, kommentarer och procent. Spara den i Files eller valfri molnmapp och öppna samma PDF i Projektflödet nästa gång.');
+ }catch(err){
+  console.error(err);setState('Projektet kunde inte sparas i PDF-filen: '+(err?.message||err));
+ }finally{el.saveProject.disabled=false}
 }
 function decodePdfText(obj){
  try{
@@ -369,18 +433,23 @@ async function fitDrawing(){
  scale=Math.max(.25,Math.min(2.5,(el.viewer.clientWidth-12)/vp.width,(el.viewer.clientHeight-12)/vp.height));await renderDrawing();
 }
 async function analyze(file){
- setState('Läser projekt-PDF…');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);
+ setState('Läser projekt-PDF…');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
+ embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('pf-'+fileKey));
  pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};
- el.fileName.textContent=file.name;el.empty.hidden=true;el.rescan.hidden=false;
- setState('Läser gula PDF-stämplar och deras positioner…');stamps=await extractStamps();buildInstances();
+ el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
+ const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
+ setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser gula PDF-stämplar och deras positioner…');
+ stamps=await extractStamps();buildInstances();
  if(!stamps.length){setState('Inga läsbara PDF-stämplar hittades. Projektflödet använder riktiga Stamp-annoteringar, inte vanlig ritningstext.');protocolMap={};updateStats();renderGroups();await renderDrawing();return}
  await buildProtocolMap();
  await recalcAll();
  const codes=[...new Set(stamps.map(s=>s.code))],matched=codes.filter(c=>protocolMap[c]).length;
- setState(stamps.length+' positioner hittade · '+codes.length+' märkningar · '+matched+' av '+codes.length+' protokolltyper matchade.');
+ const restored=restoredCount?' · sparad arbetsstatus inläst':'';
+ setState(stamps.length+' positioner hittade · '+codes.length+' märkningar · '+matched+' av '+codes.length+' protokolltyper matchade'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file)analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})};
+el.saveProject.onclick=savePortableProject;
 el.prev.onclick=async()=>{if(pdf&&page>1){page--;await renderDrawing();renderGroups()}};
 el.next.onclick=async()=>{if(pdf&&page<pdf.numPages){page++;await renderDrawing();renderGroups()}};
 el.zoomOut.onclick=async()=>{if(pdf){scale=Math.max(.3,scale-.12);await renderDrawing()}};
