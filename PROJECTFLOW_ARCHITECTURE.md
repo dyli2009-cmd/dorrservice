@@ -89,18 +89,21 @@ Kontrollflödets lås ska respekteras.
 - på iOS används delningsbladet när det stöds så användaren kan välja Files, iCloud eller annan tillgänglig destination; på webben används nedladdning som reserv
 
 ## Ritningsanteckningar
-- Projektflödet har ritverktyg för `Text`, `Text + pil`, `Pil`, `Ångra` och `Gör om` på ritningen.
+- Ritverktygen ligger samlade under en kompakt `Verktyg`-meny med `Text`, `Text + pil`, `Pil`, `Bild` och `Ta bort markerad`; `Ångra` och `Gör om` ligger direkt bredvid.
 - Text kan flyttas efter placering. `Text + pil` är en sammanhållen markering där textläget och pilspetsen kan flyttas separat; hela markeringen kan också flyttas via linjen. Fristående pilar kan flyttas och finjusteras via ändpunkterna.
-- Ångra/gör om använder vänster/höger historikpilar och omfattar nya ritanteckningar och flyttningar i den aktuella arbetssessionen.
-- Text, text+pilar och pilar sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
-- Text och pilar är i denna version inte plattade som synliga objekt i en vanlig kund-PDF eller i `Aktuell ritningssida`; kundexport/klart-markering lämnas till senare beslut.
+- Bilder komprimeras innan de läggs i projektstatusen, placeras på ritningen och kan flyttas, storleksändras eller tas bort igen.
+- Ångra/gör om använder vänster/höger historikpilar och omfattar nya ritanteckningar, bilder och flyttningar i den aktuella arbetssessionen.
+- Text, text+pilar, pilar och bilder sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
+- Ritanteckningar och bilder är i denna version inte plattade som synliga objekt i en vanlig kund-PDF eller i `Aktuell ritningssida`; kundexport/klart-markering lämnas till senare beslut.
 
 ## Massmarkering och tidsrapport
 - `Välj` gör GS-positioner valbara utan att öppna protokollet. På dator kan användaren dra en markeringsruta över flera positioner; på touch kan positioner väljas en och en. `Alla på sidan` väljer alla positioner på aktuell ritningssida.
 - `Klarmarkera` bockar automatiskt av alla effektiva GS-kontrollpunkter för de valda positionerna. När positionens protokoll öppnas efteråt ska samma punkter redan vara ikryssade och progressen vara 100% när alla punkter finns.
 - `Tid` öppnar en beräknad projektrapport baserad endast på effektiva GS-kontrollpunkter. Rapporten visar total beräknad tid, beräknat utfört, kvar, tidsvägd projektprocent samt antal punkter utan tidsestimat.
 - Grundvärden: WC/toalettbehör 10 min, cylinder 15 min, slutbleck 10 min, trycke 10 min, låshus 30 min, dörrstängare 30 min, dörrautomatik 480 min, armbågskontakt 150 min och magnet 480 min.
-- Standardtider kan ändras direkt i tidsrapporten. En tidskategori kan tas bort från beräkningen och senare återställas utan att kontrollpunkterna tas bort.
+- Standardtider kan ändras direkt i tidsrapporten. En inbyggd tidskategori kan tas bort från beräkningen och senare återställas utan att kontrollpunkterna tas bort.
+- Egna tidstyper kan läggas till med namn, minuter och ett eller flera sökord, till exempel `Dörrstopp` eller `Handikapptoalett`. Egna tidstyper kan ändras och tas bort.
+- Tidsrapporten visar antal punkter och sammanlagd tid per tidstyp samt en kompakt sammanfattning av arbetsmoment, klart, kvar och aktiva tidstyper.
 - Varje enskild kontrollpunkt kan få en egen tid i minuter via `Ändra`. Tomt tidsfält använder standardtiden för kategorin; `0 min` gör att punkten inte väger tid i beräkningen.
 - Projekt- och positionsprocent vägs efter beräknade minuter i stället för att varje kontrollpunkt väger lika. En position kan dock bara bli 100% när alla dess kontrollpunkter är klarmarkerade.
 - Positioner utan effektiva GS-kontrollpunkter räknas inte in i projektprocenten eller den tidsvägda färdigställandegraden.
