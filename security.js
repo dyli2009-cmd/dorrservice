@@ -1046,7 +1046,7 @@ function reportDoc(){
   y+=5.5;
  }
  function issueTableHeader(){
-  const ws=[9,44,93,40],titles=['NR','OBJEKT','ANMÄRKNING','STATUS'];let x=left;
+  const ws=[9,44,93,40],titles=['NR','OBJEKT','ANMÄRKNING / BESKRIV ÅTGÄRD','STATUS'];let x=left;
   titles.forEach((t,i)=>{doc.setFillColor(249,250,250);doc.setDrawColor(218,223,226);doc.setLineWidth(.16);doc.rect(x,y,ws[i],6.2,'FD');txt(t,x+ws[i]/2,y+4.05,5.5,true,[82,92,98],{align:'center'});x+=ws[i]});
   y+=6.2;
  }
@@ -1068,15 +1068,17 @@ function reportDoc(){
    doc.setFont('helvetica','normal');doc.setFontSize(6.2);
    const metaLines=row.objectMeta?doc.splitTextToSize(row.objectMeta,ws[1]-5).slice(0,2):[];
    doc.setFont('helvetica','normal');doc.setFontSize(7.1);
-   const remarkLines=doc.splitTextToSize(row.remark,ws[2]-5).slice(0,6);
+   const remediationDescription=String(row.o.remediationDescription||'').trim();
+   const remarkLines=doc.splitTextToSize('Anmärkning: '+row.remark,ws[2]-5).slice(0,5);
+   const actionLines=remediationDescription?doc.splitTextToSize('Beskriv åtgärd: '+remediationDescription,ws[2]-5).slice(0,5):[];
+   const detailLines=[...remarkLines,...actionLines];
    const statusDetails=remediated?[
     'Datum: '+String(row.o.remediationDate||'-'),
-    'Underskrift: '+String(row.o.remediationSignature||'-'),
-    ...(String(row.o.remediationDescription||'').trim()?['Åtgärd: '+String(row.o.remediationDescription).trim()]:[])
+    'Underskrift: '+String(row.o.remediationSignature||'-')
    ]:[];
    doc.setFont('helvetica','normal');doc.setFontSize(5.8);
-   const statusLines=statusDetails.flatMap(t=>doc.splitTextToSize(t,ws[3]-6)).slice(0,8);
-   const lines=Math.max(1,objectLines.length+metaLines.length,remarkLines.length,remediated?2+statusLines.length:2);
+   const statusLines=statusDetails.flatMap(t=>doc.splitTextToSize(t,ws[3]-6)).slice(0,4);
+   const lines=Math.max(1,objectLines.length+metaLines.length,detailLines.length,remediated?2+statusLines.length:2);
    const rowH=Math.max(16,6+lines*3.35);
    if(y+rowH>bottom-5)newIssuePage();
 
@@ -1093,8 +1095,8 @@ function reportDoc(){
    doc.setFont('helvetica','bold');doc.setFontSize(7.3);doc.setTextColor(31,49,59);doc.text(objectLines,ox,objectY,{lineHeightFactor:1.05});
    if(metaLines.length){doc.setFont('helvetica','normal');doc.setFontSize(5.9);doc.setTextColor(110,120,126);doc.text(metaLines,ox,objectY+objectLines.length*3.45,{lineHeightFactor:1.05})}
 
-   const rx=left+ws[0]+ws[1]+2.5,remarkBlockH=Math.max(1,remarkLines.length)*3.45,remarkY=y+Math.max(5.2,(rowH-remarkBlockH)/2+3.0);
-   doc.setFont('helvetica','normal');doc.setFontSize(7.1);doc.setTextColor(34,47,54);doc.text(remarkLines,rx,remarkY,{lineHeightFactor:1.08});
+   const rx=left+ws[0]+ws[1]+2.5,remarkBlockH=Math.max(1,detailLines.length)*3.45,remarkY=y+Math.max(5.2,(rowH-remarkBlockH)/2+3.0);
+   doc.setFont('helvetica','normal');doc.setFontSize(7.1);doc.setTextColor(34,47,54);doc.text(detailLines,rx,remarkY,{lineHeightFactor:1.08});
 
    const sx=left+ws[0]+ws[1]+ws[2],sw=ws[3];
    if(remediated){
