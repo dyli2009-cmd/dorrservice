@@ -40,6 +40,7 @@ Regler:
 - gemensamma hjälpfunktioner får bara användas om de är neutrala och inte skapar beroende mellan systemen
 - Projektflöde får ha egna idéer, egna arbetssteg, egna verktyg och egen UX
 - Kontrollflödets lås gäller fortfarande och får inte kringgås genom ändringar i Projektflöde
+- den nya fristående Projektflödesytan ligger i `project-workspace.html`, `project-workspace.css` och `project-workspace.js`; dessa filer får inte importera Kontrollflödets `security.js`, `security.css` eller `all-in-one.*`
 
 När Projektflöde diskuteras ska fokus ligga på Projektflöde och inga ändringar göras i Kontrollflöde om användaren inte uttryckligen först låser upp Kontrollflödet.
 
@@ -88,13 +89,13 @@ Det separata låsdokumentet `CONTROLFLOW_LOCK.md` ska också kontrolleras innan 
 
 Tillsyno ska ha **en enda synlig versionsserie** för hela appen.
 
-Aktuell version: **v2.4.215**
+Aktuell version: **v2.4.216**
 
 Regler:
 - Samma appversion gäller Kontrollflöde, Dörrautomatik, Säkerhetsservice, Brand, Projektflöde och Ritningsverktyg.
 - Visa inte separata versionsnummer för enskilda moduler.
 - Varje användarsynlig uppdatering ska höja Tillsyno-versionen med ett steg.
-- Exempel: v2.4.215 → v2.4.216 → v2.4.217.
+- Exempel: v2.4.216 → v2.4.217 → v2.4.218.
 - Versionsnumret ska visas på Home så att det är enkelt att kontrollera vilken uppdatering som körs.
 - Tekniskt buildnummer för TestFlight får finnas separat, men den synliga versionsbeteckningen ska följa Tillsyno-versionen.
 - När en ny version görs ska webb och iOS speglas till samma Tillsyno-version.
