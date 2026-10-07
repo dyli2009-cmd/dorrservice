@@ -317,3 +317,12 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
 
 /* v2.4.181 dialog visibility fix */
 .pfProtocol:not([open]){display:none!important}
+
+
+/* v2.4.184 smooth pan */
+@media (hover:hover) and (pointer:fine){
+  .pfViewerWrap{cursor:grab;overscroll-behavior:contain}
+  .pfViewerWrap.isPanning{cursor:grabbing;user-select:none}
+  .pfViewerWrap.isPanning *{cursor:grabbing!important}
+  .pfMarkerHit{cursor:pointer!important}
+}
