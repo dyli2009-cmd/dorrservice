@@ -450,6 +450,7 @@ function renderDrawingNotes(viewport){
  });
 }
 function setDrawingTool(tool){
+ if(tool&&bulkSelectMode)setBulkSelectMode(false);
  drawingTool=drawingTool===tool?'':tool;
  el.toolText.setAttribute('aria-pressed',String(drawingTool==='text'));
  el.toolArrow.setAttribute('aria-pressed',String(drawingTool==='arrow'));
@@ -1057,7 +1058,7 @@ async function fitDrawing(){
 async function analyze(file){
  setState('Läser projekt-PDF…');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('pf-'+fileKey));
- pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];setDrawingTool('');
+ pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser gula PDF-stämplar och deras positioner…');
@@ -1088,13 +1089,20 @@ el.next.onclick=()=>changeDrawingPage(1);
 el.zoomOut.onclick=()=>setDrawingScale(scale-.2);
 el.zoomIn.onclick=()=>setDrawingScale(scale+.2);
 el.fit.onclick=fitDrawing;
+el.bulkSelect.onclick=()=>setBulkSelectMode(!bulkSelectMode);
+el.bulkPage.onclick=selectAllOnPage;
+el.bulkDone.onclick=markBulkDone;
+el.bulkClear.onclick=clearBulkSelection;
+el.timeReport.onclick=openTimeReport;
+el.timeClose.onclick=closeTimeReport;
+el.timeDialog.addEventListener('cancel',e=>{e.preventDefault();closeTimeReport()});
 el.toolText.onclick=()=>setDrawingTool('text');
 el.toolArrow.onclick=()=>setDrawingTool('arrow');
 el.toolUndo.onclick=undoDrawingNote;
-el.viewer.addEventListener('pointerdown',e=>{if(!beginDrawingTool(e))beginDrawingPan(e)});
-el.viewer.addEventListener('pointermove',e=>{if(!moveDrawingTool(e))moveDrawingPan(e)});
-el.viewer.addEventListener('pointerup',e=>{if(drawingToolGesture)endDrawingTool(e);else endDrawingPan(e)});
-el.viewer.addEventListener('pointercancel',e=>{if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}endDrawingPan(e)});
+el.viewer.addEventListener('pointerdown',e=>{if(!beginBulkDrag(e)&&!beginDrawingTool(e))beginDrawingPan(e)});
+el.viewer.addEventListener('pointermove',e=>{if(!moveBulkDrag(e)&&!moveDrawingTool(e))moveDrawingPan(e)});
+el.viewer.addEventListener('pointerup',e=>{if(bulkDrag)endBulkDrag(e);else if(drawingToolGesture)endDrawingTool(e);else endDrawingPan(e)});
+el.viewer.addEventListener('pointercancel',e=>{if(bulkDrag){bulkDrag=null;el.selectionRect.hidden=true}if(drawingToolGesture){drawingToolGesture.preview?.remove();drawingToolGesture=null}endDrawingPan(e)});
 el.viewer.addEventListener('touchstart',beginDrawingTouch,{passive:false});
 el.viewer.addEventListener('touchmove',moveDrawingTouch,{passive:false});
 el.viewer.addEventListener('touchend',endDrawingTouch,{passive:false});
