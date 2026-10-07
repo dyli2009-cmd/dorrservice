@@ -1,4 +1,4 @@
-/* Allt-i-ett protocol selection 2.4.141 */
+/* Allt-i-ett protocol selection 2.4.190 */
 (()=>{
  'use strict';
  const KEY='doorservice-all-in-one-active-protocols';
@@ -16,6 +16,8 @@
  }
  function write(){try{localStorage.setItem(KEY,JSON.stringify([...active]))}catch(_){}}
  function refresh(){
+  itemTypes().forEach(type=>active.add(type));
+  write();
   document.querySelectorAll('.allInOneProtocolTools [data-add]').forEach(button=>{
    button.hidden=!active.has(button.dataset.add)
   });
@@ -53,8 +55,7 @@
  file.addEventListener('change',()=>{awaitingFile=false},{capture:true});
  file.addEventListener('cancel',returnFromCancelledFilePicker);
 
- // The first selection is authoritative for the whole workspace session.
- // Opening/scanning a PDF must never add extra protocol types automatically.
+ // Keep protocol types detected in an imported PDF active.
  refresh();
  window.AllInOneProtocols={
   get:()=>[...active],
