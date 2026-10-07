@@ -615,13 +615,6 @@ async function discoverDoorAutomations(){
    const parsed=parseStructuredAutomationId(row.text);
    if(!parsed)continue;
 
-   const remainder=row.text
-    .replace(parsed.matchText,'')
-    .replace(/\b(?:DA|DH|DÖRRAUTOMATIK|DORRAUTOMATIK)\b/ig,'')
-    .replace(/[^A-ZÅÄÖa-zåäö0-9]+/g,'')
-    .trim();
-   if(remainder.length>8)continue;
-
    const exactItems=itemsForStructuredAutomationId(row.items,parsed.matchText);
    if(!exactItems.length)continue;
 
