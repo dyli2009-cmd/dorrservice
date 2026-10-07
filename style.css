@@ -1815,3 +1815,21 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
     font-size:7.5px;
   }
 }
+
+
+/* 2.4.174: fit the complete generated home artwork on every screen size. */
+.appHome{
+  background-color:#102b39!important;
+  background-size:cover,contain!important;
+  background-position:center center,center center!important;
+  background-repeat:no-repeat,no-repeat!important;
+}
+@media(min-width:1181px){
+  .appHome{background-size:cover,contain!important}
+}
+@media(min-width:621px) and (max-width:1180px){
+  .appHome{background-size:cover,contain!important}
+}
+@media(max-width:620px){
+  .appHome{background-size:cover,contain!important}
+}
