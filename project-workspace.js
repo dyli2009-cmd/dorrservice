@@ -213,6 +213,15 @@ async function chooseDesktopSaveHandle(suggestedName){
   excludeAcceptAllOption:false
  });
 }
+async function ensureHandleWritePermission(handle){
+ if(!handle)return false;
+ const options={mode:'readwrite'};
+ try{
+  if(typeof handle.queryPermission==='function'&&await handle.queryPermission(options)==='granted')return true;
+  if(typeof handle.requestPermission==='function')return await handle.requestPermission(options)==='granted';
+ }catch(err){console.warn('Kunde inte kontrollera skrivbehörighet',err)}
+ return typeof handle.createWritable==='function';
+}
 async function writePdfToHandle(handle,data){
  if(!handle||typeof handle.createWritable!=='function')throw new Error('Filen kan inte skrivas direkt i den här webbläsaren.');
  const writable=await handle.createWritable();
@@ -233,6 +242,10 @@ async function savePortableProject(){
    if(err?.name==='AbortError'){setState('Sparandet avbröts.');return}
    console.error(err);
   }
+ }
+ if(targetHandle===currentFileHandle&&targetHandle){
+  const allowed=await ensureHandleWritePermission(targetHandle);
+  if(!allowed){setState('Skrivbehörighet nekades. Använd Spara som… och välj filen eller Skrivbord.');return}
  }
  el.saveProject.disabled=true;setState(targetHandle?'Sparar projektet i PDF-filen…':'Förbereder projekt-PDF…');
  try{
