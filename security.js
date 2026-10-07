@@ -1227,7 +1227,10 @@ async function openCustomerPreview(forceReport=false){
   $('secPreviewDialog').showModal();await renderCustomerPreview();
  }catch(e){console.error(e);msg('Kunde inte visa kundmallen.',true)}
 }
-$('securityPreview').onclick=()=>{closeSecurityOverview();openCustomerPreview()};
+$('securityPreview').onclick=()=>{
+ const fromOverview=!!$('securityOverview')?.open;
+ openCustomerPreview(fromOverview);
+};
 const overviewCustomerPreview=$('secOverviewCustomerPreview');
 if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>openCustomerPreview(true);
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
