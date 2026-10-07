@@ -25,7 +25,8 @@ Projektflödet ska:
 - ta med ifyllda komponentrader som kontrollpunkter
 - inte göra korta tomma fältnamn till kontrollpunkter
 - Datum, version och administrativa leverans-/montagerader ska inte räknas som kontrollpunkter
-- Rader där värdet är `DT` ska visas som information men inte räknas som vårt montage eller i procenten
+- Arbetsprotokollets automatiska kontrollpunkter ska endast komma från originalrader där ansvar/utförande är märkt `GS`
+- Rader märkta `EL`, `DT` eller andra ansvarskoder ska inte visas i egenkontrollen och ska inte påverka procenten; de går fortfarande att läsa i originalprotokollet
 - varje fysisk position får egna tillagda, ändrade eller borttagna arbetskontrollpunkter samt kommentarer utan att original-PDF:en ändras
 - spara avbockning och procent separat per fysisk position
 - återgå till samma ritningssida, zoom och position efter protokollarbete
