@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id);
 const el={
  file:$('pwFile'),openProject:$('pwOpenProject'),openProjectEmpty:$('pwOpenProjectEmpty'),saveProject:$('pwSaveProject'),fileName:$('pwFileName'),state:$('pwState'),positionCount:$('pwPositionCount'),matchedCount:$('pwMatchedCount'),doneCount:$('pwDoneCount'),totalProgress:$('pwTotalProgress'),
- prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),rescan:$('pwRescan'),
+ prev:$('pwPrev'),next:$('pwNext'),pageInfo:$('pwPageInfo'),zoomOut:$('pwZoomOut'),zoomIn:$('pwZoomIn'),zoomInfo:$('pwZoomInfo'),fit:$('pwFit'),panMode:$('pwPanMode'),rescan:$('pwRescan'),
  viewer:$('pwViewer'),stage:$('pwStage'),canvas:$('pwCanvas'),markers:$('pwMarkers'),empty:$('pwEmpty'),groups:$('pwGroups'),currentPageOnly:$('pwCurrentPageOnly'),
  protocol:$('pwProtocol'),back:$('pwBack'),protocolClose:$('pwProtocolClose'),protocolCode:$('pwProtocolCode'),protocolPosition:$('pwProtocolPosition'),protocolPercent:$('pwProtocolPercent'),protocolBar:$('pwProtocolBar'),
  protocolCanvas:$('pwProtocolCanvas'),protocolCanvasWrap:$('pwProtocolCanvasWrap'),protocolStage:$('pwProtocolStage'),protocolMissing:$('pwProtocolMissing'),protocolFit:$('pwProtocolFit'),protocolZoomOut:$('pwProtocolZoomOut'),protocolZoomIn:$('pwProtocolZoomIn'),protocolZoomInfo:$('pwProtocolZoomInfo'),protocolMax:$('pwProtocolMax'),
@@ -19,6 +19,7 @@ const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',embeddedState={},page=1,scale=1.1,renderTask=null;
+let drawingPanMode=false,drawingPan=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={};
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null;
 
@@ -625,6 +626,77 @@ function closeProtocol(){
  if(el.protocol.open)el.protocol.close();
  if(restoreView){page=restoreView.page;scale=restoreView.scale;renderDrawing().then(()=>requestAnimationFrame(()=>el.viewer.scrollTo({left:restoreView.left,top:restoreView.top})))}
 }
+function clampDrawingScale(value){return Math.max(.25,Math.min(3.5,Number(value)||1))}
+function drawingFocusRatios(clientX,clientY){
+ const r=el.stage.getBoundingClientRect();
+ const x=Number.isFinite(clientX)?clientX:r.left+r.width/2;
+ const y=Number.isFinite(clientY)?clientY:r.top+r.height/2;
+ return {
+  x:Math.max(0,Math.min(1,r.width?(x-r.left)/r.width:.5)),
+  y:Math.max(0,Math.min(1,r.height?(y-r.top)/r.height:.5)),
+  clientX:x,clientY:y
+ };
+}
+function restoreDrawingFocus(focus){
+ if(!focus)return;
+ const r=el.stage.getBoundingClientRect();
+ const px=r.left+focus.x*r.width,py=r.top+focus.y*r.height;
+ el.viewer.scrollLeft+=px-focus.clientX;
+ el.viewer.scrollTop+=py-focus.clientY;
+}
+async function setDrawingScale(nextScale,clientX,clientY){
+ if(!pdf)return;
+ const focus=drawingFocusRatios(clientX,clientY);
+ scale=clampDrawingScale(nextScale);
+ el.stage.style.transform='';
+ el.stage.style.transformOrigin='';
+ await renderDrawing();
+ requestAnimationFrame(()=>restoreDrawingFocus(focus));
+}
+function setDrawingPanMode(enabled){
+ drawingPanMode=!!enabled;
+ el.panMode.setAttribute('aria-pressed',String(drawingPanMode));
+ el.viewer.classList.toggle('panMode',drawingPanMode);
+}
+function beginDrawingPan(e){
+ if(!pdf)return;
+ const middle=e.button===1;
+ if(!(drawingPanMode||middle))return;
+ if(e.button!==0&&e.button!==1)return;
+ if(e.button===0&&e.target.closest?.('.pwStampHit'))return;
+ e.preventDefault();
+ drawingPan={pointerId:e.pointerId,x:e.clientX,y:e.clientY,left:el.viewer.scrollLeft,top:el.viewer.scrollTop};
+ el.viewer.classList.add('isPanning');
+ try{el.viewer.setPointerCapture(e.pointerId)}catch(_){}
+}
+function moveDrawingPan(e){
+ if(!drawingPan||drawingPan.pointerId!==e.pointerId)return;
+ e.preventDefault();
+ el.viewer.scrollLeft=drawingPan.left+(drawingPan.x-e.clientX);
+ el.viewer.scrollTop=drawingPan.top+(drawingPan.y-e.clientY);
+}
+function endDrawingPan(e){
+ if(!drawingPan||drawingPan.pointerId!==e.pointerId)return;
+ drawingPan=null;el.viewer.classList.remove('isPanning');
+ try{el.viewer.releasePointerCapture(e.pointerId)}catch(_){}
+}
+function previewDrawingWheelZoom(nextScale,focus){
+ if(!pdf)return;
+ drawingWheelTargetScale=clampDrawingScale(nextScale);
+ drawingWheelFocus=focus;
+ const factor=drawingWheelTargetScale/drawingWheelBaseScale;
+ el.stage.style.transformOrigin=(focus.x*100)+'% '+(focus.y*100)+'%';
+ el.stage.style.transform='scale('+factor+')';
+ el.zoomInfo.textContent=Math.round(drawingWheelTargetScale*100)+'%';
+ clearTimeout(drawingWheelTimer);
+ drawingWheelTimer=setTimeout(async()=>{
+  const finalScale=drawingWheelTargetScale,finalFocus=drawingWheelFocus;
+  drawingWheelTimer=null;scale=finalScale;
+  el.stage.style.transform='';el.stage.style.transformOrigin='';
+  await renderDrawing();
+  requestAnimationFrame(()=>restoreDrawingFocus(finalFocus));
+ },80);
+}
 async function fitDrawing(){
  if(!pdf)return;const pg=await pdf.getPage(page),vp=pg.getViewport({scale:1});
  scale=Math.max(.25,Math.min(2.5,(el.viewer.clientWidth-12)/vp.width,(el.viewer.clientHeight-12)/vp.height));await renderDrawing();
@@ -651,9 +723,23 @@ el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=savePortableProject;
 el.prev.onclick=async()=>{if(pdf&&page>1){page--;await renderDrawing();renderGroups()}};
 el.next.onclick=async()=>{if(pdf&&page<pdf.numPages){page++;await renderDrawing();renderGroups()}};
-el.zoomOut.onclick=async()=>{if(pdf){scale=Math.max(.3,scale-.12);await renderDrawing()}};
-el.zoomIn.onclick=async()=>{if(pdf){scale=Math.min(3.5,scale+.12);await renderDrawing()}};
+el.zoomOut.onclick=()=>setDrawingScale(scale-.2);
+el.zoomIn.onclick=()=>setDrawingScale(scale+.2);
 el.fit.onclick=fitDrawing;
+el.panMode.onclick=()=>setDrawingPanMode(!drawingPanMode);
+el.viewer.addEventListener('pointerdown',beginDrawingPan);
+el.viewer.addEventListener('pointermove',moveDrawingPan);
+el.viewer.addEventListener('pointerup',endDrawingPan);
+el.viewer.addEventListener('pointercancel',endDrawingPan);
+el.viewer.addEventListener('wheel',e=>{
+ if(!pdf)return;
+ e.preventDefault();
+ const focus=drawingWheelTimer?drawingWheelFocus:drawingFocusRatios(e.clientX,e.clientY);
+ if(!drawingWheelTimer){drawingWheelBaseScale=scale;drawingWheelTargetScale=scale;drawingWheelFocus=focus}
+ const delta=Math.max(-120,Math.min(120,Number(e.deltaY)||0));
+ const factor=Math.exp(-delta*.0017);
+ previewDrawingWheelZoom(drawingWheelTargetScale*factor,focus);
+},{passive:false});
 el.rescan.onclick=()=>{if(el.file.files?.[0])analyze(el.file.files[0]).catch(console.error)};
 el.currentPageOnly.onclick=()=>{currentOnly=!currentOnly;el.currentPageOnly.setAttribute('aria-pressed',String(currentOnly));el.currentPageOnly.classList.toggle('active',currentOnly);renderGroups()};
 el.back.onclick=closeProtocol;el.protocolClose.onclick=closeProtocol;
