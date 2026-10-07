@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#132b38">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-flow.css?v=2.4.179">
+<link rel="stylesheet" href="project-flow.css?v=2.4.180">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -68,31 +68,30 @@
 </main>
 
 <dialog id="pfProtocol" class="pfProtocol">
-  <div class="pfProtocolHead">
-    <div>
+  <div class="pfProtocolToolbar">
+    <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Ritning</button>
+
+    <div class="pfProtocolIdentity">
       <span id="pfProtocolType">DÖRRKORT</span>
-      <h2 id="pfProtocolTitle">ID</h2>
-      <p id="pfProtocolPosition"></p>
+      <strong id="pfProtocolTitle">ID</strong>
+      <small id="pfProtocolPosition"></small>
     </div>
-    <button id="pfCloseProtocol" type="button" aria-label="Tillbaka till ritningen">×</button>
-  </div>
 
-  <div class="pfProtocolProgress">
-    <div><strong id="pfProtocolPercent">0%</strong><span>klart på just den här positionen</span></div>
-    <div class="pfProgressTrack"><i id="pfProtocolBar"></i></div>
-  </div>
-
-  <div class="pfProtocolTools">
-    <div>
-      <strong id="pfMatchedProtocolText">Matchat dörrkort</strong>
-      <small>Tryck direkt i originalprotokollets kontrollrutor.</small>
+    <div class="pfProtocolStatus">
+      <strong id="pfProtocolPercent">0%</strong>
+      <div class="pfProgressTrack"><i id="pfProtocolBar"></i></div>
     </div>
+
     <div class="pfProtocolZoom">
       <button id="pfCardZoomOut" type="button" aria-label="Zooma ut dörrkort">−</button>
       <span id="pfCardZoomInfo">100%</span>
       <button id="pfCardZoomIn" type="button" aria-label="Zooma in dörrkort">+</button>
     </div>
+
+    <button id="pfCloseProtocol" class="pfProtocolClose" type="button" aria-label="Tillbaka till ritningen">×</button>
   </div>
+
+  <strong id="pfMatchedProtocolText" hidden>Matchat dörrkort</strong>
 
   <section id="pfProtocolDocument" class="pfProtocolDocument">
     <div id="pfProtocolStage" class="pfProtocolStage">
@@ -101,15 +100,8 @@
     </div>
     <div id="pfProtocolMissing" class="pfProtocolMissing" hidden>Dörrkort saknas för den här märkningen.</div>
   </section>
-
-  <div class="pfProtocolLegend">
-    <span><i></i> Klicka Montering klar, Driftsättning klar eller Provad</span>
-    <span>Varje fysisk position sparas separat.</span>
-  </div>
-
-  <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Till samma position på ritningen</button>
 </dialog>
 
-<script src="project-flow.js?v=2.4.179"></script>
+<script src="project-flow.js?v=2.4.180"></script>
 </body>
 </html>
