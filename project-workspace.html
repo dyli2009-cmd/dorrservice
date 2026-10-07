@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-workspace.css?v=2.4.233">
+<link rel="stylesheet" href="project-workspace.css?v=2.4.234">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -60,9 +60,9 @@
         <button id="pwToolText" type="button" aria-pressed="false"><strong>Text</strong><small>Lägg text och flytta den fritt.</small></button>
         <button id="pwToolCallout" type="button" aria-pressed="false"><strong>Text + pil</strong><small>Markera något med pil och tillhörande text.</small></button>
         <button id="pwToolArrow" type="button" aria-pressed="false"><strong>Pil</strong><small>Rita och finjustera en pil.</small></button>
-        <button id="pwToolImage" type="button"><strong>Bild</strong><small>Lägg in en bild på ritningen.</small></button>
+        <button id="pwToolImage" type="button"><strong>Ta kort</strong><small>Öppna kameran och placera fotot på ritningen.</small></button>
         <div class="pwToolMenuDivider"></div>
-        <button id="pwToolDelete" class="pwToolDelete" type="button" disabled><strong>Ta bort markerad</strong><small>Tar bort vald text, pil eller bild.</small></button>
+        <button id="pwToolDelete" class="pwToolDelete" type="button" disabled><strong>Ta bort markerad</strong><small>Tar bort vald text, pil eller foto.</small></button>
       </div>
     </div>
     <span class="pwToolHistory" aria-label="Ångra och gör om">
@@ -71,7 +71,7 @@
     </span>
   </div>
   <button id="pwRescan" type="button" hidden>Analysera igen</button>
-  <input id="pwImageFile" type="file" accept="image/*" hidden>
+  <input id="pwImageFile" type="file" accept="image/*" capture="environment" hidden>
 </section>
 
 <main class="pwMain">
@@ -162,7 +162,7 @@
   <div class="pwItemEditorBody">
     <label>Benämning<input id="pwEditLabel" type="text" placeholder="Exempel: Elbleck"></label>
     <label>Typ / utförande<input id="pwEditValue" type="text" placeholder="Exempel: STEP 40"></label>
-    <label>Tid (minuter)<input id="pwEditMinutes" type="number" min="0" step="5" inputmode="numeric" placeholder="Tomt = använd standardtid"><small>Du kan sätta en egen tid för just den här punkten. Sätt 0 min om den inte ska påverka tidsprocenten.</small></label>
+    <label>Tid (timmar,minuter)<input id="pwEditMinutes" type="text" inputmode="decimal" placeholder="Exempel: 0,15 eller 3,10"><small>Skriv 8 = 8 timmar, 0,10 = 10 minuter och 3,10 = 3 timmar 10 minuter. Lämna tomt för standardtid.</small></label>
     <label>Kommentar<textarea id="pwEditNote" rows="3" placeholder="Exempel: Bytt modell på plats – originaltypen gick inte att använda."></textarea></label>
   </div>
   <div class="pwItemEditorActions"><button id="pwEditCancel" type="button">Avbryt</button><button id="pwEditSave" type="button">Spara</button></div>
@@ -194,12 +194,12 @@
   <div class="pwItemEditorHead"><div><span>TIDSMALL</span><strong id="pwTimeTypeTitle">Lägg till tidstyp</strong></div><button id="pwTimeTypeClose" type="button" aria-label="Stäng">×</button></div>
   <div class="pwItemEditorBody">
     <label>Namn<input id="pwTimeTypeName" type="text" placeholder="Exempel: Dörrstopp"></label>
-    <label>Tid per punkt (minuter)<input id="pwTimeTypeMinutes" type="number" min="0" step="5" inputmode="numeric" placeholder="Exempel: 15"></label>
+    <label>Tid per punkt (timmar,minuter)<input id="pwTimeTypeMinutes" type="text" inputmode="decimal" placeholder="Exempel: 0,15 eller 2,30"><small>Skriv 8 = 8 timmar, 0,15 = 15 minuter och 2,30 = 2 timmar 30 minuter.</small></label>
     <label>Sökord<input id="pwTimeTypeTerms" type="text" placeholder="Exempel: dörrstopp, dörr stopp"><small>Orden används för att känna igen rätt kontrollpunkter automatiskt. Separera flera ord med kommatecken.</small></label>
   </div>
   <div class="pwItemEditorActions"><button id="pwTimeTypeCancel" type="button">Avbryt</button><button id="pwTimeTypeSave" type="button">Spara</button></div>
 </dialog>
 
-<script src="project-workspace.js?v=2.4.233"></script>
+<script src="project-workspace.js?v=2.4.234"></script>
 </body>
 </html>
