@@ -103,3 +103,37 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwTimeActions button{min-height:29px;padding:3px 5px;font-size:7.5px}
  .pwCheckTime{font-size:7px}
 }
+
+
+/* 2.4.232: compact tool menu, image notes and editable custom time types. */
+.pwToolWrap{position:relative}
+.pwToolWrap>button.active{background:#1d4a60;color:#fff;border-color:#1d4a60}
+.pwToolMenu{position:absolute;left:0;top:calc(100% + 5px);z-index:40;width:min(260px,84vw);padding:5px;border:1px solid #c8d4da;border-radius:10px;background:#fff;box-shadow:0 12px 34px #0004}
+.pwToolMenu[hidden]{display:none!important}
+.pwToolMenu button{display:block;width:100%;min-height:0;padding:8px 9px;border:0;border-radius:7px;background:#fff;color:#203440;text-align:left}
+.pwToolMenu button:hover,.pwToolMenu button:focus-visible{background:#edf5f8;outline:none}
+.pwToolMenu button[aria-pressed="true"]{background:#e7f1f5;color:#0f4d69}
+.pwToolMenu button:disabled{opacity:.4;cursor:default}
+.pwToolMenu strong{display:block;font-size:10px}.pwToolMenu small{display:block;margin-top:2px;font-size:8px;line-height:1.35;color:#657a84}
+.pwToolMenuDivider{height:1px;margin:4px 3px;background:#dbe3e7}
+.pwToolMenu .pwToolDelete{color:#8a3434}
+.pwNoteImage{pointer-events:all;cursor:move;filter:drop-shadow(0 2px 3px #0003)}
+.pwNoteImage.selected{opacity:.96}
+.pwNoteImageFrame{fill:none;stroke:#0b6f9b;stroke-width:2;stroke-dasharray:7 4;pointer-events:none}
+.pwTimeSubhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0}
+.pwTimeSubhead .pwTimeIntro{margin:0;flex:1}
+.pwTimeSubhead button{min-height:31px;padding:4px 8px;font-size:9px;white-space:nowrap}
+.pwTimeSummaryText{margin:4px 0 9px;padding:7px 9px;border-radius:7px;background:#eef4f7;color:#45606d;font-size:9px;font-weight:750}
+.pwTimeActions{gap:4px;flex-wrap:wrap}
+.pwTimeActions .danger{color:#8a3434}
+.pwTimeTypeEditor{width:min(440px,calc(100vw - 24px));border:0;border-radius:12px;padding:0;color:#203440;box-shadow:0 20px 70px #0006}
+.pwTimeTypeEditor::backdrop{background:#0a1d2799}
+@media(max-width:620px){
+ .pwToolMenu{position:fixed;left:7px;right:7px;top:auto;bottom:7px;width:auto}
+ .pwToolMenu button{padding:10px}
+ .pwTimeSubhead{align-items:stretch;flex-direction:column}
+ .pwTimeSubhead button{width:100%}
+ .pwTimeRow{grid-template-columns:minmax(100px,1fr) 64px 46px 46px 66px}
+ .pwTimeActions{flex-direction:column;align-items:stretch}
+ .pwTimeActions button{width:100%}
+}
