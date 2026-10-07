@@ -549,6 +549,28 @@ function rectForTextItems(items,padding=5){
  const bottom=Math.min(...items.map(x=>x.y-Math.max(x.h,1)*.35)),top=Math.max(...items.map(x=>x.y+Math.max(x.h,1)*.95));
  return [left-padding,bottom-padding,right+padding,top+padding];
 }
+function normalizedAutomationIdText(value){
+ return String(value||'').toUpperCase().replace(/[–—]/g,'-').replace(/\s+/g,'');
+}
+function itemsForStructuredAutomationId(items,matchText){
+ const target=normalizedAutomationIdText(matchText);
+ if(!target)return [];
+ const ordered=[...items].sort((a,b)=>a.x-b.x);
+ let best=[];
+ for(let start=0;start<ordered.length;start++){
+  let combined='';
+  for(let end=start;end<Math.min(ordered.length,start+12);end++){
+   combined+=normalizedAutomationIdText(ordered[end].text);
+   if(combined===target){
+    const candidate=ordered.slice(start,end+1);
+    if(!best.length||candidate.length<best.length)best=candidate;
+    break;
+   }
+   if(!target.startsWith(combined))break;
+  }
+ }
+ return best;
+}
 async function discoverDoorAutomations(){
  const saved=loadSaved(),savedItems=Array.isArray(saved.automationItems)?saved.automationItems:[],savedByIdentity=new Map();
  savedItems.forEach(o=>{const key=automationDisplayId(o);if(key&&!savedByIdentity.has(key))savedByIdentity.set(key,o)});
@@ -560,8 +582,9 @@ async function discoverDoorAutomations(){
    const parsed=parseStructuredAutomationId(row.text);if(!parsed)return;
    const remainder=row.text.replace(parsed.matchText,'').replace(/\b(?:DA|DÖRRAUTOMATIK)\b/ig,'').replace(/[^A-ZÅÄÖa-zåäö0-9]+/g,'').trim();
    if(remainder.length>8)return;
-   const matchingItems=row.items.filter(item=>String(item.text||'').match(/\d|-/));
-   const rect=rectForTextItems(matchingItems.length?matchingItems:row.items,6);if(!rect)return;
+   const exactItems=itemsForStructuredAutomationId(row.items,parsed.matchText);
+   const matchingItems=exactItems.length?exactItems:row.items.filter(item=>String(item.text||'').match(/\d|-/));
+   const rect=rectForTextItems(matchingItems.length?matchingItems:row.items,2.5);if(!rect)return;
    const identity=parsed.fullId;
    const occurrence=structuredOnPage.filter(x=>x.identity===identity).length+1;
    const id='daid@'+p+':'+identity+':'+occurrence;
@@ -591,11 +614,13 @@ async function discoverDoorAutomations(){
    const identity=structured?.fullId||[objectNo,model?.code||'',serial].filter(Boolean).join('-');
    const id='da@'+p+':'+Math.round(cx)+':'+Math.round(cy);
    const old=savedItems.find(x=>x.id===id)||savedByIdentity.get(identity)||{};
-   const rect=[da.x-7,da.y-Math.max(da.h,12)-7,da.x+Math.max(da.w,18)+7,da.y+8];
+   const nearbySameLine=nearby.filter(item=>Math.abs((item.y||0)-cy)<=18);
+   const structuredItems=structured?itemsForStructuredAutomationId(nearbySameLine,structured.matchText):[];
+   const rect=structuredItems.length?rectForTextItems(structuredItems,2.5):[da.x-5,da.y-Math.max(da.h,12)-5,da.x+Math.max(da.w,18)+5,da.y+6];
    const item={
     id,page:p,rect,objectNo:old.objectNo??objectNo,modelCode:old.modelCode??(model?.code||''),model:old.model??(model?.name||''),
     serialNumber:old.serialNumber??serial,location:old.location||'',sourceText,checks:old.checks&&typeof old.checks==='object'?old.checks:{},
-    notes:old.notes||'',progress:0,sourceKind:'da-fallback'
+    notes:old.notes||'',progress:0,sourceKind:structuredItems.length?'structured-id':'da-fallback'
    };
    item.progress=automationProgressOf(item);found.push(item);
   }
