@@ -132,8 +132,8 @@ function isAdministrativeWorkLine(text,label){
  const t=(String(label||'')+' '+String(text||'')).toLocaleLowerCase('sv');
  return /\b(datum|version|revision|rev\.?|leverer\w*|leverans\w*|leverantör|monteras?\s+av|ansluts?\s+av|avmonter\w*|avser|ansvar\w*)\b/.test(t);
 }
-function isDtWorkReference(value){
- return /(^|[\s:;,\-])DT($|[\s:;,\-])/i.test(String(value||'').trim());
+function isGsWorkLine(text){
+ return /(^|[\s:;,\-/])GS(?=$|[\s:;,\-/])/i.test(String(text||''));
 }
 function groupLines(items){
  const sorted=[...items].sort((a,b)=>b.y-a.y||a.x-b.x),groups=[];
@@ -166,19 +166,16 @@ function groupLines(items){
   }
   const hasPair=!!label&&!!value&&value!=='-'&&value!=='–'&&value!=='—';
   const administrative=isAdministrativeWorkLine(text,label);
-  const dtReference=hasPair&&isDtWorkReference(value);
-  const prose=!administrative&&!heading&&!value&&(text.length>=34||/[.!?]$/.test(text));
-  const actionable=!administrative&&!heading&&hasPair&&!dtReference;
-  const reference=!administrative&&!heading&&hasPair&&dtReference;
-  return {key:'l'+index,text,heading:!administrative&&heading,prose,actionable,reference,administrative,label,value};
+  const actionable=!administrative&&!heading&&hasPair&&isGsWorkLine(text);
+  return {key:'l'+index,text,actionable,administrative,label,value};
  });
 }
 async function protocolDef(code){
  const pageNo=protocolMap[code];if(!pageNo)return null;
  const key=code+'@'+pageNo;if(protocolDefs[key])return protocolDefs[key];
  const text=await readPageText(pageNo),lines=groupLines(text.items);
- const filtered=lines.filter(line=>!line.administrative&&(line.heading||line.prose||line.actionable||line.reference));
- const def={code,page:pageNo,lines:filtered,checks:filtered.filter(x=>x.actionable)};
+ const filtered=lines.filter(line=>line.actionable);
+ const def={code,page:pageNo,lines:filtered,checks:filtered};
  protocolDefs[key]=def;return def;
 }
 function effectiveChecks(o,def){
@@ -347,22 +344,8 @@ async function renderChecklist(o){
  el.checklistMeta.textContent=checks.length+' kontrollpunkter';
  if(!def.lines.length&&!o.customItems.length){const p=document.createElement('p');p.className='pwMuted';p.textContent='Protokollsidan är matchad, men textstrukturen kunde inte tolkas säkert ännu.';el.checklist.appendChild(p);return}
  def.lines.forEach(line=>{
-  if(line.heading){
-   const h=document.createElement('div');h.className='pwChecklistHeading';h.textContent=line.text;el.checklist.appendChild(h);return;
-  }
-  if(line.prose&&!line.actionable){
-   const p=document.createElement('div');p.className='pwChecklistText';p.textContent=line.text;el.checklist.appendChild(p);return;
-  }
-  if(line.reference){
-   const ref=document.createElement('div');ref.className='pwChecklistReference';
-   const strong=document.createElement('strong'),small=document.createElement('small'),why=document.createElement('em');
-   strong.textContent=line.label;small.textContent=line.value;why.textContent='DT – information från originalet, men inte en kontrollpunkt för vårt montage.';
-   ref.append(strong,small,why);el.checklist.appendChild(ref);return;
-  }
-  if(line.actionable){
-   const item=effectiveChecks(o,def).find(x=>x.source==='base'&&x.key===line.key);
-   if(item)appendEditableCheck(o,item);
-  }
+  const item=effectiveChecks(o,def).find(x=>x.source==='base'&&x.key===line.key);
+  if(item)appendEditableCheck(o,item);
  });
  const custom=effectiveChecks(o,def).filter(x=>x.source==='custom');
  if(custom.length){
