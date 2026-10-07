@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#132b38">
 <title>Projektflöde – Tillsyno</title>
-<link rel="stylesheet" href="project-flow.css?v=2.4.172">
+<link rel="stylesheet" href="project-flow.css?v=2.4.173">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
 <body>
 <header class="pfHeader">
   <a class="pfHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div><strong>Projektflöde</strong><small>Ritning → GS-position → rätt dörrkort → egen status</small></div>
+  <div><strong>Projektflöde</strong><small>Ritning → projektposition → rätt dörrkort → egen status</small></div>
   <label class="pfOpen" for="pfDrawingFile">Öppna ritning</label>
   <input id="pfDrawingFile" type="file" accept="application/pdf" hidden>
 </header>
@@ -50,7 +50,7 @@
     <div id="pfEmpty" class="pfEmpty">
       <div class="pfEmptyIcon">⌖</div>
       <h1>Ritningen är projektets arbetsyta</h1>
-      <p>Appen läser GS-stämplarna direkt ur PDF:en, skiljer varje fysisk position åt och kopplar samma GS-kod till rätt dörrkort.</p>
+      <p>Appen läser projektstämplarna direkt ur PDF:en, skiljer varje fysisk position åt och kopplar samma projekt-ID till rätt dörrkort.</p>
       <label class="pfOpen pfOpenLarge" for="pfDrawingFile">Öppna ritning</label>
       <small>Dörrkorts-PDF:en laddar du i raden ovan.</small>
     </div>
@@ -58,7 +58,7 @@
 
   <aside class="pfSide">
     <div class="pfSideHead">
-      <div><span>PROJEKTÖVERSIKT</span><strong>GS-positioner</strong></div>
+      <div><span>PROJEKTÖVERSIKT</span><strong>projektpositioner</strong></div>
       <button id="pfFocusCurrent" type="button">Aktuell sida</button>
     </div>
     <div id="pfGroups" class="pfGroups">
@@ -71,7 +71,7 @@
   <div class="pfProtocolHead">
     <div>
       <span id="pfProtocolType">DÖRRKORT</span>
-      <h2 id="pfProtocolTitle">GS4</h2>
+      <h2 id="pfProtocolTitle">ID</h2>
       <p id="pfProtocolPosition"></p>
     </div>
     <button id="pfCloseProtocol" type="button" aria-label="Tillbaka till ritningen">×</button>
@@ -101,7 +101,7 @@
 
   <section class="pfChecklist">
     <div class="pfChecklistHead">
-      <div><span>ARBETSMOMENT</span><strong id="pfTemplateName">GS4</strong></div>
+      <div><span>ARBETSMOMENT</span><strong id="pfTemplateName">ID</strong></div>
       <small>Samma dörrkort – separat status per fysisk position</small>
     </div>
     <div id="pfChecks"></div>
@@ -110,6 +110,6 @@
   <button id="pfBackToDrawing" class="pfBackToDrawing" type="button">← Till samma position på ritningen</button>
 </dialog>
 
-<script src="project-flow.js?v=2.4.172"></script>
+<script src="project-flow.js?v=2.4.173"></script>
 </body>
 </html>
