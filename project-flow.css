@@ -6,7 +6,7 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
 .pfSummary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 12px;background:white;border-bottom:1px solid var(--line)}.pfSummary>div:first-child{min-width:0}.pfSummary strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pfSummary small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
 .pfStats{display:flex;gap:14px;white-space:nowrap}.pfStats span{display:flex;flex-direction:column;align-items:center;font-size:9px;color:var(--muted)}.pfStats b{font-size:14px;color:#203440}
 .pfControls{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f9fbfc;border-bottom:1px solid var(--line);font-size:12px}.pfControls button{min-height:34px;padding:5px 9px}.pfControls #pfPageInfo{min-width:70px;text-align:center}.pfPrefix{display:flex;align-items:center;gap:5px;margin-left:auto;color:var(--muted);font-size:10px;font-weight:700}.pfPrefix input{width:72px;min-height:32px;border:1px solid var(--line);border-radius:7px;padding:5px 7px;font-size:13px;text-transform:uppercase}
-.pfMain{display:grid;grid-template-columns:minmax(0,1fr) 260px;flex:1;min-height:0}.pfViewerWrap{position:relative;overflow:auto;background:#cfd8dd;touch-action:pan-x pan-y}.pfStage{position:relative;width:max-content;min-width:100%;min-height:100%;display:flex;align-items:flex-start;justify-content:center}.pfStage canvas{display:block;background:white;box-shadow:0 4px 20px #0002}.pfStage>#pfMarkers{position:absolute;inset:0;pointer-events:none}
+.pfMain{display:grid;grid-template-columns:minmax(0,1fr) 260px;flex:1;min-height:0}.pfViewerWrap{position:relative;overflow:auto;background:#cfd8dd;touch-action:pan-x pan-y}.pfStage{position:relative;width:max-content;min-width:0;min-height:0;display:block;margin:0 auto}.pfStage canvas{display:block;background:white;box-shadow:0 4px 20px #0002}.pfStage>#pfMarkers{position:absolute;inset:0;pointer-events:none}
 .pfEmpty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;color:#284756}.pfEmpty[hidden]{display:none}.pfEmptyIcon{font-size:34px}.pfEmpty h1{font-size:21px;margin:10px 0 6px}.pfEmpty p{max-width:520px;line-height:1.55;color:#58707d;margin:0 0 16px}.pfEmpty small{color:#758993;margin-top:10px}.pfOpenLarge{background:var(--blue);color:white;border-color:var(--blue);padding:10px 16px}
 .pfMarker{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;border:0;background:transparent;padding:0;min-height:0;overflow:visible}.pfMarkerDot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--marker-fill,#77858e) var(--marker-angle,0deg),#c8d1d6 0);box-shadow:0 2px 6px #0005;border:2px solid white}.pfMarkerDot::after{content:"";width:20px;height:20px;border-radius:50%;background:white;display:block}.pfMarker[data-progress="100"] .pfMarkerDot{background:var(--green)}.pfMarkerLabel{position:absolute;left:36px;top:50%;transform:translateY(-50%);background:#173746;color:#fff;border-radius:6px;padding:3px 6px;font-size:10px;font-weight:800;white-space:nowrap;box-shadow:0 2px 6px #0004}.pfMarkerPct{position:absolute;inset:0;display:grid;place-items:center;z-index:2;font-size:8px;font-weight:800;color:#173746}.pfMarker[data-progress="100"] .pfMarkerPct{color:var(--green)}
 .pfSide{min-width:0;background:white;border-left:1px solid var(--line);overflow:auto}.pfSideHead{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px;background:white;border-bottom:1px solid var(--line)}.pfSideHead span,.pfChecklistHead span{display:block;font-size:8px;letter-spacing:1px;color:#7c8e98;font-weight:800}.pfSideHead strong{font-size:14px}.pfSideHead button{font-size:10px;min-height:31px;padding:4px 7px}
@@ -29,3 +29,34 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
 .pfProtocol{overflow:auto}
 .pfProtocolPreview{margin:12px 16px 0;border:1px solid var(--line);border-radius:10px;background:#e8eef1;overflow:auto;max-height:42dvh}
 .pfProtocolPreview canvas{display:block;margin:auto;background:white;box-shadow:0 2px 10px #0002}
+
+
+/* 2.4.178: project door card mirrors the compact protocol design and keeps original PDF available. */
+.pfMetaPanel{margin:12px 16px 0;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}
+.pfMetaPanel>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;background:#eaf0f4;font-size:11px;font-weight:750;cursor:pointer}
+.pfMetaPanel>summary span:last-child{font-size:9px;color:var(--muted);font-weight:600}
+.pfMetaGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:8px}
+.pfMetaGrid label{font-size:8.8px;color:#526873;font-weight:700}
+.pfMetaGrid input{width:100%;min-height:29px;height:29px;margin-top:2px;padding:3px 5px;border:1px solid #bccbd3;border-radius:5px;background:#fff;color:#203440;font-size:10px}
+.pfDoorCardData{margin:10px 16px 0;border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}
+.pfDoorCardHead{padding:8px 10px;background:#eaf0f4}
+.pfDoorCardHead span{display:block;font-size:8px;letter-spacing:1px;color:#7c8e98;font-weight:800}
+.pfDoorCardHead strong{display:block;margin-top:2px;font-size:12px}
+.pfDoorCardRows{max-height:32dvh;overflow:auto}
+.pfDoorCardRow{display:grid;grid-template-columns:minmax(115px,.9fr) minmax(0,2.1fr);gap:8px;padding:6px 9px;border-top:1px solid #edf1f3;font-size:10px;line-height:1.3}
+.pfDoorCardRow:first-child{border-top:0}
+.pfDoorCardRow b{color:#294653;font-weight:750}
+.pfDoorCardRow span{color:#526873;word-break:break-word}
+.pfDoorCardRow.pfDoorCardSection{display:block;background:#f6f9fa;font-weight:800;color:#203440}
+.pfChecklistActions{display:flex;gap:5px;margin:0 0 6px}
+.pfChecklistActions button{min-height:27px;padding:2px 7px;font-size:9.5px}
+#pfApproveAll{background:var(--blue);border-color:var(--blue);color:#fff}
+.pfCheck{border:1px solid #e1e8ec!important;border-radius:6px!important;margin:4px 0!important;padding:7px!important;background:#fff}
+.pfCheck:has(input:checked){background:#eaf6ee!important;border-color:#8fc4a6!important;color:#1d7047}
+.pfMatchedProtocol{margin-top:8px}
+.pfProtocolPreview{max-height:55dvh}
+@media(max-width:650px){
+ .pfMetaGrid{grid-template-columns:1fr 1fr}
+ .pfDoorCardRow{grid-template-columns:minmax(88px,.8fr) minmax(0,2.2fr);font-size:9.5px}
+ .pfDoorCardRows{max-height:28dvh}
+}
