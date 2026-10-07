@@ -332,20 +332,33 @@ function decodePdfText(obj){
 function normalizeCode(value){
  const raw=String(value||'').toUpperCase().replace(/\s+/g,' ').trim();
  if(!raw)return '';
- // Projekt-ID kan vara t.ex. GS1, GSTD1, GSID, GSIDW eller GSIW.
- // Om hela stämpelfältet är själva ID:t tillåts även mellanrum/bindestreck mellan tecknen.
  const compactExact=raw.replace(/[\s_-]+/g,'');
+ // Behåll befintliga GS-ID:n, t.ex. GS1, GSTD1, GSIDW.
  if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compactExact))return compactExact;
- // Om fältet innehåller mer text plockas ett sammanhängande GS-ID ut utan att äta upp efterföljande ord.
- const embedded=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
- return embedded?embedded[1]:'';
+ const embeddedGs=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
+ if(embeddedGs)return embeddedGs[1];
+
+ // Generella dörr-/kort-ID:n: 140, 815 C, 815A, 310-B osv.
+ const exactGeneric=raw.match(/^(\d{1,6})(?:[\s_-]*([A-ZÅÄÖ]{1,3}))?$/);
+ if(exactGeneric)return exactGeneric[1]+(exactGeneric[2]?' '+exactGeneric[2]:'');
+ const labelled=raw.match(/\b(?:DÖRR|DORR|DOOR|ID|LITTERA|KORT|DÖRRKORT|DORRKORT)\s*[:#-]?\s*(\d{1,6})(?:[\s_-]*([A-ZÅÄÖ]{1,3}))?\b/);
+ if(labelled)return labelled[1]+(labelled[2]?' '+labelled[2]:'');
+ const embeddedGeneric=raw.match(/\b(\d{2,6})[\s_-]+([A-ZÅÄÖ]{1,3})\b/);
+ if(embeddedGeneric)return embeddedGeneric[1]+' '+embeddedGeneric[2];
+ return '';
 }
 function codeRegex(code){
- const compact=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
- if(!/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return null;
- const gap='[^A-ZÅÄÖ0-9]*';
- const spread=compact.split('').join(gap);
- return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
+ const normalized=String(code||'').toUpperCase().trim();
+ const compact=normalized.replace(/[^A-ZÅÄÖ0-9]/g,'');
+ if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact)){
+  const gap='[^A-ZÅÄÖ0-9]*';
+  const spread=compact.split('').join(gap);
+  return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
+ }
+ const generic=normalized.match(/^(\d{1,6})(?:\s+([A-ZÅÄÖ]{1,3}))?$/);
+ if(!generic)return null;
+ const number=generic[1],suffix=generic[2]||'';
+ return new RegExp('(^|[^A-ZÅÄÖ0-9])'+number+(suffix?'[\\s_-]*'+suffix:'')+'($|[^A-ZÅÄÖ0-9])','i');
 }
 function stampCode(dict){
  const {PDFName}=PDFLib;
@@ -355,29 +368,52 @@ function stampCode(dict){
  }
  return '';
 }
+function rectFromAnnotation(dict){
+ const {PDFName,PDFArray,PDFNumber}=PDFLib;
+ let rectArr;try{rectArr=dict.lookup(PDFName.of('Rect'),PDFArray)}catch(_){return null}
+ if(!rectArr||rectArr.size()<4)return null;
+ const rect=[];
+ for(let n=0;n<4;n++){
+  let num;try{num=rectArr.lookup(n,PDFNumber)}catch(_){}
+  const v=num&&typeof num.asNumber==='function'?num.asNumber():Number(decodePdfText(rectArr.get(n)));
+  rect.push(v);
+ }
+ return rect.every(Number.isFinite)?rect:null;
+}
+async function codeFromMarkedPageText(pageNo,rect){
+ const text=await readPageText(pageNo);
+ const minX=Math.min(rect[0],rect[2])-4,maxX=Math.max(rect[0],rect[2])+4,minY=Math.min(rect[1],rect[3])-7,maxY=Math.max(rect[1],rect[3])+7;
+ const inside=text.items.filter(item=>{
+  const cx=item.x+Math.max(item.w,1)/2,cy=item.y+Math.max(item.h,1)/2;
+  return cx>=minX&&cx<=maxX&&cy>=minY&&cy<=maxY;
+ }).sort((a,b)=>Math.abs(a.y-b.y)>4?b.y-a.y:a.x-b.x);
+ if(!inside.length)return '';
+ const joined=inside.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+ let code=normalizeCode(joined);if(code)return code;
+ for(const item of inside){code=normalizeCode(item.text);if(code)return code}
+ return '';
+}
 async function extractStamps(){
- const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib;
+ const {PDFDocument,PDFName,PDFDict}=PDFLib;
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
- const out=[];
+ const candidates=[];
+ const allowed=new Set(['Stamp','Highlight','Square','Circle','FreeText','Ink','Underline','Squiggly']);
  doc.getPages().forEach((pg,pi)=>{
   const annots=pg.node.Annots();if(!annots)return;
   for(let i=0;i<annots.size();i++){
    let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
    if(!dict)continue;
    const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
-   if(subtype!=='Stamp')continue;
-   const code=stampCode(dict);if(!code)continue;
-   let rectArr;try{rectArr=dict.lookup(PDFName.of('Rect'),PDFArray)}catch(_){continue}
-   if(!rectArr||rectArr.size()<4)continue;
-   const rect=[];
-   for(let n=0;n<4;n++){
-    let num;try{num=rectArr.lookup(n,PDFNumber)}catch(_){}
-    const v=num&&typeof num.asNumber==='function'?num.asNumber():Number(decodePdfText(rectArr.get(n)));
-    rect.push(v);
-   }
-   if(rect.every(Number.isFinite))out.push({page:pi+1,code,rect,order:i});
+   if(!allowed.has(subtype))continue;
+   const rect=rectFromAnnotation(dict);if(!rect)continue;
+   candidates.push({page:pi+1,code:stampCode(dict),rect,order:i,subtype});
   }
  });
+ const out=[];
+ for(const mark of candidates){
+  const code=mark.code||await codeFromMarkedPageText(mark.page,mark.rect);
+  if(code)out.push({...mark,code});
+ }
  return out;
 }
 async function readPageText(pageNo){
@@ -400,16 +436,18 @@ function protocolScore(code,pageNo,text,drawingPages){
  let score=10;
  const lower=text.raw.toLocaleLowerCase('sv');
  if(!drawingPages.has(pageNo))score+=5;
- ['protokoll','dörrautomatik','dörr','elbleck','lås','trycke','beskrivning','produkt','ingår','funktion'].forEach(w=>{if(lower.includes(w))score++});
+ ['dörrkort','dorrkort','protokoll','dörrautomatik','dörr','littera','beslag','cylinder','elbleck','lås','låshus','trycke','dörrstängare','beskrivning','produkt','ingår','funktion'].forEach(w=>{if(lower.includes(w))score++});
  const compact=text.raw.toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
- if(compact.startsWith(code))score+=5;
+ const compactCode=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
+ if(compact.startsWith(compactCode))score+=5;
+ if(/^\d{1,6}(?:\s+[A-ZÅÄÖ]{1,3})?$/.test(code)&&/(dörrkort|dorrkort|littera|beslag|cylinder|låshus|trycke)/.test(lower))score+=4;
  return score;
 }
 async function buildProtocolMap(){
  protocolMap={};
  const drawingPages=new Set(stamps.map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
- setState('Matchar projektstämplar mot protokoll i samma PDF…');
+ setState('Matchar projektmarkeringar och ID mot dörrkort/protokoll i samma PDF…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
  for(const code of codes){
   let best=null;
@@ -1538,9 +1576,9 @@ async function analyze(file){
  pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];pendingImage=null;bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
- setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser gula PDF-stämplar och deras positioner…');
+ setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
  stamps=await extractStamps();buildInstances();
- if(!stamps.length){setState('Inga läsbara PDF-stämplar hittades. Projektflödet använder riktiga Stamp-annoteringar, inte vanlig ritningstext.');protocolMap={};updateStats();renderGroups();await renderDrawing();return}
+ if(!stamps.length){setState('Inga läsbara projektmarkeringar med dörr-ID hittades. Markera ID:t med en PDF-markering eller stämpel så kan Projektflödet matcha det mot dörrkortet.');protocolMap={};updateStats();renderGroups();await renderDrawing();return}
  await buildProtocolMap();
  await recalcAll();
  const codes=[...new Set(stamps.map(s=>s.code))],matched=codes.filter(c=>protocolMap[c]).length;
