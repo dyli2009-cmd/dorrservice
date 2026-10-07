@@ -732,3 +732,19 @@ body.allInOneApp #allProtocolApply{
     height:16px;
   }
 }
+
+
+/* 2.4.168: shorter Kontrollflöde chooser heading. */
+body.allInOneApp .allProtocolLead{
+  margin:4px 0 0;
+  color:#6a7e89;
+  font-size:10px;
+  line-height:1.35;
+  font-weight:500;
+}
+@media(max-width:600px){
+  body.allInOneApp .allProtocolLead{
+    font-size:9px;
+    margin-top:3px;
+  }
+}
