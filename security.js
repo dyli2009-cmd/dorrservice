@@ -926,7 +926,7 @@ $('secOverviewFilter').onchange=showOverview;$('secOverviewSearch').oninput=show
 function closeSecurityOverview(){const d=$('securityOverview');if(d?.open)d.close();$('secNavOverview').classList.remove('active')}
 function navigateSecurity(view){closeSecurityOverview();go(view)}
 $('secNavOverview').onclick=()=>{showOverview();const d=$('securityOverview');if(!d.open)d.show();$('secNavDrawing').classList.remove('active');$('secNavProtocol').classList.remove('active');$('secNavProject').classList.remove('active');$('secNavOverview').classList.add('active')};
-$('secCloseOverview').onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
+const secCloseOverview=$('secCloseOverview');if(secCloseOverview)secCloseOverview.onclick=()=>{closeSecurityOverview();go(document.body.dataset.view||'drawing')};
 $('secNavDrawing').onclick=()=>navigateSecurity('drawing');
 $('secNavProtocol').onclick=()=>navigateSecurity('protocol');
 $('secNavProject').onclick=()=>navigateSecurity('project');
@@ -1239,8 +1239,6 @@ $('securityPreview').onclick=()=>{
  const fromOverview=!!$('securityOverview')?.open;
  openCustomerPreview(fromOverview);
 };
-const overviewCustomerPreview=$('secOverviewCustomerPreview');
-if(overviewCustomerPreview)overviewCustomerPreview.onclick=()=>openCustomerPreview(true);
 $('secPreviewClose').onclick=()=>$('secPreviewDialog').close();
 $('secPreviewPrev').onclick=()=>{if(previewPdf&&previewPage>1){previewPage--;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
 $('secPreviewNext').onclick=()=>{if(previewPdf&&previewPage<previewPdf.numPages){previewPage++;if(previewMode==='drawing')$('secPreviewTitle').textContent='Ritning · sida '+previewPage;renderCustomerPreview()}};
