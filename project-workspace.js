@@ -743,6 +743,25 @@ const TIME_CATEGORY_DEFS=[
  {key:'elbow',label:'Armbågskontakt',minutes:150,rx:/(armbåg|armbag|\bak\b)/i},
  {key:'magnet',label:'Magnet',minutes:480,rx:/(magnet|maglås|maglas)/i}
 ];
+function loadCustomTimeCategories(){
+ let saved=[];try{saved=JSON.parse(localStorage.getItem('tillsyno-project-time-custom-v1')||'[]')}catch(_){}
+ if(!Array.isArray(saved))return [];
+ return saved.map(x=>({
+  key:String(x?.key||''),
+  label:String(x?.label||'').trim(),
+  minutes:Math.max(0,Number(x?.minutes)||0),
+  terms:Array.isArray(x?.terms)?x.terms.map(v=>String(v||'').trim().toLocaleLowerCase('sv')).filter(Boolean):[]
+ })).filter(x=>x.key&&x.label);
+}
+function saveCustomTimeCategories(list){
+ try{localStorage.setItem('tillsyno-project-time-custom-v1',JSON.stringify(list))}catch(_){}
+}
+function allTimeCategoryDefs(){
+ return [
+  ...loadCustomTimeCategories().map(x=>({...x,custom:true})),
+  ...TIME_CATEGORY_DEFS.map(x=>({...x,custom:false}))
+ ];
+}
 function loadTimeSettings(){
  let saved={};try{saved=JSON.parse(localStorage.getItem('tillsyno-project-time-estimates-v1')||'{}')}catch(_){}
  const out={};TIME_CATEGORY_DEFS.forEach(d=>out[d.key]=Number.isFinite(Number(saved[d.key]))?Math.max(0,Number(saved[d.key])):d.minutes);
@@ -758,17 +777,24 @@ function loadDisabledTimeCategories(){
 function saveDisabledTimeCategories(set){
  try{localStorage.setItem('tillsyno-project-time-disabled-v1',JSON.stringify([...set]))}catch(_){}
 }
+function timeCategoryMinutes(category,settings=loadTimeSettings()){
+ if(!category)return null;
+ if(category.custom)return Math.max(0,Number(category.minutes)||0);
+ return Math.max(0,Number(settings[category.key])||0);
+}
 function classifyTimeItem(item){
  const text=(String(item?.label||'')+' '+String(item?.value||'')+' '+String(item?.note||'')).toLocaleLowerCase('sv');
- return TIME_CATEGORY_DEFS.find(d=>d.rx.test(text))||null;
+ const defs=allTimeCategoryDefs();
+ const custom=defs.find(d=>d.custom&&d.terms?.some(term=>term&&text.includes(term)));
+ if(custom)return custom;
+ return defs.find(d=>!d.custom&&d.rx?.test(text))||null;
 }
 function resolveItemMinutes(item){
  if(item?.minutes!==null&&item?.minutes!==''&&Number.isFinite(Number(item?.minutes)))return {minutes:Math.max(0,Number(item.minutes)),source:'item',category:classifyTimeItem(item)};
  const category=classifyTimeItem(item);
  if(!category)return {minutes:null,source:'none',category:null};
  if(loadDisabledTimeCategories().has(category.key))return {minutes:null,source:'disabled',category};
- const settings=loadTimeSettings();
- return {minutes:Math.max(0,Number(settings[category.key])||0),source:'category',category};
+ return {minutes:timeCategoryMinutes(category),source:'category',category};
 }
 function formatWorkMinutes(minutes){
  const m=Math.max(0,Math.round(Number(minutes)||0)),h=Math.floor(m/60),rest=m%60;
@@ -777,23 +803,24 @@ function formatWorkMinutes(minutes){
  return h+' h '+rest+' min';
 }
 async function calculateTimeReport(){
- const settings=loadTimeSettings(),disabled=loadDisabledTimeCategories(),rows={};
- TIME_CATEGORY_DEFS.forEach(d=>rows[d.key]={def:d,count:0,doneCount:0,manualCount:0,totalMinutes:0,doneMinutes:0,disabled:disabled.has(d.key)});
+ const settings=loadTimeSettings(),disabled=loadDisabledTimeCategories(),defs=allTimeCategoryDefs(),rows={};
+ defs.forEach(d=>rows[d.key]={def:d,count:0,doneCount:0,manualCount:0,totalMinutes:0,doneMinutes:0,disabled:disabled.has(d.key)});
  const manualOther={key:'manual',label:'Egna tider',count:0,doneCount:0,totalMinutes:0,doneMinutes:0};
- let unknown=0;
+ let unknown=0,itemCount=0,doneItemCount=0;
  for(const o of instances){
   const def=await protocolDef(o.code),checks=effectiveChecks(o,def);
   for(const item of checks){
+   itemCount++;if(o.checks[item.key])doneItemCount++;
    const resolved=resolveItemMinutes(item),category=resolved.category;
    if(resolved.minutes===null){
     unknown++;
-    if(category){
+    if(category&&rows[category.key]){
      const r=rows[category.key];r.count++;
      if(o.checks[item.key])r.doneCount++;
     }
     continue;
    }
-   if(category){
+   if(category&&rows[category.key]){
     const r=rows[category.key];r.count++;r.totalMinutes+=resolved.minutes;
     if(resolved.source==='item')r.manualCount++;
     if(o.checks[item.key]){r.doneCount++;r.doneMinutes+=resolved.minutes}
@@ -803,16 +830,48 @@ async function calculateTimeReport(){
    }
   }
  }
- const list=TIME_CATEGORY_DEFS.map(d=>rows[d.key]);
+ const list=defs.map(d=>rows[d.key]);
  if(manualOther.count)list.push({def:{key:'manual',label:'Egna tider'},...manualOther,manualCount:manualOther.count,disabled:false,isManual:true});
  const total=list.reduce((a,r)=>a+r.totalMinutes,0),done=list.reduce((a,r)=>a+r.doneMinutes,0);
  const trackable=instances.filter(o=>(Number(o.workItemCount)||0)>0),allChecksDone=trackable.length>0&&trackable.every(o=>o.progress===100);
  const progress=total>0?(allChecksDone?100:Math.min(99,Math.max(0,Math.round(done/total*100)))):0;
- return {settings,disabled,rows:list,unknown,total,done,progress};
+ return {settings,disabled,rows:list,unknown,total,done,progress,itemCount,doneItemCount,categoryCount:defs.filter(d=>!disabled.has(d.key)).length};
 }
 async function refreshTimeDrivenProgress(){
  await recalcAll();
  if(el.timeDialog.open)await renderTimeReport();
+}
+function openTimeTypeEditor(def=null){
+ editingTimeTypeKey=def?.custom?def.key:null;
+ el.timeTypeTitle.textContent=editingTimeTypeKey?'Ändra tidstyp':'Lägg till tidstyp';
+ el.timeTypeName.value=def?.label||'';
+ el.timeTypeMinutes.value=def?String(Math.max(0,Number(def.minutes)||0)):'';
+ el.timeTypeTerms.value=def?.terms?.join(', ')||'';
+ el.timeTypeEditor.showModal();
+ requestAnimationFrame(()=>el.timeTypeName.focus());
+}
+function closeTimeTypeEditor(){if(el.timeTypeEditor.open)el.timeTypeEditor.close();editingTimeTypeKey=null}
+async function saveTimeTypeEditor(){
+ const label=el.timeTypeName.value.trim();
+ if(!label){el.timeTypeName.focus();return}
+ const minutes=Math.max(0,Number(el.timeTypeMinutes.value)||0);
+ let terms=el.timeTypeTerms.value.split(',').map(x=>x.trim().toLocaleLowerCase('sv')).filter(Boolean);
+ if(!terms.length)terms=[label.toLocaleLowerCase('sv')];
+ const list=loadCustomTimeCategories();
+ if(editingTimeTypeKey){
+  const item=list.find(x=>x.key===editingTimeTypeKey);
+  if(item)Object.assign(item,{label,minutes,terms});
+ }else{
+  list.unshift({key:'custom-'+Date.now().toString(36),label,minutes,terms});
+ }
+ saveCustomTimeCategories(list);closeTimeTypeEditor();await refreshTimeDrivenProgress();
+}
+async function deleteCustomTimeCategory(key){
+ const def=loadCustomTimeCategories().find(x=>x.key===key);if(!def)return;
+ if(!window.confirm('Ta bort tidstypen "'+def.label+'"? Kontrollpunkterna tas inte bort.'))return;
+ saveCustomTimeCategories(loadCustomTimeCategories().filter(x=>x.key!==key));
+ const disabled=loadDisabledTimeCategories();disabled.delete(key);saveDisabledTimeCategories(disabled);
+ await refreshTimeDrivenProgress();
 }
 async function renderTimeReport(){
  if(!pdf)return;
@@ -823,12 +882,13 @@ async function renderTimeReport(){
  el.timeLeft.textContent=formatWorkMinutes(left);
  el.timeProgress.textContent=report.progress+'%';
  el.timeUnknown.textContent=String(report.unknown);
+ el.timeSummaryText.textContent=report.itemCount+' arbetsmoment · '+report.doneItemCount+' klara · '+Math.max(0,report.itemCount-report.doneItemCount)+' kvar · '+report.categoryCount+' aktiva tidstyper';
  el.timeRows.replaceChildren();
  report.rows.forEach(r=>{
   const row=document.createElement('div');row.className='pwTimeRow'+(r.disabled?' disabled':'');
   const name=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');
   strong.textContent=r.def.label;
-  const details=[r.count+' punkter'];
+  const details=[r.count+' punkter',formatWorkMinutes(r.totalMinutes)+' totalt'];
   if(r.manualCount)details.push(r.manualCount+' egna tider');
   if(r.disabled)details.push('borttagen från beräkning');
   small.textContent=details.join(' · ');name.append(strong,small);
@@ -836,16 +896,28 @@ async function renderTimeReport(){
   const input=document.createElement('input');input.type='number';input.min='0';input.step='5';
   if(r.isManual){input.value='';input.placeholder='Per punkt';input.disabled=true}
   else{
-   input.value=String(report.settings[r.def.key]);input.setAttribute('aria-label','Minuter per '+r.def.label);
+   input.value=String(timeCategoryMinutes(r.def,report.settings));input.setAttribute('aria-label','Minuter per '+r.def.label);
    input.disabled=r.disabled;
-   input.onchange=async()=>{const settings=loadTimeSettings();settings[r.def.key]=Math.max(0,Number(input.value)||0);saveTimeSettings(settings);await refreshTimeDrivenProgress()};
+   input.onchange=async()=>{
+    const next=Math.max(0,Number(input.value)||0);
+    if(r.def.custom){
+     const list=loadCustomTimeCategories(),item=list.find(x=>x.key===r.def.key);if(item)item.minutes=next;saveCustomTimeCategories(list);
+    }else{
+     const settings=loadTimeSettings();settings[r.def.key]=next;saveTimeSettings(settings);
+    }
+    await refreshTimeDrivenProgress();
+   };
   }
 
   const done=document.createElement('div');done.className='pwTimeStat';done.innerHTML='<small>Klart</small><br>'+r.doneCount+'/'+r.count;
   const remain=document.createElement('div');remain.className='pwTimeStat';remain.innerHTML='<small>Kvar</small><br>'+Math.max(0,r.count-r.doneCount);
 
   const actions=document.createElement('div');actions.className='pwTimeActions';
-  if(!r.isManual){
+  if(!r.isManual&&r.def.custom){
+   const edit=document.createElement('button');edit.type='button';edit.textContent='Ändra';edit.onclick=()=>openTimeTypeEditor(r.def);
+   const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Ta bort';remove.onclick=()=>deleteCustomTimeCategory(r.def.key);
+   actions.append(edit,remove);
+  }else if(!r.isManual){
    const toggle=document.createElement('button');toggle.type='button';toggle.textContent=r.disabled?'Återställ':'Ta bort';
    toggle.title=r.disabled?'Ta tillbaka tidsmallen i beräkningen':'Ta bort tidsmallen från beräkningen. Kontrollpunkterna finns kvar.';
    toggle.onclick=async()=>{
