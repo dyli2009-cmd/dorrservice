@@ -92,3 +92,10 @@ Kontrollflödets lås ska respekteras.
 - Projektflödet har enkla verktyg för `Text`, `Pil` och `Ångra` på ritningen.
 - Text och pilar sparas i Projektflödets projektstatus (schema 4) och följer med när `Projekt-PDF med status` sparas och öppnas igen i Tillsyno.
 - Text och pilar är i denna version inte plattade som synliga objekt i en vanlig kund-PDF eller i `Aktuell ritningssida`; kundexport/klart-markering lämnas till senare beslut.
+
+## Massmarkering och tidsrapport
+- `Välj` gör GS-positioner valbara utan att öppna protokollet. På dator kan användaren dra en markeringsruta över flera positioner; på touch kan positioner väljas en och en. `Alla på sidan` väljer alla positioner på aktuell ritningssida.
+- `Klarmarkera` bockar automatiskt av alla effektiva GS-kontrollpunkter för de valda positionerna. När positionens protokoll öppnas efteråt ska samma punkter redan vara ikryssade och progressen vara 100% när alla punkter finns.
+- `Tid` öppnar en beräknad projektrapport baserad endast på effektiva GS-kontrollpunkter. Rapporten visar total beräknad tid, beräknat utfört, kvar samt antal punkter utan tidsestimat.
+- Grundvärden: WC/toalettbehör 10 min, cylinder 15 min, slutbleck 10 min, trycke 10 min, låshus 30 min, dörrstängare 30 min, dörrautomatik 480 min, armbågskontakt 150 min och magnet 480 min.
+- Alla tidsvärden är redigerbara i rapporten och sparas lokalt på enheten. Detta är uppskattad arbetstid från komponenterna, inte en faktisk tidsstämpel/timer.
