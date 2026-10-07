@@ -570,16 +570,34 @@
     });
   }
 
+  async function ensureProtocolLoaded(){
+    if(protocolPdf)return true;
+    try{
+      const savedProtocol=await loadProtocolForProject();
+      if(!savedProtocol||!savedProtocol.data)return false;
+      protocolBytes=new Uint8Array(savedProtocol.data);
+      protocolPdf=await pdfjsLib.getDocument({data:protocolBytes.slice()}).promise;
+      els.protocolFileName.textContent=(savedProtocol.name||'Dörrkort.pdf')+' · kopplat till projektet';
+      await scanProtocolPdf();
+      return true;
+    }catch(err){
+      console.warn('Kunde inte återställa dörrkortsfil vid öppning',err);
+      protocolPdf=null;
+      return false;
+    }
+  }
+
   async function openProtocol(id){
     const o=objects.find(x=>x.id===id);
     if(!o)return;
-    if(!protocolPdf){
-      focusObject(id);
-      els.state.textContent=o.code+' · Position '+o.instance+' markerad. Dörrkort ej kopplat ännu.';
+    highlightedId=id;
+    focusObject(id);
+    const hasProtocol=await ensureProtocolLoaded();
+    if(!hasProtocol){
+      els.state.textContent=o.code+' · Position '+o.instance+' markerad. Koppla dörrkorts-PDF:en en gång så öppnas rätt dörrkort automatiskt.';
       els.protocolFileName.textContent='Inget dörrkort kopplat till projektet';
       return;
     }
-    highlightedId=id;
     selectedId=id;
     restoreView={page:currentPage,left:els.wrap.scrollLeft,top:els.wrap.scrollTop,scale};
     const same=objects.filter(x=>x.code===o.code);
