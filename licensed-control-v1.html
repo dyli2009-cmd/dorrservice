@@ -25,14 +25,15 @@
   const params=new URLSearchParams(location.search);
   const moduleKey=params.get('module')||'';
   const protocol=params.get('protocol')||'';
-  const allowedByModule={
-    sakerhetsservice:['alarm','lock','access'],
-    brand:['fire_panel','fire_detector','fire_door']
-  };
-  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&allowedByModule[moduleKey]?.includes(protocol);
+  const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
+  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>item.appProtocolKey===protocol):null;
+  const supported=['alarm','lock','access','fire_panel','fire_detector','fire_door'];
+  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&supported.includes(protocol)&&protocolInfo;
   if(!allowed)location.replace('./licensed-entry-v6.html?resume=1');
   window.TILLSYNO_LICENSED_MODULE=moduleKey;
+  window.TILLSYNO_LICENSED_MODULE_NAME=module?.name||'Tillsyno';
   window.TILLSYNO_LICENSED_PROTOCOL=protocol;
+  window.TILLSYNO_LICENSED_PROTOCOL_NAME=protocolInfo?.name||'Tillsyno';
 })();
 </script>
 </head>
@@ -201,14 +202,8 @@
 (()=>{
   const moduleKey=window.TILLSYNO_LICENSED_MODULE;
   const protocol=window.TILLSYNO_LICENSED_PROTOCOL;
-  const labels={
-    alarm:'Inbrottslarm',
-    lock:'Lås & Dörrmiljö',
-    access:'Passer',
-    fire_panel:'Brandcentral',
-    fire_detector:'Branddetektorer',
-    fire_door:'Branddörr / dörrhållning'
-  };
+  const moduleName=window.TILLSYNO_LICENSED_MODULE_NAME||'Tillsyno';
+  const protocolName=window.TILLSYNO_LICENSED_PROTOCOL_NAME||'Tillsyno';
   try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify([protocol]))}catch(_){}
   function apply(){
     document.querySelectorAll('[data-add]').forEach(btn=>{
@@ -217,11 +212,11 @@
       btn.style.display=ok?'':'none';
     });
     const brand=document.querySelector('.brand strong');
-    if(brand)brand.textContent=labels[protocol]||'Tillsyno';
+    if(brand)brand.textContent=protocolName;
     const subtitle=document.querySelector('.headerSubtitle');
-    if(subtitle)subtitle.textContent=(moduleKey==='brand'?'Brand':'Säkerhetsservice')+' · '+(labels[protocol]||'');
+    if(subtitle)subtitle.textContent=moduleName+' · '+protocolName;
     const emptyTitle=document.querySelector('#secEmpty h1');
-    if(emptyTitle)emptyTitle.textContent=labels[protocol]||'Tillsyno';
+    if(emptyTitle)emptyTitle.textContent=protocolName;
     const emptyText=document.querySelector('#secEmpty p');
     if(emptyText)emptyText.textContent='Öppna en PDF för att börja.';
     document.body.style.visibility='visible';
