@@ -25,9 +25,7 @@
   const moduleKey=params.get('module')||'';
   const protocol=params.get('protocol')||'';
   const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
-  const definition=params.get('definition')||'';
-  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>definition?item.key===definition&&item.appProtocolKey===protocol:item.appProtocolKey===protocol):null;
-  window.TILLSYNO_PROTOCOL_DEFINITION=protocolInfo?{...protocolInfo,moduleKey}:null;
+  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>item.appProtocolKey===protocol):null;
   const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&['automation','automation_selfcheck'].includes(protocol)&&protocolInfo;
   if(!allowed){
     location.replace('./licensed-entry-v6.html?resume=1');
@@ -37,8 +35,7 @@
   window.TILLSYNO_LICENSED_DOOR_PROTOCOL=protocol;
   window.TILLSYNO_LICENSED_PROTOCOL_NAME=protocolInfo?.name||(protocol==='automation_selfcheck'?'Egenkontroll dörrautomatik':'Checklista revision dörrautomatik');
 })();
-</script>
-</head>
+</script>\n</head>
 <body class="securityApp allInOneApp" data-view="drawing">
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Kontrollflöde</strong></div>
@@ -198,7 +195,7 @@
 </nav>
 <script src="ui-text-scale.js?v=2.4.215"></script><script src="drawing-annotations.js?v=2.4.215"></script>
 <script src="session-history.js?v=2.4.215"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.252"></script><script src="legacy-door-import.js?v=2.4.215"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.251"></script><script src="legacy-door-import.js?v=2.4.215"></script>
 <script src="drawing-transfer.js?v=2.4.215"></script>
 <script>
 (()=>{
@@ -214,7 +211,6 @@
       const ok=btn.getAttribute('data-add')===protocol;
       btn.hidden=!ok;
       btn.style.display=ok?'':'none';
-      if(ok)btn.textContent='＋ '+protocolName;
     });
 
     document.querySelectorAll('[data-add]').forEach(btn=>{
@@ -246,5 +242,4 @@
   setTimeout(apply,80);
   setTimeout(apply,250);
 })();
-</script>
-</body></html>
+</script>\n</body></html>
