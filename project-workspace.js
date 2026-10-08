@@ -393,36 +393,48 @@ function decodePdfText(obj){
  }catch(_){}
  return String(obj||'');
 }
+function cleanProjectIdText(value){
+ return String(value||'')
+  .replace(/[–—]/g,'-')
+  .replace(/\s+/g,' ')
+  .trim()
+  .replace(/^[#:\-–—\s]+|[#:\-–—\s]+$/g,'');
+}
+function projectIdCompact(value){
+ return cleanProjectIdText(value).toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
+}
 function normalizeCode(value){
- const raw=String(value||'').toUpperCase().replace(/\s+/g,' ').trim();
+ const raw=cleanProjectIdText(value).toUpperCase();
  if(!raw)return '';
- const compactExact=raw.replace(/[\s_-]+/g,'');
- // Behåll befintliga GS-ID:n, t.ex. GS1, GSTD1, GSIDW.
- if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compactExact))return compactExact;
- const embeddedGs=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
- if(embeddedGs)return embeddedGs[1];
-
- // Generella dörr-/kort-ID:n: 140, 815 C, 815A, 310-B och även utspridda tecken som 8 1 5 C.
- const exactGeneric=compactExact.match(/^(\d{1,6})([A-ZÅÄÖ]{0,3})$/);
- if(exactGeneric)return exactGeneric[1]+(exactGeneric[2]?' '+exactGeneric[2]:'');
- const labelled=raw.match(/\b(?:DÖRR|DORR|DOOR|ID|LITTERA|KORT|DÖRRKORT|DORRKORT)\s*[:#-]?\s*(\d{1,6})(?:[\s_-]*([A-ZÅÄÖ]{1,3}))?\b/);
- if(labelled)return labelled[1]+(labelled[2]?' '+labelled[2]:'');
- const embeddedGeneric=raw.match(/\b(\d{2,6})[\s_-]+([A-ZÅÄÖ]{1,3})\b/);
- if(embeddedGeneric)return embeddedGeneric[1]+' '+embeddedGeneric[2];
+ const labelled=raw.match(/\b(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING)\s*[:#-]?\s*([A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 ._\/-]{0,30})$/i);
+ const candidate=cleanProjectIdText(labelled?labelled[1]:raw);
+ if(!candidate||candidate.length>32)return '';
+ if(!/[A-ZÅÄÖ0-9]/i.test(candidate))return '';
+ if(!/^[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 ._\/-]*$/i.test(candidate))return '';
+ const compact=projectIdCompact(candidate);
+ if(!compact||compact.length>24)return '';
+ if(/^\d{1,8}$/.test(compact))return compact;
+ if(/^(?=.*[A-ZÅÄÖ])(?=.*\d)[A-ZÅÄÖ0-9]{2,24}$/.test(compact))return compact;
+ if(/^[A-ZÅÄÖ]{1,8}$/.test(compact))return compact;
  return '';
 }
+function escapeRegex(value){return String(value).replace(/[.*+?^$()|[\]\\{}]/g,'\\$&')}
 function codeRegex(code){
- const normalized=String(code||'').toUpperCase().trim();
- const compact=normalized.replace(/[^A-ZÅÄÖ0-9]/g,'');
- if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact)){
-  const gap='[^A-ZÅÄÖ0-9]*';
-  const spread=compact.split('').join(gap);
-  return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
- }
- const generic=normalized.match(/^(\d{1,6})(?:\s+([A-ZÅÄÖ]{1,3}))?$/);
- if(!generic)return null;
- const number=generic[1],suffix=generic[2]||'';
- return new RegExp('(^|[^A-ZÅÄÖ0-9])'+number+(suffix?'[\\s_-]*'+suffix:'')+'($|[^A-ZÅÄÖ0-9])','i');
+ const compact=projectIdCompact(code);
+ if(!compact)return null;
+ const spread=[...compact].map(escapeRegex).join('[\\s._\\/-]*');
+ return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
+}
+function textLineContainsExactProjectId(line,code){
+ const rx=codeRegex(code);return !!rx&&rx.test(String(line||''));
+}
+function projectIdStrength(code){
+ const compact=projectIdCompact(code);
+ if(/^\d$/.test(compact))return 'single-number';
+ if(/^\d{2,3}$/.test(compact))return 'short-number';
+ if(/^\d+$/.test(compact))return 'number';
+ if(compact.length<=3)return 'short';
+ return 'normal';
 }
 function stampCode(dict){
  const {PDFName}=PDFLib;
