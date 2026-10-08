@@ -48,6 +48,13 @@ Projektflödet får inte importera eller använda Kontrollflödets:
 
 Kontrollflödets lås ska respekteras.
 
+## Webb ↔ iOS spegling
+- Under aktiv utveckling av Projektflödet ska webb och iOS uppdateras i samma arbetsomgång.
+- Webbens `project-workspace.html`, `project-workspace.css` och `project-workspace.js` är funktionsmässig referens och ska speglas 1:1 till iOS.
+- iOS får endast avvika där native-miljön kräver det, exempelvis lokala PDF/jsPDF-runtimefiler, Capacitor FilePicker/Share och safe-area.
+- När en Projektflöde-ändring verifieras ska både webb- och iOS-versionen kontrolleras innan arbetet avslutas.
+- Kontrollflödet omfattas inte av denna spegling och ska förbli låst.
+
 ## iOS PDF-import
 - använd explicit öppna-knapp i Projektflödet, inte en label som indirekt aktiverar ett dolt filfält
 - kontrollera `Capacitor.isPluginAvailable('FilePicker')` innan native filväljare används
