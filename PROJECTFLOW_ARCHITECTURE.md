@@ -56,11 +56,12 @@ Kontrollflödets lås ska respekteras.
 - efter filval läses i första hand `webPath`, därefter konverterad `path`
 
 ## Projekt-ID
-- Projektflödet får använda både befintliga GS-ID:n och generella dörr-/kort-ID:n.
-- GS-exempel: `GS1`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`.
-- Generella exempel: `140`, `815 C`, `815A`, `310 A`, `310 B`.
-- Mellanrum, bindestreck och utspridda tecken normaliseras så att exempelvis `815 C`, `815-C`, `815C` och `8 1 5 C` kan matchas mot samma dörrkort.
-- För rena nummer som `140` används dörrkorts-/protokollmatchningen som extra signal för att minska risken att vanliga måttsiffror misstolkas.
+- ID-formatet ska vara flexibelt och inte låsas till GS. Exempel som får vara kandidater: `GS1`, `GS2`, `1`, `140`, `140D`, `815 C`, `815A`, `310 A`, `310 B`, `GSTD1` och motsvarande projektunika kombinationer.
+- Mellanrum, bindestreck, punkt, underscore och slash normaliseras vid jämförelse, så olika typografiska varianter kan matcha samma ID.
+- Alla läsbara PDF-markeringar behandlas först som kandidater. En kandidat blir **aldrig klickbar** enbart för att den hittats på ritningen.
+- Projektflödet skannar hela PDF-filen och söker en verifierad dörrkorts-/protokollmatchning för samma ID. Först efter godkänd matchning får positionen en klickyta, visas i Positioner och räknas som arbetsposition.
+- Korta ID:n, särskilt en ensam siffra som `1`, kräver högre matchpoäng med starka dörrkortssignaler, etikett/isolering eller placering högt på protokollsidan för att undvika falska träffar.
+- Om ingen tillräckligt stark dörrkortsmatchning finns förblir markeringen osynlig som knapp och kan inte massmarkeras.
 - samma normaliserade ID används för position, räkning, klickyta och matchning mot dörrkort/protokoll i samma PDF
 
 ## Egenkontroll dörrautomatik i Projektflödet
@@ -75,7 +76,7 @@ Kontrollflödets lås ska respekteras.
 - Kontrollpunkterna använder samma val som originalet: `Ingår ej`, `Klart utan anmärkning`, `Klart med anmärkning`; vid anmärkning finns originalets färdiga felval samt `Beskriv själv`.
 - Kundmall och exporterad PDF heter `CHECKLISTA REVISION DÖRRAUTOMATIK` och radhöjden anpassas för att samtliga 18 kontrollpunkter ska rymmas på protokollsidan.
 - Projektflödet söker i första hand efter den strukturerade automatikmärkningen på ritningen. Exempel: `7-0-54-28-24-2` tolkas som objektdel `7-0-54-28`, automatkod `24` och löpnummer `2`. Automatkod måste finnas i Projektflödets kopierade automatlista.
-- När en strukturerad märkning hittas byggs klickytans rektangel från exakt de PDF-textobjekt som tillsammans bildar märkningen, inte från hela textraden eller DA-positionen. Marginalen hålls liten så klickytan följer objektnummer + automatkod + löpnummer visuellt. En liten `EK`-indikering visar att egenkontroll finns. Texten `DA` används endast som reservsignal när strukturerad märkning inte kan hittas.
+- När en strukturerad automatikmärkning hittas byggs klickytans rektangel från exakt de PDF-textobjekt som tillsammans bildar märkningen, inte från GS-positioner eller hela textraden. Marginalen hålls liten så klickytan följer objektnummer + automatkod + löpnummer visuellt.
 - Strukturerade ID:n accepteras bara på rader som i huvudsak består av själva märkningen/DA, så att motsvarande ID inne på protokollsidor inte felaktigt skapar nya ritningspositioner.
 - Varje hittad automatik får en egen klickbar Egenkontroll på ritningen och i Positioner-panelen.
 - Avlästa värden får korrigeras manuellt inne i egenkontrollen.
