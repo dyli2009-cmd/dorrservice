@@ -30,6 +30,11 @@ h1{margin:0 0 8px;font-size:28px;font-weight:650;letter-spacing:-.9px;overflow-w
 @media(max-width:500px){.list{grid-template-columns:1fr;gap:12px}.choice{min-height:136px;padding:20px;gap:14px}.choiceIcon{width:38px;height:38px;border-radius:12px}.choiceIcon svg{width:23px;height:23px}.choice b{top:23px}.brand{margin-bottom:30px}}
 @media(min-width:700px){.shell{padding-top:30px}.brand{margin-bottom:54px}}
 @media(prefers-reduced-motion:reduce){.choice{transition:none}.choice:hover{transform:none}}
+.protocolSelect{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:19px;border:1px solid #d8e4de;border-radius:18px;background:white;cursor:pointer;transition:background .15s,border-color .15s}
+.protocolSelect.selected{background:#eaf6ef;border-color:#86b7a1}.protocolSelect input{width:22px;height:22px;flex:0 0 auto;accent-color:#35694f;cursor:pointer}
+.protocolSelect strong{display:block;font-size:15px;font-weight:600;color:#2d4e40}.protocolSelect small{display:block;margin-top:5px;font-size:11px;line-height:1.5;color:#81968a}
+.protocolSelect:focus-within{outline:2px solid #67a58f;outline-offset:3px}.continueButton{grid-column:1/-1;min-height:52px;border:0;border-radius:16px;background:#24483f;color:#edf8f2;font:inherit;font-size:14px;font-weight:650;cursor:pointer;margin-top:6px}
+.continueButton:disabled{background:#d9e4df;color:#8c9e94;cursor:not-allowed}.continueButton:focus-visible{outline:3px solid #67a58f;outline-offset:3px}
 </style>
 </head>
 <body>
@@ -93,7 +98,38 @@ function openProtocol(module,protocol){
     location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=2';
   }
 }
+
+function showDoorProtocols(access,module){
+  title.textContent=module.name||'Dörrautomatik';
+  lead.textContent='Välj ett eller båda protokollen.';
+  status.hidden=true;list.innerHTML='';
+  const selected=new Set();
+  const choices=moduleProtocols(module).filter(p=>['automation','automation_selfcheck'].includes(p.appProtocolKey));
+  const next=document.createElement('button');
+  next.type='button';next.className='continueButton';next.textContent='Fortsätt till ritning';next.disabled=true;
+  choices.forEach(protocol=>{
+    const label=document.createElement('label');label.className='protocolSelect';
+    const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.value=protocol.appProtocolKey;
+    const text=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('small');
+    name.textContent=protocol.name;description.textContent=protocol.description||'';
+    text.append(name,description);label.append(checkbox,text);
+    checkbox.onchange=()=>{
+      if(checkbox.checked)selected.add(protocol.appProtocolKey);else selected.delete(protocol.appProtocolKey);
+      label.classList.toggle('selected',checkbox.checked);
+      next.disabled=selected.size===0;
+    };
+    list.appendChild(label);
+  });
+  next.onclick=()=>{
+    if(!selected.size)return;
+    location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocols='+encodeURIComponent([...selected].join(','))+'&v=4';
+  };
+  list.appendChild(next);
+  backToModules(access);
+}
+
 function showProtocolArea(access,module){
+  if(module.key==='dorrautomatik'){showDoorProtocols(access,module);return;}
   title.textContent=module.name;
   lead.textContent='Välj vilket protokoll du ska arbeta med.';
   status.hidden=true;
