@@ -64,7 +64,7 @@ function showDoorAutomationChoices(){
     const item=document.createElement('button');
     item.className='module';
     item.innerHTML='<span><strong>'+choice.title+'</strong><small>'+choice.text+'</small></span><b>›</b>';
-    item.onclick=()=>{location.href='./licensed-workspace.html?module=dorrautomatik&workflow='+encodeURIComponent(choice.key)};
+    item.onclick=()=>{location.href='./licensed-workspace.html?bridge=2&module=dorrautomatik&workflow='+encodeURIComponent(choice.key)};
     modules.appendChild(item);
   });
 
@@ -76,7 +76,7 @@ function showDoorAutomationChoices(){
 }
 function openModule(key){
   if(key==='dorrautomatik'){showDoorAutomationChoices();return}
-  location.href='./licensed-workspace.html?module='+encodeURIComponent(key)
+  location.href='./licensed-workspace.html?bridge=2&module='+encodeURIComponent(key)
 }
 function render(access,autoOpen){
   if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.length){showError('Inga aktiva moduler är tilldelade.');return}
