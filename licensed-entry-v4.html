@@ -106,28 +106,52 @@ function openDoor(protocol){
   document.body.appendChild(frame);
   frame.addEventListener('load',()=>{
     let tries=0;
+    let guardTimer=null;
+    const suppressProtocolPicker=(doc)=>{
+      let guard=doc.getElementById('tillsynoLicensedProtocolGuard');
+      if(!guard){
+        guard=doc.createElement('style');
+        guard.id='tillsynoLicensedProtocolGuard';
+        guard.textContent='#allProtocolDialog{display:none!important;visibility:hidden!important;pointer-events:none!important}';
+        doc.head.appendChild(guard);
+      }
+      const dialog=doc.getElementById('allProtocolDialog');
+      if(dialog){
+        try{if(dialog.open)dialog.close()}catch(_){}
+        dialog.hidden=true;
+        dialog.setAttribute('aria-hidden','true');
+      }
+    };
     const configure=()=>{
       tries++;
       try{
         const doc=frame.contentDocument;
         const win=frame.contentWindow;
-        if(!doc||!win){if(tries<15)setTimeout(configure,100);return}
+        if(!doc||!win){if(tries<30)setTimeout(configure,100);return}
+
+        suppressProtocolPicker(doc);
+
         if(win.AllInOneProtocols)win.AllInOneProtocols.set([protocol]);
-        doc.querySelectorAll('#allProtocolDialog input[type="checkbox"][value]').forEach(cb=>cb.checked=cb.value===protocol);
-        const dialog=doc.getElementById('allProtocolDialog');
-        if(dialog&&dialog.open)dialog.close();
+
+        doc.querySelectorAll('#allProtocolDialog input[type="checkbox"][value]').forEach(cb=>{
+          cb.checked=cb.value===protocol;
+        });
+
         doc.querySelectorAll('.allInOneProtocolTools [data-add]').forEach(btn=>{
           const ok=btn.getAttribute('data-add')===protocol;
           btn.hidden=!ok;
           btn.style.display=ok?'':'none';
         });
+
         const brand=doc.querySelector('.brand strong');
         if(brand)brand.textContent=labels[protocol];
         const subtitle=doc.querySelector('.headerSubtitle');
         if(subtitle)subtitle.textContent='Dörrautomatik · '+(protocol==='automation'?'revision':'egenkontroll');
+
         doc.querySelectorAll('a[href="./"]').forEach(link=>{
           link.setAttribute('href','javascript:void(0)');
           link.onclick=()=>{
+            if(guardTimer)clearInterval(guardTimer);
             frame.remove();
             document.body.classList.remove('workspace');
             const access=JSON.parse(sessionStorage.getItem(STORAGE)||'null');
@@ -135,12 +159,23 @@ function openDoor(protocol){
             return false;
           };
         });
-        if(!win.AllInOneProtocols&&tries<15)setTimeout(configure,100);
+
+        if(!guardTimer){
+          guardTimer=setInterval(()=>{
+            try{
+              const d=frame.contentDocument;
+              if(d)suppressProtocolPicker(d);
+            }catch(_){}
+          },120);
+          setTimeout(()=>{if(guardTimer){clearInterval(guardTimer);guardTimer=null}},2500);
+        }
+
+        if(!win.AllInOneProtocols&&tries<30)setTimeout(configure,100);
       }catch(e){
-        if(tries<15)setTimeout(configure,100);
+        if(tries<30)setTimeout(configure,100);
       }
     };
-    setTimeout(configure,40);
+    setTimeout(configure,10);
   });
 }
 function openSecurity(key){
