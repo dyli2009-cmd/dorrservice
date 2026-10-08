@@ -90,7 +90,7 @@ function backToModules(access){
 function openProtocol(module,protocol){
   const appKey=protocol.appProtocolKey||'';
   if(!appKey)return;
-  if(appKey==='automation'||appKey==='automation_selfcheck'){
+  if(appKey==='automation'||appKey==='automation_selfcheck'||appKey==='lock_revision'){
     location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=3';
     return;
   }
@@ -105,7 +105,7 @@ function showSelectedProtocols(access,module){
   status.hidden=true;list.innerHTML='';
   const selected=new Set();
   const isDoor=module.key==='dorrautomatik';
-  const supported=isDoor?['automation','automation_selfcheck']:['alarm','lock','access','fire_panel','fire_detector','fire_door'];
+  const supported=isDoor?['automation','automation_selfcheck','lock_revision']:['alarm','lock','access','fire_panel','fire_detector','fire_door'];
   const choices=moduleProtocols(module).filter(p=>supported.includes(p.appProtocolKey));
   const next=document.createElement('button');
   next.type='button';next.className='continueButton';next.textContent='Fortsätt till ritning';next.disabled=true;
@@ -125,7 +125,7 @@ function showSelectedProtocols(access,module){
   next.onclick=()=>{
     if(!selected.size)return;
     const target=isDoor?'licensed-door-v1.html':'licensed-control-v1.html';
-    location.href='./'+target+'?module='+encodeURIComponent(module.key)+'&protocols='+encodeURIComponent([...selected].join(','))+'&v=5';
+    location.href='./'+target+'?module='+encodeURIComponent(module.key)+'&protocols='+encodeURIComponent([...selected].join(','))+'&v=6';
   };
   list.appendChild(next);
   backToModules(access);
