@@ -41,14 +41,50 @@ function saveAccess(access){sessionStorage.setItem(STORAGE,JSON.stringify({acces
 function getSavedAccess(){
   try{const v=JSON.parse(sessionStorage.getItem(STORAGE)||'null');return v&&v.access?v.access:null}catch{return null}
 }
-function openModule(key){location.href='./licensed-workspace.html?module='+encodeURIComponent(key)}
+function showDoorAutomationChoices(){
+  title.textContent='Dörrautomatik';
+  lead.textContent='Välj vilket arbete du ska utföra.';
+  status.textContent='Åtkomst verifierad · Dörrautomatik';
+  modules.innerHTML='';
+
+  const choices=[
+    {
+      key:'revision',
+      title:'Checklista revision dörrautomatik',
+      text:'Revision och service · 18 kontrollpunkter'
+    },
+    {
+      key:'selfcheck',
+      title:'Egenkontroll dörrautomatik',
+      text:'Egenkontroll · 6 kontrollpunkter'
+    }
+  ];
+
+  choices.forEach(choice=>{
+    const item=document.createElement('button');
+    item.className='module';
+    item.innerHTML='<span><strong>'+choice.title+'</strong><small>'+choice.text+'</small></span><b>›</b>';
+    item.onclick=()=>{location.href='./licensed-workspace.html?module=dorrautomatik&workflow='+encodeURIComponent(choice.key)};
+    modules.appendChild(item);
+  });
+
+  const back=document.createElement('button');
+  back.className='module';
+  back.innerHTML='<span><strong>‹ Till mina moduler</strong><small>Gå tillbaka till modulvalet</small></span>';
+  back.onclick=()=>{const access=getSavedAccess();if(access)render(access,false)};
+  modules.appendChild(back);
+}
+function openModule(key){
+  if(key==='dorrautomatik'){showDoorAutomationChoices();return}
+  location.href='./licensed-workspace.html?module='+encodeURIComponent(key)
+}
 function render(access,autoOpen){
   if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.length){showError('Inga aktiva moduler är tilldelade.');return}
   title.textContent='Hej '+(access.displayName||'');
   lead.textContent=(access.companyName||'Ditt företag')+' · du ser bara de moduler som är tilldelade till ditt konto.';
   status.textContent='Åtkomst verifierad · '+access.moduleKeys.length+' modul'+(access.moduleKeys.length===1?'':'er');
   const available=access.moduleKeys.filter(k=>supported.has(k));
-  if(autoOpen && available.length===1 && access.moduleKeys.length===1){openModule(available[0]);return}
+  if(autoOpen && available.length===1 && access.moduleKeys.length===1 && available[0]!=='dorrautomatik'){openModule(available[0]);return}
   modules.innerHTML='';
   access.moduleKeys.forEach(key=>{
     const item=document.createElement(supported.has(key)?'button':'div');
