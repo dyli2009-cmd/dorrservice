@@ -23,3 +23,5 @@ När låset är aktivt:
 2026-10-08, Tillsyno v2.4.253: användaren beställde ett offlinetest av arbetsappen. Appfiler och PDF-bibliotek görs tillgängliga offline, och ritningen kan återöppnas från lokal lagring. Protokollens punkter och PDF-design ändras inte. Kontrollflöde är låst igen efter denna beställda ändring.
 
 2026-10-08, Tillsyno v2.4.254: användaren beställde menyn vid ögat för att visa/dölja alla markeringar eller markeringar per valt protokoll. Beställningen tillåter denna avgränsade ändring i Kontrollflöde. Protokoll, arbetsdata och PDF-export är oförändrade. Kontrollflöde är låst igen efter denna ändring.
+
+2026-10-08, Tillsyno v2.4.255: användaren beställde att avstå från sparad ritning och själv namnge separat PDF-kopia. Denna avgränsade beställning tillåter ändringen; protokollinnehåll och PDF-layout är kvar. Kontrollflöde är låst igen efter ändringen.

@@ -903,3 +903,14 @@ body[data-overview-size="3"] #securityOverview .secSummaryMeta{font-size:17px}
 @media(max-width:800px){
  #securityOverview #secOverviewCustomerPreview{min-height:27px;padding:3px 6px;font-size:8.5px}
 }
+
+.secFileNameDialog{width:min(430px,calc(100vw - 32px));box-sizing:border-box;padding:22px;border:1px solid #d4e2df;border-radius:18px;background:#fff;color:#173b42;max-height:calc(100dvh - 40px);overflow:auto}
+.secFileNameDialog::backdrop{background:#102d3866}
+.secFileNameDialog h2{font-size:19px;margin:0 0 18px}
+.secFileNameDialog label{display:block;font-size:13px;margin-bottom:7px}
+.secFileNameDialog input{box-sizing:border-box;width:100%;min-height:44px;font-size:16px;padding:10px;border:1px solid #b9cfca;border-radius:9px}
+.secFileNameDialog p{font-size:13px;line-height:1.5;color:#647b7d}
+.secFileNameDialog form>div{display:flex;gap:8px;justify-content:flex-end}
+.secFileNameDialog button{min-height:42px;padding:8px 16px;border-radius:9px;border:1px solid #b9cfca;background:#eff6f3;color:#173b42;font:inherit}
+.secFileNameDialog button[type=submit]{background:#173b42;color:white}
+.secFileNameDialog button:disabled{opacity:.45}
