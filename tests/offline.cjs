@@ -24,6 +24,13 @@ const server=http.createServer((req,res)=>{
   const group=page.locator('.allProtocolGroup').filter({has:page.locator('input[value="lock_revision"]')});
   await group.locator('summary').click();await group.locator('input[value="lock_revision"]').check();
   const pdf=await PDFDocument.create();pdf.addPage([595,842]);const bytes=Buffer.from(await pdf.save());
+  const reopenLocalDrawing=async()=>{
+   assert.equal(await page.getByRole('button',{name:'Fortsätt med sparad ritning',exact:true}).count(),0);
+   const options=page.locator('.allProtocolGroup').filter({has:page.locator('input[value="lock_revision"]')});
+   await options.locator('summary').click();await options.locator('input[value="lock_revision"]').check();
+   const chooser=page.waitForEvent('filechooser');await page.locator('#allProtocolApply').click();
+   await (await chooser).setFiles({name:'offline-test.pdf',mimeType:'application/pdf',buffer:bytes});
+  };
   const chooserPromise=page.waitForEvent('filechooser');await page.locator('#allProtocolApply').click();await (await chooserPromise).setFiles({name:'offline-test.pdf',mimeType:'application/pdf',buffer:bytes});
   await page.waitForFunction(()=>typeof pdf!=='undefined'&&pdf&&sourceBytes?.length>0);
   await page.waitForFunction(async()=>!!(await window.TillsynoOfflineWork.recent('doorservice-all-in-one')));
@@ -34,14 +41,14 @@ const server=http.createServer((req,res)=>{
   await context.setOffline(true);
   await page.goto(url+'?source=pwa');assert(await page.locator('.homeBrand').textContent().then(s=>s.includes('Tillsyno')));
   await page.locator('a[href^="all-in-one.html"]').click();
-  await page.locator('#allProtocolDialog button').filter({hasText:'Fortsätt med sparad ritning'}).click();
+  await reopenLocalDrawing();
   await page.waitForFunction(()=>items.length===1&&!!pdf);
   const restored=await page.evaluate(()=>({id:items[0].uid,result:items[0].checks['1.1'].result,key:activeKey}));assert.deepEqual(restored,original);
   await page.locator('.secMarker').first().dblclick();await page.locator('.secChoices button[data-v="ok"]').nth(1).click();
   await page.locator('#securityExport').click();const download=page.waitForEvent('download');await page.locator('#secSaveWork').click();
   const output=await download;const outputPath=await output.path();assert(fs.statSync(outputPath).size>1000);
   const exported=await PDFDocument.load(fs.readFileSync(outputPath));assert(exported.getPageCount()>=3);
-  await page.reload();await page.locator('#allProtocolDialog button').filter({hasText:'Fortsätt med sparad ritning'}).click();
+  await page.reload();await reopenLocalDrawing();
   await page.waitForFunction(()=>items.length===1&&items[0].checks['1.2'].result==='ok');
   assert.deepEqual(errors,[]);console.log('PASS: offline cold navigation, versioned cache, mobile drawing recovery, edits after reload and real PDF export');
   await context.close();
