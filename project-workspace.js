@@ -828,29 +828,24 @@ async function exportSelectedSelfchecks(){
  finally{el.selfcheckExportCreate.disabled=false}
 }
 function protocolScore(code,pageNo,text,drawingPages){
- const rx=codeRegex(code);if(!rx||!rx.test(text.raw))return -1;
- let score=10;
- const lower=text.raw.toLocaleLowerCase('sv');
- if(!drawingPages.has(pageNo))score+=5;
- ['protokoll','dörrautomatik','dörr','elbleck','lås','trycke','beskrivning','produkt','ingår','funktion'].forEach(w=>{if(lower.includes(w))score++});
- const compact=text.raw.toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
- if(compact.startsWith(code))score+=5;
- return score;
+ // GS-kopplingen får bara baseras på själva GS-tokenen, aldrig på ord som lås, trycke eller elbleck.
+ if(drawingPages.has(pageNo))return -1;
+ const rx=codeRegex(code);
+ return rx&&rx.test(String(text?.raw||''))?1:-1;
 }
 async function buildProtocolMap(){
  protocolMap={};
  const drawingPages=new Set(stamps.map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
- setState('Matchar GS-stämplar mot protokoll i samma PDF…');
+ setState('Matchar exakta GS-koder mot dörrkort i samma PDF…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
  for(const code of codes){
-  let best=null;
+  const matches=[];
   for(let p=1;p<=pdf.numPages;p++){
-   const score=protocolScore(code,p,pageTexts[p],drawingPages);
-   if(score<0)continue;
-   if(!best||score>best.score)best={page:p,score};
+   if(protocolScore(code,p,pageTexts[p],drawingPages)>=0)matches.push(p);
   }
-  if(best)protocolMap[code]=best.page;
+  // En enda säker exakt GS-träff krävs. Ingen träff eller flera möjliga sidor = ingen klickbar koppling.
+  if(matches.length===1)protocolMap[code]=matches[0];
  }
 }
 function isAdministrativeWorkLine(text,label){
