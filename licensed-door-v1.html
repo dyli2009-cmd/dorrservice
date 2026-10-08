@@ -23,17 +23,22 @@
   try{access=JSON.parse(sessionStorage.getItem(ACCESS_KEY)||'null')}catch(_){}
   const params=new URLSearchParams(location.search);
   const moduleKey=params.get('module')||'';
-  const protocol=params.get('protocol')||'';
+  const protocols=[...new Set((params.get('protocols')||params.get('protocol')||'').split(',').filter(Boolean))];
   const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
-  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>item.appProtocolKey===protocol):null;
-  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&['automation','automation_selfcheck'].includes(protocol)&&protocolInfo;
+  const available=module&&Array.isArray(module.protocols)?module.protocols:[];
+  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&protocols.length>0&&protocols.every(key=>['automation','automation_selfcheck'].includes(key)&&available.some(item=>item.appProtocolKey===key));
   if(!allowed){
     location.replace('./licensed-entry-v6.html?resume=1');
+    return;
   }
+  const names=protocols.map(key=>available.find(item=>item.appProtocolKey===key)?.name||key);
   window.TILLSYNO_LICENSED_MODULE=moduleKey;
   window.TILLSYNO_LICENSED_MODULE_NAME=module?.name||'Dörrautomatik';
-  window.TILLSYNO_LICENSED_DOOR_PROTOCOL=protocol;
-  window.TILLSYNO_LICENSED_PROTOCOL_NAME=protocolInfo?.name||(protocol==='automation_selfcheck'?'Egenkontroll dörrautomatik':'Checklista revision dörrautomatik');
+  window.TILLSYNO_LICENSED_DOOR_PROTOCOLS=protocols;
+  window.TILLSYNO_LICENSED_PROTOCOL_NAME=protocols.length===1?names[0]:(module?.name||'Dörrautomatik');
+  window.TILLSYNO_LICENSED_PROTOCOL_NAMES=names;
+  window.AllInOneProtocols={...(window.AllInOneProtocols||{}),get:()=>[...protocols]};
+  try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify(protocols))}catch(_){}
 })();
 </script>\n</head>
 <body class="securityApp allInOneApp" data-view="drawing">
@@ -200,22 +205,22 @@
 <script>
 (()=>{
   'use strict';
-  const protocol=window.TILLSYNO_LICENSED_DOOR_PROTOCOL;
+  const protocols=window.TILLSYNO_LICENSED_DOOR_PROTOCOLS||[];
   const moduleName=window.TILLSYNO_LICENSED_MODULE_NAME||'Dörrautomatik';
   const protocolName=window.TILLSYNO_LICENSED_PROTOCOL_NAME||'Dörrautomatik';
 
-  try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify([protocol]))}catch(_){}
+  try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify(protocols))}catch(_){}
 
   function apply(){
     document.querySelectorAll('.allInOneProtocolTools [data-add]').forEach(btn=>{
-      const ok=btn.getAttribute('data-add')===protocol;
+      const ok=protocols.includes(btn.getAttribute('data-add'));
       btn.hidden=!ok;
       btn.style.display=ok?'':'none';
     });
 
     document.querySelectorAll('[data-add]').forEach(btn=>{
       const type=btn.getAttribute('data-add');
-      if(type && type!==protocol){
+      if(type && !protocols.includes(type)){
         btn.hidden=true;
         btn.style.display='none';
       }
@@ -225,7 +230,7 @@
     if(brand)brand.textContent=protocolName;
 
     const subtitle=document.querySelector('.headerSubtitle');
-    if(subtitle)subtitle.textContent=moduleName+' · '+protocolName;
+    if(subtitle)subtitle.textContent=protocols.length>1?window.TILLSYNO_LICENSED_PROTOCOL_NAMES.join(' · '):moduleName+' · '+protocolName;
 
     const emptyTitle=document.querySelector('#secEmpty h1');
     if(emptyTitle)emptyTitle.textContent=protocolName;
