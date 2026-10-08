@@ -873,7 +873,7 @@ function protocolMatchDetails(code,text){
  const rows=protocolPageRows(text),compactCode=projectIdCompact(code);
  const matchingRows=rows.filter(r=>textLineContainsExactProjectId(r.text,code));
  if(!matchingRows.length)return {matched:false,matchingRows:[],labelled:false,isolated:false,firstArea:false,occurrences:0};
- const labelled=matchingRows.some(r=>new RegExp('(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING|OBJEKT(?:NUMMER|NR)?)\\s*[:#-]?\\s*'+escapeRegex(compactCode),'i').test(projectIdCompact(r.text))||/(dörr|dorr|littera|objekt|id|position|kort)/i.test(r.text));
+ const labelled=matchingRows.some(r=>/(dörr(?:kort)?|dorr(?:kort)?|door|\bid\b|littera|kort|position|märkning|markning|objekt(?:nummer|nr)?)/i.test(r.text));
  const isolated=matchingRows.some(r=>projectIdCompact(r.text)===compactCode);
  const topRows=rows.slice(0,Math.min(12,rows.length));
  const firstArea=topRows.some(r=>textLineContainsExactProjectId(r.text,code));
