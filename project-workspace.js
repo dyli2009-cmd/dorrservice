@@ -436,10 +436,16 @@ function projectIdStrength(code){
  if(compact.length<=3)return 'short';
  return 'normal';
 }
+function isGenericAnnotationText(value){
+ const compact=projectIdCompact(value);
+ return new Set(['HIGHLIGHT','STAMP','SQUARE','CIRCLE','INK','UNDERLINE','SQUIGGLY','FREETEXT','ANNOTATION','COMMENT']).has(compact);
+}
 function stampCode(dict){
  const {PDFName}=PDFLib;
- for(const key of ['Subj','Contents','T','NM','Name']){
-  const code=normalizeCode(decodePdfText(dict.get(PDFName.of(key))));
+ for(const key of ['Contents','T','NM','Name','Subj']){
+  const raw=decodePdfText(dict.get(PDFName.of(key)));
+  if(isGenericAnnotationText(raw))continue;
+  const code=normalizeCode(raw);
   if(code)return code;
  }
  return '';
@@ -487,7 +493,8 @@ async function extractStamps(){
  });
  const out=[];
  for(const mark of candidates){
-  const code=mark.code||await codeFromMarkedPageText(mark.page,mark.rect);
+  const textCode=await codeFromMarkedPageText(mark.page,mark.rect);
+  const code=textCode||mark.code;
   if(code)out.push({...mark,code});
  }
  return out;
@@ -2070,10 +2077,10 @@ async function analyze(file){
  await buildProtocolMap();
  await discoverDoorAutomations();
  await recalcAll();
- const codes=[...new Set(stamps.map(s=>s.code))],matched=codes.filter(c=>protocolMap[c]).length;
+ const codes=[...new Set(stamps.map(s=>s.code))],matchedCodes=codes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length,unmatchedPositions=Math.max(0,stamps.length-matchedPositions);
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller DA-positioner hittades i den här PDF-filen.');
- else setState(stamps.length+' projektpositioner · '+automationItems.length+' dörrautomatiker · '+matched+' matchade dörrkort/protokoll'+restored+'.');
+ if(!stamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
+ else setState(stamps.length+' markeringskandidater · '+matchedPositions+' klickbara positioner · '+matchedCodes+' matchade ID'+(unmatchedPositions?' · '+unmatchedPositions+' utan dörrkort visas inte':'')+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
