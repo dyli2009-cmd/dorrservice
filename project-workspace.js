@@ -850,29 +850,62 @@ async function exportSelectedSelfchecks(){
  }catch(err){console.error(err);setState('Egenkontrollerna kunde inte skapas: '+(err?.message||err))}
  finally{el.selfcheckExportCreate.disabled=false}
 }
+function protocolPageRows(text){
+ return groupTextRowsForAutomation(text?.items||[]);
+}
+function protocolPageSignals(text){
+ const raw=String(text?.raw||''),lower=raw.toLocaleLowerCase('sv');
+ const strong=['dörrkort','dorrkort','dörrkortet','dorrkortet','dörrschema','dorrschema','beslagning','beslagslista','protokoll'];
+ const medium=['dörr','dorr','littera','objektnummer','objektnr','position','beslag','cylinder','låshus','lashus','slutbleck','trycke','dörrstängare','dorrstangare','automatik','produkt','funktion'];
+ let score=0;
+ strong.forEach(w=>{if(lower.includes(w))score+=5});
+ medium.forEach(w=>{if(lower.includes(w))score+=1});
+ return {score,lower};
+}
+function protocolMatchDetails(code,text){
+ const rows=protocolPageRows(text),compactCode=projectIdCompact(code);
+ const matchingRows=rows.filter(r=>textLineContainsExactProjectId(r.text,code));
+ if(!matchingRows.length)return {matched:false,matchingRows:[],labelled:false,isolated:false,firstArea:false,occurrences:0};
+ const labelled=matchingRows.some(r=>new RegExp('(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING|OBJEKT(?:NUMMER|NR)?)\\s*[:#-]?\\s*'+escapeRegex(compactCode),'i').test(projectIdCompact(r.text))||/(dörr|dorr|littera|objekt|id|position|kort)/i.test(r.text));
+ const isolated=matchingRows.some(r=>projectIdCompact(r.text)===compactCode);
+ const topRows=rows.slice(0,Math.min(12,rows.length));
+ const firstArea=topRows.some(r=>textLineContainsExactProjectId(r.text,code));
+ return {matched:true,matchingRows,labelled,isolated,firstArea,occurrences:matchingRows.length};
+}
+function requiredProtocolScore(code){
+ switch(projectIdStrength(code)){
+  case 'single-number':return 27;
+  case 'short-number':return 23;
+  case 'short':return 22;
+  case 'number':return 19;
+  default:return 16;
+ }
+}
 function protocolScore(code,pageNo,text,drawingPages){
- const rx=codeRegex(code);if(!rx||!rx.test(text.raw))return -1;
- let score=10;
- const lower=text.raw.toLocaleLowerCase('sv');
- if(!drawingPages.has(pageNo))score+=5;
- ['dörrkort','dorrkort','protokoll','dörrautomatik','dörr','littera','beslag','cylinder','elbleck','lås','låshus','trycke','dörrstängare','beskrivning','produkt','ingår','funktion'].forEach(w=>{if(lower.includes(w))score++});
- const compact=text.raw.toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
- const compactCode=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
- if(compact.startsWith(compactCode))score+=5;
- if(/^\d{1,6}(?:\s+[A-ZÅÄÖ]{1,3})?$/.test(code)&&/(dörrkort|dorrkort|littera|beslag|cylinder|låshus|trycke)/.test(lower))score+=4;
+ const match=protocolMatchDetails(code,text);if(!match.matched)return -1;
+ const signals=protocolPageSignals(text);
+ let score=8+signals.score;
+ if(!drawingPages.has(pageNo))score+=5;else score-=4;
+ if(match.labelled)score+=8;
+ if(match.isolated)score+=7;
+ if(match.firstArea)score+=4;
+ if(match.occurrences>1)score+=Math.min(4,match.occurrences-1);
+ const strength=projectIdStrength(code);
+ if(strength==='single-number'&&!match.labelled&&!match.isolated)score-=8;
+ if((strength==='single-number'||strength==='short-number')&&signals.score<5)score-=7;
  return score;
 }
 async function buildProtocolMap(){
- protocolMap={};
+ protocolMap={};protocolDefs={};
  const drawingPages=new Set(stamps.map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
- setState('Matchar projektmarkeringar och ID mot dörrkort/protokoll i samma PDF…');
+ setState('Djupmatchar '+codes.length+' markerade ID mot dörrkort/protokoll i hela PDF-filen…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
  for(const code of codes){
   let best=null;
   for(let p=1;p<=pdf.numPages;p++){
    const score=protocolScore(code,p,pageTexts[p],drawingPages);
-   if(score<0)continue;
+   if(score<requiredProtocolScore(code))continue;
    if(!best||score>best.score)best={page:p,score};
   }
   if(best)protocolMap[code]=best.page;
