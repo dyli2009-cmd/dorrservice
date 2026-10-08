@@ -99,12 +99,14 @@ function openProtocol(module,protocol){
   }
 }
 
-function showDoorProtocols(access,module){
+function showSelectedProtocols(access,module){
   title.textContent=module.name||'Dörrautomatik';
-  lead.textContent='Välj ett eller båda protokollen.';
+  lead.textContent='Välj ett eller flera protokoll.';
   status.hidden=true;list.innerHTML='';
   const selected=new Set();
-  const choices=moduleProtocols(module).filter(p=>['automation','automation_selfcheck'].includes(p.appProtocolKey));
+  const isDoor=module.key==='dorrautomatik';
+  const supported=isDoor?['automation','automation_selfcheck']:['alarm','lock','access','fire_panel','fire_detector','fire_door'];
+  const choices=moduleProtocols(module).filter(p=>supported.includes(p.appProtocolKey));
   const next=document.createElement('button');
   next.type='button';next.className='continueButton';next.textContent='Fortsätt till ritning';next.disabled=true;
   choices.forEach(protocol=>{
@@ -122,14 +124,15 @@ function showDoorProtocols(access,module){
   });
   next.onclick=()=>{
     if(!selected.size)return;
-    location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocols='+encodeURIComponent([...selected].join(','))+'&v=4';
+    const target=isDoor?'licensed-door-v1.html':'licensed-control-v1.html';
+    location.href='./'+target+'?module='+encodeURIComponent(module.key)+'&protocols='+encodeURIComponent([...selected].join(','))+'&v=5';
   };
   list.appendChild(next);
   backToModules(access);
 }
 
 function showProtocolArea(access,module){
-  if(module.key==='dorrautomatik'){showDoorProtocols(access,module);return;}
+  if(['dorrautomatik','sakerhetsservice','brand'].includes(module.key)){showSelectedProtocols(access,module);return;}
   title.textContent=module.name;
   lead.textContent='Välj vilket protokoll du ska arbeta med.';
   status.hidden=true;
