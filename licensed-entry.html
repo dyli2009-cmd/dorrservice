@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#132b38">
+<title>Tillsyno – licensierad åtkomst</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#f8fbff,#eef3f7);color:#15243a}.shell{width:min(760px,calc(100% - 32px));margin:0 auto;padding:54px 0 80px}.brand{display:flex;align-items:center;gap:10px;margin-bottom:44px}.mark{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#142940;color:#fff;font-weight:800}.card{padding:28px;border:1px solid #d8e3eb;border-radius:22px;background:#fff;box-shadow:0 18px 50px rgba(24,48,70,.08)}.eyebrow{color:#4b7395;font-size:10px;font-weight:800;letter-spacing:.13em}.card h1{margin:9px 0 8px;font-size:clamp(34px,7vw,52px);letter-spacing:-.045em}.lead{margin:0;color:#66788b;line-height:1.65}.status{margin:22px 0;padding:14px 16px;border-radius:14px;background:#f3f7fa;color:#597083;font-size:12px}.modules{display:grid;gap:10px;margin-top:20px}.module{width:100%;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dce5ec;border-radius:14px;background:#fff;color:#18344b;text-decoration:none;font:inherit;text-align:left;cursor:pointer}.module strong,.module small{display:block}.module small{margin-top:4px;color:#7c8b98;font-size:11px}.module b{font-size:20px}.module.disabled{opacity:.55;cursor:not-allowed;background:#f7f9fb}.error{margin-top:18px;padding:14px;border-radius:13px;border:1px solid #efcaca;background:#fff1f1;color:#8a3f3f;font-size:12px}.back{display:inline-block;margin-top:20px;color:#315f81;font-size:12px;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="brand"><span class="mark">T</span><strong>Tillsyno</strong></div>
+  <section class="card">
+    <span class="eyebrow">LICENSIERAD ÅTKOMST</span>
+    <h1 id="title">Kontrollerar åtkomst…</h1>
+    <p id="lead" class="lead">Tillsyno verifierar företag, licens och dina tilldelade moduler.</p>
+    <div id="status" class="status">Ansluter till Tillsyno-portalen…</div>
+    <div id="modules" class="modules"></div>
+    <div id="error" class="error" hidden></div>
+    <a class="back" href="https://tillsyno-test.floot.app/konto">Till Tillsyno-portalen</a>
+  </section>
+</main>
+<script>
+const PORTAL='https://tillsyno-test.floot.app';
+const STORAGE='tillsynoLicensedAccessV1';
+const names={dorrautomatik:'Dörrautomatik',las:'Lås',brand:'Brand',passer:'Passer',inbrottslarm:'Inbrottslarm',cctv:'CCTV',ce_slr:'CE-märkning / SLR'};
+const supported=new Set(['dorrautomatik','las','passer','inbrottslarm']);
+const params=new URLSearchParams(location.search);
+const token=params.get('token');
+const forceMenu=params.get('menu')==='1';
+const title=document.getElementById('title'),lead=document.getElementById('lead'),status=document.getElementById('status'),modules=document.getElementById('modules'),errorBox=document.getElementById('error');
+
+function showError(message){
+  title.textContent='Åtkomsten kunde inte öppnas';
+  lead.textContent='Gå tillbaka till Tillsyno-portalen och öppna arbetsytan på nytt.';
+  status.hidden=true; modules.innerHTML=''; errorBox.hidden=false; errorBox.textContent=message||'Okänt fel.';
+}
+function saveAccess(access){sessionStorage.setItem(STORAGE,JSON.stringify({access,storedAt:Date.now()}))}
+function getSavedAccess(){
+  try{const v=JSON.parse(sessionStorage.getItem(STORAGE)||'null');return v&&v.access?v.access:null}catch{return null}
+}
+function openModule(key){location.href='./licensed-workspace.html?module='+encodeURIComponent(key)}
+function render(access,autoOpen){
+  if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.length){showError('Inga aktiva moduler är tilldelade.');return}
+  title.textContent='Hej '+(access.displayName||'');
+  lead.textContent=(access.companyName||'Ditt företag')+' · du ser bara de moduler som är tilldelade till ditt konto.';
+  status.textContent='Åtkomst verifierad · '+access.moduleKeys.length+' modul'+(access.moduleKeys.length===1?'':'er');
+  const available=access.moduleKeys.filter(k=>supported.has(k));
+  if(autoOpen && available.length===1 && access.moduleKeys.length===1){openModule(available[0]);return}
+  modules.innerHTML='';
+  access.moduleKeys.forEach(key=>{
+    const item=document.createElement(supported.has(key)?'button':'div');
+    item.className='module'+(supported.has(key)?'':' disabled');
+    item.innerHTML='<span><strong>'+(names[key]||key)+'</strong><small>'+(supported.has(key)?'Öppna arbetsyta':'Arbetsyta byggs senare')+'</small></span><b>'+(supported.has(key)?'›':'')+'</b>';
+    if(supported.has(key)) item.onclick=()=>openModule(key);
+    modules.appendChild(item);
+  });
+}
+async function validate(){
+  if(!token){
+    const access=getSavedAccess();
+    if(access){render(access,!forceMenu);return}
+    showError('Ingen aktiv startnyckel hittades.');
+    return;
+  }
+  history.replaceState(null,'',location.pathname);
+  try{
+    const response=await fetch(PORTAL+'/_api/app/validate_launch',{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({token})
+    });
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.message||'Verifieringen misslyckades.');
+    saveAccess(data.access);
+    render(data.access,!forceMenu);
+  }catch(err){showError(err&&err.message?err.message:'Kunde inte verifiera åtkomsten.')}
+}
+validate();
+</script>
+</body>
+</html>
