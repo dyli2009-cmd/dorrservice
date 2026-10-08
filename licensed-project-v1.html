@@ -18,14 +18,14 @@
   let access=null;
   try{access=JSON.parse(sessionStorage.getItem(STORAGE)||'null')}catch(_){}
   if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.includes('projektflode')){
-    location.replace('./licensed-entry-v4.html?resume=1');
+    location.replace('./licensed-entry-v6.html?resume=1');
   }
 })();
 </script>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
-  <a class="pwHome" href="./licensed-entry-v4.html?resume=1" aria-label="Hem">‹ Hem</a>
+  <a class="pwHome" href="./licensed-entry-v6.html?resume=1" aria-label="Hem">‹ Hem</a>
   <div class="pwTitle"><strong>Projektflöde</strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
   <div class="pwHeaderActions">
     <div class="pwSaveWrap">
