@@ -26,9 +26,7 @@
   const moduleKey=params.get('module')||'';
   const protocol=params.get('protocol')||'';
   const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
-  const definition=params.get('definition')||'';
-  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>definition?item.key===definition&&item.appProtocolKey===protocol:item.appProtocolKey===protocol):null;
-  window.TILLSYNO_PROTOCOL_DEFINITION=protocolInfo?{...protocolInfo,moduleKey}:null;
+  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>item.appProtocolKey===protocol):null;
   const supported=['alarm','lock','access','fire_panel','fire_detector','fire_door'];
   const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&supported.includes(protocol)&&protocolInfo;
   if(!allowed)location.replace('./licensed-entry-v6.html?resume=1');
@@ -198,7 +196,7 @@
 </nav>
 <script src="ui-text-scale.js?v=2.4.215"></script><script src="drawing-annotations.js?v=2.4.215"></script>
 <script src="session-history.js?v=2.4.215"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.252"></script><script src="legacy-door-import.js?v=2.4.215"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.251"></script><script src="legacy-door-import.js?v=2.4.215"></script>
 <script src="drawing-transfer.js?v=2.4.215"></script>
 <script>
 (()=>{
@@ -212,7 +210,6 @@
       const ok=btn.getAttribute('data-add')===protocol;
       btn.hidden=!ok;
       btn.style.display=ok?'':'none';
-      if(ok)btn.textContent='＋ '+protocolName;
     });
     const brand=document.querySelector('.brand strong');
     if(brand)brand.textContent=protocolName;
