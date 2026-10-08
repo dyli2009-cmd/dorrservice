@@ -63,41 +63,14 @@ Kontrollflödets lås ska respekteras.
 - efter filval läses i första hand `webPath`, därefter konverterad `path`
 
 ## Projekt-ID
-- ID-formatet ska vara flexibelt och inte låsas till GS. Exempel som får vara kandidater: `GS1`, `GS2`, `1`, `140`, `140D`, `815 C`, `815A`, `310 A`, `310 B`, `GSTD1` och motsvarande projektunika kombinationer.
-- Mellanrum, bindestreck, punkt, underscore och slash normaliseras vid jämförelse, så olika typografiska varianter kan matcha samma ID.
-- Alla läsbara PDF-markeringar behandlas först som kandidater. En kandidat blir **aldrig klickbar** enbart för att den hittats på ritningen.
-- Dörrkortsmatchningen är strikt på ID-identiteten: `GS1` får endast matchas mot ett dörrkort vars identitetsfält/rubrik är exakt `GS1`; `GS2` får inte matcha `GS1`, och en ensam `1` får endast matcha identiteten `1`.
-- Förekomst av ID:t i komponent-/arbetsrader, till exempel en låsrad, räcker inte för matchning. ID:t måste stå separat högt på dörrkortet, vara tydligt etiketterat som t.ex. `ID`, `Littera`, `Objektnummer`/position, eller vara en tydlig dörrkortsrubrik.
-- Ord som `lås`, `cylinder`, `trycke` och andra komponentord får inte i sig höja en sida till en ID-matchning.
-- Om flera dörrkortssidor ser nästan lika säkra ut för samma ID lämnas ID:t omatchat hellre än att Projektflödet väljer fel sida.
-- Projektflödet skannar hela PDF-filen och söker en verifierad dörrkorts-/protokollmatchning för samma ID. Först efter godkänd matchning får positionen en klickyta, visas i Positioner och räknas som arbetsposition.
-- Korta ID:n, särskilt en ensam siffra som `1`, kräver högre matchpoäng med starka dörrkortssignaler, etikett/isolering eller placering högt på protokollsidan för att undvika falska träffar.
-- Om ingen tillräckligt stark dörrkortsmatchning finns förblir markeringen osynlig som knapp och kan inte massmarkeras.
-- samma normaliserade ID används för position, räkning, klickyta och matchning mot dörrkort/protokoll i samma PDF
-
-## Egenkontroll dörrautomatik i Projektflödet
-- **Positionering är helt separerad från GS-systemet.** GS1/GS2 och övriga projektstämplar fortsätter använda `instances` + `pwMarkers`. Dörrautomatik använder `automationItems` + ett eget `pwAutomationMarkers`-lager och får aldrig ärva koordinater från GS-positioner.
-- Dörrautomatik skapas endast när Projektflödet kan läsa en strukturerad märkning som består av objektnummer + känd automatkod + löpnummer/antal, exempelvis `7-0-54-28-24-2`.
-- Texten `DA`/`DH` används inte längre som positionsankare eller fallback för egenkontrollen. Om den strukturerade märkningen inte kan läsas skapas ingen automatikposition hellre än att den placeras fel.
-- Klickytans PDF-rektangel byggs endast från de textobjekt som tillsammans bildar den strukturerade märkningen. GS-markeringar påverkar varken upptäckt, koordinater eller klickyta.
-- Projektflödet har en fristående kopia av den befintliga `Checklista revision dörrautomatik`-definitionen och får inte läsa eller importera Kontrollflödets runtime-kod.
-- Kontrollflödets källfiler används endast som referens när kopian skapas; de skyddade filerna ändras inte.
-- När användaren i Projektflödet säger `egenkontroll` avses denna revisionschecklista.
-- Kopian innehåller exakt samma 18 grundkontrollpunkter (1.1–1.18), samma färdiga anmärkningstexter och samma listade dörrautomatikmodeller (kod 11–48) som `Checklista revision dörrautomatik` i Kontrollflödet.
-- Kontrollpunkterna använder samma val som originalet: `Ingår ej`, `Klart utan anmärkning`, `Klart med anmärkning`; vid anmärkning finns originalets färdiga felval samt `Beskriv själv`.
-- Kundmall och exporterad PDF heter `CHECKLISTA REVISION DÖRRAUTOMATIK` och radhöjden anpassas för att samtliga 18 kontrollpunkter ska rymmas på protokollsidan.
-- Projektflödet söker i första hand efter den strukturerade automatikmärkningen på ritningen. Exempel: `7-0-54-28-24-2` tolkas som objektdel `7-0-54-28`, automatkod `24` och löpnummer `2`. Automatkod måste finnas i Projektflödets kopierade automatlista.
-- När en strukturerad automatikmärkning hittas byggs klickytans rektangel från exakt de PDF-textobjekt som tillsammans bildar märkningen, inte från GS-positioner eller hela textraden. Marginalen hålls liten så klickytan följer objektnummer + automatkod + löpnummer visuellt.
-- Strukturerade ID:n accepteras bara på rader som i huvudsak består av själva märkningen/DA, så att motsvarande ID inne på protokollsidor inte felaktigt skapar nya ritningspositioner.
-- Varje hittad automatik får en egen klickbar Egenkontroll på ritningen och i Positioner-panelen.
-- Avlästa värden får korrigeras manuellt inne i egenkontrollen.
-- Projektuppgifterna följer samma grundstruktur som checklistversionen: projekt/objekt, objektnummer, AO, datum/nästa provning, beställare/kund, avtalsnummer, kontaktperson/telefon/adress/postadress, serviceföretag med motsvarande kontaktuppgifter samt tekniker/signatur.
-- Alla projekt-/kund-/företagsuppgifter och logotyp lagras en gång på projektnivå och används automatiskt av samtliga egenkontroller.
-- En logotyp som väljs från valfri egenkontroll sparas därför för hela projektet.
-- Egenkontrollens resultat använder samma tre val: `Ingår ej`, `Klart utan anmärkning` och `Klart med anmärkning`.
-- Projekt-PDF-statusen använder schema 5 och bäddar in projektuppgifter, logga och samtliga DA-egenkontroller tillsammans med övrig Projektflöde-status.
-- Inne i varje egenkontroll finns `Kundmall`, som förhandsgranskar exakt samma PDF-layout som används vid export.
-- `Egenkontroller PDF` ligger i huvudmenyn `Spara`, visar alla hittade automatiker, kan välja alla eller endast klara och skapar en separat kund-PDF för varje vald automatik. På plattformar som stöder delning av flera filer kan filerna delas tillsammans.
+- Den vanliga dörrkorts-/projektpositionskopplingen använder **endast GS-ID**, enligt den tidigare fungerande regeln.
+- Exempel: `GS1`, `GS2`, `GSTD1`, `GSID`, `GSIDW`, `GSIW`.
+- Rena nummer eller generella dörr-ID:n som `1`, `140D`, `815 C` och liknande ska **inte** skapa GS-positioner.
+- GS-positioner läses endast från riktiga PDF-annoteringar av typen `Stamp`, precis som i den tidigare fungerande Projektflöde-versionen.
+- ID:t normaliseras så enkla mellanrum eller bindestreck inne i själva GS-koden inte hindrar matchning, t.ex. `GS 1` → `GS1`.
+- Matchningen mot protokollsidan använder samma exakta GS-ID. `GS1` får inte matcha `GS2` eller `GS10`.
+- Om inget protokoll med samma GS-ID hittas skapas ingen fungerande protokollkoppling för den positionen.
+- Dörrautomatikens separata strukturerade märkning och egenkontroll är ett annat system och påverkas inte av denna GS-regel.
 
 ## Originalprotokoll – zoom
 - originalprotokollet ska kunna nypzoomas med två fingrar på telefon och iPad
