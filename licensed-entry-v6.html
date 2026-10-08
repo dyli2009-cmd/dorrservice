@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#132b38">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Tillsyno – licensierad åtkomst</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#f8fbff,#eef3f7);color:#15243a}
+.shell{width:min(760px,calc(100% - 32px));margin:0 auto;padding:50px 0 80px}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:40px}.mark{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#142940;color:white;font-weight:800}
+.card{padding:28px;border:1px solid #d8e3eb;border-radius:22px;background:white;box-shadow:0 18px 50px rgba(24,48,70,.08)}
+.eyebrow{color:#4b7395;font-size:10px;font-weight:800;letter-spacing:.13em}
+h1{margin:9px 0 8px;font-size:clamp(34px,7vw,52px);letter-spacing:-.045em}.lead{margin:0;color:#66788b;line-height:1.65}
+.status{margin:22px 0;padding:14px 16px;border-radius:14px;background:#f3f7fa;color:#597083;font-size:12px}
+.list{display:grid;gap:10px;margin-top:18px}.choice{width:100%;padding:17px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dce5ec;border-radius:14px;background:white;color:#18344b;font:inherit;text-align:left;cursor:pointer}
+.choice strong,.choice small{display:block}.choice small{margin-top:4px;color:#7c8b98;font-size:11px;line-height:1.45}.choice b{font-size:20px}.choice.disabled{opacity:.55;cursor:not-allowed;background:#f7f9fb}
+.error{margin-top:18px;padding:14px;border-radius:13px;border:1px solid #efcaca;background:#fff1f1;color:#8a3f3f;font-size:12px}
+.back{display:inline-block;margin-top:20px;color:#315f81;font-size:12px;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="brand"><span class="mark">T</span><strong>Tillsyno</strong></div>
+  <section class="card">
+    <span class="eyebrow">LICENSIERAD ÅTKOMST</span>
+    <h1 id="title">Kontrollerar åtkomst…</h1>
+    <p id="lead" class="lead">Verifierar företag, licens och arbetsområden.</p>
+    <div id="status" class="status">Ansluter till Tillsyno-portalen…</div>
+    <div id="list" class="list"></div>
+    <div id="error" class="error" hidden></div>
+    <a class="back" href="https://tillsyno-test.floot.app/konto">Till Tillsyno-portalen</a>
+  </section>
+</main>
+<script>
+(()=>{
+'use strict';
+const PORTAL='https://tillsyno-test.floot.app';
+const STORAGE='tillsynoLicensedAccessV4';
+const params=new URLSearchParams(location.search);
+const token=params.get('token')||'';
+const title=document.getElementById('title');
+const lead=document.getElementById('lead');
+const status=document.getElementById('status');
+const list=document.getElementById('list');
+const errorBox=document.getElementById('error');
+
+function fail(message){
+  title.textContent='Åtkomsten kunde inte öppnas';
+  lead.textContent='Öppna Tillsyno på nytt från portalen.';
+  status.hidden=true; list.innerHTML=''; errorBox.hidden=false; errorBox.textContent=message||'Okänt fel.';
+}
+function save(access){try{sessionStorage.setItem(STORAGE,JSON.stringify(access))}catch(_){}}
+function saved(){try{return JSON.parse(sessionStorage.getItem(STORAGE)||'null')}catch(_){return null}}
+function button(label,sub,fn,disabled=false){
+  const b=document.createElement('button');
+  b.type='button'; b.className='choice'+(disabled?' disabled':'');
+  b.innerHTML='<span><strong>'+label+'</strong><small>'+sub+'</small></span><b>'+(disabled?'':'›')+'</b>';
+  if(!disabled)b.onclick=fn;
+  list.appendChild(b);
+}
+function moduleProtocols(module){
+  return Array.isArray(module?.protocols)?module.protocols:[];
+}
+function backToModules(access){
+  button('‹ Till arbetsområden','Gå tillbaka till dina tilldelade områden',()=>showModules(access));
+}
+function showDoorAutomation(access,module){
+  title.textContent='Dörrautomatik';
+  lead.textContent='Välj vilket protokoll du ska arbeta med.';
+  status.textContent='Åtkomst verifierad · Dörrautomatik';
+  list.innerHTML='';
+  const protocols=moduleProtocols(module);
+  protocols.forEach(protocol=>{
+    const workflow=protocol.key==='automation_selfcheck'?'selfcheck':'revision';
+    button(protocol.name,protocol.description||'Öppna protokoll',()=>{
+      location.href='./licensed-door-v1.html?workflow='+encodeURIComponent(workflow)+'&v=2';
+    });
+  });
+  backToModules(access);
+}
+function showProtocolArea(access,module){
+  title.textContent=module.name;
+  lead.textContent='Välj vilket protokoll du ska arbeta med.';
+  status.textContent='Åtkomst verifierad · '+module.name;
+  list.innerHTML='';
+  const protocols=moduleProtocols(module);
+  if(!protocols.length){
+    button(module.name,'Inga protokoll är upplagda ännu',()=>{},true);
+  }else{
+    protocols.forEach(protocol=>{
+      button(protocol.name,protocol.description||'Öppna protokoll',()=>{
+        location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(protocol.key)+'&v=1';
+      });
+    });
+  }
+  backToModules(access);
+}
+function showModules(access){
+  if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.length){fail('Inga aktiva arbetsområden är tilldelade.');return}
+  const modules=Array.isArray(access.modules)?access.modules:[];
+  title.textContent='Hej '+(access.displayName||'');
+  lead.textContent=(access.companyName||'Ditt företag')+' · välj arbetsområde.';
+  status.hidden=false;
+  status.textContent='Åtkomst verifierad · '+access.moduleKeys.length+' arbetsområde'+(access.moduleKeys.length===1?'':'n');
+  list.innerHTML='';
+  access.moduleKeys.forEach(key=>{
+    const module=modules.find(item=>item.key===key)||{key,name:key,protocols:[]};
+    const protocolNames=moduleProtocols(module).map(protocol=>protocol.name).join(' · ');
+    if(key==='dorrautomatik'){
+      button(module.name||'Dörrautomatik',protocolNames||'Öppna arbetsområde',()=>showDoorAutomation(access,module));
+    }else if(key==='sakerhetsservice'||key==='brand'){
+      button(module.name||key,protocolNames||'Öppna arbetsområde',()=>showProtocolArea(access,module));
+    }else if(key==='projektflode'){
+      button(module.name||'Projektflöde',module.description||'Ritning · matchning · status',()=>{location.href='./licensed-project-v1.html?v=1'});
+    }else{
+      button(module.name||key,'Arbetsyta byggs senare',()=>{},true);
+    }
+  });
+}
+async function start(){
+  if(!token){
+    const access=saved();
+    if(access){showModules(access);return}
+    fail('Ingen startnyckel hittades.');
+    return;
+  }
+  try{
+    const response=await fetch(PORTAL+'/_api/app/validate_launch',{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=UTF-8'},
+      body:JSON.stringify({token})
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.message||'Verifieringen misslyckades.');
+    history.replaceState(null,'',location.pathname);
+    save(data.access);
+    showModules(data.access);
+  }catch(e){fail(e&&e.message?e.message:'Kunde inte verifiera åtkomsten.')}
+}
+start();
+})();
+</script>
+</body>
+</html>
