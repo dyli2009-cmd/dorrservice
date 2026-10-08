@@ -31,6 +31,8 @@ let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
 let stamps=[],projectStamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='',automationPreviewPdf=null,automationPreviewRenderTask=null;
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
 
+const PROJECT_AUTOMATION_ENABLED=false;
+
 const PROJECT_AUTOMATION_CHECKS=[
  ['1.1','Samtal med nyttjaren.'],
  ['1.2','Okulärbesiktning av dörrautomatik/dörrmiljö.'],
@@ -1763,7 +1765,7 @@ function renderMarkers(){
  }).catch(console.error);
 }
 function renderAutomationMarkers(){
- el.automationMarkers.replaceChildren();if(!pdf)return;
+ el.automationMarkers.replaceChildren();if(!PROJECT_AUTOMATION_ENABLED||!pdf)return;
  const renderPage=page,pageItems=automationItems.filter(o=>o.page===renderPage);
  pdf.getPage(renderPage).then(pg=>{
   if(renderPage!==page)return;
@@ -1784,7 +1786,7 @@ function renderAutomationMarkers(){
 function renderGroups(){
  const groups={};
  matchedProjectInstances().filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
- const visibleAutomations=automationItems.filter(o=>!currentOnly||o.page===page);
+ const visibleAutomations=PROJECT_AUTOMATION_ENABLED?automationItems.filter(o=>!currentOnly||o.page===page):[];
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
  if(!codes.length&&!visibleAutomations.length){const p=document.createElement('p');p.className='pwMuted';p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';el.groups.appendChild(p);return}
@@ -2181,13 +2183,13 @@ async function analyze(file){
  buildInstances();
  await buildProtocolMap();
  await buildProjectStampMap();
- await discoverDoorAutomations();
+ if(PROJECT_AUTOMATION_ENABLED)await discoverDoorAutomations();
  await recalcAll();
  const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=stamps.filter(s=>s.sourceKind==='gs-text').length;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!projectStamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
- else setState(stamps.length+' GS-positioner'+(textGsCount?' · '+textGsCount+' hittade direkt i ritningstext':'')+' · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
+ if(!stamps.length&&!projectStamps.length)setState('Inga läsbara projektmarkeringar hittades i den här PDF-filen.');
+ else setState(stamps.length+' GS-positioner'+(textGsCount?' · '+textGsCount+' hittade direkt i ritningstext':'')+' · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
