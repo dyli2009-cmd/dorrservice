@@ -881,3 +881,18 @@ body.allInOneApp #securityOverview .overviewHead{
   background:#fff;
   padding-top:8px;
 }
+
+/* Protocol visibility only affects the drawing, never work data or PDF export. */
+.drawingVisibilityDialog{width:min(410px,calc(100vw - 32px));box-sizing:border-box;max-height:calc(100dvh - 40px);overflow:auto;padding:20px;border:1px solid #d4e2df;border-radius:20px;background:#fff;color:#173b42;box-shadow:0 20px 70px #173b4233}
+.drawingVisibilityDialog::backdrop{background:#102d3866}
+.visibilityHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.visibilityHead h2{font-size:18px;margin:0}
+.visibilityHead button{width:36px;height:36px;padding:0;font-size:24px}
+.visibilityActions{display:flex;gap:8px;margin:18px 0 10px}
+.drawingVisibilityDialog button{border:1px solid #d4e2df;border-radius:10px;background:#eff6f3;color:#173b42;min-height:40px;font:inherit;cursor:pointer}
+.visibilityActions button{flex:1;padding:8px}
+.visibilityChoices{display:grid;gap:4px}
+.visibilityChoices label{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 8px;cursor:pointer;font-size:14px;line-height:1.4}
+.visibilityChoices input{width:20px;height:20px;flex:0 0 20px;accent-color:#238354}
+.drawingVisibilityDialog p{font-size:12px;color:#647b7d;margin:16px 0}
+.drawingVisibilityDialog [data-done]{width:100%;background:#173b42;color:white}

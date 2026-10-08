@@ -320,15 +320,19 @@ function normalizeAutomationIdentity(o){
 }
 function normalize(o){o.checks=o.checks||{};Object.values(o.checks).forEach(c=>{if(c&&typeof c.note==='string')c.note=cleanSecurityRemarkText(c.note)});if(Array.isArray(o.previousIssues))o.previousIssues.forEach(issue=>{if(issue&&typeof issue.note==='string')issue.note=cleanSecurityRemarkText(issue.note)});const cfg=SYSTEMS[o.type];normalizeAutomationIdentity(o);normalizeSecurityCheckEdits(o);const used=new Set((cfg?.checks||[]).map(([n])=>n));o.customChecks=(Array.isArray(o.customChecks)?o.customChecks:[]).filter(c=>{if(!c||typeof c.id!=='string'||used.has(c.id)||typeof c.title!=='string'||!c.title.trim())return false;used.add(c.id);c.title=c.title.trim();return true});allChecks(o).forEach(([n])=>o.checks[n]=o.checks[n]||{result:'',note:''});o.previousIssues=Array.isArray(o.previousIssues)?o.previousIssues:[];o.previousNotes=o.previousNotes||'';o.previousStatus=o.previousStatus||'';o.previousServiceDate=o.previousServiceDate||'';o.status=o.status||'untested';o.manualFail=!!o.manualFail||o.status==='fail';o.notes=o.notes||'';o.location=o.location||'';o.remediationDate=o.remediationDate||'';o.remediationSignature=o.remediationSignature||'';const legacyId=(cfg?.prefix||'')+(Number(o.number)||1);if(!o.id||o.id===legacyId)o.id=isDoorAutomationItem(o)?'D'+o.serialNumber:(cfg?.markerLabel||cfg?.label||o.type)+' '+(Number(o.number)||1);if(!Number.isFinite(o.labelX))o.labelX=Math.max(.035,Math.min(.965,o.x+(o.x>.78?-.075:.075)));if(!Number.isFinite(o.labelY))o.labelY=Math.max(.035,Math.min(.965,o.y-.045));syncStatus(o);return o}
 function msg(t,e=false){$('securityMessage').textContent=t;$('securityMessage').classList.toggle('error',e)}
+const hiddenDrawingProtocols=new Set();
+let drawingVisibilityDialog=null;
 function applyDrawingOverlayVisibility(hidden=drawingOverlaysHidden){
+ if(!hidden)hiddenDrawingProtocols.clear();
  drawingOverlaysHidden=!!hidden;
  document.body.classList.toggle('drawingOverlaysHidden',drawingOverlaysHidden);
  const b=$('secToggleOverlays');
  if(b){
-  b.classList.toggle('active',drawingOverlaysHidden);
+  b.classList.toggle('active',drawingOverlaysHidden||hiddenDrawingProtocols.size>0);
   b.setAttribute('aria-pressed',drawingOverlaysHidden?'true':'false');
   b.setAttribute('aria-label',drawingOverlaysHidden?'Visa markeringar':'Dölj markeringar');
   b.title=drawingOverlaysHidden?'Visa markeringar':'Dölj markeringar';
+  if(ALL_IN_ONE){b.setAttribute('aria-label','Visa eller dölj markeringar');b.title='Visa eller dölj markeringar';b.setAttribute('aria-pressed',String(drawingOverlaysHidden||hiddenDrawingProtocols.size>0))}
  }
  if(drawingOverlaysHidden){
   selected=null;
@@ -404,7 +408,7 @@ function createItem(type,x,y){
 }
 function drawMarkers(){
  markers.replaceChildren();
- const pageItems=items.filter(o=>o.page===page&&allInOneProtocolActive(o.type)).map(normalize);
+ const pageItems=items.filter(o=>o.page===page&&allInOneProtocolActive(o.type)&&!hiddenDrawingProtocols.has(o.type)).map(normalize);
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
  svg.setAttribute('class','secConnectorLayer');svg.setAttribute('width','100%');svg.setAttribute('height','100%');svg.setAttribute('viewBox','0 0 1000 1000');svg.setAttribute('preserveAspectRatio','none');
  const defs=document.createElementNS(ns,'defs');
@@ -476,7 +480,7 @@ function setSecurityPrecisionMode(on){
  if(pdf)drawMarkers();
 }
 $('secPrecision')&&($('secPrecision').onclick=()=>setSecurityPrecisionMode(!precisionMode));
-document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);if(drawingOverlaysHidden)applyDrawingOverlayVisibility(false);textMode=false;document.body.classList.remove('secTextAdding');addType=b.dataset.add;document.body.classList.add('secAdding');$('secHint').textContent='Tryck där '+SYSTEMS[addType].label+' ska markeras. Nyp för att zooma.';$('secHint').hidden=false;go('drawing')});
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);if(drawingOverlaysHidden)applyDrawingOverlayVisibility(false);if(hiddenDrawingProtocols.delete(b.dataset.add)){const toggle=$('secToggleOverlays');toggle.classList.toggle('active',hiddenDrawingProtocols.size>0);toggle.setAttribute('aria-pressed',String(hiddenDrawingProtocols.size>0));drawMarkers()}textMode=false;document.body.classList.remove('secTextAdding');addType=b.dataset.add;document.body.classList.add('secAdding');$('secHint').textContent='Tryck där '+SYSTEMS[addType].label+' ska markeras. Nyp för att zooma.';$('secHint').hidden=false;go('drawing')});
 $('secAddText').onclick=()=>{if(!pdf)return msg('Öppna en PDF först.',true);addType=null;textMode=!textMode;document.body.classList.remove('secAdding');document.body.classList.toggle('secTextAdding',textMode);$('secAddText').classList.toggle('primary',textMode);$('secHint').textContent=textMode?'TEXTLÄGE: Tryck en gång på ritningen där pilen ska peka.':'Textläget avstängt.';$('secHint').hidden=!textMode;go('drawing')};
 function render(fit=false,focus=null,anchor=null){
  if(!pdf)return Promise.resolve();const version=++renderVersion,documentPdf=pdf,pageNumber=page;
@@ -854,7 +858,40 @@ function changeSecurityPage(delta){
  clearTimeout(wheelZoomTimer);wheelZoomTarget=null;wheelZoomFocus=null;page=next;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true);viewer.scrollLeft=0;viewer.scrollTop=0;return true
 }
 $('secPrev').onclick=()=>changeSecurityPage(-1);$('secNext').onclick=()=>changeSecurityPage(1);$('secZoomIn').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom*1.25)};$('secZoomOut').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;setZoom(zoom/1.25)};$('secFit').onclick=$('secFitMobile').onclick=()=>{clearTimeout(wheelZoomTimer);wheelZoomTarget=null;zoom=1;visualZoom=1;$('secStage').style.transform='';render(true)};
-$('secToggleOverlays').onclick=()=>{applyDrawingOverlayVisibility(!drawingOverlaysHidden)};
+function openDrawingVisibility(){
+ if(!drawingVisibilityDialog){
+  drawingVisibilityDialog=document.createElement('dialog');
+  drawingVisibilityDialog.id='secVisibilityDialog';
+  drawingVisibilityDialog.className='drawingVisibilityDialog';
+  drawingVisibilityDialog.setAttribute('aria-labelledby','secVisibilityTitle');
+  drawingVisibilityDialog.innerHTML='<div class="visibilityHead"><h2 id="secVisibilityTitle">Markeringar på ritningen</h2><button type="button" data-close aria-label="Stäng">×</button></div><div class="visibilityActions"><button type="button" data-show>Visa alla</button><button type="button" data-hide>Dölj alla</button></div><div class="visibilityChoices"></div><p>Valet påverkar bara ritningsvyn.</p><button type="button" data-done>Klart</button>';
+  document.body.appendChild(drawingVisibilityDialog);
+  drawingVisibilityDialog.querySelector('[data-close]').onclick=()=>drawingVisibilityDialog.close();
+  drawingVisibilityDialog.querySelector('[data-done]').onclick=()=>drawingVisibilityDialog.close();
+  drawingVisibilityDialog.querySelector('[data-show]').onclick=()=>{applyDrawingOverlayVisibility(false);drawMarkers();refreshDrawingVisibilityChoices()};
+  drawingVisibilityDialog.querySelector('[data-hide]').onclick=()=>{applyDrawingOverlayVisibility(true);drawMarkers();refreshDrawingVisibilityChoices()};
+ }
+ refreshDrawingVisibilityChoices();
+ if(!drawingVisibilityDialog.open)drawingVisibilityDialog.showModal();
+}
+function refreshDrawingVisibilityChoices(){
+ const choices=drawingVisibilityDialog.querySelector('.visibilityChoices');choices.replaceChildren();
+ const names={automation:'Checklista revision dörrautomatik',automation_selfcheck:'Egenkontroll dörrautomatik',lock_revision:'Checklista revision lås'};
+ Object.keys(SYSTEMS).filter(allInOneProtocolActive).forEach(type=>{
+  const label=document.createElement('label'),input=document.createElement('input'),text=document.createElement('span');
+  input.type='checkbox';input.value=type;input.checked=!drawingOverlaysHidden&&!hiddenDrawingProtocols.has(type);
+  text.textContent=names[type]||SYSTEMS[type].label;
+  input.onchange=()=>{
+   if(drawingOverlaysHidden){Object.keys(SYSTEMS).filter(allInOneProtocolActive).forEach(key=>hiddenDrawingProtocols.add(key));drawingOverlaysHidden=false;document.body.classList.remove('drawingOverlaysHidden')}
+   if(input.checked)hiddenDrawingProtocols.delete(type);else hiddenDrawingProtocols.add(type);
+   if(selected&&hiddenDrawingProtocols.has(cur()?.type)){selected=null;lastObjectTap=null;window.ServicePrecisionPointer?.hide?.()}
+   const button=$('secToggleOverlays');button.classList.toggle('active',hiddenDrawingProtocols.size>0);button.setAttribute('aria-pressed',String(hiddenDrawingProtocols.size>0));
+   drawMarkers();
+  };
+  label.append(input,text);choices.appendChild(label);
+ });
+}
+$('secToggleOverlays').onclick=()=>{if(ALL_IN_ONE)openDrawingVisibility();else applyDrawingOverlayVisibility(!drawingOverlaysHidden)};
 function cur(){return items.find(o=>o.uid===selected)}
 const secProtocolTextSmaller=$('secProtocolTextSmaller'),secProtocolTextLarger=$('secProtocolTextLarger');
 let secProtocolTextLevel=Math.max(-1,Math.min(3,Number(localStorage.getItem('doorservice-protocol-size')||0)));
