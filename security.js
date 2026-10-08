@@ -143,6 +143,132 @@ if(ALL_IN_ONE){
   '1.4':['Brandstyrning fungerar inte korrekt'], '1.5':['Åtgärd krävs']
  }};
 }
+
+// Revision template v1: separate lock checklist; existing door protocols stay unchanged.
+if(ALL_IN_ONE){
+ SYSTEMS.lock_revision={
+  "label": "Checklista revision lås",
+  "markerLabel": "Lås",
+  "prefix": "L-R",
+  "checks": [
+    [
+      "1.1",
+      "Samtal med nyttjaren om lås och dörrfunktion."
+    ],
+    [
+      "1.2",
+      "Okulärbesiktning av lås, beslag och dörrmiljö."
+    ],
+    [
+      "1.3",
+      "Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar."
+    ],
+    [
+      "1.4",
+      "Funktionskontroll av låshus, låsregel och fallkolv."
+    ],
+    [
+      "1.5",
+      "Funktionskontroll av cylinder och nyckel."
+    ],
+    [
+      "1.6",
+      "Funktionskontroll av elslutbleck, motorlås och ellås där de ingår."
+    ],
+    [
+      "1.7",
+      "Kontroll av slutbleck och dörrens passning vid låsning."
+    ],
+    [
+      "1.8",
+      "Funktionskontroll av trycke, handtag och övriga låsbeslag."
+    ],
+    [
+      "1.9",
+      "Kontroll av dörrstängare och att dörren stänger och låser."
+    ],
+    [
+      "1.10",
+      "Funktionskontroll av nödöppning och utrymningsbeslag där de ingår."
+    ],
+    [
+      "1.11",
+      "Kontroll av nödkåpor, plombering och skyltning där de ingår."
+    ],
+    [
+      "1.12",
+      "Funktionskontroll av daglarm och dörrövervakning där de ingår."
+    ],
+    [
+      "1.13",
+      "Behovsrengöring, smörjning enligt tillverkarens anvisning och mindre justering."
+    ]
+  ],
+  "faults": {
+    "1.1": [
+      "Nyttjaren uppger återkommande låsproblem",
+      "Låsfunktionen uppges vara intermittent"
+    ],
+    "1.2": [
+      "Skada eller slitage på lås och beslag",
+      "Dörrblad eller karm behöver justeras"
+    ],
+    "1.3": [
+      "Infästning lös",
+      "Skruvar saknas eller behöver efterdras"
+    ],
+    "1.4": [
+      "Låshus kärvar",
+      "Regel eller fallkolv går inte helt ut",
+      "Låshus behöver justeras eller bytas"
+    ],
+    "1.5": [
+      "Cylinder kärvar",
+      "Nyckel fungerar inte korrekt",
+      "Cylinder sitter löst"
+    ],
+    "1.6": [
+      "Elslutbleck fungerar inte",
+      "Motorlås eller ellås fungerar inte",
+      "Lås släpper för sent"
+    ],
+    "1.7": [
+      "Slutbleck behöver justeras",
+      "Dörr går inte att låsa korrekt",
+      "Dörrblad tar i karm eller slutbleck"
+    ],
+    "1.8": [
+      "Trycke eller handtag sitter löst",
+      "Trycke återgår inte",
+      "Låsbeslag skadat"
+    ],
+    "1.9": [
+      "Dörrstängare läcker",
+      "Dörr stänger inte hela vägen",
+      "Dörr stänger men låser inte"
+    ],
+    "1.10": [
+      "Nödöppning fungerar inte",
+      "Utrymningsbeslag fungerar inte korrekt"
+    ],
+    "1.11": [
+      "Nödkåpa saknas eller är skadad",
+      "Plombering saknas",
+      "Skyltning saknas eller är skadad"
+    ],
+    "1.12": [
+      "Daglarm fungerar inte",
+      "Dörrövervakning visar fel status"
+    ],
+    "1.13": [
+      "Rengöring krävs",
+      "Smörjning krävs",
+      "Mindre justering utförd",
+      "Ytterligare justering krävs"
+    ]
+  }
+};
+}
 const DOOR_AUTOMATION_MODELS=[
  ['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],
  ['15','Besam Powerswing'],['16','Besam SW100'],['17','Dorma ED 200'],['18','Tormax'],['19','Record standardarm'],
