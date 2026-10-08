@@ -118,6 +118,7 @@ $('restoreLegacy').onclick=()=>{
 let loadVersion=0,renderVersion=0,renderQueue=Promise.resolve(),renderTask=null;
 if($('legacyImportOk'))$('legacyImportOk').onclick=()=>$('legacyImportDialog')?.close();
 let pageWidth=1,pageHeight=1;
+let drawingRaster=null;
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
 async function stripLegacyReportPages(bytes){
@@ -186,11 +187,16 @@ function render(fit=false,focus=null,anchor=null){
   const oldW=pageWidth,oldH=pageHeight,oldSL=wrap.scrollLeft,oldST=wrap.scrollTop;
   const logical=p.getViewport({scale:baseScale*zoom}),raster=boundedViewport(p,baseScale*zoom*Math.min(window.devicePixelRatio||1,2));
   // Keep zoom/marker coordinates in CSS pixels; cap only the raster allocation.
-  const nextCanvas=document.createElement('canvas');nextCanvas.width=Math.ceil(raster.width);nextCanvas.height=Math.ceil(raster.height);
-  const task=p.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});renderTask=task;
-  try{await task.promise}finally{if(renderTask===task)renderTask=null}
-  if(version!==renderVersion)return;
-  canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+  const rasterWidth=Math.ceil(raster.width),rasterHeight=Math.ceil(raster.height);
+  // At the raster limit, further zoom changes only geometry, not PDF pixels.
+  if(!drawingRaster||drawingRaster.document!==documentPdf||drawingRaster.page!==pageNumber||drawingRaster.width!==rasterWidth||drawingRaster.height!==rasterHeight){
+   const nextCanvas=document.createElement('canvas');nextCanvas.width=rasterWidth;nextCanvas.height=rasterHeight;
+   const task=p.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});renderTask=task;
+   try{await task.promise}finally{if(renderTask===task)renderTask=null}
+   if(version!==renderVersion)return;
+   canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+   drawingRaster={document:documentPdf,page:pageNumber,width:rasterWidth,height:rasterHeight};
+  }
   pageWidth=logical.width;pageHeight=logical.height;
   canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';
   const stage=$('stage');stage.style.width=pageWidth+'px';stage.style.height=pageHeight+'px';

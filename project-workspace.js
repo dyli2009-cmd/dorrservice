@@ -25,6 +25,8 @@ const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',currentFileHandle=null,embeddedState={},page=1,scale=1.1,renderTask=null;
+let drawingRenderVersion=0,drawingRenderQueue=Promise.resolve(),drawingRaster=null;
+const DRAWING_MAX_PIXELS=4000000,DRAWING_MAX_SIDE=4096;
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[],pendingImage=null;
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
@@ -1131,20 +1133,33 @@ function updateStats(){
  else progress=trackable.length?Math.round(trackable.reduce((a,o)=>a+o.progress,0)/trackable.length):0;
  el.totalProgress.textContent=progress+'%';
 }
-async function renderDrawing(){
- if(!pdf)return;
+function renderDrawing(){
+ if(!pdf)return Promise.resolve();
+ const version=++drawingRenderVersion,documentPdf=pdf,pageNumber=page,targetScale=scale;
  if(renderTask)try{renderTask.cancel()}catch(_){}
- const pg=await pdf.getPage(page),vp=pg.getViewport({scale});drawingViewport=vp;
- el.canvas.width=Math.ceil(vp.width);el.canvas.height=Math.ceil(vp.height);
- el.canvas.style.width=vp.width+'px';el.canvas.style.height=vp.height+'px';
- el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
- renderTask=pg.render({canvasContext:ctx,viewport:vp});
- try{await renderTask.promise}catch(e){if(e?.name!=='RenderingCancelledException')throw e}
- el.pageInfo.textContent='Sida '+page+' / '+pdf.numPages;el.zoomInfo.textContent=Math.round(scale*100)+'%';
- renderDrawingNotes(vp);
- renderMarkers();
- renderAutomationMarkers();
+ drawingRenderQueue=drawingRenderQueue.catch(()=>{}).then(async()=>{
+  if(version!==drawingRenderVersion)return;
+  const pg=await documentPdf.getPage(pageNumber);if(version!==drawingRenderVersion)return;
+  const vp=pg.getViewport({scale:targetScale}),natural=pg.getViewport({scale:1});
+  // Marker and note coordinates use the full logical viewport; only pixels are capped.
+  const raster=pg.getViewport({scale:Math.min(targetScale,Math.sqrt(DRAWING_MAX_PIXELS/(natural.width*natural.height)),DRAWING_MAX_SIDE/natural.width,DRAWING_MAX_SIDE/natural.height)});
+  const width=Math.ceil(raster.width),height=Math.ceil(raster.height);
+  if(!drawingRaster||drawingRaster.document!==documentPdf||drawingRaster.page!==pageNumber||drawingRaster.width!==width||drawingRaster.height!==height){
+   const nextCanvas=document.createElement('canvas');nextCanvas.width=width;nextCanvas.height=height;
+   const task=pg.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});renderTask=task;
+   try{await task.promise}catch(e){if(e?.name==='RenderingCancelledException')return;throw e}finally{if(renderTask===task)renderTask=null}
+   if(version!==drawingRenderVersion)return;
+   el.canvas.width=width;el.canvas.height=height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+   drawingRaster={document:documentPdf,page:pageNumber,width,height};
+  }
+  el.canvas.style.width=vp.width+'px';el.canvas.style.height=vp.height+'px';
+  el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
+  el.pageInfo.textContent='Sida '+pageNumber+' / '+documentPdf.numPages;el.zoomInfo.textContent=Math.round(targetScale*100)+'%';
+  renderDrawingNotes(vp);renderMarkers();renderAutomationMarkers();
+ });
+ return drawingRenderQueue;
 }
+
 function svgNode(name){return document.createElementNS('http://www.w3.org/2000/svg',name)}
 function ensureArrowMarker(svg){
  const defs=svgNode('defs'),marker=svgNode('marker'),path=svgNode('path');

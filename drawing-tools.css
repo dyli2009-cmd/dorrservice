@@ -58,3 +58,6 @@
  .sizeStats>div:first-child{grid-column:1/2}
  .sizeStats>div:nth-child(5){grid-column:1/-1}
 }
+
+/* Keep the drawing on its own layer while it is moved or zoomed. */
+#previewCanvas{will-change:transform}

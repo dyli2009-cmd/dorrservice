@@ -403,3 +403,6 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
 @media(max-width:620px){
  .pwAutomationFault{display:flex}
 }
+
+/* Keep the drawing on its own layer while it is moved or zoomed. */
+#pwCanvas{will-change:transform}

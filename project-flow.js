@@ -30,6 +30,7 @@
   let drawingPdf=null, protocolPdf=null, drawingBytes=null, protocolBytes=null;
   let drawingKey='', currentPage=1, scale=1.15, objects=[], protocolPages={}, protocolPageTexts={}, protocolDefsByCode={}, selectedId=null, restoreView=null;
   let cardScale=1, cardPage=0;
+  let drawingRaster=null,drawingRenderVersion=0,drawingRenderTask=null,drawingRenderQueue=Promise.resolve();
   let drawingZoomBusy=false,drawingZoomQueued=null;
   let panMode=true, highlightedId=null;
 
@@ -464,20 +465,30 @@
     }
   }
 
-  async function renderPage(pageNo){
-    if(!drawingPdf)return;
+  function renderPage(pageNo){
+    if(!drawingPdf)return Promise.resolve();
     currentPage=Math.max(1,Math.min(drawingPdf.numPages,pageNo));
-    const page=await drawingPdf.getPage(currentPage);
-    const viewport=page.getViewport({scale});
-    els.canvas.width=Math.ceil(viewport.width);
-    els.canvas.height=Math.ceil(viewport.height);
-    els.canvas.style.width=viewport.width+'px';
-    els.canvas.style.height=viewport.height+'px';
-    els.stage.style.width=viewport.width+'px';
-    els.stage.style.height=viewport.height+'px';
-    await page.render({canvasContext:ctx,viewport}).promise;
-    els.pageInfo.textContent=currentPage+' / '+drawingPdf.numPages;
-    renderMarkers(viewport);
+    const version=++drawingRenderVersion,documentPdf=drawingPdf,pageNumber=currentPage,targetScale=scale;
+    if(drawingRenderTask)try{drawingRenderTask.cancel()}catch(_){}
+    drawingRenderQueue=drawingRenderQueue.catch(()=>{}).then(async()=>{
+      if(version!==drawingRenderVersion)return;
+      const page=await documentPdf.getPage(pageNumber);if(version!==drawingRenderVersion)return;
+      const viewport=page.getViewport({scale:targetScale}),natural=page.getViewport({scale:1});
+      const raster=page.getViewport({scale:Math.min(targetScale,Math.sqrt(4000000/(natural.width*natural.height)),4096/natural.width,4096/natural.height)});
+      const width=Math.ceil(raster.width),height=Math.ceil(raster.height);
+      if(!drawingRaster||drawingRaster.document!==documentPdf||drawingRaster.page!==pageNumber||drawingRaster.width!==width||drawingRaster.height!==height){
+        const nextCanvas=document.createElement('canvas');nextCanvas.width=width;nextCanvas.height=height;
+        const task=page.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});drawingRenderTask=task;
+        try{await task.promise}catch(e){if(e?.name==='RenderingCancelledException')return;throw e}finally{if(drawingRenderTask===task)drawingRenderTask=null}
+        if(version!==drawingRenderVersion)return;
+        els.canvas.width=width;els.canvas.height=height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+        drawingRaster={document:documentPdf,page:pageNumber,width,height};
+      }
+      els.canvas.style.width=viewport.width+'px';els.canvas.style.height=viewport.height+'px';
+      els.stage.style.width=viewport.width+'px';els.stage.style.height=viewport.height+'px';
+      els.pageInfo.textContent=pageNumber+' / '+documentPdf.numPages;renderMarkers(viewport);
+    });
+    return drawingRenderQueue;
   }
 
   function rectOnViewport(rect,viewport){

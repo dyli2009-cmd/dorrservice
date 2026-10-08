@@ -345,3 +345,6 @@ button{cursor:pointer}.pfHeader{display:grid;grid-template-columns:auto 1fr auto
   .pfSide.isOpen{display:block}
   .pfSideToggle{display:block;position:absolute;right:10px;bottom:10px;z-index:9;min-height:42px;padding:7px 12px;background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:0 5px 18px #0004}
 }
+
+/* Keep the drawing on its own layer while it is moved or zoomed. */
+#pfCanvas{will-change:transform}

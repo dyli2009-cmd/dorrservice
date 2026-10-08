@@ -158,6 +158,7 @@ const DOOR_AUTOMATION_MODELS=[
 const COLORS={ok:[35,131,84],action:[199,124,19],fail:[189,63,70],untested:[119,133,142]};
 let pdf=null,sourceBytes=null,page=1,zoom=1,baseScale=1,visualZoom=1,items=[],textNotes=[],drawingExtras=[],selected=null,addType=null,textMode=false,project={},logoData='',renderTask=null,renderVersion=0,renderQueue=Promise.resolve(),activeKey=null,pinch=null,panTouch=null,panMouse=null,pageWidth=1,pageHeight=1,suppressPageSwipeUntil=0,precisionMode=false,drawingGestureLocked=false,drawingLockScroll=null,drawingOverlaysHidden=false,lastObjectTap=null;
 const canvas=$('secCanvas'),ctx=canvas.getContext('2d'),markers=$('secMarkers'),viewer=$('secViewer');
+let drawingRaster=null;
 const MAX_PIXELS=4000000,MAX_SIDE=4096;
 function boundedViewport(p,scale){const natural=p.getViewport({scale:1});return p.getViewport({scale:Math.min(scale,Math.sqrt(MAX_PIXELS/(natural.width*natural.height)),MAX_SIDE/natural.width,MAX_SIDE/natural.height)})}
 const PROJECT_FIELDS=['secProjectName','secFacilityNo','secOrder','secDate','secNextDate','secCustomer','secAgreement','secContact','secPhone','secAddress','secCompany','secTechnician','secCompanyContact','secCompanyPhone','secCompanyAddress','secSignature'];
@@ -382,11 +383,16 @@ function render(fit=false,focus=null,anchor=null){
   if(fit){const availW=Math.max(120,viewer.clientWidth-20),availH=Math.max(120,viewer.clientHeight-20);baseScale=Math.min(1.8,Math.max(.1,Math.min(availW/natural.width,availH/natural.height)))}
   const oldW=pageWidth,oldH=pageHeight,oldSL=viewer.scrollLeft,oldST=viewer.scrollTop;
   const logical=p.getViewport({scale:baseScale*zoom}),raster=boundedViewport(p,baseScale*zoom*Math.min(window.devicePixelRatio||1,2));
-  const nextCanvas=document.createElement('canvas');nextCanvas.width=Math.ceil(raster.width);nextCanvas.height=Math.ceil(raster.height);
-  const task=p.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});renderTask=task;
-  try{await task.promise}finally{if(renderTask===task)renderTask=null}
-  if(version!==renderVersion)return;
-  canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+  const rasterWidth=Math.ceil(raster.width),rasterHeight=Math.ceil(raster.height);
+  // At the raster limit, further zoom changes only geometry, not PDF pixels.
+  if(!drawingRaster||drawingRaster.document!==documentPdf||drawingRaster.page!==pageNumber||drawingRaster.width!==rasterWidth||drawingRaster.height!==rasterHeight){
+   const nextCanvas=document.createElement('canvas');nextCanvas.width=rasterWidth;nextCanvas.height=rasterHeight;
+   const task=p.render({canvasContext:nextCanvas.getContext('2d'),viewport:raster});renderTask=task;
+   try{await task.promise}finally{if(renderTask===task)renderTask=null}
+   if(version!==renderVersion)return;
+   canvas.width=nextCanvas.width;canvas.height=nextCanvas.height;ctx.drawImage(nextCanvas,0,0);nextCanvas.width=nextCanvas.height=0;
+   drawingRaster={document:documentPdf,page:pageNumber,width:rasterWidth,height:rasterHeight};
+  }
   pageWidth=logical.width;pageHeight=logical.height;
   canvas.style.width=pageWidth+'px';canvas.style.height=pageHeight+'px';const stage=$('secStage');stage.style.width=pageWidth+'px';stage.style.height=pageHeight+'px';
   const centerGap=Math.max(0,(viewer.clientHeight-pageHeight)/2);stage.style.marginTop=centerGap+'px';stage.style.marginBottom=centerGap+'px';

@@ -1919,3 +1919,6 @@ body[data-overview-size="3"] #overviewDialog .overviewFilters label{font-size:16
   .homeAmbientLock{bottom:4vh}
   .homeAmbientSensor{bottom:4vh}
 }
+
+/* Keep the drawing on its own layer while it is moved or zoomed. */
+#pdfCanvas, #secCanvas{will-change:transform}
