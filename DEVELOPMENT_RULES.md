@@ -141,6 +141,17 @@ Om en funktion börjar skilja sig mycket mellan två arbetsområden ska den hell
 ## 8. Webb och iOS
 Webb och iOS ska normalt ha samma funktionalitet för samma modul.
 
+### Aktiv regel för Projektflödet
+Så länge användaren uttryckligen arbetar med **Projektflödet** ska varje användarsynlig ändring i Projektflödet speglas till både webb och iOS i samma arbetsomgång.
+
+Det innebär:
+- `project-workspace.html`, `project-workspace.css` och `project-workspace.js` ska hållas funktionellt 1:1 mellan webb och iOS
+- efter en webbändring i Projektflödet ska motsvarande iOS-filer uppdateras innan arbetet betraktas som klart
+- efter en iOS-specifik korrigering ska webbversionen kontrolleras så att funktionerna fortfarande motsvarar varandra
+- endast nödvändiga native-skillnader får avvika, till exempel Capacitor FilePicker, Share, lokala runtime-filer eller iOS safe-area
+- samma synliga Tillsyno-version ska användas på webb och iOS
+- denna speglingsregel gäller endast den aktiva Projektflödesutvecklingen och får inte användas för att ändra Kontrollflödet eller andra låsta moduler
+
 Men:
 - ändring i webb ska inte automatiskt innebära förändring i andra arbetsområden
 - iOS-specifik kod får vara separat
