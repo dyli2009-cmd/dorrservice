@@ -59,8 +59,7 @@ function saved(){try{return JSON.parse(sessionStorage.getItem(STORAGE)||'null')}
 function button(label,sub,fn,disabled=false){
   const b=document.createElement('button');
   b.type='button'; b.className='choice'+(disabled?' disabled':'');
-  const span=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),arrow=document.createElement('b');
-  strong.textContent=label; small.textContent=sub; arrow.textContent=disabled?'':'›';span.append(strong,small);b.append(span,arrow);
+  b.innerHTML='<span><strong>'+label+'</strong><small>'+sub+'</small></span><b>'+(disabled?'':'›')+'</b>';
   if(!disabled)b.onclick=fn;
   list.appendChild(b);
 }
@@ -74,11 +73,11 @@ function openProtocol(module,protocol){
   const appKey=protocol.appProtocolKey||'';
   if(!appKey)return;
   if(appKey==='automation'||appKey==='automation_selfcheck'){
-    location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&definition='+encodeURIComponent(protocol.key)+'&v=4';
+    location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=3';
     return;
   }
   if(['alarm','lock','access','fire_panel','fire_detector','fire_door'].includes(appKey)){
-    location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&definition='+encodeURIComponent(protocol.key)+'&v=3';
+    location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=2';
   }
 }
 function showProtocolArea(access,module){
