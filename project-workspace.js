@@ -396,12 +396,8 @@ function decodePdfText(obj){
 function normalizeCode(value){
  const raw=String(value||'').toUpperCase().replace(/[\u00A0\u2007\u202F]/g,' ').replace(/\s+/g,' ').trim();
  if(!raw)return '';
- // Om hela fältet är ett GS-ID tillåts mellanrum, bindestreck och understreck.
- // Exempel: GS1, GS 1, GS-1 och G S 1 blir alla GS1.
  const compactExact=raw.replace(/[\s_-]+/g,'');
  if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compactExact))return compactExact;
- // När GS-ID:t står tillsammans med annan text plockas bara den avgränsade GS-tokenen ut.
- // Exempel: VC-GS 1 och Entré-GS-1 blir GS1, men GS10 förblir GS10.
  const embedded=raw.match(/(?:^|[^A-ZÅÄÖ0-9])G[\s_-]*S[\s_-]*([A-ZÅÄÖ0-9]{1,12})(?=$|[^A-ZÅÄÖ0-9])/);
  return embedded?'GS'+embedded[1]:'';
 }
@@ -519,7 +515,6 @@ async function extractStamps(){
    let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
    if(!dict)continue;
    const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
-   // GS-flödet ska fortfarande bara utgå från riktiga PDF-stämplar.
    if(subtype!=='Stamp')continue;
    let rectArr;try{rectArr=dict.lookup(PDFName.of('Rect'),PDFArray)}catch(_){continue}
    if(!rectArr||rectArr.size()<4)continue;
@@ -535,8 +530,6 @@ async function extractStamps(){
    else pending.push({page:pi+1,rect,order:i});
   }
  });
- // Vissa projekt-PDF:er visar GS1 i stämpeln men har inte GS-koden i stämpelns metadata.
- // Då läser vi endast texten precis under/i stämpelrektangeln och använder den om den ger ett säkert GS-ID.
  for(const mark of pending){
   const code=await codeFromMarkedPageText(mark.page,mark.rect);
   if(code)out.push({...mark,code});
