@@ -74,6 +74,8 @@ Kontrollflödets lås ska respekteras.
 - En enda säker exakt GS-träff krävs. Ingen träff eller flera möjliga sidor innebär ingen klickbar koppling; systemet får inte gissa utifrån ord som `lås`, `trycke` eller `elbleck`.
 - Om inget protokoll med samma GS-ID hittas skapas ingen fungerande protokollkoppling för den positionen.
 - Dörrautomatikens separata strukturerade märkning och egenkontroll är ett annat system och påverkas inte av denna GS-regel.
+- GS-läsningen normaliserar även `GS1`, `GS 1`, `GS-1` och inbäddad text som `VC-GS 1` till samma exakta GS-ID. `GS1` får fortfarande inte matcha `GS10`.
+- Om en riktig PDF-stämpel saknar GS-kod i sin annoteringsmetadata läser Projektflödet endast texten inom stämpelns rektangel som fallback. Ingen generell GS-sökning över hela ritningen görs.
 
 ## Övriga projektstämplar
 - Övriga gula projektmarkeringar hanteras av en **separat matchningsmotor** och ändrar inte GS-logiken.
