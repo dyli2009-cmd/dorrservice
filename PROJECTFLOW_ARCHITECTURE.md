@@ -69,6 +69,9 @@ Kontrollflödets lås ska respekteras.
 - GS-positioner läses endast från riktiga PDF-annoteringar av typen `Stamp`, precis som i den tidigare fungerande Projektflöde-versionen.
 - ID:t normaliseras så enkla mellanrum eller bindestreck inne i själva GS-koden inte hindrar matchning, t.ex. `GS 1` → `GS1`.
 - Matchningen mot protokollsidan använder samma exakta GS-ID. `GS1` får inte matcha `GS2` eller `GS10`.
+- GS-koden får stå inuti ett fält med annan text runt omkring, t.ex. `VC-GS1` eller `Entré-GS1`; det är den avgränsade GS-tokenen som matchas.
+- Ritningssidor används aldrig som dörrkortsträffar. Bara icke-ritningssidor skannas för protokollkopplingen.
+- En enda säker exakt GS-träff krävs. Ingen träff eller flera möjliga sidor innebär ingen klickbar koppling; systemet får inte gissa utifrån ord som `lås`, `trycke` eller `elbleck`.
 - Om inget protokoll med samma GS-ID hittas skapas ingen fungerande protokollkoppling för den positionen.
 - Dörrautomatikens separata strukturerade märkning och egenkontroll är ett annat system och påverkas inte av denna GS-regel.
 
