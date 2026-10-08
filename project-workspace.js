@@ -552,6 +552,75 @@ async function readPageText(pageNo){
  return pageTexts[pageNo];
 }
 
+
+function gsItemsCloseEnough(items){
+ if(items.length<2)return true;
+ const ordered=[...items].sort((a,b)=>a.x-b.x);
+ for(let i=1;i<ordered.length;i++){
+  const prev=ordered[i-1],next=ordered[i];
+  const gap=next.x-(prev.x+Math.max(prev.w,1));
+  const maxGap=Math.max(14,Math.max(prev.h,next.h)*2.8);
+  if(gap>maxGap)return false;
+ }
+ return true;
+}
+function gsTextCandidatesFromItems(items){
+ const rows=groupTextRowsForAutomation(items),out=[];
+ rows.forEach((row,rowIndex)=>{
+  const ordered=[...row.items].sort((a,b)=>a.x-b.x),seen=new Set();
+  for(let start=0;start<ordered.length;start++){
+   for(let end=start;end<Math.min(ordered.length,start+6);end++){
+    const slice=ordered.slice(start,end+1);
+    if(!gsItemsCloseEnough(slice))break;
+    const joined=slice.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+    if(!/[Gg][\s_-]*[Ss]/.test(joined))continue;
+    const code=normalizeCode(joined);
+    if(!code)continue;
+    const key=code+'@'+Math.round(slice[0].x)+'@'+Math.round(slice[0].y);
+    if(seen.has(key))continue;
+    seen.add(key);
+    const rect=rectForTextItems(slice,2.5);
+    if(rect)out.push({code,rect,label:joined,rowIndex});
+    break;
+   }
+  }
+ });
+ return out;
+}
+function likelyDoorCardPage(text){
+ const raw=String(text?.raw||'').toLocaleLowerCase('sv');
+ if(/dörrkort|dorrkort|beslagslista|dörrspecifikation|dorrspecifikation/.test(raw))return true;
+ const workLines=groupLines(text?.items||[]).filter(line=>line.actionable).length;
+ if(workLines>=2)return true;
+ const standaloneGs=(text?.items||[]).filter(x=>/^GS$/i.test(String(x.text||'').trim())).length;
+ const signals=['slutbleck','elslutbleck','trycke','låshus','lashus','cylinder','dörrstäng','dorrstang','monteras','levereras','ansvar'];
+ const signalHits=signals.reduce((n,s)=>n+(raw.includes(s)?1:0),0);
+ return standaloneGs>=2&&signalHits>=2;
+}
+function gsPositionDuplicate(list,pageNo,code,rect){
+ const cx=(Number(rect[0])+Number(rect[2]))/2,cy=(Number(rect[1])+Number(rect[3]))/2;
+ return list.some(o=>{
+  if(o.page!==pageNo||o.code!==code||!Array.isArray(o.rect))return false;
+  const ox=(Number(o.rect[0])+Number(o.rect[2]))/2,oy=(Number(o.rect[1])+Number(o.rect[3]))/2;
+  const sx=Math.max(12,Math.abs(Number(rect[2])-Number(rect[0]))+Math.abs(Number(o.rect[2])-Number(o.rect[0])));
+  const sy=Math.max(10,Math.abs(Number(rect[3])-Number(rect[1]))+Math.abs(Number(o.rect[3])-Number(o.rect[1])));
+  return Math.abs(cx-ox)<=sx*.55&&Math.abs(cy-oy)<=sy*.55;
+ });
+}
+async function extractTextGsStamps(existing=[]){
+ const out=[];
+ for(let p=1;p<=pdf.numPages;p++){
+  const text=await readPageText(p);
+  if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
+  const candidates=gsTextCandidatesFromItems(text.items);
+  candidates.forEach((candidate,index)=>{
+   if(gsPositionDuplicate([...existing,...out],p,candidate.code,candidate.rect))return;
+   out.push({page:p,code:candidate.code,rect:candidate.rect,order:100000+index,sourceKind:'gs-text',label:candidate.label});
+  });
+ }
+ return out;
+}
+
 function compactAutomationText(value){return String(value||'').toLocaleLowerCase('sv').replace(/[^a-z0-9åäö]+/g,'')}
 function automationModelFromText(value){
  const compact=compactAutomationText(value);
@@ -2106,17 +2175,19 @@ async function analyze(file){
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
  stamps=await extractStamps();
+ const textGsStamps=await extractTextGsStamps(stamps);
+ stamps=[...stamps,...textGsStamps];
  projectStamps=await extractProjectStamps();
  buildInstances();
  await buildProtocolMap();
  await buildProjectStampMap();
  await discoverDoorAutomations();
  await recalcAll();
- const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length;
+ const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=stamps.filter(s=>s.sourceKind==='gs-text').length;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
- else setState(stamps.length+' GS-positioner · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
+ else setState(stamps.length+' GS-positioner'+(textGsCount?' · '+textGsCount+' hittade direkt i ritningstext':'')+' · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
