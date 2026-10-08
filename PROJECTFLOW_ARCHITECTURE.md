@@ -66,6 +66,10 @@ Kontrollflödets lås ska respekteras.
 - ID-formatet ska vara flexibelt och inte låsas till GS. Exempel som får vara kandidater: `GS1`, `GS2`, `1`, `140`, `140D`, `815 C`, `815A`, `310 A`, `310 B`, `GSTD1` och motsvarande projektunika kombinationer.
 - Mellanrum, bindestreck, punkt, underscore och slash normaliseras vid jämförelse, så olika typografiska varianter kan matcha samma ID.
 - Alla läsbara PDF-markeringar behandlas först som kandidater. En kandidat blir **aldrig klickbar** enbart för att den hittats på ritningen.
+- Dörrkortsmatchningen är strikt på ID-identiteten: `GS1` får endast matchas mot ett dörrkort vars identitetsfält/rubrik är exakt `GS1`; `GS2` får inte matcha `GS1`, och en ensam `1` får endast matcha identiteten `1`.
+- Förekomst av ID:t i komponent-/arbetsrader, till exempel en låsrad, räcker inte för matchning. ID:t måste stå separat högt på dörrkortet, vara tydligt etiketterat som t.ex. `ID`, `Littera`, `Objektnummer`/position, eller vara en tydlig dörrkortsrubrik.
+- Ord som `lås`, `cylinder`, `trycke` och andra komponentord får inte i sig höja en sida till en ID-matchning.
+- Om flera dörrkortssidor ser nästan lika säkra ut för samma ID lämnas ID:t omatchat hellre än att Projektflödet väljer fel sida.
 - Projektflödet skannar hela PDF-filen och söker en verifierad dörrkorts-/protokollmatchning för samma ID. Först efter godkänd matchning får positionen en klickyta, visas i Positioner och räknas som arbetsposition.
 - Korta ID:n, särskilt en ensam siffra som `1`, kräver högre matchpoäng med starka dörrkortssignaler, etikett/isolering eller placering högt på protokollsidan för att undvika falska träffar.
 - Om ingen tillräckligt stark dörrkortsmatchning finns förblir markeringen osynlig som knapp och kan inte massmarkeras.
