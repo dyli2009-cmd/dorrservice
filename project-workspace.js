@@ -860,62 +860,69 @@ async function exportSelectedSelfchecks(){
 function protocolPageRows(text){
  return groupTextRowsForAutomation(text?.items||[]);
 }
+function projectIdLabelValue(rowText){
+ const raw=cleanProjectIdText(rowText).toUpperCase();
+ const m=raw.match(/^(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING|OBJEKT(?:NUMMER|NR)?)\s*[:#-]?\s*(.+)$/i);
+ return m?normalizeCode(m[1]):'';
+}
+function strictDoorCardIdentity(code,text){
+ const wanted=projectIdCompact(code);if(!wanted)return null;
+ const rows=protocolPageRows(text);
+ const topCount=Math.min(18,rows.length),topRows=rows.slice(0,topCount);
+ let labelled=false,isolatedTop=false,headerTop=false,identityRowIndex=-1;
+ rows.forEach((row,index)=>{
+  if(projectIdLabelValue(row.text)===wanted){
+   labelled=true;if(identityRowIndex<0)identityRowIndex=index;
+  }
+ });
+ topRows.forEach((row,index)=>{
+  const compact=projectIdCompact(row.text);
+  if(compact===wanted){isolatedTop=true;if(identityRowIndex<0)identityRowIndex=index;return}
+  const rx=codeRegex(code);
+  if(rx&&rx.test(row.text)&&/(dörrkort|dorrkort|dörr\b|dorr\b|littera|objekt(?:nummer|nr)?|märkning|markning|position|\bid\b)/i.test(row.text)){
+   headerTop=true;if(identityRowIndex<0)identityRowIndex=index;
+  }
+ });
+ if(!labelled&&!isolatedTop&&!headerTop)return null;
+ return {labelled,isolatedTop,headerTop,identityRowIndex,rows};
+}
 function protocolPageSignals(text){
  const raw=String(text?.raw||''),lower=raw.toLocaleLowerCase('sv');
- const strong=['dörrkort','dorrkort','dörrkortet','dorrkortet','dörrschema','dorrschema','beslagning','beslagslista','protokoll'];
- const medium=['dörr','dorr','littera','objektnummer','objektnr','position','beslag','cylinder','låshus','lashus','slutbleck','trycke','dörrstängare','dorrstangare','automatik','produkt','funktion'];
+ const strong=['dörrkort','dorrkort','dörrschema','dorrschema','protokoll'];
+ const medium=['littera','objektnummer','objektnr','position','beslagning','beslagslista'];
  let score=0;
- strong.forEach(w=>{if(lower.includes(w))score+=5});
- medium.forEach(w=>{if(lower.includes(w))score+=1});
+ strong.forEach(w=>{if(lower.includes(w))score+=4});
+ medium.forEach(w=>{if(lower.includes(w))score+=2});
  return {score,lower};
 }
-function protocolMatchDetails(code,text){
- const rows=protocolPageRows(text),compactCode=projectIdCompact(code);
- const matchingRows=rows.filter(r=>textLineContainsExactProjectId(r.text,code));
- if(!matchingRows.length)return {matched:false,matchingRows:[],labelled:false,isolated:false,firstArea:false,occurrences:0};
- const labelled=matchingRows.some(r=>/(dörr(?:kort)?|dorr(?:kort)?|door|\bid\b|littera|kort|position|märkning|markning|objekt(?:nummer|nr)?)/i.test(r.text));
- const isolated=matchingRows.some(r=>projectIdCompact(r.text)===compactCode);
- const topRows=rows.slice(0,Math.min(12,rows.length));
- const firstArea=topRows.some(r=>textLineContainsExactProjectId(r.text,code));
- return {matched:true,matchingRows,labelled,isolated,firstArea,occurrences:matchingRows.length};
-}
-function requiredProtocolScore(code){
- switch(projectIdStrength(code)){
-  case 'single-number':return 27;
-  case 'short-number':return 23;
-  case 'short':return 22;
-  case 'number':return 19;
-  default:return 16;
- }
-}
 function protocolScore(code,pageNo,text,drawingPages){
- const match=protocolMatchDetails(code,text);if(!match.matched)return -1;
+ const identity=strictDoorCardIdentity(code,text);if(!identity)return -1;
  const signals=protocolPageSignals(text);
- let score=8+signals.score;
- if(!drawingPages.has(pageNo))score+=5;else score-=4;
- if(match.labelled)score+=8;
- if(match.isolated)score+=7;
- if(match.firstArea)score+=4;
- if(match.occurrences>1)score+=Math.min(4,match.occurrences-1);
- const strength=projectIdStrength(code);
- if(strength==='single-number'&&!match.labelled&&!match.isolated)score-=8;
- if((strength==='single-number'||strength==='short-number')&&signals.score<5)score-=7;
+ let score=20+signals.score;
+ if(identity.labelled)score+=12;
+ if(identity.isolatedTop)score+=10;
+ if(identity.headerTop)score+=8;
+ if(!drawingPages.has(pageNo))score+=4;else score-=8;
+ if(identity.identityRowIndex>=0&&identity.identityRowIndex<=5)score+=4;
  return score;
 }
 async function buildProtocolMap(){
  protocolMap={};protocolDefs={};
  const drawingPages=new Set(stamps.map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
- setState('Djupmatchar '+codes.length+' markerade ID mot dörrkort/protokoll i hela PDF-filen…');
+ setState('Matchar markerade ID strikt mot dörrkort i hela PDF-filen…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
  for(const code of codes){
-  let best=null;
+  const candidates=[];
   for(let p=1;p<=pdf.numPages;p++){
    const score=protocolScore(code,p,pageTexts[p],drawingPages);
-   if(score<requiredProtocolScore(code))continue;
-   if(!best||score>best.score)best={page:p,score};
+   if(score>=0)candidates.push({page:p,score});
   }
-  if(best)protocolMap[code]=best.page;
+  candidates.sort((a,b)=>b.score-a.score||a.page-b.page);
+  if(!candidates.length)continue;
+  // Om två sidor ser nästan lika säkra ut lämnar vi ID:t omatchat hellre än att välja fel dörrkort.
+  if(candidates.length>1&&candidates[0].score-candidates[1].score<4)continue;
+  protocolMap[code]=candidates[0].page;
  }
 }
 function isAdministrativeWorkLine(text,label){
