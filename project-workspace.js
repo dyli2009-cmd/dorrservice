@@ -28,7 +28,7 @@ let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projek
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
 let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,drawingNoteDrag=null,selectedDrawingNoteId='',drawingUndoStack=[],drawingRedoStack=[],pendingImage=null;
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
-let stamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='',automationPreviewPdf=null,automationPreviewRenderTask=null;
+let stamps=[],projectStamps=[],instances=[],protocolMap={},pageTexts={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='',automationPreviewPdf=null,automationPreviewRenderTask=null;
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
 
 const PROJECT_AUTOMATION_CHECKS=[
@@ -444,6 +444,70 @@ async function codeFromMarkedPageText(pageNo,rect){
  for(const item of inside){code=normalizeCode(item.text);if(code)return code}
  return '';
 }
+async function rawProjectStampText(pageNo,rect){
+ const text=await readPageText(pageNo);
+ const minX=Math.min(rect[0],rect[2])-4,maxX=Math.max(rect[0],rect[2])+4,minY=Math.min(rect[1],rect[3])-7,maxY=Math.max(rect[1],rect[3])+7;
+ const inside=text.items.filter(item=>{
+  const cx=item.x+Math.max(item.w,1)/2,cy=item.y+Math.max(item.h,1)/2;
+  return cx>=minX&&cx<=maxX&&cy>=minY&&cy<=maxY;
+ }).sort((a,b)=>Math.abs(a.y-b.y)>4?b.y-a.y:a.x-b.x);
+ return inside.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+}
+function normalizeProjectStampText(value){
+ let raw=String(value||'').toUpperCase().replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
+ raw=raw.replace(/[^A-ZÅÄÖ0-9 _\/-]+/g,' ').replace(/\s+/g,' ').trim();
+ if(!raw||raw.length>48||raw.split(/\s+/).length>6)return '';
+ if(/^(STAMP|HIGHLIGHT|HIGHLIGHTER|FREE TEXT|FREETEXT|TEXT BOX|TEXTBOX|APPROVED|DRAFT)$/i.test(raw))return '';
+ return raw;
+}
+function projectStampKey(value){
+ const raw=normalizeProjectStampText(value);if(!raw)return '';
+ if(/\d/.test(raw))return raw.replace(/[ _\/-]+/g,'');
+ return raw.replace(/\s+/g,' ');
+}
+function projectStampRegex(value){
+ const raw=normalizeProjectStampText(value),key=projectStampKey(raw);if(!raw||!key)return null;
+ if(/\d/.test(key)){
+  const spread=key.split('').join('[^A-ZÅÄÖ0-9]*');
+  return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
+ }
+ const words=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];if(!words.length)return null;
+ return new RegExp('(^|[^A-ZÅÄÖ0-9])'+words.join('[\\s_-]+')+'($|[^A-ZÅÄÖ0-9])','i');
+}
+function annotationProjectText(dict){
+ const {PDFName}=PDFLib;
+ for(const key of ['Contents','T','Subj']){
+  const value=normalizeProjectStampText(decodePdfText(dict.get(PDFName.of(key))));
+  if(value)return value;
+ }
+ return '';
+}
+async function extractProjectStamps(){
+ const {PDFDocument,PDFName,PDFDict}=PDFLib;
+ const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+ const pending=[];
+ doc.getPages().forEach((pg,pi)=>{
+  const annots=pg.node.Annots();if(!annots)return;
+  for(let i=0;i<annots.size();i++){
+   let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
+   if(!dict)continue;
+   const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
+   if(!['Stamp','Highlight','FreeText','Square'].includes(subtype))continue;
+   const rect=rectFromAnnotation(dict);if(!rect)continue;
+   if(stampCode(dict))continue;
+   pending.push({page:pi+1,rect,order:i,meta:annotationProjectText(dict),subtype});
+  }
+ });
+ const out=[];
+ for(const mark of pending){
+  const under=normalizeProjectStampText(await rawProjectStampText(mark.page,mark.rect));
+  const label=under||mark.meta;
+  if(!label||normalizeCode(label))continue;
+  const code=projectStampKey(label);if(!code)continue;
+  out.push({...mark,code,label,sourceKind:'project-code'});
+ }
+ return out;
+}
 async function extractStamps(){
  const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib;
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
@@ -835,7 +899,7 @@ function protocolScore(code,pageNo,text,drawingPages){
 }
 async function buildProtocolMap(){
  protocolMap={};
- const drawingPages=new Set(stamps.map(s=>s.page));
+ const drawingPages=new Set([...stamps,...projectStamps].map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
  setState('Matchar exakta GS-koder mot dörrkort i samma PDF…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
@@ -845,6 +909,34 @@ async function buildProtocolMap(){
    if(protocolScore(code,p,pageTexts[p],drawingPages)>=0)matches.push(p);
   }
   // En enda säker exakt GS-träff krävs. Ingen träff eller flera möjliga sidor = ingen klickbar koppling.
+  if(matches.length===1)protocolMap[code]=matches[0];
+ }
+}
+function projectStampIdentityMatch(code,text){
+ const rx=projectStampRegex(code);if(!rx||!text)return false;
+ const rows=[];
+ [...text.items].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(item=>{
+  let row=rows.find(r=>Math.abs(r.y-item.y)<=Math.max(2.4,Math.min(5,item.h*.45)));
+  if(!row){row={y:item.y,items:[]};rows.push(row)}
+  row.items.push(item);
+ });
+ const normalizedRows=rows.map(r=>({y:r.y,text:r.items.sort((a,b)=>a.x-b.x).map(x=>x.text).join(' ').replace(/\s+/g,' ').trim()}));
+ const identityLabel=/\b(dörr(?:nr|nummer)?|littera|objekt(?:nr|nummer)?|beteckning|position|id)\b/i;
+ if(normalizedRows.some(row=>identityLabel.test(row.text)&&rx.test(row.text)))return true;
+ if(/\d/.test(projectStampKey(code)))return rx.test(String(text.raw||''));
+ const ys=normalizedRows.map(r=>r.y);if(!ys.length)return false;
+ const minY=Math.min(...ys),maxY=Math.max(...ys),topLimit=minY+(maxY-minY)*.67;
+ return normalizedRows.some(row=>row.y>=topLimit&&row.text.length<=100&&rx.test(row.text));
+}
+async function buildProjectStampMap(){
+ const drawingPages=new Set([...stamps,...projectStamps].map(s=>s.page));
+ const codes=[...new Set(projectStamps.map(s=>s.code))];
+ for(const code of codes){
+  const matches=[];
+  for(let p=1;p<=pdf.numPages;p++){
+   if(drawingPages.has(p))continue;
+   if(projectStampIdentityMatch(code,pageTexts[p]))matches.push(p);
+  }
   if(matches.length===1)protocolMap[code]=matches[0];
  }
 }
@@ -915,14 +1007,21 @@ function buildInstances(){
  projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
  automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
- instances=stamps.map((s,index)=>{
-  counts[s.code]=(counts[s.code]||0)+1;
+ projectStamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
+ const gsInstances=stamps.map((s,index)=>{
+  const countKey='gs|'+s.code;counts[countKey]=(counts[countKey]||0)+1;
   const id=s.code+'@'+s.page+':'+s.order+':'+index,old=saved.instances?.[id]||{};
-  return {...s,id,position:counts[s.code],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
+  return {...s,sourceKind:'gs',id,position:counts[countKey],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
  });
+ const freeInstances=projectStamps.map((s,index)=>{
+  const countKey='project-code|'+s.code;counts[countKey]=(counts[countKey]||0)+1;
+  const id='doorcode:'+s.code+'@'+s.page+':'+s.order+':'+index,old=saved.instances?.[id]||{};
+  return {...s,sourceKind:'project-code',id,position:counts[countKey],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
+ });
+ instances=[...gsInstances,...freeInstances].sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  const totals={};
- instances.forEach(o=>totals[o.code]=(totals[o.code]||0)+1);
- instances.forEach(o=>o.totalOfCode=totals[o.code]);
+ instances.forEach(o=>{const key=o.sourceKind+'|'+o.code;totals[key]=(totals[key]||0)+1});
+ instances.forEach(o=>o.totalOfCode=totals[o.sourceKind+'|'+o.code]);
 }
 async function recalc(o){
  const def=await protocolDef(o.code);
@@ -2003,14 +2102,18 @@ async function analyze(file){
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.rescan.hidden=false;el.saveProject.disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
- stamps=await extractStamps();buildInstances();
+ stamps=await extractStamps();
+ projectStamps=await extractProjectStamps();
+ buildInstances();
  await buildProtocolMap();
+ await buildProjectStampMap();
  await discoverDoorAutomations();
  await recalcAll();
- const codes=[...new Set(stamps.map(s=>s.code))],matchedCodes=codes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length,unmatchedPositions=Math.max(0,stamps.length-matchedPositions);
+ const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length;
+ const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
- else setState(stamps.length+' GS-positioner · '+matchedPositions+' klickbara · '+matchedCodes+' GS-ID matchade'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
+ if(!stamps.length&&!projectStamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
+ else setState(stamps.length+' GS-positioner · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
