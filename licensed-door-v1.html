@@ -21,12 +21,19 @@
   const ACCESS_KEY='tillsynoLicensedAccessV4';
   let access=null;
   try{access=JSON.parse(sessionStorage.getItem(ACCESS_KEY)||'null')}catch(_){}
-  const workflow=new URLSearchParams(location.search).get('workflow')||'';
-  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes('dorrautomatik');
-  if(!allowed||!['revision','selfcheck'].includes(workflow)){
+  const params=new URLSearchParams(location.search);
+  const moduleKey=params.get('module')||'';
+  const protocol=params.get('protocol')||'';
+  const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
+  const protocolInfo=module&&Array.isArray(module.protocols)?module.protocols.find(item=>item.appProtocolKey===protocol):null;
+  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&['automation','automation_selfcheck'].includes(protocol)&&protocolInfo;
+  if(!allowed){
     location.replace('./licensed-entry-v6.html?resume=1');
   }
-  window.TILLSYNO_LICENSED_DOOR_WORKFLOW=workflow;
+  window.TILLSYNO_LICENSED_MODULE=moduleKey;
+  window.TILLSYNO_LICENSED_MODULE_NAME=module?.name||'Dörrautomatik';
+  window.TILLSYNO_LICENSED_DOOR_PROTOCOL=protocol;
+  window.TILLSYNO_LICENSED_PROTOCOL_NAME=protocolInfo?.name||(protocol==='automation_selfcheck'?'Egenkontroll dörrautomatik':'Checklista revision dörrautomatik');
 })();
 </script>\n</head>
 <body class="securityApp allInOneApp" data-view="drawing">
@@ -193,12 +200,9 @@
 <script>
 (()=>{
   'use strict';
-  const workflow=window.TILLSYNO_LICENSED_DOOR_WORKFLOW;
-  const protocol=workflow==='selfcheck'?'automation_selfcheck':'automation';
-  const labels={
-    automation:'Checklista revision dörrautomatik',
-    automation_selfcheck:'Egenkontroll dörrautomatik'
-  };
+  const protocol=window.TILLSYNO_LICENSED_DOOR_PROTOCOL;
+  const moduleName=window.TILLSYNO_LICENSED_MODULE_NAME||'Dörrautomatik';
+  const protocolName=window.TILLSYNO_LICENSED_PROTOCOL_NAME||'Dörrautomatik';
 
   try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify([protocol]))}catch(_){}
 
@@ -218,13 +222,13 @@
     });
 
     const brand=document.querySelector('.brand strong');
-    if(brand)brand.textContent=labels[protocol];
+    if(brand)brand.textContent=protocolName;
 
     const subtitle=document.querySelector('.headerSubtitle');
-    if(subtitle)subtitle.textContent='Dörrautomatik · '+(protocol==='automation'?'revision':'egenkontroll');
+    if(subtitle)subtitle.textContent=moduleName+' · '+protocolName;
 
     const emptyTitle=document.querySelector('#secEmpty h1');
-    if(emptyTitle)emptyTitle.textContent=labels[protocol];
+    if(emptyTitle)emptyTitle.textContent=protocolName;
 
     const emptyText=document.querySelector('#secEmpty p');
     if(emptyText)emptyText.textContent='Öppna en PDF för att börja.';
