@@ -13,9 +13,9 @@
 <title>Dörrautomatik – Tillsyno</title>
 <link rel="stylesheet" href="style.css?v=2.4.251">
 <link rel="stylesheet" href="security.css?v=2.4.215"><link rel="stylesheet" href="security-compact.css?v=2.4.215"><link rel="stylesheet" href="all-in-one.css?v=2.4.215">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
 <script>
 (()=>{
   const ACCESS_KEY='tillsynoLicensedAccessV4';
@@ -40,7 +40,8 @@
   window.AllInOneProtocols={...(window.AllInOneProtocols||{}),get:()=>[...protocols]};
   try{localStorage.setItem('doorservice-all-in-one-active-protocols',JSON.stringify(protocols))}catch(_){}
 })();
-</script>\n</head>
+</script>\n<link rel="manifest" href="manifest.webmanifest?v=2.4.253"><meta name="apple-mobile-web-app-title" content="Tillsyno">
+</head>
 <body class="securityApp allInOneApp" data-view="drawing">
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Kontrollflöde</strong></div>
@@ -201,7 +202,7 @@
 </nav>
 <script src="ui-text-scale.js?v=2.4.215"></script><script src="drawing-annotations.js?v=2.4.215"></script>
 <script src="session-history.js?v=2.4.215"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.252&build=lock11"></script><script src="legacy-door-import.js?v=2.4.215"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="offline-work.js?v=2.4.253"></script><script src="security.js?v=2.4.253"></script><script src="legacy-door-import.js?v=2.4.215"></script>
 <script src="drawing-transfer.js?v=2.4.215"></script>
 <script>
 (()=>{
@@ -248,4 +249,5 @@
   setTimeout(apply,80);
   setTimeout(apply,250);
 })();
-</script>\n</body></html>
+</script>\n<script src="offline.js?v=2.4.253"></script>
+</body></html>

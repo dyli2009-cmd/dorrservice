@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 let pdf=null,sourceBytes=null,fileName='ritning.pdf',page=1,keep=[],undo=[],renderTask=null,lastOutput=null,uploadedSize=0,drawingSourceSize=0;
 let manualMasks={},cropRects={},editMode='',dragStart=null,estimateVersion=0;

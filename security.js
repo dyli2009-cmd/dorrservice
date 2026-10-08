@@ -1,4 +1,4 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 const ALL_IN_ONE=window.DOORSERVICE_APP_MODE==='all-in-one';
 const APP_STORAGE_PREFIX=ALL_IN_ONE?'doorservice-all-in-one:':'security-service:';
@@ -842,6 +842,7 @@ $('securityFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{
   msg((doorImported?'Dörrautomatik importerad till Allt-i-ett. ':'Arbets-PDF öppnad. ')+'Välj Ny service eller Fortsätt / ändra.');
  }else if(legacyImported&&items.length)msg(legacyImported.summaryText);
  else msg((imported?'Arbets-PDF öppnad. ':'Ritningen är klar. ')+(items.length?items.length+' objekt återställda.':(ALL_IN_ONE?'Ritningen är klar. Börja markera valda protokoll.':'Lägg till Inbrottslarm, Lås & Dörrmiljö eller Passer.')));
+ try{await window.TillsynoOfflineWork?.remember(APP_STATE_NAME,key,f.name,sourceBytes)}catch(error){console.error(error);msg('Arbetsdata sparas, men ritningen kunde inte sparas lokalt. Spara en arbets-PDF innan du stänger appen.',true)}
  }catch(err){console.error(err);msg(err.message||'Kunde inte öppna PDF-filen.',true)}finally{e.target.value=''}};
 $('secOpenWorkDialog').addEventListener('cancel',e=>e.preventDefault());
 $('secOpenContinue').onclick=()=>{$('secOpenWorkDialog').close();go('drawing');msg('')};

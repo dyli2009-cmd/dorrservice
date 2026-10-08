@@ -1,7 +1,7 @@
 {
-  "name": "Dörrservice",
-  "short_name": "Dörrservice",
-  "description": "Service, provning och dokumentation av dörrautomatik.",
+  "name": "Tillsyno",
+  "short_name": "Tillsyno",
+  "description": "Tillsyn, kontroll och dokumentation. Arbeta med ritningar och protokoll på enheten.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -22,5 +22,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "id": "./"
 }
