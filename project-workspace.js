@@ -1005,12 +1005,14 @@ async function recalc(o){
  if(totalMinutes>0){o.progress=Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));return}
  o.progress=Math.round(doneCount/checks.length*100);
 }
+function matchedProjectInstances(){return instances.filter(o=>!!protocolMap[o.code])}
 async function recalcAll(){for(const o of instances)await recalc(o);save();updateStats();renderGroups();renderMarkers()}
 function updateStats(){
- el.positionCount.textContent=instances.length;
- el.matchedCount.textContent=instances.filter(o=>protocolMap[o.code]).length;
- el.doneCount.textContent=instances.filter(o=>o.progress===100).length;
- const trackable=instances.filter(o=>(Number(o.workItemCount)||0)>0);
+ const matched=matchedProjectInstances();
+ el.positionCount.textContent=matched.length;
+ el.matchedCount.textContent=matched.length;
+ el.doneCount.textContent=matched.filter(o=>o.progress===100).length;
+ const trackable=matched.filter(o=>(Number(o.workItemCount)||0)>0);
  const totalMinutes=trackable.reduce((a,o)=>a+Math.max(0,Number(o.estimatedMinutes)||0),0);
  const doneMinutes=trackable.reduce((a,o)=>a+Math.max(0,Number(o.doneMinutes)||0),0);
  const allDone=trackable.length>0&&trackable.every(o=>o.progress===100);
@@ -1344,7 +1346,7 @@ function toggleBulkInstance(o){
  updateBulkBar();renderMarkers();
 }
 function selectAllOnPage(){
- instances.filter(o=>o.page===page).forEach(o=>bulkSelected.add(o.id));
+ matchedProjectInstances().filter(o=>o.page===page).forEach(o=>bulkSelected.add(o.id));
  updateBulkBar();renderMarkers();
 }
 function beginBulkDrag(e){
@@ -1374,7 +1376,7 @@ async function endBulkDrag(e){
  const x1=Math.min(g.start.x,g.last.x),x2=Math.max(g.start.x,g.last.x),y1=Math.min(g.start.y,g.last.y),y2=Math.max(g.start.y,g.last.y);
  if(x2-x1<6&&y2-y1<6)return true;
  const pg=await pdf.getPage(page),vp=pg.getViewport({scale});
- instances.filter(o=>o.page===page).forEach(o=>{
+ matchedProjectInstances().filter(o=>o.page===page).forEach(o=>{
   const r=viewportRect(vp,o.rect),rx2=r.left+r.width,ry2=r.top+r.height;
   if(r.left<=x2&&rx2>=x1&&r.top<=y2&&ry2>=y1)bulkSelected.add(o.id);
  });
@@ -1635,7 +1637,7 @@ async function openTimeReport(){
 function closeTimeReport(){if(el.timeDialog.open)el.timeDialog.close()}
 function renderMarkers(){
  el.markers.replaceChildren();if(!pdf)return;
- const renderPage=page,pageItems=instances.filter(o=>o.page===renderPage);
+ const renderPage=page,pageItems=matchedProjectInstances().filter(o=>o.page===renderPage);
  pdf.getPage(renderPage).then(pg=>{
   if(renderPage!==page)return;
   const vp=pg.getViewport({scale});
@@ -1673,7 +1675,7 @@ function renderAutomationMarkers(){
 }
 function renderGroups(){
  const groups={};
- instances.filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
+ matchedProjectInstances().filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
  const visibleAutomations=automationItems.filter(o=>!currentOnly||o.page===page);
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
@@ -1694,13 +1696,13 @@ function renderGroups(){
   const wrap=document.createElement('section');wrap.className='pwGroup';
   const title=document.createElement('div');title.className='pwGroupTitle';
   const strong=document.createElement('strong');strong.textContent=code;
-  const span=document.createElement('span');span.textContent=groups[code].length+' positioner'+(protocolMap[code]?' · protokoll ✓':' · protokoll ?');
+  const span=document.createElement('span');span.textContent=groups[code].length+' positioner · dörrkort ✓';
   title.append(strong,span);wrap.appendChild(title);
   const list=document.createElement('div');list.className='pwGroupItems';
   groups[code].forEach(o=>{
    const b=document.createElement('button');b.type='button';b.className='pwPosition';
    const left=document.createElement('span'),s=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
-   s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;small.textContent='Sida '+o.page+(protocolMap[code]?' · protokoll sida '+protocolMap[code]:' · protokoll ej matchat');pct.textContent=o.progress+'%';
+   s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;small.textContent='Sida '+o.page+' · dörrkort sida '+protocolMap[code];pct.textContent=o.progress+'%';
    left.append(s,small);b.append(left,pct);b.onclick=()=>focusInstance(o);list.appendChild(b);
   });
   wrap.appendChild(list);el.groups.appendChild(wrap);
