@@ -878,8 +878,9 @@ function strictDoorCardIdentity(code,text){
  topRows.forEach((row,index)=>{
   const compact=projectIdCompact(row.text);
   if(compact===wanted){isolatedTop=true;if(identityRowIndex<0)identityRowIndex=index;return}
-  const rx=codeRegex(code);
-  if(rx&&rx.test(row.text)&&/(dörrkort|dorrkort|dörr\b|dorr\b|littera|objekt(?:nummer|nr)?|märkning|markning|position|\bid\b)/i.test(row.text)){
+  const rx=codeRegex(code),rowCompact=projectIdCompact(row.text);
+  const headerSignal=/(dörrkort|dorrkort|littera|objekt(?:nummer|nr)?|märkning|markning|position)/i.test(row.text);
+  if(rx&&headerSignal&&rowCompact.startsWith(wanted)){
    headerTop=true;if(identityRowIndex<0)identityRowIndex=index;
   }
  });
