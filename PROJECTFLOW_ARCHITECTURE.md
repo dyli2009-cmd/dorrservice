@@ -75,6 +75,14 @@ Kontrollflödets lås ska respekteras.
 - Om inget protokoll med samma GS-ID hittas skapas ingen fungerande protokollkoppling för den positionen.
 - Dörrautomatikens separata strukturerade märkning och egenkontroll är ett annat system och påverkas inte av denna GS-regel.
 
+## Övriga projektstämplar
+- Övriga gula projektmarkeringar hanteras av en **separat matchningsmotor** och ändrar inte GS-logiken.
+- Kandidaten får vara både kod och text, t.ex. `140 D`, `310-D`, `815 C`, `310 GA`, `22 FS` eller `Cylinder`.
+- Kodformat normaliseras så enkla skillnader i mellanslag, bindestreck eller snedstreck inte stoppar matchning, t.ex. `140 D`, `140-D` och `140D` behandlas som samma kod.
+- En markering blir klickbar endast om exakt samma identitet kan kopplas till **ett enda dörrkort**.
+- Textord som `Cylinder` får vara kandidat, men ett vanligt förekommande komponentord i dörrkortets brödtext räcker inte. För textkandidater krävs att ordet står som dörrkortets identifiering, exempelvis på en ID-/Littera-/Dörr-/Objekt-rad eller tydligt i dörrkortets övre identitetsdel.
+- Ingen säker eller unik dörrkortsmatchning innebär ingen knapp.
+
 ## Originalprotokoll – zoom
 - originalprotokollet ska kunna nypzoomas med två fingrar på telefon och iPad
 - en-fingersdrag används för att panorera när protokollet är inzoomat
