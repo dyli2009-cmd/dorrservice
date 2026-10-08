@@ -30,7 +30,7 @@
     brand:['fire_panel','fire_detector','fire_door']
   };
   const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&allowedByModule[moduleKey]?.includes(protocol);
-  if(!allowed)location.replace('./licensed-entry-v4.html?resume=1');
+  if(!allowed)location.replace('./licensed-entry-v6.html?resume=1');
   window.TILLSYNO_LICENSED_MODULE=moduleKey;
   window.TILLSYNO_LICENSED_PROTOCOL=protocol;
 })();
@@ -39,7 +39,7 @@
 <body class="securityApp allInOneApp" data-view="drawing">
 <header class="appHeader secAppHeader">
  <div class="brand"><strong>Kontrollflöde</strong></div>
- <div class="headerActions"><a class="filebtn appHeaderIconButton homeIconLink" href="./licensed-entry-v4.html?resume=1" aria-label="Hem" title="Hem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></svg><span>Hem</span></a><button id="securityPreview" class="appHeaderIconButton previewButton" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M15 3.5v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg><span>Kundmall</span></button><button id="securityExport" class="primary appHeaderIconButton savePdfButton" type="button" aria-label="Spara PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5h11l3 3V20.5H5z"/><path d="M8 3.5v6h8v-6M8 20.5v-7h8v7"/></svg><span>Spara PDF</span></button></div>
+ <div class="headerActions"><a class="filebtn appHeaderIconButton homeIconLink" href="./licensed-entry-v6.html?resume=1" aria-label="Hem" title="Hem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/></svg><span>Hem</span></a><button id="securityPreview" class="appHeaderIconButton previewButton" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9l3 3V20.5H6z"/><path d="M15 3.5v4h4"/><path d="M8.5 12.5h7M8.5 16h5"/></svg><span>Kundmall</span></button><button id="securityExport" class="primary appHeaderIconButton savePdfButton" type="button" aria-label="Spara PDF"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5h11l3 3V20.5H5z"/><path d="M8 3.5v6h8v-6M8 20.5v-7h8v7"/></svg><span>Spara PDF</span></button></div>
  <div class="headerDetails"><small class="headerSubtitle">En ritning · valfria protokoll</small></div>
  <input id="securityFile" type="file" accept="application/pdf" hidden>
 </header>
