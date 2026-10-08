@@ -13,7 +13,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#eef3f7;fon
 <div id="gate" class="gate"><div><strong>Kontrollerar modulåtkomst…</strong></div></div>
 <script>
 const STORAGE='tillsynoLicensedAccessV1';
-const moduleKey=new URLSearchParams(location.search).get('module')||'';
+const params=new URLSearchParams(location.search);\nconst moduleKey=params.get('module')||'';\nconst workflow=params.get('workflow')||'';
 let saved=null;
 try{saved=JSON.parse(sessionStorage.getItem(STORAGE)||'null')}catch{}
 const access=saved&&saved.access?saved.access:null;
@@ -24,7 +24,7 @@ if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.includes(modul
 }else{
   const securityMap={las:'lock',passer:'access',inbrottslarm:'alarm'};
   let src='';
-  if(moduleKey==='dorrautomatik') src='./index.html';
+  if(moduleKey==='dorrautomatik') src='./all-in-one.html';
   else if(securityMap[moduleKey]) src='./security.html';
   else denied('Den här arbetsytan är inte färdigbyggd ännu.');
   if(src){
@@ -38,11 +38,39 @@ if(!access||!Array.isArray(access.moduleKeys)||!access.moduleKeys.includes(modul
         const doc=frame.contentDocument;
         if(!doc)return;
         if(moduleKey==='dorrautomatik'){
-          doc.body.classList.remove('homeMode');
-          const home=doc.getElementById('appHome'); if(home)home.hidden=true;
-          const homeBtn=doc.getElementById('homeBtn');
-          if(homeBtn)homeBtn.onclick=()=>{location.href='./licensed-entry.html?menu=1'};
-          doc.querySelectorAll('.securityLaunch').forEach(el=>el.remove());
+          const protocol=workflow==='selfcheck'?'automation_selfcheck':workflow==='revision'?'automation':'';
+          if(!protocol){
+            location.href='./licensed-entry.html?menu=1';
+            return;
+          }
+          const labels={
+            automation:'Checklista revision dörrautomatik',
+            automation_selfcheck:'Egenkontroll dörrautomatik'
+          };
+          const applyLicensedProtocol=()=>{
+            try{
+              const win=frame.contentWindow;
+              const dialog=doc.getElementById('allProtocolDialog');
+              if(win&&win.AllInOneProtocols)win.AllInOneProtocols.set([protocol]);
+              doc.querySelectorAll('#allProtocolDialog input[type="checkbox"][value]').forEach(cb=>{
+                cb.checked=cb.value===protocol;
+              });
+              if(dialog&&dialog.open)dialog.close();
+              doc.querySelectorAll('.allInOneProtocolTools [data-add]').forEach(btn=>{
+                btn.hidden=btn.getAttribute('data-add')!==protocol;
+              });
+              const brand=doc.querySelector('.brand strong');
+              if(brand)brand.textContent=labels[protocol];
+              const subtitle=doc.querySelector('.headerSubtitle');
+              if(subtitle)subtitle.textContent='Dörrautomatik · '+(protocol==='automation'?'revision':'egenkontroll');
+              doc.querySelectorAll('a[href="./"]').forEach(link=>{
+                link.setAttribute('href','javascript:void(0)');
+                link.onclick=()=>{location.href='./licensed-entry.html?menu=1';return false};
+              });
+            }catch(e){}
+          };
+          setTimeout(applyLicensedProtocol,90);
+          setTimeout(applyLicensedProtocol,220);
         }else{
           const allow=securityMap[moduleKey];
           doc.querySelectorAll('[data-add]').forEach(btn=>{
