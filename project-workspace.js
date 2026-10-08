@@ -926,7 +926,7 @@ function projectStampIdentityMatch(code,text){
  if(/\d/.test(projectStampKey(code)))return rx.test(String(text.raw||''));
  const ys=normalizedRows.map(r=>r.y);if(!ys.length)return false;
  const minY=Math.min(...ys),maxY=Math.max(...ys),topLimit=minY+(maxY-minY)*.67;
- return normalizedRows.some(row=>row.y>=topLimit&&row.text.length<=100&&rx.test(row.text));
+ return normalizedRows.some(row=>row.y>=topLimit&&row.text.length<=100&&projectStampKey(row.text)===projectStampKey(code));
 }
 async function buildProjectStampMap(){
  const drawingPages=new Set([...stamps,...projectStamps].map(s=>s.page));
