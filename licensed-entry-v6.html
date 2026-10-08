@@ -7,33 +7,41 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Tillsyno – licensierad åtkomst</title>
+<title>Tillsyno – arbetsområden</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#f8fbff,#eef3f7);color:#15243a}
-.shell{width:min(760px,calc(100% - 32px));margin:0 auto;padding:50px 0 80px}
-.brand{display:flex;align-items:center;gap:10px;margin-bottom:40px}.mark{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#142940;color:white;font-weight:800}
-.card{padding:28px;border:1px solid #d8e3eb;border-radius:22px;background:white;box-shadow:0 18px 50px rgba(24,48,70,.08)}
-.eyebrow{color:#4b7395;font-size:10px;font-weight:800;letter-spacing:.13em}
-h1{margin:9px 0 8px;font-size:clamp(34px,7vw,52px);letter-spacing:-.045em}.lead{margin:0;color:#66788b;line-height:1.65}
-.status{margin:22px 0;padding:14px 16px;border-radius:14px;background:#f3f7fa;color:#597083;font-size:12px}
-.list{display:grid;gap:10px;margin-top:18px}.choice{width:100%;padding:17px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #dce5ec;border-radius:14px;background:white;color:#18344b;font:inherit;text-align:left;cursor:pointer}
-.choice strong,.choice small{display:block}.choice small{margin-top:4px;color:#7c8b98;font-size:11px;line-height:1.45}.choice b{font-size:20px}.choice.disabled{opacity:.55;cursor:not-allowed;background:#f7f9fb}
-.error{margin-top:18px;padding:14px;border-radius:13px;border:1px solid #efcaca;background:#fff1f1;color:#8a3f3f;font-size:12px}
-.back{display:inline-block;margin-top:20px;color:#315f81;font-size:12px;font-weight:700;text-decoration:none}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 50% 65%,#deece9,transparent 65%),#f6f8f8;color:#183548}
+body{min-height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.shell{width:min(660px,calc(100% - 40px));margin:0 auto;padding:22px 0 40px}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:38px;color:#36554c;font-size:14px}.mark{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#203b44;color:white;font-weight:800}
+.card{padding:0;background:transparent}
+h1{margin:0 0 8px;font-size:28px;font-weight:650;letter-spacing:-.9px;overflow-wrap:anywhere}.lead{margin:0;color:#718781;font-size:13px;line-height:1.6}
+.status{margin-top:18px;color:#718781;font-size:12px}.status[hidden]{display:none}
+.list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:26px}
+.choice{position:relative;width:100%;min-height:176px;padding:22px;display:flex;flex-direction:column;align-items:flex-start;gap:20px;border:1px solid #315158;border-radius:24px;background:linear-gradient(145deg,#28494f,#142d35);box-shadow:0 16px 40px -20px #1b4b4b55;color:#f5faf8;font:inherit;text-align:left;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.choice:hover{transform:translateY(-2px);box-shadow:0 20px 44px -18px #1b4b4b66}.choice:focus-visible{outline:3px solid #67a58f;outline-offset:4px}
+.choice strong,.choice small{display:block}.choice strong{font-size:18px;font-weight:600;letter-spacing:-.3px}.choice small{margin-top:7px;color:#a9c2bb;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
+.choiceIcon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#c5ecdf15;color:#c5ecdf}.choiceIcon svg{width:25px;height:25px}
+.choice b{position:absolute;right:20px;top:27px;font-size:25px;font-weight:400;color:#b6d9ce}
+.choice.disabled{opacity:.6;cursor:not-allowed;box-shadow:none}.choice.disabled:hover{transform:none}
+.choice.return{grid-column:1/-1;min-height:44px;padding:10px 4px;display:block;border:0;background:transparent;color:#486a5c;box-shadow:none}.choice.return strong{font-size:12px}.choice.return .choiceIcon,.choice.return small,.choice.return b{display:none}
+.error{margin-top:18px;padding:14px;border-radius:14px;border:1px solid #efcaca;background:#fff1f1;color:#8a3f3f;font-size:12px}
+.back{display:inline-flex;align-items:center;min-height:44px;margin-top:24px;color:#668275;font-size:12px;font-weight:600;text-decoration:none}
+@media(max-width:500px){.list{grid-template-columns:1fr;gap:12px}.choice{min-height:136px;padding:20px;gap:14px}.choiceIcon{width:38px;height:38px;border-radius:12px}.choiceIcon svg{width:23px;height:23px}.choice b{top:23px}.brand{margin-bottom:30px}}
+@media(min-width:700px){.shell{padding-top:30px}.brand{margin-bottom:54px}}
+@media(prefers-reduced-motion:reduce){.choice{transition:none}.choice:hover{transform:none}}
 </style>
 </head>
 <body>
 <main class="shell">
   <div class="brand"><span class="mark">T</span><strong>Tillsyno</strong></div>
   <section class="card">
-    <span class="eyebrow">LICENSIERAD ÅTKOMST</span>
     <h1 id="title">Kontrollerar åtkomst…</h1>
-    <p id="lead" class="lead">Verifierar företag, licens och arbetsområden.</p>
-    <div id="status" class="status">Ansluter till Tillsyno-portalen…</div>
+    <p id="lead" class="lead">Förbereder dina arbetsområden.</p>
+    <div id="status" class="status" hidden></div>
     <div id="list" class="list"></div>
     <div id="error" class="error" hidden></div>
-    <a class="back" href="https://tillsyno-test.floot.app/konto">Till Tillsyno-portalen</a>
+    <a class="back" href="https://tillsyno-test.floot.app/konto">‹ Till startsidan</a>
   </section>
 </main>
 <script>
@@ -56,10 +64,15 @@ function fail(message){
 }
 function save(access){try{sessionStorage.setItem(STORAGE,JSON.stringify(access))}catch(_){}}
 function saved(){try{return JSON.parse(sessionStorage.getItem(STORAGE)||'null')}catch(_){return null}}
-function button(label,sub,fn,disabled=false){
+function button(label,sub,fn,disabled=false,key=''){
   const b=document.createElement('button');
-  b.type='button'; b.className='choice'+(disabled?' disabled':'');
-  b.innerHTML='<span><strong>'+label+'</strong><small>'+sub+'</small></span><b>'+(disabled?'':'›')+'</b>';
+  const returning=label.startsWith('‹');
+  b.type='button';b.className='choice'+(disabled?' disabled':'')+(returning?' return':'');b.disabled=disabled;
+  const icon=document.createElement('span');icon.className='choiceIcon';icon.setAttribute('aria-hidden','true');
+  const paths=key==='projektflode'?'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11m4-7h4m-4 4h4"/>':key==='dorrautomatik'?'<path d="M5 21V3h14v18M8 21V6h8v15M11 12h2M3 21h18"/>':key==='brand'?'<path d="M13 3s1 5-3 7c-1-2-2-3-2-3s-4 4-4 8a8 8 0 0 0 16 0c0-4-4-8-4-8s1 5-3 5"/>':key==='sakerhetsservice'?'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>':'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v4H9zM9 12h6M9 16h6"/>';
+  icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
+  const span=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),arrow=document.createElement('b');
+  strong.textContent=label;small.textContent=sub;arrow.textContent=disabled?'':'›';span.append(strong,small);b.append(icon,span,arrow);
   if(!disabled)b.onclick=fn;
   list.appendChild(b);
 }
@@ -83,7 +96,7 @@ function openProtocol(module,protocol){
 function showProtocolArea(access,module){
   title.textContent=module.name;
   lead.textContent='Välj vilket protokoll du ska arbeta med.';
-  status.textContent='Åtkomst verifierad · '+module.name;
+  status.hidden=true;
   list.innerHTML='';
   const protocols=moduleProtocols(module);
   if(!protocols.length){
@@ -106,19 +119,18 @@ function showModules(access){
   const modules=Array.isArray(access.modules)?access.modules:[];
   title.textContent='Hej '+(access.displayName||'');
   lead.textContent=(access.companyName||'Ditt företag')+' · välj arbetsområde.';
-  status.hidden=false;
-  status.textContent='Åtkomst verifierad · '+access.moduleKeys.length+' arbetsområde'+(access.moduleKeys.length===1?'':'n');
+  status.hidden=true;
   list.innerHTML='';
   access.moduleKeys.forEach(key=>{
     const module=modules.find(item=>item.key===key)||{key,name:key,description:'',protocols:[]};
     const protocols=moduleProtocols(module);
     const protocolNames=protocols.map(protocol=>protocol.name).join(' · ');
     if(protocols.length){
-      button(module.name||key,protocolNames||'Öppna arbetsområde',()=>showProtocolArea(access,module));
+      button(module.name||key,protocolNames||'Öppna arbetsområde',()=>showProtocolArea(access,module),false,key);
     }else if(key==='projektflode'){
-      button(module.name||'Projektflöde',module.description||'Ritning · matchning · status',()=>{location.href='./licensed-project-v1.html?v=2'});
+      button(module.name||'Projektflöde',module.description||'Ritning · matchning · status',()=>{location.href='./licensed-project-v1.html?v=2'},false,key);
     }else{
-      button(module.name||key,'Inga protokoll är upplagda ännu',()=>{},true);
+      button(module.name||key,'Inga protokoll är upplagda ännu',()=>{},true,key);
     }
   });
 }
