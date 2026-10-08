@@ -99,37 +99,46 @@ function showDoorAutomation(access){
 function openDoor(protocol){
   const labels={automation:'Checklista revision dörrautomatik',automation_selfcheck:'Egenkontroll dörrautomatik'};
   document.body.classList.add('workspace');
+
+  const loading=document.createElement('div');
+  loading.id='licensedWorkspaceLoading';
+  loading.style.cssText='position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:#eef3f7;color:#15243a;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  loading.innerHTML='<div style="padding:20px 24px;border:1px solid #d8e3eb;border-radius:16px;background:white">Öppnar '+labels[protocol]+'…</div>';
+  document.body.appendChild(loading);
+
   const frame=document.createElement('iframe');
   frame.className='frame';
-  frame.src='./all-in-one.html?licensev4=1&ts='+Date.now();
+  frame.src='./all-in-one.html?licensev5=1&ts='+Date.now();
   frame.title=labels[protocol];
+  frame.style.opacity='0';
+  frame.style.pointerEvents='none';
   document.body.appendChild(frame);
+
   frame.addEventListener('load',()=>{
-    let tries=0;
-    let guardTimer=null;
-    const suppressProtocolPicker=(doc)=>{
-      let guard=doc.getElementById('tillsynoLicensedProtocolGuard');
-      if(!guard){
-        guard=doc.createElement('style');
-        guard.id='tillsynoLicensedProtocolGuard';
-        guard.textContent='#allProtocolDialog{display:none!important;visibility:hidden!important;pointer-events:none!important}';
-        doc.head.appendChild(guard);
-      }
-      const dialog=doc.getElementById('allProtocolDialog');
-      if(dialog){
-        try{if(dialog.open)dialog.close()}catch(_){}
-        dialog.hidden=true;
-        dialog.setAttribute('aria-hidden','true');
-      }
-    };
-    const configure=()=>{
-      tries++;
+    let ticks=0;
+    let configured=false;
+
+    const applyLicensedProtocol=()=>{
+      ticks++;
       try{
         const doc=frame.contentDocument;
         const win=frame.contentWindow;
-        if(!doc||!win){if(tries<30)setTimeout(configure,100);return}
+        if(!doc||!win)return;
 
-        suppressProtocolPicker(doc);
+        let guard=doc.getElementById('tillsynoLicensedProtocolGuard');
+        if(!guard){
+          guard=doc.createElement('style');
+          guard.id='tillsynoLicensedProtocolGuard';
+          guard.textContent='#allProtocolDialog{display:none!important;visibility:hidden!important;pointer-events:none!important}';
+          doc.head.appendChild(guard);
+        }
+
+        const dialog=doc.getElementById('allProtocolDialog');
+        if(dialog){
+          try{if(dialog.open)dialog.close()}catch(_){}
+          dialog.hidden=true;
+          dialog.setAttribute('aria-hidden','true');
+        }
 
         if(win.AllInOneProtocols)win.AllInOneProtocols.set([protocol]);
 
@@ -145,14 +154,20 @@ function openDoor(protocol){
 
         const brand=doc.querySelector('.brand strong');
         if(brand)brand.textContent=labels[protocol];
+
         const subtitle=doc.querySelector('.headerSubtitle');
         if(subtitle)subtitle.textContent='Dörrautomatik · '+(protocol==='automation'?'revision':'egenkontroll');
+
+        const emptyTitle=doc.querySelector('#secEmpty h1');
+        if(emptyTitle)emptyTitle.textContent=labels[protocol];
+        const emptyText=doc.querySelector('#secEmpty p');
+        if(emptyText)emptyText.textContent='Öppna en PDF för att börja.';
 
         doc.querySelectorAll('a[href="./"]').forEach(link=>{
           link.setAttribute('href','javascript:void(0)');
           link.onclick=()=>{
-            if(guardTimer)clearInterval(guardTimer);
             frame.remove();
+            loading.remove();
             document.body.classList.remove('workspace');
             const access=JSON.parse(sessionStorage.getItem(STORAGE)||'null');
             if(access)showDoorAutomation(access);
@@ -160,22 +175,24 @@ function openDoor(protocol){
           };
         });
 
-        if(!guardTimer){
-          guardTimer=setInterval(()=>{
-            try{
-              const d=frame.contentDocument;
-              if(d)suppressProtocolPicker(d);
-            }catch(_){}
-          },120);
-          setTimeout(()=>{if(guardTimer){clearInterval(guardTimer);guardTimer=null}},2500);
-        }
-
-        if(!win.AllInOneProtocols&&tries<30)setTimeout(configure,100);
-      }catch(e){
-        if(tries<30)setTimeout(configure,100);
-      }
+        if(win.AllInOneProtocols)configured=true;
+      }catch(_){}
     };
-    setTimeout(configure,10);
+
+    const timer=setInterval(applyLicensedProtocol,80);
+    applyLicensedProtocol();
+
+    setTimeout(()=>{
+      clearInterval(timer);
+      applyLicensedProtocol();
+      if(configured){
+        frame.style.opacity='1';
+        frame.style.pointerEvents='auto';
+        loading.remove();
+      }else{
+        loading.innerHTML='<div style="padding:20px 24px;border:1px solid #efcaca;border-radius:16px;background:#fff1f1;color:#8a3f3f">Arbetsytan kunde inte förberedas. Gå tillbaka och prova igen.</div>';
+      }
+    },700);
   });
 }
 function openSecurity(key){
