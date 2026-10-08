@@ -69,19 +69,16 @@ function moduleProtocols(module){
 function backToModules(access){
   button('‹ Till arbetsområden','Gå tillbaka till dina tilldelade områden',()=>showModules(access));
 }
-function showDoorAutomation(access,module){
-  title.textContent='Dörrautomatik';
-  lead.textContent='Välj vilket protokoll du ska arbeta med.';
-  status.textContent='Åtkomst verifierad · Dörrautomatik';
-  list.innerHTML='';
-  const protocols=moduleProtocols(module);
-  protocols.forEach(protocol=>{
-    const workflow=protocol.key==='automation_selfcheck'?'selfcheck':'revision';
-    button(protocol.name,protocol.description||'Öppna protokoll',()=>{
-      location.href='./licensed-door-v1.html?workflow='+encodeURIComponent(workflow)+'&v=2';
-    });
-  });
-  backToModules(access);
+function openProtocol(module,protocol){
+  const appKey=protocol.appProtocolKey||'';
+  if(!appKey)return;
+  if(appKey==='automation'||appKey==='automation_selfcheck'){
+    location.href='./licensed-door-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=3';
+    return;
+  }
+  if(['alarm','lock','access','fire_panel','fire_detector','fire_door'].includes(appKey)){
+    location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(appKey)+'&v=2';
+  }
 }
 function showProtocolArea(access,module){
   title.textContent=module.name;
@@ -93,9 +90,13 @@ function showProtocolArea(access,module){
     button(module.name,'Inga protokoll är upplagda ännu',()=>{},true);
   }else{
     protocols.forEach(protocol=>{
-      button(protocol.name,protocol.description||'Öppna protokoll',()=>{
-        location.href='./licensed-control-v1.html?module='+encodeURIComponent(module.key)+'&protocol='+encodeURIComponent(protocol.key)+'&v=1';
-      });
+      const linked=Boolean(protocol.appProtocolKey);
+      button(
+        protocol.name,
+        linked?(protocol.description||'Öppna protokoll'):'Inte kopplad till arbetsappen ännu',
+        ()=>openProtocol(module,protocol),
+        !linked
+      );
     });
   }
   backToModules(access);
@@ -109,16 +110,15 @@ function showModules(access){
   status.textContent='Åtkomst verifierad · '+access.moduleKeys.length+' arbetsområde'+(access.moduleKeys.length===1?'':'n');
   list.innerHTML='';
   access.moduleKeys.forEach(key=>{
-    const module=modules.find(item=>item.key===key)||{key,name:key,protocols:[]};
-    const protocolNames=moduleProtocols(module).map(protocol=>protocol.name).join(' · ');
-    if(key==='dorrautomatik'){
-      button(module.name||'Dörrautomatik',protocolNames||'Öppna arbetsområde',()=>showDoorAutomation(access,module));
-    }else if(key==='sakerhetsservice'||key==='brand'){
+    const module=modules.find(item=>item.key===key)||{key,name:key,description:'',protocols:[]};
+    const protocols=moduleProtocols(module);
+    const protocolNames=protocols.map(protocol=>protocol.name).join(' · ');
+    if(protocols.length){
       button(module.name||key,protocolNames||'Öppna arbetsområde',()=>showProtocolArea(access,module));
     }else if(key==='projektflode'){
-      button(module.name||'Projektflöde',module.description||'Ritning · matchning · status',()=>{location.href='./licensed-project-v1.html?v=1'});
+      button(module.name||'Projektflöde',module.description||'Ritning · matchning · status',()=>{location.href='./licensed-project-v1.html?v=2'});
     }else{
-      button(module.name||key,'Arbetsyta byggs senare',()=>{},true);
+      button(module.name||key,'Inga protokoll är upplagda ännu',()=>{},true);
     }
   });
 }
