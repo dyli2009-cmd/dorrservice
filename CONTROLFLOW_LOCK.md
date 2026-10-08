@@ -15,3 +15,7 @@ När låset är aktivt:
 - ändra inte Kontrollflödets UI, funktioner, navigation, översikt, protokoll, kundmall eller PDF-logik
 - ändra inte delad kod på ett sätt som påverkar Kontrollflöde
 - håll Projektflöde och andra moduler separata
+
+## Senaste beställda ändring
+
+2026-10-08, Tillsyno v2.4.252: användaren låste upp Kontrollflöde för att lägga till **Checklista revision lås** under **Dörrautomatik / Lås**, med användarens 11 kontrollpunkter. Revision och egenkontroll dörrautomatik samt deras design behölls oförändrade. Efter denna ändring gäller status **LÅST** igen.

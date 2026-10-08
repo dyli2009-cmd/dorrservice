@@ -2,7 +2,7 @@
 (()=>{
  'use strict';
  const KEY='doorservice-all-in-one-active-protocols';
- const TYPES=['automation','automation_selfcheck','alarm','lock','access','fire_panel','fire_detector','fire_door'];
+ const TYPES=['automation','automation_selfcheck','lock_revision','alarm','lock','access','fire_panel','fire_detector','fire_door'];
  const dialog=document.getElementById('allProtocolDialog'),
   apply=document.getElementById('allProtocolApply'),
   file=document.getElementById('securityFile');

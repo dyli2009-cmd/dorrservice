@@ -23,4 +23,4 @@ Hela ursprungsappen, även hjälpskript som HTML-filen laddar, finns permanent i
 
 `automation` (revision dörrautomatik) och `automation_selfcheck` (egenkontroll dörrautomatik) ska lämnas oförändrade när en ny checklista läggs till. Detta är en bevarad utvecklingsreferens; befintliga arbetsfunktioner ändras inte.
 
-Det nya `lock_revision` heter **Checklista revision lås** och ligger under **Dörrautomatik / Lås**. Det är separat från det äldre `lock` under Säkerhetsservice. Det första utkastet har 13 egna låspunkter, som kan justeras senare utan att röra dörrprotokollen eller designmallen.
+Det nya `lock_revision` heter **Checklista revision lås** och ligger under **Dörrautomatik / Lås**. Det är separat från det äldre `lock` under Säkerhetsservice. Låsprotokollet har användarens 11 kontrollpunkter (1.1–1.11). Kontrollflödets protokollval finns också sparat i `all-in-one.html` och `all-in-one.js` i denna mapp. Framtida ändringar av låspunkterna ska inte röra dörrprotokollen eller designmallen.

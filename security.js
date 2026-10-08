@@ -153,121 +153,100 @@ if(ALL_IN_ONE){
   "checks": [
     [
       "1.1",
-      "Samtal med nyttjaren om lås och dörrfunktion."
+      "Prata med kunden"
     ],
     [
       "1.2",
-      "Okulärbesiktning av lås, beslag och dörrmiljö."
+      "Funktionsprov samt smörjning av cylindrar"
     ],
     [
       "1.3",
-      "Kontroll fastsättning, infästning och eventuella efterdragningar av skruvar."
+      "Funktionsprov samt smörjning av låshus"
     ],
     [
       "1.4",
-      "Funktionskontroll av låshus, låsregel och fallkolv."
+      "Funktionsprov samt smörjning av hänglås"
     ],
     [
       "1.5",
-      "Funktionskontroll av cylinder och nyckel."
+      "Orienteringsritningar och sektionsförteckningar finns på rätt plats"
     ],
     [
       "1.6",
-      "Funktionskontroll av elslutbleck, motorlås och ellås där de ingår."
+      "Materiel väl fastsatt"
     ],
     [
       "1.7",
-      "Kontroll av slutbleck och dörrens passning vid låsning."
+      "Eventuell justering av slutbleck"
     ],
     [
       "1.8",
-      "Funktionskontroll av trycke, handtag och övriga låsbeslag."
+      "Kontroll av förändringar i byggnaden eller inredningar och dess påverkan på dörrfunktioner/krav på lås"
     ],
     [
       "1.9",
-      "Kontroll av dörrstängare och att dörren stänger och låser."
+      "Finns/behövs nödkåpor och plomberingsband"
     ],
     [
       "1.10",
-      "Funktionskontroll av nödöppning och utrymningsbeslag där de ingår."
+      "Justering/kontroll dörrstängare"
     ],
     [
       "1.11",
-      "Kontroll av nödkåpor, plombering och skyltning där de ingår."
-    ],
-    [
-      "1.12",
-      "Funktionskontroll av daglarm och dörrövervakning där de ingår."
-    ],
-    [
-      "1.13",
-      "Behovsrengöring, smörjning enligt tillverkarens anvisning och mindre justering."
+      "Notering i kontrolljournal"
     ]
   ],
   "faults": {
     "1.1": [
-      "Nyttjaren uppger återkommande låsproblem",
-      "Låsfunktionen uppges vara intermittent"
+      "Kunden uppger problem med låsfunktionen"
     ],
     "1.2": [
-      "Skada eller slitage på lås och beslag",
-      "Dörrblad eller karm behöver justeras"
-    ],
-    "1.3": [
-      "Infästning lös",
-      "Skruvar saknas eller behöver efterdras"
-    ],
-    "1.4": [
-      "Låshus kärvar",
-      "Regel eller fallkolv går inte helt ut",
-      "Låshus behöver justeras eller bytas"
-    ],
-    "1.5": [
       "Cylinder kärvar",
-      "Nyckel fungerar inte korrekt",
+      "Cylinder behöver smörjas",
       "Cylinder sitter löst"
     ],
+    "1.3": [
+      "Låshus kärvar",
+      "Låshus behöver smörjas",
+      "Regel eller fallkolv fungerar inte korrekt"
+    ],
+    "1.4": [
+      "Hänglås kärvar",
+      "Hänglås behöver smörjas",
+      "Hänglås är skadat"
+    ],
+    "1.5": [
+      "Orienteringsritning saknas eller ligger på fel plats",
+      "Sektionsförteckning saknas eller ligger på fel plats"
+    ],
     "1.6": [
-      "Elslutbleck fungerar inte",
-      "Motorlås eller ellås fungerar inte",
-      "Lås släpper för sent"
+      "Materiel sitter löst",
+      "Infästning behöver åtgärdas"
     ],
     "1.7": [
       "Slutbleck behöver justeras",
-      "Dörr går inte att låsa korrekt",
-      "Dörrblad tar i karm eller slutbleck"
+      "Dörr låser inte korrekt"
     ],
     "1.8": [
-      "Trycke eller handtag sitter löst",
-      "Trycke återgår inte",
-      "Låsbeslag skadat"
+      "Förändring påverkar dörrfunktionen",
+      "Förändring behöver utredas mot kraven på lås"
     ],
     "1.9": [
-      "Dörrstängare läcker",
-      "Dörr stänger inte hela vägen",
-      "Dörr stänger men låser inte"
+      "Nödkåpa saknas eller är skadad",
+      "Plomberingsband saknas eller behöver bytas"
     ],
     "1.10": [
-      "Nödöppning fungerar inte",
-      "Utrymningsbeslag fungerar inte korrekt"
+      "Dörrstängare behöver justeras",
+      "Dörr stänger inte hela vägen",
+      "Dörrstängare läcker"
     ],
     "1.11": [
-      "Nödkåpa saknas eller är skadad",
-      "Plombering saknas",
-      "Skyltning saknas eller är skadad"
-    ],
-    "1.12": [
-      "Daglarm fungerar inte",
-      "Dörrövervakning visar fel status"
-    ],
-    "1.13": [
-      "Rengöring krävs",
-      "Smörjning krävs",
-      "Mindre justering utförd",
-      "Ytterligare justering krävs"
+      "Notering i kontrolljournal saknas",
+      "Kontrolljournal saknas"
     ]
   }
 };
+
 }
 const DOOR_AUTOMATION_MODELS=[
  ['11','Geze EMD standardarm'],['12','Geze EMD glidarm'],['13','Faac standard'],['14','Faac glidarm'],
