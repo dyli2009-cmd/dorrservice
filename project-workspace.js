@@ -393,59 +393,28 @@ function decodePdfText(obj){
  }catch(_){}
  return String(obj||'');
 }
-function cleanProjectIdText(value){
- return String(value||'')
-  .replace(/[–—]/g,'-')
-  .replace(/\s+/g,' ')
-  .trim()
-  .replace(/^[#:\-–—\s]+|[#:\-–—\s]+$/g,'');
-}
-function projectIdCompact(value){
- return cleanProjectIdText(value).toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
-}
 function normalizeCode(value){
- const raw=cleanProjectIdText(value).toUpperCase();
+ const raw=String(value||'').toUpperCase().replace(/\s+/g,' ').trim();
  if(!raw)return '';
- const labelled=raw.match(/\b(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING)\s*[:#-]?\s*([A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 ._\/-]{0,30})$/i);
- const candidate=cleanProjectIdText(labelled?labelled[1]:raw);
- if(!candidate||candidate.length>32)return '';
- if(!/[A-ZÅÄÖ0-9]/i.test(candidate))return '';
- if(!/^[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 ._\/-]*$/i.test(candidate))return '';
- const compact=projectIdCompact(candidate);
- if(!compact||compact.length>24)return '';
- if(/^\d{1,8}$/.test(compact))return compact;
- if(/^(?=.*[A-ZÅÄÖ])(?=.*\d)[A-ZÅÄÖ0-9]{2,24}$/.test(compact))return compact;
- if(/^[A-ZÅÄÖ]{1,8}$/.test(compact))return compact;
- return '';
+ // Projekt-ID kan vara t.ex. GS1, GSTD1, GSID, GSIDW eller GSIW.
+ // Om hela stämpelfältet är själva ID:t tillåts även mellanrum/bindestreck mellan tecknen.
+ const compactExact=raw.replace(/[\s_-]+/g,'');
+ if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compactExact))return compactExact;
+ // Om fältet innehåller mer text plockas ett sammanhängande GS-ID ut utan att äta upp efterföljande ord.
+ const embedded=raw.match(/\b(GS[A-ZÅÄÖ0-9]{1,12})\b/);
+ return embedded?embedded[1]:'';
 }
-function escapeRegex(value){return String(value).replace(/[.*+?^$()|[\]\\{}]/g,'\\$&')}
 function codeRegex(code){
- const compact=projectIdCompact(code);
- if(!compact)return null;
- const spread=[...compact].map(escapeRegex).join('[\\s._\\/-]*');
+ const compact=String(code||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
+ if(!/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return null;
+ const gap='[^A-ZÅÄÖ0-9]*';
+ const spread=compact.split('').join(gap);
  return new RegExp('(^|[^A-ZÅÄÖ0-9])'+spread+'($|[^A-ZÅÄÖ0-9])','i');
-}
-function textLineContainsExactProjectId(line,code){
- const rx=codeRegex(code);return !!rx&&rx.test(String(line||''));
-}
-function projectIdStrength(code){
- const compact=projectIdCompact(code);
- if(/^\d$/.test(compact))return 'single-number';
- if(/^\d{2,3}$/.test(compact))return 'short-number';
- if(/^\d+$/.test(compact))return 'number';
- if(compact.length<=3)return 'short';
- return 'normal';
-}
-function isGenericAnnotationText(value){
- const compact=projectIdCompact(value);
- return new Set(['HIGHLIGHT','STAMP','SQUARE','CIRCLE','INK','UNDERLINE','SQUIGGLY','FREETEXT','ANNOTATION','COMMENT']).has(compact);
 }
 function stampCode(dict){
  const {PDFName}=PDFLib;
- for(const key of ['Contents','T','NM','Name','Subj']){
-  const raw=decodePdfText(dict.get(PDFName.of(key)));
-  if(isGenericAnnotationText(raw))continue;
-  const code=normalizeCode(raw);
+ for(const key of ['Subj','Contents','T','NM','Name']){
+  const code=normalizeCode(decodePdfText(dict.get(PDFName.of(key))));
   if(code)return code;
  }
  return '';
@@ -476,27 +445,28 @@ async function codeFromMarkedPageText(pageNo,rect){
  return '';
 }
 async function extractStamps(){
- const {PDFDocument,PDFName,PDFDict}=PDFLib;
+ const {PDFDocument,PDFName,PDFDict,PDFArray,PDFNumber}=PDFLib;
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
- const candidates=[];
- const allowed=new Set(['Stamp','Highlight','Square','Circle','FreeText','Ink','Underline','Squiggly']);
+ const out=[];
  doc.getPages().forEach((pg,pi)=>{
   const annots=pg.node.Annots();if(!annots)return;
   for(let i=0;i<annots.size();i++){
    let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
    if(!dict)continue;
    const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
-   if(!allowed.has(subtype))continue;
-   const rect=rectFromAnnotation(dict);if(!rect)continue;
-   candidates.push({page:pi+1,code:stampCode(dict),rect,order:i,subtype});
+   if(subtype!=='Stamp')continue;
+   const code=stampCode(dict);if(!code)continue;
+   let rectArr;try{rectArr=dict.lookup(PDFName.of('Rect'),PDFArray)}catch(_){continue}
+   if(!rectArr||rectArr.size()<4)continue;
+   const rect=[];
+   for(let n=0;n<4;n++){
+    let num;try{num=rectArr.lookup(n,PDFNumber)}catch(_){}
+    const v=num&&typeof num.asNumber==='function'?num.asNumber():Number(decodePdfText(rectArr.get(n)));
+    rect.push(v);
+   }
+   if(rect.every(Number.isFinite))out.push({page:pi+1,code,rect,order:i});
   }
  });
- const out=[];
- for(const mark of candidates){
-  const textCode=await codeFromMarkedPageText(mark.page,mark.rect);
-  const code=textCode||mark.code;
-  if(code)out.push({...mark,code});
- }
  return out;
 }
 async function readPageText(pageNo){
@@ -857,73 +827,30 @@ async function exportSelectedSelfchecks(){
  }catch(err){console.error(err);setState('Egenkontrollerna kunde inte skapas: '+(err?.message||err))}
  finally{el.selfcheckExportCreate.disabled=false}
 }
-function protocolPageRows(text){
- return groupTextRowsForAutomation(text?.items||[]);
-}
-function projectIdLabelValue(rowText){
- const raw=cleanProjectIdText(rowText).toUpperCase();
- const m=raw.match(/^(?:DÖRR(?:KORT)?|DORR(?:KORT)?|DOOR|ID|LITTERA|KORT|POS(?:ITION)?|MÄRKNING|MARKNING|OBJEKT(?:NUMMER|NR)?)\s*[:#-]?\s*(.+)$/i);
- return m?normalizeCode(m[1]):'';
-}
-function strictDoorCardIdentity(code,text){
- const wanted=projectIdCompact(code);if(!wanted)return null;
- const rows=protocolPageRows(text);
- const topCount=Math.min(18,rows.length),topRows=rows.slice(0,topCount);
- let labelled=false,isolatedTop=false,headerTop=false,identityRowIndex=-1;
- rows.forEach((row,index)=>{
-  if(projectIdLabelValue(row.text)===wanted){
-   labelled=true;if(identityRowIndex<0)identityRowIndex=index;
-  }
- });
- topRows.forEach((row,index)=>{
-  const compact=projectIdCompact(row.text);
-  if(compact===wanted){isolatedTop=true;if(identityRowIndex<0)identityRowIndex=index;return}
-  const rx=codeRegex(code),rowCompact=projectIdCompact(row.text);
-  const headerSignal=/(dörrkort|dorrkort|littera|objekt(?:nummer|nr)?|märkning|markning|position)/i.test(row.text);
-  if(rx&&headerSignal&&rowCompact.startsWith(wanted)){
-   headerTop=true;if(identityRowIndex<0)identityRowIndex=index;
-  }
- });
- if(!labelled&&!isolatedTop&&!headerTop)return null;
- return {labelled,isolatedTop,headerTop,identityRowIndex,rows};
-}
-function protocolPageSignals(text){
- const raw=String(text?.raw||''),lower=raw.toLocaleLowerCase('sv');
- const strong=['dörrkort','dorrkort','dörrschema','dorrschema','protokoll'];
- const medium=['littera','objektnummer','objektnr','position','beslagning','beslagslista'];
- let score=0;
- strong.forEach(w=>{if(lower.includes(w))score+=4});
- medium.forEach(w=>{if(lower.includes(w))score+=2});
- return {score,lower};
-}
 function protocolScore(code,pageNo,text,drawingPages){
- const identity=strictDoorCardIdentity(code,text);if(!identity)return -1;
- const signals=protocolPageSignals(text);
- let score=20+signals.score;
- if(identity.labelled)score+=12;
- if(identity.isolatedTop)score+=10;
- if(identity.headerTop)score+=8;
- if(!drawingPages.has(pageNo))score+=4;else score-=8;
- if(identity.identityRowIndex>=0&&identity.identityRowIndex<=5)score+=4;
+ const rx=codeRegex(code);if(!rx||!rx.test(text.raw))return -1;
+ let score=10;
+ const lower=text.raw.toLocaleLowerCase('sv');
+ if(!drawingPages.has(pageNo))score+=5;
+ ['protokoll','dörrautomatik','dörr','elbleck','lås','trycke','beskrivning','produkt','ingår','funktion'].forEach(w=>{if(lower.includes(w))score++});
+ const compact=text.raw.toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'');
+ if(compact.startsWith(code))score+=5;
  return score;
 }
 async function buildProtocolMap(){
- protocolMap={};protocolDefs={};
+ protocolMap={};
  const drawingPages=new Set(stamps.map(s=>s.page));
  const codes=[...new Set(stamps.map(s=>s.code))];
- setState('Matchar markerade ID strikt mot dörrkort i hela PDF-filen…');
+ setState('Matchar GS-stämplar mot protokoll i samma PDF…');
  for(let p=1;p<=pdf.numPages;p++)await readPageText(p);
  for(const code of codes){
-  const candidates=[];
+  let best=null;
   for(let p=1;p<=pdf.numPages;p++){
    const score=protocolScore(code,p,pageTexts[p],drawingPages);
-   if(score>=0)candidates.push({page:p,score});
+   if(score<0)continue;
+   if(!best||score>best.score)best={page:p,score};
   }
-  candidates.sort((a,b)=>b.score-a.score||a.page-b.page);
-  if(!candidates.length)continue;
-  // Om två sidor ser nästan lika säkra ut lämnar vi ID:t omatchat hellre än att välja fel dörrkort.
-  if(candidates.length>1&&candidates[0].score-candidates[1].score<4)continue;
-  protocolMap[code]=candidates[0].page;
+  if(best)protocolMap[code]=best.page;
  }
 }
 function isAdministrativeWorkLine(text,label){
@@ -2088,7 +2015,7 @@ async function analyze(file){
  const codes=[...new Set(stamps.map(s=>s.code))],matchedCodes=codes.filter(c=>protocolMap[c]).length,matchedPositions=matchedProjectInstances().length,unmatchedPositions=Math.max(0,stamps.length-matchedPositions);
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!automationItems.length)setState('Inga läsbara projektmarkeringar eller dörrautomatiker hittades i den här PDF-filen.');
- else setState(stamps.length+' markeringskandidater · '+matchedPositions+' klickbara positioner · '+matchedCodes+' matchade ID'+(unmatchedPositions?' · '+unmatchedPositions+' utan dörrkort visas inte':'')+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
+ else setState(stamps.length+' GS-positioner · '+matchedPositions+' klickbara · '+matchedCodes+' GS-ID matchade'+(automationItems.length?' · '+automationItems.length+' dörrautomatiker':'')+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
