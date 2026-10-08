@@ -26,7 +26,7 @@
   const protocols=[...new Set((params.get('protocols')||params.get('protocol')||'').split(',').filter(Boolean))];
   const module=access&&Array.isArray(access.modules)?access.modules.find(item=>item.key===moduleKey):null;
   const available=module&&Array.isArray(module.protocols)?module.protocols:[];
-  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&protocols.length>0&&protocols.every(key=>['automation','automation_selfcheck'].includes(key)&&available.some(item=>item.appProtocolKey===key));
+  const allowed=access&&Array.isArray(access.moduleKeys)&&access.moduleKeys.includes(moduleKey)&&protocols.length>0&&protocols.every(key=>['automation','automation_selfcheck','lock_revision'].includes(key)&&available.some(item=>item.appProtocolKey===key));
   if(!allowed){
     location.replace('./licensed-entry-v6.html?resume=1');
     return;
@@ -67,6 +67,7 @@
   <div class="securityTools allInOneProtocolTools">
     <button data-add="automation">＋ Checklista revision dörrautomatik</button>
     <button data-add="automation_selfcheck">＋ Egenkontroll dörrautomatik</button>
+    <button data-add="lock_revision">＋ Checklista revision lås</button>
     <button data-add="alarm">＋ Inbrottslarm</button>
     <button data-add="lock">＋ Lås & Dörrmiljö</button>
     <button data-add="access">＋ Passer</button>
@@ -200,7 +201,7 @@
 </nav>
 <script src="ui-text-scale.js?v=2.4.215"></script><script src="drawing-annotations.js?v=2.4.215"></script>
 <script src="session-history.js?v=2.4.215"></script>
-<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.251"></script><script src="legacy-door-import.js?v=2.4.215"></script>
+<script>window.DOORSERVICE_APP_MODE="all-in-one";</script><script src="security.js?v=2.4.252"></script><script src="legacy-door-import.js?v=2.4.215"></script>
 <script src="drawing-transfer.js?v=2.4.215"></script>
 <script>
 (()=>{
