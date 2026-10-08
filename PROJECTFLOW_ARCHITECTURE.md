@@ -146,3 +146,9 @@ Kontrollflödets lås ska respekteras.
 - Projekt- och positionsprocent vägs efter beräknade minuter i stället för att varje kontrollpunkt väger lika. En position kan dock bara bli 100% när alla dess kontrollpunkter är klarmarkerade.
 - Positioner utan effektiva GS-kontrollpunkter räknas inte in i projektprocenten eller den tidsvägda färdigställandegraden.
 - Tidsinställningarna är uppskattad arbetstid, inte en faktisk tidsstämpel/timer.
+
+## Pausad funktion – dörrautomatik i Projektflödet
+- Automatisk dörrautomatikdetektering och egenkontrollsmarkering är tillfälligt avstängd i webbens Projektflöde från v2.4.249.
+- Orsak: siffermönster kunde feltolkas, bland annat datumliknande text.
+- Sparad dörrautomatikdata raderas inte; funktionen är bara inaktiv och dold tills en säkrare detekteringsregel beslutas.
+- GS-matchning och övrig projektmatchning påverkas inte.
