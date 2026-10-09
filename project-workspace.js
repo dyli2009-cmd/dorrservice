@@ -2368,6 +2368,27 @@ async function customSourceMarkings(pageNo){
 }
 window.TillsynoCustomProtocols?.connect({
  getPdf:()=>pdf,getPage:()=>page,readPageText,sourceMarkings:customSourceMarkings,save,message:setState,
+ async pickDoorCards(){
+  const picker=getNativeFilePicker();
+  if(picker){const result=await picker.pickFiles({types:['application/pdf'],limit:1,readData:false}),picked=result.files?.[0];return picked?new File([await blobFromPickedFile(picked)],picked.name||'Dörrkort.pdf',{type:'application/pdf'}):null}
+  const input=$('pcCardsFile');input.value='';
+  return new Promise(resolve=>{input.onchange=()=>resolve(input.files?.[0]||null);input.oncancel=()=>resolve(null);input.click()});
+ },
+ async attachDoorCards(file){
+  if(!pdf)throw Error('Öppna projektets ritning först.');
+  const sourcePdf=pdf,{PDFDocument,PDFName,PDFHexString}=PDFLib;
+  const attachment=await PDFDocument.load(await file.arrayBuffer(),{ignoreEncryption:true,updateMetadata:false});
+  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+  const added=await doc.copyPages(attachment,attachment.getPageIndices());for(const pg of added)doc.addPage(pg);
+  const payload=makeProjectPayload();doc.catalog.set(PDFName.of('TillsynoProjectData'),PDFHexString.fromText(JSON.stringify(payload)));
+  const nextBytes=new Uint8Array(await doc.save({useObjectStreams:false}));
+  const nextPdf=await pdfjsLib.getDocument({data:nextBytes.slice()}).promise;
+  if(pdf!==sourcePdf){await nextPdf.destroy();throw Error('Projektet ändrades under inläsningen. Försök igen.')}
+  pdf=nextPdf;bytes=nextBytes;embeddedState=payload;pageTexts={};protocolDefs={};customMarkPdf=null;customMarkPromise=null;
+  await buildProtocolMap();await buildProjectStampMap();await recalcAll();
+  save();await renderDrawing();renderGroups();updateStats();
+  return added.length;
+ },
  models:PROJECT_AUTOMATION_MODELS,parseAutomation:parseStructuredAutomationId,modelFromText:automationModelFromText,
  isDoorCardPage:likelyDoorCardPage,isAutomationProtocolPage:looksLikeAutomationProtocolPage,
  getProjectMeta:()=>normalizeProjectMeta(projectMeta),

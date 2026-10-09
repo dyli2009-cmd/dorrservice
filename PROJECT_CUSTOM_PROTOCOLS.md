@@ -40,3 +40,7 @@ Företag och installatör använder Projektflödets gemensamma projectMeta. Datu
 Egna protokoll läser även Stamp, Highlight, FreeText och Square, deras kodfält och texten under markeringen. GS-koder normaliseras med Projektflödets befintliga funktion. Hela objektnumret–modellkoden–antalet bevaras för egenkontroller. Samma position som också finns som PDF-text skapar bara en träff; upprepad avläsning lämnar redan skapade protokoll och deras status kvar.
 
 Dörrkort matchas med samma exakta GS-kod och avgränsning som originalflödet på alla sidor utanför ritningssidorna. Kortet behöver ingen särskild rubrik. En unik träff kan öppnas direkt; vid flera träffar väljer användaren rätt sida. Det befintliga flödets extraktion, protokoll och kontroller ändras inte.
+
+## Separata dörrkort (2.4.263)
+
+Öppna ritningen, välj Egna protokoll och Lägg till dörrkort-PDF när korten ligger i en separat fil. Korten läggs sist i projekt-PDF:en. Verktyget läser därefter alla sidor med de egna mallarna. Befintliga positioner, kontrollstatusar och projektuppgifter behålls. Korten följer med vid projektsparande och fungerar offline efter återöppning. På iOS används den inbyggda filväljaren.

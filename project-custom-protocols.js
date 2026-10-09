@@ -22,6 +22,8 @@ const markup=`
  <header class="pcHead"><div><small>PROJEKTFLÖDE</small><strong>Egna koder & protokoll</strong></div><button id="pcClose" type="button" aria-label="Stäng egna protokoll">×</button></header>
  <div class="pcBody"><div class="headerDetails pcOffline"></div><p class="pcIntro">Ange vad appen ska hitta i ritningen och vilka kontrollpunkter som ska kopplas till varje träff. Du väljer själv vilka träffar som blir protokoll.</p>
  <div id="pcRules" class="pcRules"></div><button id="pcNewRule" type="button">+ Lägg till mall</button>
+ <button id="pcAttachCards" type="button">Lägg till dörrkort-PDF</button><input id="pcCardsFile" type="file" accept="application/pdf,.pdf" hidden>
+ <p class="pcMuted">Har du dörrkorten i en separat fil? Lägg till dem här. De följer med när du sparar projektet.</p>
  <form id="pcRuleForm" class="pcForm" hidden>
   <label>Vad ska öppnas?<select id="pcTarget"><option value="custom">Eget protokoll med egna punkter</option><option value="doorcard">Dörrkort från projekt-PDF</option><option value="selfcheck">Egenkontroll från befintlig mall</option></select></label>
   <label>Kod eller nummer<input id="pcCode" maxlength="80" required placeholder="Exempel: GZ eller 14-18"></label>
@@ -78,7 +80,7 @@ $('pcTarget').onchange=()=>{if($('pcTarget').value==='doorcard')$('pcMatchMode')
 $('pcTemplate').onchange=()=>configureRule(true);
 function resetScan(){scanVersion++;scanning=false;candidates=[];$('pcResults').hidden=true;$('pcScan').disabled=!bridge?.getPdf()}
 function closeManager(){resetScan();$('pcManager').close();syncShared()}
-function openManager(){renderRules();syncShared();$('pcScan').disabled=!bridge?.getPdf();if(!$('pcManager').open)$('pcManager').showModal()}
+function openManager(){renderRules();syncShared();$('pcScan').disabled=$('pcAttachCards').disabled=!bridge?.getPdf();if(!$('pcManager').open)$('pcManager').showModal()}
 function persist(){bridge?.save();renderObjects();renderMarkers()}
 function saveLibrary(){try{localStorage.setItem(LIBRARY,JSON.stringify(rules));return true}catch(_){$('pcMessage').textContent='Mallarna kunde inte sparas på enheten. Spara projekt-PDF för att behålla dem.';return false}}
 function renderRules(){
@@ -297,6 +299,17 @@ $('pcSelectAll').onclick=()=>{candidates.forEach(c=>c.selected=c.target!=='doorc
 $('pcScanScope').onchange=()=>{$('pcPagesLabel').hidden=$('pcScanScope').value!=='pages'};
 $('pcManager').addEventListener('cancel',e=>{e.preventDefault();closeManager()});$('pcBack').onclick=$('pcProtocolClose').onclick=closeProtocol;
 $('pcProtocol').addEventListener('cancel',e=>{e.preventDefault();closeProtocol()});
+$('pcAttachCards').onclick=async()=>{
+ resetScan();$('pcAttachCards').disabled=true;
+ try{
+  const file=await bridge.pickDoorCards();if(!file)return;
+  $('pcMessage').textContent='Läser in dörrkorten…';
+  const count=await bridge.attachDoorCards(file);
+  $('pcScanScope').value='all';$('pcPagesLabel').hidden=true;
+  await scan();$('pcMessage').textContent=count+' dörrkortssidor tillagda. '+$('pcMessage').textContent;
+ }catch(error){$('pcMessage').textContent='Dörrkorten kunde inte läsas in: '+(error.message||error)}
+ finally{$('pcAttachCards').disabled=!bridge?.getPdf()}
+};
 window.TillsynoCustomProtocols={
  connect(api){bridge=api},
  installationDefaults(){return Object.fromEntries(COMPANY_FIELDS.filter(key=>typeof sharedDefaults?.[key]==='string').map(key=>[key,sharedDefaults[key]]))},
