@@ -1147,17 +1147,32 @@ function groupLines(items){
   return {key:'l'+index,text,actionable,administrative,label,value};
  });
 }
+// Projektflöde test: Kryssrutor ska endast komma från faktiska GS-arbetsrader i dörrkortet.
+// DT-beslag, littera/antal, tomma celler och enbart streck är inte arbetsmoment.
+function labGsWorkItem(line){
+ const original=String(line?.text||'').replace(/\s+/g,' ').trim();
+ if(!original)return null;
+ const gsTag=/(^|[^A-ZÅÄÖ0-9])G[\s/_-]*S(?=$|[^A-ZÅÄÖ0-9])/i;
+ const dtTag=/(^|[^A-ZÅÄÖ0-9])D[\s/_-]*T(?=$|[^A-ZÅÄÖ0-9])/i;
+ if(!gsTag.test(original)||dtTag.test(original))return null;
+ if(line.administrative)return null;
+ const detail=original.replace(gsTag,' ').replace(/^[\s:;,\-–—]+|[\s:;,\-–—]+$/g,'').trim();
+ if(!detail||/^(?:[-–—.]+|ej\s+aktuellt|ingår\s+ej)$/i.test(detail))return null;
+ if(!/[A-ZÅÄÖ]/i.test(detail))return null;
+ // Ingen kryssruta för tabellhuvud eller identifieringsfält.
+ if(/\b(?:littera|antal|dörr(?:nummer|nr)?|dörrkort|beslagslista|ritningsnummer|projektnummer|projektnr|anläggning|anlaggning|adress|telefon|datum|revision|version|sidnr|sida)\b/i.test(detail))return null;
+ const parts=detail.match(/^(.+?)\s+(?=(?:\d|standard\b|typ\b|modell\b))/i);
+ const label=parts?parts[1].trim():detail;
+ const value=parts?detail.slice(parts[0].length).trim():'';
+ if(!label||!/[\p{L}]/u.test(label))return null;
+ if(value&&/^(?:[-–—.]+)$/.test(value))return null;
+ return {...line,label,value,actionable:true};
+}
 async function protocolDef(code){
  const pageNo=protocolMap[code];if(!pageNo)return null;
  const key=code+'@'+pageNo;if(protocolDefs[key])return protocolDefs[key];
  const text=await readPageText(pageNo),lines=groupLines(text.items);
- const filtered=lines.filter(line=>{
-  if(line.actionable)return true;
-  if(code.startsWith('GS')||line.administrative||!line.label||!line.value)return false;
-  const combined=(line.label+' '+line.value).toLocaleLowerCase('sv');
-  if(/\b(?:dörrkort|dorrkort|projektnummer|projektnr|ritningsnummer|dörrnummer|dörrnr|littera|anläggning|anlaggning|adress|telefon|datum|revision|version|sidnr|sida)\b/.test(combined))return false;
-  return true;
- });
+ const filtered=lines.map(labGsWorkItem).filter(Boolean);
  const def={code,page:pageNo,lines:filtered,checks:filtered};
  protocolDefs[key]=def;return def;
 }
@@ -1213,7 +1228,7 @@ async function recalc(o){
  if(totalMinutes>0){o.progress=Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));return}
  o.progress=Math.round(doneCount/checks.length*100);
 }
-function matchedProjectInstances(){return instances}
+function matchedProjectInstances(){return instances.filter(o=>(protocolCandidates[o.code]||[]).length>0)}
 async function recalcAll(){for(const o of instances)await recalc(o);save();updateStats();renderGroups();renderMarkers()}
 function updateStats(){
  const matched=matchedProjectInstances();
@@ -2301,7 +2316,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
- else setState('Projektflöde test: '+instances.length+' markerade positioner (varav '+labGraphicPositions+' från inritad färg) · '+matchedPositions+' kopplade till dörrkort'+restored+'.');
+ else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
+ else setState('Projektflöde test: '+matchedProjectInstances().length+' positioner har motsvarande beteckning på dörrkortet · '+matchedPositions+' automatiskt kopplade'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
