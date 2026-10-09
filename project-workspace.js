@@ -202,8 +202,9 @@ function stateTime(s){const t=Date.parse(String(s?.updatedAt||''));return Number
 function localProjectDate(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
 function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date:localProjectDate(),nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',technician:'',signature:''}}
 function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
+let legacyCustomProtocols=null;
 function makeProjectPayload(){
- const payload={customProtocols:window.TillsynoCustomProtocols?.snapshot(),schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
+ const payload={customProtocols:legacyCustomProtocols??undefined,schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
   id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
  })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
@@ -300,7 +301,7 @@ async function writePdfToHandle(handle,data){
  }
 }
 async function savePortableProject(){
- if(!bytes||(!instances.length&&!window.TillsynoCustomProtocols?.count()))return;
+ if(!bytes)return;
  closeSaveMenu();
  let targetHandle=currentFileHandle;
  if(!targetHandle&&desktopSavePickerAvailable()){
@@ -334,7 +335,7 @@ async function savePortableProject(){
  }finally{el.saveProject.disabled=false}
 }
 async function saveProjectAs(){
- if(!bytes||(!instances.length&&!window.TillsynoCustomProtocols?.count()))return;
+ if(!bytes)return;
  closeSaveMenu();
  let targetHandle=null;
  if(desktopSavePickerAvailable()){
@@ -931,39 +932,6 @@ function createAutomationSelfcheckPdf(o,options={}){
  return doc;
 }
 
-function createGuidedCustomerDoc(o){
- const entries=(o.points||[]).map((p,i)=>{
-  const raw=String(p.label||'').trim(),match=raw.match(/^(\d+(?:\.\d+)*[a-z]?)\s+(.+)$/i);
-  return {num:match?match[1]:String(i+1),label:match?match[2]:raw,point:p};
- });
- const data={objectNo:o.objectNo||o.code,modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.quantity||'',location:o.location||'',checks:Object.fromEntries(entries.map(e=>[e.num,{result:e.point.status||'',note:e.point.note||''}])),notes:o.notes||''};
- const meta={...projectMeta,...(o.target==='selfcheck'?{}:{date:o.date||projectMeta.date,technician:o.technician||projectMeta.technician,signature:o.signature||projectMeta.signature})};
- return createAutomationSelfcheckPdf(data,{title:o.title||'Egenkontroll',meta,entries:entries.map(e=>[e.num,e.label]),equipmentLabel:o.template==='automation_selfcheck'?'Typ av automatik:':'Typ av utrustning:'});
-}
-async function showGuidedCustomerPreview(o){
- if(!o)return;
- const doc=createGuidedCustomerDoc(o),payload=doc.output('arraybuffer');
- if(automationPreviewPdf)try{await automationPreviewPdf.destroy()}catch(_){}
- automationPreviewPdf=await pdfjsLib.getDocument({data:new Uint8Array(payload)}).promise;
- el.automationPreviewTitle.textContent=o.code+' · '+o.title;
- const heading=el.automationPreviewDialog.querySelector('.pwAutomationHead strong');heading.textContent=o.title;
- el.automationPreviewDialog.showModal();
- requestAnimationFrame(()=>renderAutomationCustomerPreview().catch(console.error));
-}
-async function exportGuidedCustomerPdf(o){
- if(!o)throw Error('Välj ett protokoll.');
- const doc=createGuidedCustomerDoc(o);
- let pdfData=new Uint8Array(doc.output('arraybuffer'));
- if(o.target==='doorcard'&&o.protocolPage){
-  const out=await PDFLib.PDFDocument.create(),original=await PDFLib.PDFDocument.load(bytes.slice(),{ignoreEncryption:true}),report=await PDFLib.PDFDocument.load(pdfData);
-  const [card]=await out.copyPages(original,[o.protocolPage-1]);out.addPage(card);
-  for(const p of await out.copyPages(report,report.getPageIndices()))out.addPage(p);
-  pdfData=new Uint8Array(await out.save());
- }
- const filename='Checklista-'+safePdfName(o.code||o.title)+'.pdf';
- return deliverProjectFile(new File([pdfData],filename,{type:'application/pdf'}),o.title||'Egenkontroll','Kundprotokoll');
-}
-
 async function renderAutomationCustomerPreview(){
  if(!automationPreviewPdf)return;
  if(automationPreviewRenderTask)try{automationPreviewRenderTask.cancel()}catch(_){}
@@ -1121,9 +1089,10 @@ function effectiveChecks(o,def){
 }
 function buildInstances(){
  const saved=loadSaved(),counts={};
- window.TillsynoCustomProtocols?.load(saved.customProtocols);
+ // Preserve old custom-protocol data in saved PDFs without loading the removed tool.
+ legacyCustomProtocols=saved.customProtocols&&typeof saved.customProtocols==='object'?saved.customProtocols:null;
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
- projectMeta=normalizeProjectMeta({...window.TillsynoCustomProtocols?.installationDefaults(),...saved.projectMeta});projectLogoData=String(saved.projectLogoData||'');
+ projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
  automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  projectStamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
@@ -1175,7 +1144,7 @@ function updateStats(){
  if(totalMinutes>0)progress=allDone?100:Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));
  else progress=trackable.length?Math.round(trackable.reduce((a,o)=>a+o.progress,0)/trackable.length):0;
  el.totalProgress.textContent=progress+'%';
- window.TillsynoCustomProtocols?.stats({count:matched.length,done:matched.filter(o=>o.progress===100).length,progress});
+
 }
 function renderDrawing(){
  if(!pdf)return Promise.resolve();
@@ -1200,7 +1169,7 @@ function renderDrawing(){
   el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
   el.pageInfo.textContent='Sida '+pageNumber+' / '+documentPdf.numPages;el.zoomInfo.textContent=Math.round(targetScale*100)+'%';
   renderDrawingNotes(vp);renderMarkers();renderAutomationMarkers();
-  window.TillsynoCustomProtocols?.render(vp,pageNumber);
+
  });
  return drawingRenderQueue;
 }
@@ -2251,7 +2220,7 @@ async function analyze(file){
  if(!stamps.length&&!projectStamps.length)setState('Inga läsbara projektmarkeringar hittades i den här PDF-filen.');
  else setState(stamps.length+' GS-positioner'+(textGsCount?' · '+textGsCount+' hittade direkt i ritningstext':'')+' · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
- await window.TillsynoCustomProtocols?.analyzed();
+
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
 el.openProjectEmpty.onclick=openProjectPdf;
@@ -2378,75 +2347,5 @@ el.addChecklistItem.onclick=()=>openItemEditor(selectedInstance());
 el.itemEditorClose.onclick=closeItemEditor;el.editCancel.onclick=closeItemEditor;el.editSave.onclick=saveItemEditor;
 el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()});
 window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>renderDrawing())});
-// Read-only adapter for the separate guided protocol tool. Original extraction stays unchanged.
-let customMarkPdf=null,customMarkPromise=null;
-async function customSourceMarkings(pageNo){
- if(customMarkPdf!==pdf){
-  customMarkPdf=pdf;
-  customMarkPromise=(async()=>{
-   const {PDFDocument,PDFName,PDFDict}=PDFLib,doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false}),out=[];
-   for(const [pi,pg] of doc.getPages().entries()){
-    const annots=pg.node.Annots();if(!annots)continue;
-    for(let i=0;i<annots.size();i++){
-     let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
-     if(!dict)continue;
-     const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
-     if(!['Stamp','Highlight','FreeText','Square'].includes(subtype))continue;
-     const rect=rectFromAnnotation(dict);if(!rect)continue;
-     const labels=new Set();
-     for(const key of ['Contents','Subj','T','NM','Name']){
-      const raw=decodePdfText(dict.get(PDFName.of(key)));
-      const label=normalizeCode(raw)||normalizeProjectStampText(raw);if(label)labels.add(label);
-     }
-     const under=await rawProjectStampText(pi+1,rect),label=normalizeCode(under)||normalizeProjectStampText(under);if(label)labels.add(label);
-     for(const label of labels)out.push({page:pi+1,rect,label,sourceKind:'annotation'});
-    }
-   }
-   return out;
-  })();
- }
- const marks=await customMarkPromise;
- return [...marks,...stamps.map(o=>({...o,label:o.code})),...projectStamps].filter(o=>o.page===pageNo);
-}
-window.TillsynoCustomProtocols?.connect({
- getPdf:()=>pdf,getPage:()=>page,readPageText,sourceMarkings:customSourceMarkings,save,message:setState,
-  previewCustomer:showGuidedCustomerPreview,exportCustomer:exportGuidedCustomerPdf,
- async pickDoorCards(){
-  const picker=getNativeFilePicker();
-  if(picker){const result=await picker.pickFiles({types:['application/pdf'],limit:1,readData:false}),picked=result.files?.[0];return picked?new File([await blobFromPickedFile(picked)],picked.name||'Dörrkort.pdf',{type:'application/pdf'}):null}
-  const input=$('pcCardsFile');input.value='';
-  return new Promise(resolve=>{input.onchange=()=>resolve(input.files?.[0]||null);input.oncancel=()=>resolve(null);input.click()});
- },
- async attachDoorCards(file){
-  if(!pdf)throw Error('Öppna projektets ritning först.');
-  const sourcePdf=pdf,{PDFDocument,PDFName,PDFHexString}=PDFLib;
-  const attachment=await PDFDocument.load(await file.arrayBuffer(),{ignoreEncryption:true,updateMetadata:false});
-  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
-  const added=await doc.copyPages(attachment,attachment.getPageIndices());for(const pg of added)doc.addPage(pg);
-  const payload=makeProjectPayload();doc.catalog.set(PDFName.of('TillsynoProjectData'),PDFHexString.fromText(JSON.stringify(payload)));
-  const nextBytes=new Uint8Array(await doc.save({useObjectStreams:false}));
-  const nextPdf=await pdfjsLib.getDocument({data:nextBytes.slice()}).promise;
-  if(pdf!==sourcePdf){await nextPdf.destroy();throw Error('Projektet ändrades under inläsningen. Försök igen.')}
-  pdf=nextPdf;bytes=nextBytes;embeddedState=payload;pageTexts={};protocolDefs={};customMarkPdf=null;customMarkPromise=null;
-  await buildProtocolMap();await buildProjectStampMap();await recalcAll();
-  save();await renderDrawing();renderGroups();updateStats();
-  return added.length;
- },
- models:PROJECT_AUTOMATION_MODELS,parseAutomation:parseStructuredAutomationId,modelFromText:automationModelFromText,
- isDoorCardPage:likelyDoorCardPage,isAutomationProtocolPage:looksLikeAutomationProtocolPage,
- getProjectMeta:()=>normalizeProjectMeta(projectMeta),
- setProjectMeta(values){projectMeta=normalizeProjectMeta({...projectMeta,...values});syncProjectMetaInputs();save()},
- existingPositions:()=>matchedProjectInstances().map(o=>({id:o.id,code:o.code,page:o.page,rect:o.rect,progress:o.progress})),
- async doorCards(code,sourcePages=[]){
-  const found=[],canonical=normalizeCode(code),drawingPages=new Set([...stamps,...projectStamps].map(o=>o.page));
-  for(const n of sourcePages)drawingPages.add(n);
-  const rx=canonical?codeRegex(canonical):projectStampRegex(code);if(!rx)return found;
-  for(let n=1;n<=pdf.numPages;n++){
-   const text=await readPageText(n);
-   if(!drawingPages.has(n)&&rx.test(text.raw))found.push({page:n,points:groupLines(text.items).filter(l=>l.actionable).map(l=>l.label+(l.value?' · '+l.value:''))});
-  }
-  return found
- },
- async focus(o){page=o.page;await renderDrawing();const pg=await pdf.getPage(page),r=viewportRect(pg.getViewport({scale}),o.rect);el.viewer.scrollTo({left:Math.max(0,r.left-el.viewer.clientWidth/2),top:Math.max(0,r.top-el.viewer.clientHeight/2)})}
-});
+// Egna protokoll är borttaget. Ordinarie projektpositioner och kontrollprotokoll är kvar.
 })();
