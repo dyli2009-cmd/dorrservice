@@ -2666,7 +2666,7 @@ async function analyze(file){
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
  else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
- else setState('Projektflöde TEST v8: '+matchedProjectInstances().length+' matchade positioner · '+matchedPositions+' automatiskt kopplade · avlästa markeringar '+(stamps.length+projectStamps.length-labGraphicPositions)+' + komplettering '+labGraphicPositions+restored+'.');
+ else setState('Projektflöde TEST v8: '+matchedProjectInstances().length+' visade positioner · '+instances.filter(o=>o.scanSource==='annotation-metadata').length+' PDF-markeringar med ID · '+instances.filter(o=>o.scanSource==='annotation-metadata'&&(protocolCandidates[o.code]||[]).length>0).length+' matchade dörrkort · '+labGraphicPositions+' extra bild/textträffar'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
