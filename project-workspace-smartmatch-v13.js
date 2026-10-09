@@ -11,7 +11,7 @@ let smartDoorCardIndex={},smartDoorCardPages=new Set(),smartScanStats={};
 let smartBaseDrawingFile=null,smartAdditionalCardsFile=null;
 let smartShowAllGS=true;
 let smartScanAudit={pages:{},reasons:{},annotationCodes:{},colorFirst:0,textColor:0,ocrCandidates:0,ocrAccepted:0,ocrErrors:[]};
-let smartPendingOcr=[],smartOcrWorker=null,smartOcrLibraryPromise=null;
+let smartPendingOcr=[],smartConfirmedOcr=[],smartOcrWorker=null,smartOcrLibraryPromise=null;
 
 const $=id=>document.getElementById(id);
 const el={
@@ -218,7 +218,7 @@ function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date
 function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
 
 function makeProjectPayload(){
- const payload={labManualLinks:{...labManualLinks},schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
+ const payload={labManualLinks:{...labManualLinks},schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',ocrConfirmed:smartConfirmedOcr.map(o=>({page:o.page,code:o.code,rect:[...o.rect],confidence:o.confidence||0})),automationItems:automationItems.map(o=>({
   id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
  })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
@@ -772,14 +772,17 @@ async function smartAcceptOcrSuggestion(item){
  if(stamps.some(m=>labSamePhysicalPosition(m,item.page,item.code,item.rect))){
   window.alert('Den positionen finns redan på ritningen.');return;
  }
+ const isGs=/^GS\d/.test(item.code);
  const confirmed={code:item.code,page:item.page,rect:item.rect,label:item.code,
-  order:950000+stamps.length,sourceKind:'gs',subtype:'ocr-reviewed',
+  order:950000+stamps.length+projectStamps.length,
+  sourceKind:isGs?'gs':'project-code',subtype:'ocr-reviewed',
   scanSource:'ocr-confirmed',confidence:item.confidence};
- stamps.push(confirmed);
- buildInstances();
- await recalcAll();
- await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();
+ // Keep only manually confirmed OCR markers in the saved project state.
+ smartConfirmedOcr.push({page:item.page,code:item.code,rect:[...item.rect],confidence:item.confidence});
+ (isGs?stamps:projectStamps).push(confirmed);
+ buildInstances();await recalcAll();
  smartAuditReason('ocrManuallyConfirmed');
+ await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();
  if(item.button){item.button.disabled=true;item.button.textContent='Tillagd på ritningen'}
 }
 function smartShowOcrResult(item){
@@ -1823,14 +1826,15 @@ function buildInstances(){
  automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  projectStamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
+ let baseGsIndex=0,baseProjectIndex=0;
  const gsInstances=stamps.map((s,index)=>{
   const countKey='gs|'+s.code;counts[countKey]=(counts[countKey]||0)+1;
-  const id=s.code+'@'+s.page+':'+s.order+':'+index,old=saved.instances?.[id]||{};
+  const id=s.scanSource==='ocr-confirmed'?'ocr:'+s.code+'@'+s.page+':'+s.rect.map(v=>Math.round(v)).join(','):s.code+'@'+s.page+':'+s.order+':'+(baseGsIndex++),old=saved.instances?.[id]||{};
   return {...s,sourceKind:'gs',id,position:counts[countKey],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
  });
  const freeInstances=projectStamps.map((s,index)=>{
   const countKey='project-code|'+s.code;counts[countKey]=(counts[countKey]||0)+1;
-  const id='doorcode:'+s.code+'@'+s.page+':'+s.order+':'+index,old=saved.instances?.[id]||{};
+  const id=s.scanSource==='ocr-confirmed'?'ocr-door:'+s.code+'@'+s.page+':'+s.rect.map(v=>Math.round(v)).join(','):'doorcode:'+s.code+'@'+s.page+':'+s.order+':'+(baseProjectIndex++),old=saved.instances?.[id]||{};
   return {...s,sourceKind:'project-code',id,position:counts[countKey],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
  });
  instances=[...gsInstances,...freeInstances].sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
@@ -2993,6 +2997,14 @@ async function analyze(file){
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
  await smartIndexDoorCardsFirst();
  const marked=await extractLabMarkedPositions();
+ const historical=loadSaved().ocrConfirmed;
+ smartConfirmedOcr=Array.isArray(historical)?historical.filter(x=>x&&labStrictAnnotationCode(x.code)===x.code&&Array.isArray(x.rect)&&x.rect.length===4&&x.rect.every(Number.isFinite)&&Number.isInteger(x.page)&&x.page>=1&&x.page<=pdf.numPages):[];
+ for(const item of smartConfirmedOcr){
+  if(labAlreadyLocated(marked,item.page,item.code,item.rect))continue;
+  marked.push({code:item.code,page:item.page,rect:item.rect,label:item.code,order:950000+marked.length,
+   sourceKind:item.code.startsWith('GS')?'gs':'project-code',subtype:'ocr-reviewed',
+   scanSource:'ocr-confirmed',confidence:item.confidence||0});
+ }
  stamps=marked.filter(m=>m.sourceKind==='gs');
  projectStamps=marked.filter(m=>m.sourceKind!=='gs');
  buildInstances();
