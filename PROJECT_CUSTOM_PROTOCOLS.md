@@ -68,3 +68,5 @@ Det nya normala flödet är **Egna positioner**, inte Egna protokoll:
 **Bakåtkompatibilitet:** äldre Egna protokoll finns kvar i projektdata och kan öppnas genom **Tidigare egna protokoll** i dialogen. Befintligt GS-flöde och automatikens egenkontroller är orörda. Data för äldre protokoll raderas inte. Normalt öppnas det gamla mallbyggarflödet inte automatiskt längre.
 
 **Begränsningar:** märkningar läses från PDF-text och annotationsetiketter; röd färg i sig identifieras inte. Skannade bild-PDF:er utan text kräver separat OCR, och automatisk koppling till ett visst dörrkort görs inte när koden inte är unik – ange i stället den länkade sidans nummer i positionens detaljer. Testa funktionerna i arbetsgrenen på riktig PDF innan uppdateringen förs över till produktion.
+
+**Bildritningar:** När DA inte har ett textlager använder du **Placera själv på ritningen**. Tryck på en eller flera platser med märkningen och avsluta med **Klart**. Detta kräver ingen OCR och lämnar original-PDF:n oförändrad. Automatisk sökning förutsätter fortfarande läsbar PDF-text eller en PDF-annotation med DA som etikett.
