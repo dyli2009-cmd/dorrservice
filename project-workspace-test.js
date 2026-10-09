@@ -755,11 +755,27 @@ async function extractLabGraphicPositions(already=[]){
  return out;
 }
 
+
+function labStrictAnnotationCode(value){
+ // Accept ONLY the annotation's own actual identifier, not arbitrary numbers
+ // in its notes, neighboring drawing, room descriptions or equipment lists.
+ const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').replace(/[–—]/g,'-').trim();
+ if(!raw||raw.length>35)return '';
+ const compact=raw.replace(/[\s/_-]+/g,'');
+ if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return compact;
+ if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(compact))return compact;
+ return '';
+}
+
 async function extractLabMarkedPositions(){
  const {PDFDocument,PDFName,PDFDict}=PDFLib;
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
  const candidates=[];
+ let annotationCodes=0,nonIdMarks=0;
  labUnreadableMarks=0;labSourceMarkCount=0;
+ // The user's real technicianunderlag PDF contains true FreeText annotations
+ // with exact /Contents (310a, 310b etc), yellow /C, and precise /Rect.
+ // Using 'underlying page text' first loses real markers by reading a neighboring dimension.
  for(const [index,pg] of doc.getPages().entries()){
   const annots=pg.node.Annots();if(!annots)continue;
   for(let j=0;j<annots.size();j++){
@@ -770,22 +786,31 @@ async function extractLabMarkedPositions(){
    if(['Square','FreeText'].includes(subtype)&&!dict.get(PDFName.of('C'))&&!dict.get(PDFName.of('IC')))continue;
    const rect=rectFromAnnotation(dict);if(!rect)continue;
    labSourceMarkCount++;
-   const under=await rawProjectStampText(index+1,rect);
-   const meta=annotationProjectText(dict);
-   const code=labCodeFromMark(under)||labCodeFromMark(stampCode(dict))||labCodeFromMark(meta);
+   const own=decodePdfText(dict.get(PDFName.of('Contents')));
+   const alternative=decodePdfText(dict.get(PDFName.of('Subj')));
+   const named=decodePdfText(dict.get(PDFName.of('T')));
+   const ownCode=labStrictAnnotationCode(own)||labStrictAnnotationCode(alternative)||labStrictAnnotationCode(named);
+   let code=ownCode;
+   if(!code){
+    // FreeText labels with readable, NON-ID contents (e.g. "cyl" or an
+    // explanatory note) must never accidentally become door positions.
+    if(subtype==='FreeText'&&String(own||'').trim()){nonIdMarks++;continue}
+    // Only fallback to text below for an empty annotation.
+    const inside=await rawProjectStampText(index+1,rect);
+    code=labStrictAnnotationCode(inside);
+   }
    if(!code){labUnreadableMarks++;continue}
-   candidates.push({page:index+1,code,rect,order:j,sourceKind:code.startsWith('GS')?'gs':'project-code',label:under||meta,subtype});
+   if(ownCode)annotationCodes++;
+   // PDF /Rect is the authoritative text-mark placement.
+   candidates.push({page:index+1,code,rect,order:j,sourceKind:code.startsWith('GS')?'gs':'project-code',label:ownCode?String(own||code).trim():code,subtype,scanSource:ownCode?'annotation-metadata':'annotation-under-text'});
   }
  }
- const result=[];
- for(const mark of candidates){
-  if(labAlreadyLocated(result,mark.page,mark.code,mark.rect))continue;
-  result.push(mark);
- }
- // Viktigt: färgad text / gula PDF-rektanglar kan vara inritade som grafik,
- // inte som en annotation. Titta även på färgen i den faktiska ritningsbilden.
- setState('Projektflöde test: hittar även markerad text i ritningens grafik…');
+ // Different annotation objects remain DIFFERENT positions even when they
+ // share a code or overlap. Only duplicate alternative scanner results are removed.
+ const result=candidates.slice();
+ setState('Projektflöde TEST v8: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
+ console.info('[Projektflöde TEST v8 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  return [...result,...graphic];
 }
 
@@ -2641,7 +2666,7 @@ async function analyze(file){
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
  else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
- else setState('Projektflöde TEST v7: '+matchedProjectInstances().length+' matchade positioner · '+matchedPositions+' kopplade · färg-först '+labColorFirstPositions+' + textkomplettering '+labFallbackPositions+restored+'.');
+ else setState('Projektflöde TEST v8: '+matchedProjectInstances().length+' visade positioner · '+instances.filter(o=>o.scanSource==='annotation-metadata').length+' PDF-markeringar med ID · '+instances.filter(o=>o.scanSource==='annotation-metadata'&&(protocolCandidates[o.code]||[]).length>0).length+' matchade dörrkort · '+labGraphicPositions+' extra bild/textträffar'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
