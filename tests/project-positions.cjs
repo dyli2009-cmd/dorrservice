@@ -37,6 +37,7 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator('.pcObject').count(),3,'scan all pages adds the two remaining DA positions');
    await page.locator('#pcOpen').click();await page.locator('#pcFindPositions').click();
    assert.equal(await page.locator('.pcObject').count(),3,'scan does not duplicate existing positions');
+   await page.locator('#pcPositionClose').click();
    await page.locator('.pcObject').first().click();
    await page.locator('#pcAssignPositionTemplate').selectOption('automation_selfcheck');
    assert(await page.locator('.pcCheck').count()>0,'existing template can be assigned after creation');
