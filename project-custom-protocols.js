@@ -362,7 +362,7 @@ async function renderPositionSuggestions(){
   if(![x,y,w,h].every(Number.isFinite))continue;
   const b=node('button',hit.code,'pcPositionSuggestion');b.type='button';
   b.style.left=x+'px';b.style.top=y+'px';
-  b.style.width=Math.max(18,Math.min(90,w))+'px';b.style.height=Math.max(17,Math.min(48,h))+'px';
+  b.style.width=Math.max(28,Math.min(90,w))+'px';b.style.height=Math.max(28,Math.min(48,h))+'px';
   b.title='Skapa projektposition '+hit.code+' på sida '+hit.page;
   b.setAttribute('aria-label',b.title);b.onpointerdown=e=>e.stopPropagation();
   b.onclick=e=>{e.preventDefault();e.stopPropagation();const o=addPosition(hit);if(!o)return;persist();renderPositionSuggestions();bridge?.message('Position '+o.code+' skapad på sida '+o.page);};
