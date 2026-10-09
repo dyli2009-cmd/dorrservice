@@ -6,7 +6,7 @@ const labStorage={
  setItem:(key,value)=>localStorage.setItem(LAB_PREFIX+String(key),value),
  removeItem:key=>localStorage.removeItem(LAB_PREFIX+String(key))
 };
-let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0;
+let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0,labDiagnosticSpot=null,labDiagnosticSequence=0;
 
 const $=id=>document.getElementById(id);
 const el={
@@ -625,6 +625,134 @@ function labHeaderMatch(code,lines){
   return true;
  });
 }
+
+/* TEST v4: Diagnose existing drawing-search decisions. Read only: no saved-data changes. */
+function labDiagnosticCode(value){return String(value||'').toUpperCase().replace(/[^A-ZÅÄÖ0-9]/g,'').slice(0,16)}
+function labDiagnosticPattern(code){
+ const k=labDiagnosticCode(code);return k?new RegExp('(^|[^A-ZÅÄÖ0-9])'+k.split('').join('[^A-ZÅÄÖ0-9]*')+'($|[^A-ZÅÄÖ0-9])','i'):null;
+}
+function labDiagnosticTextHits(text,code,pageNo){
+ const rx=labDiagnosticPattern(code),out=[];
+ if(!rx)return out;
+ for(const row of groupTextRowsForAutomation(text.items)){
+  const cells=[...row.items].sort((a,b)=>a.x-b.x);
+  for(let start=0;start<cells.length;start++){
+   for(let end=start;end<Math.min(start+7,cells.length);end++){
+    const part=cells.slice(start,end+1);if(!gsItemsCloseEnough(part))break;
+    const raw=part.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+    if(raw.length>65)break;
+    if(!rx.test(raw))continue;
+    const rect=rectForTextItems(part,1);if(!rect)break;
+    const x=(rect[0]+rect[2])/2,y=(rect[1]+rect[3])/2;
+    if(!out.some(h=>Math.abs(h.cx-x)<2.5&&Math.abs(h.cy-y)<2.5))
+     out.push({page:pageNo,code,rect,cx:x,cy:y,raw,parsed:labCodeFromMark(raw)});
+    break;
+   }
+  }
+ }
+ return out;
+}
+async function labDiagnosticColorForPage(group){
+ const pg=await pdf.getPage(group[0].page),natural=pg.getViewport({scale:1});
+ const scale=Math.max(.02,Math.min(1.2,Math.sqrt(2600000/Math.max(1,natural.width*natural.height)),2200/natural.width,2200/natural.height));
+ const vp=pg.getViewport({scale});
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.max(1,Math.ceil(vp.width));canvas.height=Math.max(1,Math.ceil(vp.height));
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});
+ if(!ctx)return group.map(()=>null);
+ try{
+  await pg.render({canvasContext:ctx,viewport:vp}).promise;
+  const bits=ctx.getImageData(0,0,canvas.width,canvas.height);
+  return group.map(h=>labColorAtRect(bits,viewportRect(vp,h.rect)));
+ }catch(e){console.warn('Diagnos färg sida '+group[0].page,e);return group.map(()=>null)}
+ finally{canvas.width=canvas.height=0}
+}
+function labDiagnosticReason(h,code,cardPages){
+ if(h.registered&&cardPages.length===1)return {level:'found',text:'Registrerad och kopplad till dörrkort'};
+ if(h.registered&&cardPages.length>1)return {level:'found',text:'Registrerad – flera möjliga dörrkort'};
+ if(h.registered)return {level:'error',text:'Registrerad men dörrkortets identifiering matchade inte'};
+ if(h.parsed!==code)return {level:'error',text:'Texten delades upp: sökningen tolkade '+(h.parsed||'ingen kod')+' i stället för '+code};
+ if(h.possibleDuplicate)return {level:'error',text:'Troligen bortsorterad som dubblett nära en annan position'};
+ if(h.color===false)return {level:'error',text:'PDF-text finns men färgmarkeringen uppfyllde inte gränsvärdet'};
+ if(h.color===true)return {level:'error',text:'PDF-text och färg finns – positionen registrerades ändå inte'};
+ return {level:'error',text:'PDF-text finns, men färgavläsningen gick inte att kontrollera'};
+}
+function labDiagnosticOutline(vp){
+ if(!labDiagnosticSpot||labDiagnosticSpot.page!==page)return;
+ const r=viewportRect(vp,labDiagnosticSpot.rect);
+ if(!Number.isFinite(r.left+r.top+r.width+r.height))return;
+ const node=document.createElement('div');node.className='labDiagnosticFrame';
+ node.style.left=r.left+'px';node.style.top=r.top+'px';
+ node.style.width=Math.max(14,r.width)+'px';node.style.height=Math.max(14,r.height)+'px';
+ el.markers.appendChild(node);
+}
+async function labDiagnosticGoTo(hit){
+ document.getElementById('labDiagnosticDialog').close();
+ labDiagnosticSpot={page:hit.page,rect:hit.rect};page=hit.page;
+ await renderDrawing();
+ const pg=await pdf.getPage(hit.page),r=viewportRect(pg.getViewport({scale}),hit.rect);
+ el.viewer.scrollTo({left:Math.max(0,r.left+r.width/2-el.viewer.clientWidth/2),top:Math.max(0,r.top+r.height/2-el.viewer.clientHeight/2),behavior:'smooth'});
+ renderMarkers();
+}
+async function labDiagnosticAnalyze(){
+ const inp=document.getElementById('labDiagnosticCode'),summary=document.getElementById('labDiagnosticSummary');
+ const list=document.getElementById('labDiagnosticResults'),button=document.getElementById('labDiagnosticRun');
+ if(!pdf){summary.textContent='Öppna först en PDF-ritning.';return}
+ const code=labDiagnosticCode(inp.value);if(!code){summary.textContent='Ange en beteckning, exempelvis 310A.';return}
+ inp.value=code;button.disabled=true;list.replaceChildren();
+ const seq=++labDiagnosticSequence,documentPdf=pdf;
+ try{
+  const rows=[],all=[...stamps,...projectStamps],marked=all.filter(x=>x.code===code);
+  for(let p=1;p<=documentPdf.numPages;p++){
+   if(seq!==labDiagnosticSequence||pdf!==documentPdf)return;
+   summary.textContent='Undersöker text på sida '+p+' av '+documentPdf.numPages+'…';
+   const text=await readPageText(p);
+   if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
+   rows.push(...labDiagnosticTextHits(text,code,p));
+   if(rows.length>=500)break;
+  }
+  const used=new Set();
+  for(const row of rows){
+   row.marker=marked.find(m=>m.page===row.page&&gsPositionDuplicate([m],row.page,code,row.rect))||null;
+   row.possibleDuplicate=!!row.marker&&used.has(row.marker);
+   row.registered=!!row.marker&&!row.possibleDuplicate;
+   if(row.registered)used.add(row.marker);
+  }
+  for(const m of marked)if(!used.has(m))rows.push({page:m.page,rect:m.rect,raw:m.label||code,parsed:code,marker:m,registered:true,annotation:true,color:null});
+  const groups=new Map();
+  for(const hit of rows)if(!hit.annotation){const g=groups.get(hit.page)||[];g.push(hit);groups.set(hit.page,g)}
+  let p=0;
+  for(const group of groups.values()){
+   if(seq!==labDiagnosticSequence||pdf!==documentPdf)return;
+   summary.textContent='Jämför färger: '+(++p)+' av '+groups.size+' sidor…';
+   const colors=await labDiagnosticColorForPage(group);
+   group.forEach((h,i)=>h.color=colors[i]);
+  }
+  const fromMap=protocolCandidates[code];
+  const cardPages=Array.isArray(fromMap)?fromMap:Array.from({length:documentPdf.numPages},(_,i)=>i+1).filter(p=>labHeaderMatch(code,labDoorCardHeader(pageTexts[p]||{items:[]})));
+  const located=rows.filter(h=>h.registered).length,missing=rows.length-located;
+  const textSplit=rows.filter(h=>!h.registered&&h.parsed!==code).length;
+  const noColor=rows.filter(h=>!h.registered&&h.color===false).length;
+  summary.textContent=code+': '+rows.length+' möjliga förekomster i läsbar PDF-text/markeringar.\n'+located+' registrerade · '+missing+' inte registrerade · '+textSplit+' misstänkta textuppdelningar · '+noColor+' utan bekräftad färg.\nDörrkort: '+(cardPages.length?cardPages.join(', '):'ingen matchning i identifieringsraderna')+'.';
+  if(!rows.length){
+   const n=document.createElement('p');n.className='labDiagnosticIntro';n.textContent='Ingen läsbar '+code+' hittades i de sidor som tolkas som ritningar. En bildbaserad text går inte att felsöka utan bildtextigenkänning (OCR).';
+   list.appendChild(n);return;
+  }
+  rows.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
+  for(const [i,hit] of rows.slice(0,250).entries()){
+   const status=labDiagnosticReason(hit,code,cardPages);
+   const b=document.createElement('button');b.type='button';b.className='labDiagnosticHit';b.dataset.level=status.level;
+   const title=document.createElement('b'),detail=document.createElement('span'),hint=document.createElement('small');
+   title.textContent=(i+1)+'. Sida '+hit.page+' · '+status.text;
+   detail.textContent='Text: '+hit.raw+' → '+(hit.parsed||'oläsbar')+(hit.annotation?' · PDF-markering':hit.color===true?' · färg hittad':hit.color===false?' · färg missad':' · färg okänd');
+   hint.textContent='Visa platsen på ritningen';
+   b.append(title,detail,hint);b.onclick=()=>labDiagnosticGoTo(hit).catch(console.error);list.appendChild(b);
+  }
+  if(rows.length>250){const more=document.createElement('p');more.textContent='Visar de första 250 av '+rows.length+' träffar.';list.appendChild(more)}
+ }catch(e){console.error(e);summary.textContent='Felsökningen kunde inte slutföras: '+(e?.message||e)}
+ finally{button.disabled=false}
+}
+
 async function buildProtocolMap(){
  protocolMap={};protocolCandidates={};
  const drawingPages=new Set([...stamps,...projectStamps].map(o=>o.page));
@@ -1892,6 +2020,7 @@ function renderMarkers(){
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode)toggleBulkInstance(o);else if(protocolMap[o.code])openProtocol(o);else openLabChoices(o)};
    el.markers.appendChild(btn);
   });
+  labDiagnosticOutline(vp);
  }).catch(console.error);
 }
 function renderAutomationMarkers(){
@@ -2300,6 +2429,8 @@ async function fitDrawing(){
  scale=Math.max(.25,Math.min(2.5,(el.viewer.clientWidth-12)/vp.width,(el.viewer.clientHeight-12)/vp.height));await renderDrawing();
 }
 async function analyze(file){
+ labDiagnosticSequence++;labDiagnosticSpot=null;
+ const dlg=document.getElementById('labDiagnosticDialog');if(dlg?.open)dlg.close();
  setState('Läser projekt-PDF…');document.body.classList.remove('pwStartMode');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('projekt-test-'+fileKey));
  pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];pendingImage=null;bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
@@ -2323,6 +2454,10 @@ async function analyze(file){
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
+document.getElementById('labDiagnoseOpen').onclick=()=>document.getElementById('labDiagnosticDialog').showModal();
+document.getElementById('labDiagnosticClose').onclick=()=>document.getElementById('labDiagnosticDialog').close();
+document.getElementById('labDiagnosticRun').onclick=labDiagnosticAnalyze;
+document.getElementById('labDiagnosticCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();labDiagnosticAnalyze()}};
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
 el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=toggleSaveMenu;

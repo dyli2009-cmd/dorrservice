@@ -16,8 +16,9 @@
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div class="pwTitle"><strong>Projektflöde test <span class="pwTitleVersion" aria-label="Testversion 3">· TEST v3</span></strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
+  <div class="pwTitle"><strong>Projektflöde test <span class="pwTitleVersion" aria-label="Testversion 4">· TEST v4</span></strong><small>Egen projektarbetsyta · ritning → position → protokoll → status</small></div>
   <div class="pwHeaderActions">
+    <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa varför en märkning saknas på ritningen">Felsök sökning</button>
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
@@ -308,7 +309,22 @@
   <div id="labChoices" class="labChoices"></div>
   <button class="labClose" type="button" onclick="this.closest('dialog').close()">Stäng</button>
 </dialog>
-<script src="project-workspace-test.js?v=3"></script>
+<dialog id="labDiagnosticDialog" class="labDiagnosticDialog" aria-labelledby="labDiagnosticTitle">
+ <div class="labDiagnosticHead">
+  <div><small>PROJEKTFLÖDE TEST · v4</small><h2 id="labDiagnosticTitle">Felsök ritningssökning</h2></div>
+  <button id="labDiagnosticClose" type="button" aria-label="Stäng felsökning">×</button>
+ </div>
+ <p class="labDiagnosticIntro">Jämför alla läsbara förekomster av en beteckning med de positioner som faktiskt visas. Övriga markeringar läggs inte till i projektet.</p>
+ <div class="labDiagnosticSearch">
+  <label for="labDiagnosticCode">Beteckning</label>
+  <input id="labDiagnosticCode" value="310A" placeholder="Ex. 310A eller GS3" spellcheck="false" autocomplete="off">
+  <button id="labDiagnosticRun" type="button">Analysera</button>
+ </div>
+ <p id="labDiagnosticSummary" class="labDiagnosticSummary" role="status" aria-live="polite">Öppna en PDF och tryck på Analysera.</p>
+ <div id="labDiagnosticResults" class="labDiagnosticResults"></div>
+ <p class="labDiagnosticFoot">Analysen sker lokalt i webbläsaren. Den ändrar inte projektets positioner, protokoll eller sparade PDF.</p>
+</dialog>
+<script src="project-workspace-test.js?v=4"></script>
 
 </body>
 </html>
