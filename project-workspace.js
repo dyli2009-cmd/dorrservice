@@ -203,7 +203,7 @@ function localProjectDate(){const d=new Date(),local=new Date(d.getTime()-d.getT
 function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date:localProjectDate(),nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',technician:'',signature:''}}
 function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
 function makeProjectPayload(){
- const payload={schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
+ const payload={customProtocols:window.TillsynoCustomProtocols?.snapshot(),schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',automationItems:automationItems.map(o=>({
   id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
  })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
@@ -300,7 +300,7 @@ async function writePdfToHandle(handle,data){
  }
 }
 async function savePortableProject(){
- if(!bytes||!instances.length)return;
+ if(!bytes||(!instances.length&&!window.TillsynoCustomProtocols?.count()))return;
  closeSaveMenu();
  let targetHandle=currentFileHandle;
  if(!targetHandle&&desktopSavePickerAvailable()){
@@ -334,7 +334,7 @@ async function savePortableProject(){
  }finally{el.saveProject.disabled=false}
 }
 async function saveProjectAs(){
- if(!bytes||!instances.length)return;
+ if(!bytes||(!instances.length&&!window.TillsynoCustomProtocols?.count()))return;
  closeSaveMenu();
  let targetHandle=null;
  if(desktopSavePickerAvailable()){
@@ -1079,6 +1079,7 @@ function effectiveChecks(o,def){
 }
 function buildInstances(){
  const saved=loadSaved(),counts={};
+ window.TillsynoCustomProtocols?.load(saved.customProtocols);
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
  projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
  automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
@@ -1132,6 +1133,7 @@ function updateStats(){
  if(totalMinutes>0)progress=allDone?100:Math.min(99,Math.max(0,Math.round(doneMinutes/totalMinutes*100)));
  else progress=trackable.length?Math.round(trackable.reduce((a,o)=>a+o.progress,0)/trackable.length):0;
  el.totalProgress.textContent=progress+'%';
+ window.TillsynoCustomProtocols?.stats({count:matched.length,done:matched.filter(o=>o.progress===100).length,progress});
 }
 function renderDrawing(){
  if(!pdf)return Promise.resolve();
@@ -1156,6 +1158,7 @@ function renderDrawing(){
   el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
   el.pageInfo.textContent='Sida '+pageNumber+' / '+documentPdf.numPages;el.zoomInfo.textContent=Math.round(targetScale*100)+'%';
   renderDrawingNotes(vp);renderMarkers();renderAutomationMarkers();
+  window.TillsynoCustomProtocols?.render(vp,pageNumber);
  });
  return drawingRenderQueue;
 }
@@ -2206,6 +2209,7 @@ async function analyze(file){
  if(!stamps.length&&!projectStamps.length)setState('Inga läsbara projektmarkeringar hittades i den här PDF-filen.');
  else setState(stamps.length+' GS-positioner'+(textGsCount?' · '+textGsCount+' hittade direkt i ritningstext':'')+' · '+matchedGsCodes+' GS-ID matchade · '+projectStamps.length+' övriga stämplar · '+matchedFreeCodes+' dörrkoder matchade · '+matchedPositions+' klickbara'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
+ await window.TillsynoCustomProtocols?.analyzed();
 }
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
 el.openProjectEmpty.onclick=openProjectPdf;
@@ -2332,4 +2336,8 @@ el.addChecklistItem.onclick=()=>openItemEditor(selectedInstance());
 el.itemEditorClose.onclick=closeItemEditor;el.editCancel.onclick=closeItemEditor;el.editSave.onclick=saveItemEditor;
 el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()});
 window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>renderDrawing())});
+window.TillsynoCustomProtocols?.connect({
+ getPdf:()=>pdf,getPage:()=>page,readPageText,save,message:setState,
+ async focus(o){page=o.page;await renderDrawing();const pg=await pdf.getPage(page),r=viewportRect(pg.getViewport({scale}),o.rect);el.viewer.scrollTo({left:Math.max(0,r.left-el.viewer.clientWidth/2),top:Math.max(0,r.top-el.viewer.clientHeight/2)})}
+});
 })();
