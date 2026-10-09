@@ -891,7 +891,7 @@ function createAutomationSelfcheckPdf(o,options={}){
  const mark=(kind,cx,cy)=>{doc.setTextColor(20,20,20);if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('-',cx,cy+1,{align:'center'});return}doc.setFont('zapfdingbats','normal');doc.setFontSize(10.2);doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+1.2,{align:'center'})};
  doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);addLogo(left,8,58,18);doc.line(left+58,8,left+58,26);
  txt(options.title?'EGENKONTROLL':'Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
- txt(heading.toLocaleUpperCase('sv').slice(0,65),left+58+(width-58)/2,18.7,Math.min(11.9,Math.max(7.1,115/Math.max(1,heading.length))),true,[25,25,25],{align:'center'});
+ txt(heading.toLocaleUpperCase('sv').slice(0,65),left+58+(width-58)/2,18.7,options.title?Math.min(11.9,Math.max(7.1,115/Math.max(1,heading.length))):11.9,true,[25,25,25],{align:'center'});
  txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
  cell('Bokat datum:',meta.date,left,y,93);cell('Nästa provning:',meta.nextDate,left+93,y,93);y+=7;
  cell('ANLÄGGNING:',meta.projectName,left,y,93,7,true);cell('Anläggningsnr:',meta.facilityNo,left+93,y,93,7,true);y+=7;
@@ -916,7 +916,7 @@ function createAutomationSelfcheckPdf(o,options={}){
    else if(i===0){doc.setFont('helvetica','bold');doc.setFontSize(7.7);doc.setTextColor(25,25,25);doc.text(String(v||''),xx+ws[i]/2,y+rowH/2+1,{align:'center'})}
    xx+=ws[i];
   });
-  if(!check.result){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(100,114,123);doc.text('Ej kontrollerad',left+9+101+(14+21+25)/2,y+rowH/2+1,{align:'center'})}
+  if(options.title&&!check.result){doc.setFont('helvetica','normal');doc.setFontSize(6.8);doc.setTextColor(100,114,123);doc.text('Ej kontrollerad',left+9+101+(14+21+25)/2,y+rowH/2+1,{align:'center'})}
   y+=rowH;
  });
  y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,8.2,true,[55,55,55]);y+=6;
