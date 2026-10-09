@@ -3478,9 +3478,12 @@ function appendEditableCheck(o,item){
 async function renderChecklist(o){
  el.checklist.replaceChildren();
  const def=await protocolDef(o.code);
- if(!def){el.checklistMeta.textContent='0 punkter';const p=document.createElement('p');p.className='pwMuted';p.textContent='Ingen protokollsida kunde matchas automatiskt.';el.checklist.appendChild(p);return}
+ if(!def){document.getElementById('pwChecklistMarkAll').disabled=true;document.getElementById('pwChecklistClearAll').disabled=true;el.checklistMeta.textContent='0 punkter';const p=document.createElement('p');p.className='pwMuted';p.textContent='Ingen protokollsida kunde matchas automatiskt.';el.checklist.appendChild(p);return}
  const checks=effectiveChecks(o,def);
- el.checklistMeta.textContent=checks.length+' kontrollpunkter';
+ el.checklistMeta.textContent=checks.length+' kontrollpunkter från original och egna';
+ const originals=checks.filter(item=>item.source==='base');
+ document.getElementById('pwChecklistMarkAll').disabled=!originals.length;
+ document.getElementById('pwChecklistClearAll').disabled=!originals.length;
  if(!def.lines.length&&!o.customItems.length){const p=document.createElement('p');p.className='pwMuted';p.textContent='Protokollsidan är matchad, men textstrukturen kunde inte tolkas säkert ännu.';el.checklist.appendChild(p);return}
  def.lines.forEach(line=>{
   const item=effectiveChecks(o,def).find(x=>x.source==='base'&&x.key===line.key);
@@ -3491,6 +3494,17 @@ async function renderChecklist(o){
   const h=document.createElement('div');h.className='pwChecklistHeading';h.textContent='Tillagda punkter';el.checklist.appendChild(h);
   custom.forEach(item=>appendEditableCheck(o,item));
  }
+}
+async function toggleAllOriginalChecks(marked){
+ const o=selectedInstance();if(!o)return;
+ const def=await protocolDef(o.code);
+ const items=effectiveChecks(o,def).filter(item=>item.source==='base');
+ if(!items.length){setState('Inga avläsbara originalpunkter att markera på '+o.code+'.');return}
+ for(const item of items)o.checks[item.key]=marked;
+ await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();
+ await renderChecklist(o);
+ if(el.timeDialog.open)await renderTimeReport();
+ setState((marked?'Markerade ':'Avmarkerade ')+items.length+' originalpunkter för '+o.code+' (position '+o.position+').');
 }
 function syncProtocolProgress(o){el.protocolPercent.textContent=o.progress+'%';el.protocolBar.style.width=o.progress+'%'}
 async function openProtocol(o){
@@ -3938,6 +3952,8 @@ el.protocolCanvasWrap.addEventListener('lostpointercapture',()=>endProtocolMouse
 el.protocolCanvasWrap.addEventListener('dragstart',e=>e.preventDefault());
 el.protocolCanvasWrap.addEventListener('wheel',wheelProtocolZoom,{passive:false});
 el.addChecklistItem.onclick=()=>openItemEditor(selectedInstance());
+document.getElementById('pwChecklistMarkAll').onclick=()=>void toggleAllOriginalChecks(true);
+document.getElementById('pwChecklistClearAll').onclick=()=>void toggleAllOriginalChecks(false);
 el.itemEditorClose.onclick=closeItemEditor;el.editCancel.onclick=closeItemEditor;el.editSave.onclick=saveItemEditor;
 el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()});
 window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>renderDrawing())});
