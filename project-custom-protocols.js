@@ -44,7 +44,8 @@ const markup=`
 <dialog id="pcProtocol" class="pcDialog pcProtocol">
  <header class="pcHead"><button id="pcBack" type="button">← Ritning</button><div><small id="pcIdentity"></small><strong id="pcProtocolTitle"></strong></div><button id="pcProtocolClose" type="button" aria-label="Stäng eget protokoll">×</button></header>
  <div class="pcBody"><div class="pcMeta"><label>Datum<input id="pcDate" type="date"></label><label>Utförd av<input id="pcTechnician" maxlength="160"></label><label>Signatur<input id="pcSignature" maxlength="160"></label></div>
- <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
+ <div id="pcPositionEditor" class="pcPositionEditor" hidden><label>Position / märkning<input id="pcPositionName" maxlength="80"></label><label>Placering<input id="pcPositionLocation" maxlength="160" placeholder="Till exempel korridor, entré eller rumsnummer"></label><label>Koppla kontrollmall<select id="pcAssignPositionTemplate"><option value="">Ingen mall – bara position</option></select></label><button id="pcRemovePosition" type="button" class="pcRemovePosition">Ta bort position</button></div>
+  <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
  <div id="pcObjectMeta" class="pcMeta pcObjectMeta" hidden><label>Objekt<input id="pcObjectNo" maxlength="80"></label><label id="pcModelLabel">Typ av automatik<select id="pcModel"></select></label><label id="pcEquipmentLabel" hidden>Typ av utrustning<input id="pcEquipmentType" maxlength="160"></label><label>Antal / löpnummer<input id="pcQuantity" inputmode="numeric" maxlength="12"></label></div>
  <section id="pcCardPreview" hidden><div class="pcCardTools"><strong id="pcCardLabel">Originaldörrkort</strong><button id="pcCardOut" type="button" aria-label="Zooma ut dörrkort">−</button><button id="pcCardIn" type="button" aria-label="Zooma in dörrkort">+</button></div><div id="pcCardWrap"><canvas id="pcCardCanvas"></canvas></div></section>
  <div class="pcProgress"><strong id="pcProgress">0%</strong><span>kontrollerade punkter</span><button id="pcApproveAll" type="button">✓ Godkänn alla</button></div><div id="pcChecks"></div>
@@ -53,10 +54,28 @@ const markup=`
  <div class="pcActions"><button id="pcPreview" type="button">Visa kundmall</button><button id="pcExport" type="button">Spara protokoll PDF</button></div><p id="pcProtocolMessage" role="status"></p></div>
 </dialog>`;
 document.body.insertAdjacentHTML('beforeend',markup);
-const managerButton=document.createElement('button');managerButton.id='pcOpen';managerButton.type='button';managerButton.textContent='Egna protokoll';document.querySelector('.pwHeaderActions').prepend(managerButton);
-const startButton=document.createElement('button');startButton.id='pcStart';startButton.type='button';startButton.textContent='+ Egna koder & protokoll';document.querySelector('.pwEmptyCard').appendChild(startButton);
+
+const POSITION_UI=`
+<dialog id="pcPositionDialog" class="pcDialog pcPositionDialog">
+ <header class="pcHead"><div><small>PROJEKTFLÖDE</small><strong>Egna positioner</strong></div><button type="button" id="pcPositionClose" aria-label="Stäng">×</button></header>
+ <div class="pcBody">
+  <p class="pcIntro">Hitta märkningar på ritningen och samla dem bland projektpositionerna. Börja med DA. Du kan också trycka direkt på en DA-märkning på ritningen.</p>
+  <label>Märkning att hitta<input id="pcPositionCode" value="DA" maxlength="40" autocomplete="off" spellcheck="false" placeholder="DA"></label>
+  <label>Kontrollmall (valfritt)<select id="pcPositionTemplate"><option value="">Ingen mall – bara position</option></select></label>
+  <button type="button" id="pcFindPositions" class="pcPrimary">Sök alla och skapa positioner</button>
+  <p id="pcPositionMessage" class="pcMuted" role="status">Söker i ritningens läsbara PDF-text och markeringsetiketter. Redan skapade positioner behålls.</p>
+  <p class="pcMuted">Efteråt trycker du på positionen för att ändra namn, koppla kontrollmall eller börja kontrollera. Originalritningen ändras inte.</p>
+  <details id="pcOldWorkflow"><summary>Tidigare egna protokoll</summary><p class="pcMuted">Äldre protokoll och kopplingar sparas oförändrade.</p><button type="button" id="pcOpenOld">Öppna tidigare verktyg</button></details>
+ </div>
+</dialog>`;
+document.body.insertAdjacentHTML('beforeend',POSITION_UI);
+
+const managerButton=document.createElement('button');managerButton.id='pcOpen';managerButton.type='button';managerButton.textContent='Egna positioner';document.querySelector('.pwHeaderActions').prepend(managerButton);
+const startButton=document.createElement('button');startButton.id='pcStart';startButton.type='button';startButton.textContent='+ Egna positioner';document.querySelector('.pwEmptyCard').appendChild(startButton);
 const layer=document.createElement('div');layer.id='pcMarkers';layer.className='pcMarkers';$('pwStage').appendChild(layer);
 const list=document.createElement('section');list.id='pcObjects';list.className='pcObjects';$('pwSide').appendChild(list);
+const suggestionLayer=document.createElement('div');suggestionLayer.id='pcPositionSuggestions';suggestionLayer.className='pcMarkers pcPositionSuggestions';$('pwStage').appendChild(suggestionLayer);
+
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n}
 const SHARED_FIELDS=[['projectName','Projekt / objekt'],['facilityNo','Objektnummer'],['order','Ordernummer / AO'],['date','Datum','date'],['nextDate','Nästa provning','date'],['customer','Beställare / kund'],['contact','Kontaktperson'],['phone','Telefon kund'],['address','Adress kund'],['company','Installerande företag'],['companyContact','Kontaktman företag'],['companyPhone','Telefon företag'],['companyAddress','Adress företag'],['technician','Utförd av / installatör'],['signature','Signatur']];
 for(const [key,title,type] of SHARED_FIELDS){const label=node('label',title),input=node('input');input.id='pcShared-'+key;input.type=type||'text';input.maxLength=250;input.onchange=()=>{bridge?.setProjectMeta({[key]:input.value});if(COMPANY_FIELDS.includes(key)){sharedDefaults[key]=input.value;try{localStorage.setItem(DEFAULTS,JSON.stringify(sharedDefaults))}catch(_){}}syncShared();persist()};label.appendChild(input);$('pcSharedFields').appendChild(label)}
