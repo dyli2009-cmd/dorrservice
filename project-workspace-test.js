@@ -648,14 +648,17 @@ function labPatchCodes(patch,items,vp){
  const relevant=items.filter(item=>{
   const r=rectForTextItems([item],0);if(!r)return false;
   const box=viewportRect(vp,r),coverage=labPatchOverlap(boundary,box);
-  return coverage>.16;
+  // A PDF text item can contain a whole line; also accept an item covering the mark.
+  return coverage>.16||labPatchOverlap(box,boundary)>.38;
  });
  if(!relevant.length)return [];
  const candidates=labPrintedCodeCandidates(relevant);
  // Sometimes PDF.js keeps two adjacent words as a single text item. Extract
  // substrings and estimate their bounding boxes instead of swallowing WC/other text.
  for(const item of relevant){
-  const raw=String(item.text||''),matches=[...raw.matchAll(/(?:G[\s/_-]*S[\s/_-]*[0-9]{1,6}[A-ZÅÄÖ0-9]{0,5}|[A-ZÅÄÖ]{0,3}[0-9]{1,6}[A-ZÅÄÖ]{0,3})/gi)];
+  const raw=String(item.text||'');
+  if(labExactDrawingCode(raw))continue; // Already read as one full ID; no substring '310' from '310 A'.
+  const matches=[...raw.matchAll(/(?:G[\s/_-]*S[\s/_-]*[0-9]{1,6}[A-ZÅÄÖ0-9]{0,5}|[A-ZÅÄÖ]{0,3}[0-9]{1,6}[A-ZÅÄÖ]{0,3})/gi)];
   if(raw.length>45)continue;
   for(const match of matches){
    if(match.index===0&&match[0].length===raw.length)continue;
