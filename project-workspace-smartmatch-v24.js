@@ -566,27 +566,27 @@ async function writePdfToHandle(handle,data){
   await writable.close();
  }
 }
-let smartExportBytes=null,smartExportMode=null,smartExportObjectUrl=null;
+let smartExportBytes=null,smartExportMode=null,smartExportObjectUrl=null,smartExportIntent='local';
 function releaseSmartExport(){
  if(smartExportObjectUrl){URL.revokeObjectURL(smartExportObjectUrl);smartExportObjectUrl=null}
  smartExportBytes=null;smartExportMode=null;
  const detail=document.getElementById('smartExportFinalSize');
  if(detail)detail.textContent='Ej skapad';
- for(const id of ['smartExportPreview','smartExportShare','smartExportDownload'])
+ for(const id of ['smartExportPreview','smartExportShare','smartExportDownload','smartExportSaveAs','smartExportSaveObject'])
   document.getElementById(id).disabled=true;
 }
 function prettyPdfSize(n){return (n/1024/1024).toLocaleString('sv-SE',{maximumFractionDigits:2,minimumFractionDigits:2})+' MB'}
 function smartExportMessage(message,level='neutral'){
  const e=document.getElementById('smartExportStatus');e.textContent=message;e.dataset.level=level;
 }
-function openSmartExportDialog(){
+function openSmartExportDialog(intent='local'){
  if(!bytes)return;
- closeSaveMenu();releaseSmartExport();
+ smartExportIntent=intent;closeSaveMenu();releaseSmartExport();
  const dialog=document.getElementById('smartExportDialog');
  document.getElementById('smartExportOriginalSize').textContent=prettyPdfSize(bytes.length);
  document.querySelector('input[name="smartExportMode"][value="compact"]').checked=true;
  document.getElementById('smartExportBuild').disabled=false;
- smartExportMessage('Välj exportformat och klicka Optimera & beräkna storlek. Därefter kan du granska och dela.');
+ smartExportMessage(({object:'Spara objekt – skriv i filen som öppnades, om webbläsaren tillåter det.',local:'Spara lokalt – välj Hämtade filer eller Spara i Filer.',as:'Spara som – välj nytt filnamn och plats.',email:'Skicka mejl – välj en mindre PDF och bifoga i din mejlapp.'}[intent]||'Granska PDF')+' Välj exportformat och klicka Optimera & beräkna storlek.');
  dialog.showModal();
 }
 function currentSmartExportMode(){return document.querySelector('input[name="smartExportMode"]:checked')?.value||'compact'}
@@ -607,7 +607,7 @@ async function prepareSmartExport(){
   smartExportBytes=data;smartExportMode=chosen;
   const before=bytes.length,after=data.length;
   document.getElementById('smartExportFinalSize').textContent=prettyPdfSize(after);
-  for(const id of ['smartExportPreview','smartExportShare','smartExportDownload'])
+  for(const id of ['smartExportPreview','smartExportShare','smartExportDownload','smartExportSaveAs','smartExportSaveObject'])
    document.getElementById(id).disabled=false;
   let message='Klart. '+prettyPdfSize(before)+' → '+prettyPdfSize(after)+'. ';
   if(after<before)message+='Minskning '+Math.round((1-after/before)*100)+' %. ';
@@ -629,23 +629,73 @@ function previewSmartExport(){
  if(tab){try{tab.opener=null}catch(_){}}
  else smartExportMessage('Webbläsaren blockerade förhandsgranskningen. Tillåt popupfönster eller använd Ladda ner för att granska PDF:en.','warning');
 }
-async function shareSmartExport(){
+async function saveSmartExportObject(){
  const file=currentSmartExportFile();if(!file)return;
- const done=await deliverProjectFile(file,'SmartMatch TEST v24','Kopplad PDF · '+prettyPdfSize(file.size));
- if(done)smartExportMessage('Filen har lämnats till delningsmenyn eller sparats i Hämtade filer. Kontrollera bilagans storlek före mejl.');
+ try{
+  if(currentFileHandle&&await ensureHandleWritePermission(currentFileHandle)){
+   await writePdfToHandle(currentFileHandle,smartExportBytes);
+   smartExportMessage('Sparat direkt i '+(currentFileHandle.name||'öppnad PDF')+'.','good');
+   setState('Sparat i öppnad PDF: '+(currentFileHandle.name||currentFileName));return;
+  }
+  smartExportMessage('Ingen skrivbehörighet till ursprungsfilen. Välj en plats med Spara som.','warning');
+  if(desktopSavePickerAvailable())await saveSmartExportAs();
+  else await saveSmartExportLocal();
+ }catch(e){
+  if(e?.name==='AbortError'){smartExportMessage('Sparandet avbröts.');return}
+  console.error(e);smartExportMessage('Kunde inte spara direkt: '+(e?.message||e),'warning');
+ }
 }
-function downloadSmartExport(){
- const file=currentSmartExportFile();if(file)downloadProjectFile(file);
+async function saveSmartExportAs(){
+ const file=currentSmartExportFile();if(!file)return;
+ if(desktopSavePickerAvailable()){
+  try{
+   const handle=await chooseDesktopSaveHandle(file.name);if(!handle)return;
+   await writePdfToHandle(handle,smartExportBytes);
+   currentFileHandle=handle;
+   smartExportMessage('Sparat som '+(handle.name||file.name)+'.','good');
+   setState('Projektfilen sparad: '+(handle.name||file.name)+'.');
+  }catch(e){
+   if(e?.name==='AbortError'){smartExportMessage('Spara som avbröts.');return}
+   console.error(e);smartExportMessage('Spara som misslyckades: '+(e?.message||e),'warning');
+  }
+  return;
+ }
+ await saveSmartExportLocal();
 }
-
-async function savePortableProject(){openSmartExportDialog()}
-async function saveProjectAs(){openSmartExportDialog()}
-async function savePdfCopy(){
- if(!bytes)return;closeSaveMenu();
- const name=fileStem(currentFileName).replace(/-soktest$/i,'')+'-smartmatch-ritningskopia.pdf';
- const done=await deliverProjectFile(new File([bytes.slice()],name,{type:'application/pdf'}),'Kopia från Projektflöde test','Kopia av ritningen');
- setState(done?'Ritningskopia sparad.':'Sparandet avbröts.');
+async function saveSmartExportLocal(){
+ const file=currentSmartExportFile();if(!file)return;
+ if(isNativeIos()||/iPhone|iPad|iPod/.test(navigator.userAgent||'')){
+  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+   try{
+    await navigator.share({title:'Spara SmartMatch-PDF',files:[file]});
+    smartExportMessage('Delningsmenyn stängdes. Kontrollera att du valde Spara i Filer.','good');
+    return;
+   }catch(err){if(err?.name==='AbortError')return;console.warn('Spara i Filer',err)}
+  }
+ }
+ downloadProjectFile(file);
+ smartExportMessage('PDF nedladdad. Kontrollera Hämtade filer.','good');
 }
+async function emailSmartExport(){
+ const file=currentSmartExportFile();if(!file)return;
+ if(file.size>18*1024*1024&&!window.confirm('PDF: '+prettyPdfSize(file.size)+'. Mejltjänster kan ha gränsen 25 MB, och bilagor kan växa under överföring. Fortsätta?'))return;
+ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+  try{
+   await navigator.share({title:'SmartMatch projekt-PDF',text:'Projekt-PDF med klickbara dörrkort',files:[file]});
+   smartExportMessage('Delningsmenyn stängdes. Kontrollera att du valde mejlappen och skickade bilagan.','good');
+   return;
+  }catch(err){if(err?.name==='AbortError')return;console.warn('E-postdelning',err)}
+ }
+ // mailto: kan inte bifoga lokala filer automatiskt i vanliga webbläsare.
+ downloadProjectFile(file);
+ smartExportMessage('PDF nedladdad. Mejlet öppnas utan bilaga – bifoga '+file.name+' från Hämtade filer manuellt.','warning');
+ window.location.href='mailto:?subject='+encodeURIComponent('SmartMatch projekt-PDF')+'&body='+encodeURIComponent('Hej,\n\nBifoga filen '+file.name+' från Hämtade filer innan du skickar.\n');
+}
+async function shareSmartExport(){return emailSmartExport()}
+function downloadSmartExport(){return saveSmartExportLocal()}
+async function savePortableProject(){openSmartExportDialog('object')}
+async function saveProjectAs(){openSmartExportDialog('as')}
+async function savePdfCopy(){openSmartExportDialog('email')}
 
 function decodePdfText(obj){
  try{
@@ -3737,6 +3787,7 @@ el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=toggleSaveMenu;
 el.savePortable.onclick=savePortableProject;
 el.saveAs.onclick=saveProjectAs;
+document.getElementById('pwSaveLocal').onclick=()=>openSmartExportDialog('local');
 el.saveCopy.onclick=savePdfCopy;
 document.getElementById('smartExportClose').onclick=()=>document.getElementById('smartExportDialog').close();
 document.getElementById('smartExportDialog').addEventListener('close',releaseSmartExport);
@@ -3744,6 +3795,8 @@ document.getElementById('smartExportBuild').onclick=prepareSmartExport;
 document.getElementById('smartExportPreview').onclick=previewSmartExport;
 document.getElementById('smartExportShare').onclick=()=>void shareSmartExport();
 document.getElementById('smartExportDownload').onclick=downloadSmartExport;
+document.getElementById('smartExportSaveObject').onclick=()=>void saveSmartExportObject();
+document.getElementById('smartExportSaveAs').onclick=()=>void saveSmartExportAs();
 document.querySelectorAll('input[name="smartExportMode"]').forEach(input=>input.addEventListener('change',()=>{
  releaseSmartExport();smartExportMessage('Exportformat ändrat. Klicka Optimera & beräkna storlek för att skapa en ny PDF.');
 }));
@@ -3808,7 +3861,7 @@ el.projectLogo.onchange=async e=>{
 };
 el.projectLogoRemove.onclick=()=>{projectLogoData='';save();refreshProjectLogoPreview()};
 
-el.saveSelfchecks.onclick=openSelfcheckExport;
+if(el.saveSelfchecks)el.saveSelfchecks.onclick=openSelfcheckExport;
 el.automationPreview.onclick=openAutomationCustomerPreview;
 el.automationPreviewClose.onclick=closeAutomationCustomerPreview;
 el.automationPreviewDialog.addEventListener('cancel',e=>{e.preventDefault();closeAutomationCustomerPreview()});
