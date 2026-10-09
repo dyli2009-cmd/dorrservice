@@ -3090,59 +3090,8 @@ async function renderProtocolPage(pageNo){
  el.protocolZoomInfo.textContent=Math.round(protocolScale*100)+'%';
  // Ingen separat GS-överläggskolumn i v21 – endast en kompakt kontrollista.
 }
-function gsStages(o,item){
- const prior=!!o.checks?.[item.key],saved=o.rowStages?.[item.key];
- return saved&&typeof saved==='object'
-  ?{mount:!!saved.mount,drift:!!saved.drift,test:!!saved.test,note:String(saved.note||'')}
-  :{mount:prior,drift:prior,test:prior,note:''};
-}
-async function saveGsStages(o,item,state){
- o.rowStages??={};o.rowStages[item.key]={...state};
- o.checks[item.key]=!!(state.mount&&state.drift&&state.test);
- await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();
- if(el.timeDialog.open)await renderTimeReport();
-}
-async function renderGsControlsOnCard(vp,version){
- const o=selectedInstance();if(!o||version!==protocolRenderVersion)return;
- const def=await protocolDef(o.code);
- if(version!==protocolRenderVersion||selectedId!==o.id)return;
- const rows=effectiveChecks(o,def).filter(x=>x.source==='base'&&Number.isFinite(x.y));
- el.protocolGSLayer.replaceChildren();
- if(!rows.length)return;
- const left=vp.width+8;
- el.protocolGSLayer.style.left=left+'px';
- const header=document.createElement('div');header.className='pwProtocolGSHead';header.textContent='GS-rader · Monterat / Drift / Provat / ANM';
- el.protocolGSLayer.appendChild(header);
- let bottom=40;
- for(let i=0;i<rows.length;i++){
-  const item=rows[i],state=gsStages(o,item);
-  const row=document.createElement('div');row.className='pwProtocolGSRow';
-  const heading=document.createElement('strong');heading.textContent=(item.label+' '+(item.value||'')).trim();heading.title=heading.textContent;row.appendChild(heading);
-  const options=document.createElement('div');options.className='pwGsChoices';
-  for(const [key,label] of [['mount','Monterat'],['drift','Drift'],['test','Provat']]){
-   const wrap=document.createElement('label'),input=document.createElement('input');
-   input.type='checkbox';input.checked=state[key];input.setAttribute('aria-label',label+' · '+heading.textContent);
-   input.onchange=()=>{state[key]=input.checked;row.dataset.done=String(state.mount&&state.drift&&state.test);void saveGsStages(o,item,state)};
-   wrap.append(input,document.createTextNode(label));options.appendChild(wrap);
-  }
-  row.appendChild(options);
-  const note=document.createElement('label');note.className='pwGsNote';note.textContent='ANM · anmärkning';
-  const field=document.createElement('input');field.type='text';field.maxLength=600;field.value=state.note;field.placeholder='Skriv anmärkning…';
-  field.oninput=()=>{state.note=field.value;o.rowStages??={};o.rowStages[item.key]={...state};save()};
-  note.appendChild(field);row.appendChild(note);
-  const jump=document.createElement('button');jump.type='button';jump.className='pwGsLocate';jump.textContent='↖ Visa raden på dörrkortet';
-  const lineY=vp.convertToViewportPoint(0,item.y)[1];
-  jump.onclick=()=>{el.protocolCanvasWrap.scrollTop=Math.max(0,lineY-el.protocolCanvasWrap.clientHeight/2);el.protocolCanvasWrap.scrollLeft=Math.max(0,(item.items?.[0]?.x||0)*protocolScale-30)};
-  row.appendChild(jump);
-  row.dataset.done=String(state.mount&&state.drift&&state.test);
-  const top=Math.max(bottom,lineY-14);
-  row.style.top=top+'px';bottom=top+118;
-  for(const evt of ['touchstart','touchmove','touchend','touchcancel','wheel','pointerdown'])row.addEventListener(evt,e=>e.stopPropagation(),{passive:true});
-  el.protocolGSLayer.appendChild(row);
- }
- el.protocolStage.style.width=(vp.width+254)+'px';
- el.protocolStage.style.height=Math.max(vp.height,bottom+8)+'px';
-}
+// v21: tidigare trestegs-kontroller borttagna. En checkruta per originalpunkt används.
+
 function selectedInstance(){return instances.find(x=>x.id===selectedId)||null}
 function openItemEditor(o,item=null){
  if(!o)return;
