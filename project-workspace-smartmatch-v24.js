@@ -3821,6 +3821,11 @@ el.savePortable.onclick=savePortableProject;
 el.saveAs.onclick=saveProjectAs;
 document.getElementById('pwSaveLocal').onclick=()=>openSmartExportDialog('local');
 el.saveCopy.onclick=savePdfCopy;
+document.getElementById('pwSavePdfCopy').onclick=()=>{
+ if(!bytes)return;closeSaveMenu();
+ const file=new File([bytes.slice()],fileStem(currentFileName)+'-pdf-kopia.pdf',{type:'application/pdf'});
+ downloadProjectFile(file);setState('PDF-kopia sparad lokalt: '+file.name+'.');
+};
 document.getElementById('smartExportClose').onclick=()=>document.getElementById('smartExportDialog').close();
 document.getElementById('smartExportDialog').addEventListener('close',releaseSmartExport);
 document.getElementById('smartExportBuild').onclick=prepareSmartExport;
