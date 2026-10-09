@@ -109,8 +109,9 @@ $('pcRuleForm').onsubmit=e=>{
 function escapeRegExp(value){return value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function matcher(rule){
  const series=rule.mode==='sequence'?rule.code.match(/^(\p{L}+)[\s_-]*(\d+)$/u):null;
- const literal=escapeRegExp((series?series[1]:rule.code).normalize('NFKC')).replace(/ /g,'[ \\t]+');
- const suffix=series?'[ \\t_-]*[0-9]+':rule.mode==='object'?'(?:(?:[ \\t]*[-–—][ \\t]*[0-9]+){2,})?':rule.mode==='exact'?'':'(?:[ \\t_-]*[0-9][\\p{L}\\p{N}]*(?:[._/-][\\p{L}\\p{N}]+)*)?';
+ const structured=rule.mode==='exact'&&/^\d+(?:-\d+){2,}$/.test(rule.code.replace(/\s+/g,''));
+ const literal=structured?rule.code.replace(/\s+/g,'').split('').map(c=>c==='-'?'[ \\t]*[-–—][ \\t]*':escapeRegExp(c)+'[ \\t]*').join(''):series?series[1].split('').map(escapeRegExp).join('[ \\t_-]*'):escapeRegExp(rule.code.normalize('NFKC')).replace(/ /g,'[ \\t]+');
+ const suffix=series?'[ \\t_-]*[0-9](?:[ \\t]*[0-9])*':rule.mode==='object'?'(?:(?:[ \\t]*[-–—][ \\t]*[0-9]+){2,})?':rule.mode==='exact'?'':'(?:[ \\t_-]*[0-9][\\p{L}\\p{N}]*(?:[._/-][\\p{L}\\p{N}]+)*)?';
  return new RegExp('(?<![\\p{L}\\p{N}_/-])'+literal+suffix+'(?![\\p{L}\\p{N}_/-])','giu');
 }
 function idFor(rule,page,code,rect){return rule.id+(rule.target&&rule.target!=='custom'?'|'+rule.target:'')+'@'+page+':'+rect.map(n=>Math.round(n*10)).join(':')+':'+code.toLocaleUpperCase('sv')}
@@ -136,11 +137,11 @@ function readCandidates(items,rule,page){
    for(const item of group){const part=item.text.normalize('NFKC');const previous=segments[segments.length-1];if(text&&previous&&item.x-previous.item.x-previous.item.w>Math.max(1,item.h*.12))text+=' ';const start=text.length;text+=part;segments.push({start,end:text.length,item})}
    const re=matcher(rule);
    for(const match of text.matchAll(re)){
-    if(rule.mode==='sequence'){const minimum=Number(rule.code.match(/\d+$/)?.[0]||0),number=Number(match[0].match(/\d+$/)?.[0]);if(number<minimum)continue}
+    if(rule.mode==='sequence'){const minimum=Number(rule.code.match(/\d+$/)?.[0]||0),number=Number(match[0].replace(/[^0-9]/g,''));if(number<minimum)continue}
     const hits=segments.filter(s=>s.end>match.index&&s.start<match.index+match[0].length);if(!hits.length)continue;
     const pieces=hits.map(s=>{const a=Math.max(match.index,s.start)-s.start,b=Math.min(match.index+match[0].length,s.end)-s.start,length=s.end-s.start;return {...s.item,x:s.item.x+s.item.w*a/length,w:s.item.w*(b-a)/length}});
     const rect=[Math.min(...pieces.map(i=>i.x))-2,Math.min(...pieces.map(i=>i.y-i.h*.35))-2,Math.max(...pieces.map(i=>i.x+i.w))+2,Math.max(...pieces.map(i=>i.y+i.h*.95))+2];
-    const code=match[0].trim();found.push({id:idFor(rule,page,code,rect),ruleId:rule.id,code,page,rect,title:rule.title,points:rule.points.slice(),selected:false,target:rule.target||'custom',template:rule.template||'',sourceKind:'text',...(rule.target==='selfcheck'?objectInfo(code,items,rect):{})});
+    const code=rule.mode==='sequence'?match[0].replace(/[\\s_-]+/g,'').toUpperCase():rule.mode==='exact'&&/^\\d+(?:-\\d+){2,}$/.test(rule.code.replace(/\\s/g,''))?match[0].replace(/\\s+/g,'').replace(/[–—]/g,'-'):match[0].trim();found.push({id:idFor(rule,page,code,rect),ruleId:rule.id,code,page,rect,title:rule.title,points:rule.points.slice(),selected:false,target:rule.target||'custom',template:rule.template||'',sourceKind:'text',...(rule.target==='selfcheck'?objectInfo(code,items,rect):{})});
    }
   }
  }
