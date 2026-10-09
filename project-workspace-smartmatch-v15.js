@@ -2665,9 +2665,10 @@ function renderMarkers(){
   pageItems.forEach(o=>{
    const r=viewportRect(vp,o.rect);
    if(!Number.isFinite(r.left+r.top+r.width+r.height)||r.width<=0||r.height<=0)return;
-   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);btn.dataset.match=labState(o.code);if(o.id===selectedId)btn.classList.add('selected');if(bulkSelected.has(o.id))btn.classList.add('bulkSelected');
+   const btn=document.createElement('button');btn.type='button';btn.className='pwStampHit';btn.dataset.progress=String(o.progress||0);btn.dataset.match=labState(o.code);btn.dataset.scanSource=o.scanSource==='doorcard-first-text'?'text-candidate':'verified';if(o.id===selectedId)btn.classList.add('selected');if(bulkSelected.has(o.id))btn.classList.add('bulkSelected');
    btn.style.left=r.left+'px';btn.style.top=r.top+'px';btn.style.width=Math.max(10,r.width)+'px';btn.style.height=Math.max(10,r.height)+'px';
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+(protocolMap[o.code]?' · dörrkort sida '+protocolMap[o.code]:' · '+(labState(o.code)==='ambiguous'?'välj dörrkort':'ingen dörrkortsträff'))+' · '+o.progress+'%';
+   if(o.scanSource==='doorcard-first-text')btn.title+=' · PDF-textträff, kontrollera placeringen';
    btn.setAttribute('aria-label',btn.title);
    if(o.manual||positionEdits[o.id]){const label=document.createElement('span');label.className='pmMarkerLabel';label.textContent=o.code;btn.appendChild(label)}
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
