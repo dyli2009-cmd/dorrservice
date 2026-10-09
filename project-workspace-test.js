@@ -485,6 +485,12 @@ function labCodeFromMark(value){
  // Treat GS 3, GS/3, 310 A, 310-A, 310/A as exact codes.
  const gs=raw.match(/(?:^|[^A-ZÅÄÖ0-9])G[\s/_-]*S[\s/_-]*([A-ZÅÄÖ0-9]{1,12})(?=$|[^A-ZÅÄÖ0-9])/);
  if(gs)return 'GS'+gs[1];
+ // Ignore common location/field labels before the actual ID, including "WC 310A" and "DÖRR 1".
+ const identity=raw.match(/^(?:WC|ENTRÉ|ENTRE|DÖRR(?:NR|NUMMER)?|LITTERA|POSITION|BETECKNING|OBJEKT(?:NR|NUMMER)?|RUM|ID)\s*[:#-]?\s+(.+)$/i);
+ if(identity){
+  const candidate=identity[1].replace(/[\s/_-]+/g,'');
+  if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(candidate))return candidate;
+ }
  const norm=raw.replace(/[\s/_-]+/g,'');
  if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(norm))return norm;
  const tokens=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];
@@ -492,8 +498,9 @@ function labCodeFromMark(value){
  return candidates.length===1?candidates[0]:'';
 }
 function labExactDrawingCode(value){
- // Single marked token or contiguous fragments, never an unrelated neighboring label.
+ // Single marked token or contiguous fragments, never unrelated neighboring labels.
  const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').trim();
+ if(/^(?:WC|ENTRÉ|ENTRE|DÖRR(?:NR|NUMMER)?|LITTERA|POSITION|BETECKNING|RUM|ID)\s*[:#-]?\s+/.test(raw))return labCodeFromMark(raw);
  const compact=raw.replace(/[\s/_-]+/g,'');
  if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return compact;
  if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(compact))return compact;
