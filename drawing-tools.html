@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.251">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.257">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -14,7 +14,7 @@
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · beskära · optimera</small></div>
  <span class="globalTextControls" role="group" aria-label="Textstorlek"><button type="button" data-app-text-smaller>A−</button><span data-app-text-level>100%</span><button type="button" data-app-text-larger>A+</button></span>
- <span class="version">v2.4.163</span>
+ <span class="version">v2.4.257</span>
 </header>
 
 <main class="toolShell">
@@ -86,10 +86,17 @@
     <button id="prevPage" aria-label="Föregående sida">‹</button>
     <strong id="pageInfo">Sida 1</strong>
     <button id="nextPage" aria-label="Nästa sida">›</button>
+    <div class="previewZoomControls" role="group" aria-label="Zooma ritningen">
+     <button id="previewZoomOut" type="button" aria-label="Zooma ut">−</button>
+     <span id="previewZoomLevel" aria-live="polite">100%</span>
+     <button id="previewZoomIn" type="button" aria-label="Zooma in">+</button>
+     <button id="previewFit" type="button">Passa sidan</button>
+    </div>
     <span id="pageState"></span>
    </div>
 
-   <div id="previewWrap"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="cropBox" hidden></div><div id="eraseBox" hidden></div></div></div>
+   <div id="previewWrap"><div id="previewSurface"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="cropBox" hidden></div><div id="eraseBox" hidden></div></div></div></div>
+   <p class="previewNavigationHint">Zooma med mushjulet eller +/−. Dra med musen för att flytta ritningen. Vid beskärning eller döljning: dra med mushjulet nedtryckt för att flytta vyn.</p>
    <p class="previewNote">Förhandsvisningen visar den rensade arbetskopian. Om något ligger kvar: använd “Radera område” och dra direkt över det. Kontrollera särskilt mått och rumsnamn innan du sparar.</p>
   </section>
  </section>
@@ -116,6 +123,6 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.163"></script>
+<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.257"></script>
 </body>
 </html>

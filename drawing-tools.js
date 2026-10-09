@@ -5,6 +5,30 @@ const $=id=>document.getElementById(id);
 let pdf=null,sourceBytes=null,fileName='ritning.pdf',page=1,keep=[],undo=[],renderTask=null,lastOutput=null,uploadedSize=0,drawingSourceSize=0;
 let manualMasks={},cropRects={},editMode='',dragStart=null,estimateVersion=0;
 let selectPagesMode=false,selectedPages=new Set(),workSourceKind='';
+let previewZoom=1,previewPage=0,previewWidth=0,previewHeight=0,panDrag=null,zoomTimer=null,previewVersion=0;
+const previewWrap=$('previewWrap');
+function layoutPreview(){
+ const w=previewWidth*previewZoom,h=previewHeight*previewZoom;
+ for(const node of [$('previewCanvas'),$('canvasStage')]){node.style.width=w+'px';node.style.height=h+'px'}
+ $('previewSurface').style.width=(w+24)+'px';$('previewSurface').style.height=(h+24)+'px';
+ $('previewZoomLevel').textContent=Math.round(previewZoom*100)+'%';
+ $('previewZoomOut').disabled=previewZoom<=.5;$('previewZoomIn').disabled=previewZoom>=8;
+}
+function setPreviewZoom(value,clientX,clientY){
+ if(!pdf||!previewWidth||dragStart||panDrag)return;
+ const next=Math.max(.5,Math.min(8,value));if(next===previewZoom)return;
+ const wrapRect=previewWrap.getBoundingClientRect(),old=$('previewCanvas').getBoundingClientRect();
+ const x=clientX??(wrapRect.left+previewWrap.clientWidth/2),y=clientY??(wrapRect.top+previewWrap.clientHeight/2);
+ const u=(x-old.left)/old.width,v=(y-old.top)/old.height;
+ previewZoom=next;layoutPreview();
+ const rect=$('previewCanvas').getBoundingClientRect();
+ previewWrap.scrollLeft+=rect.left+u*rect.width-x;previewWrap.scrollTop+=rect.top+v*rect.height-y;
+ clearTimeout(zoomTimer);zoomTimer=setTimeout(()=>renderPreview(),180);
+}
+function fitPreview(){
+ if(!pdf)return;clearTimeout(zoomTimer);previewZoom=1;layoutPreview();
+ previewWrap.scrollLeft=0;previewWrap.scrollTop=0;renderPreview();
+}
 const QUALITY={
  light:{maxPixels:3500000,maxSide:3200,jpeg:.76,label:'Mindre fil',estimateBpp:.095},
  balanced:{maxPixels:7000000,maxSide:4200,jpeg:.85,label:'Balans',estimateBpp:.145},
@@ -145,19 +169,25 @@ async function cleanCanvas(ctx,p,viewport,pageNo){
 }
 async function renderPreview(){
  if(!pdf)return;
+ const version=++previewVersion,pageNo=page;
  if(renderTask)try{renderTask.cancel()}catch(_){}
  try{
-  const p=await pdf.getPage(page),base=p.getViewport({scale:1}),scale=previewScale(base),dpr=Math.min(window.devicePixelRatio||1,2),vp=p.getViewport({scale:scale*dpr}),css=p.getViewport({scale}),cv=$('previewCanvas');
-  cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);cv.style.width=css.width+'px';cv.style.height=css.height+'px';
-  const stage=$('canvasStage');stage.style.width=css.width+'px';stage.style.height=css.height+'px';
-  const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  const p=await pdf.getPage(pageNo);if(version!==previewVersion)return;
+  if(previewPage!==pageNo){clearTimeout(zoomTimer);previewPage=pageNo;previewZoom=1;previewWrap.scrollLeft=0;previewWrap.scrollTop=0}
+  const base=p.getViewport({scale:1}),scale=previewScale(base),css=p.getViewport({scale}),dpr=Math.min(window.devicePixelRatio||1,2);
+  const raster=Math.min(scale*previewZoom*dpr,Math.sqrt(12000000/(base.width*base.height)),5200/Math.max(base.width,base.height));
+  const vp=p.getViewport({scale:raster}),cv=$('previewCanvas'),buffer=document.createElement('canvas');
+  previewWidth=css.width;previewHeight=css.height;layoutPreview();
+  buffer.width=Math.ceil(vp.width);buffer.height=Math.ceil(vp.height);
+  const ctx=buffer.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,buffer.width,buffer.height);
   renderTask=p.render({canvasContext:ctx,viewport:vp,annotationMode:$('removeAnnotations').checked?(pdfjsLib.AnnotationMode?.DISABLE??0):(pdfjsLib.AnnotationMode?.ENABLE??1)});
-  await renderTask.promise;await cleanCanvas(ctx,p,vp,page);
-  const crop=cropRects[page],cropBox=$('cropBox');
+  await renderTask.promise;await cleanCanvas(ctx,p,vp,pageNo);if(version!==previewVersion)return;
+  const crop=cropRects[pageNo],cropBox=$('cropBox');
   if(crop){
    cropBox.hidden=false;cropBox.style.left=(crop.x*100)+'%';cropBox.style.top=(crop.y*100)+'%';cropBox.style.width=(crop.w*100)+'%';cropBox.style.height=(crop.h*100)+'%';
   }else cropBox.hidden=true;
-  if(!keep[page-1]){ctx.save();ctx.fillStyle='#ffffffcc';ctx.fillRect(0,0,cv.width,cv.height);ctx.fillStyle='#8c3035';ctx.font=Math.max(22,cv.width*.035)+'px sans-serif';ctx.textAlign='center';ctx.fillText('SIDAN TAS BORT',cv.width/2,cv.height/2);ctx.restore()}
+  if(!keep[pageNo-1]){ctx.save();ctx.fillStyle='#ffffffcc';ctx.fillRect(0,0,buffer.width,buffer.height);ctx.fillStyle='#8c3035';ctx.font=Math.max(22,buffer.width*.035)+'px sans-serif';ctx.textAlign='center';ctx.fillText('SIDAN TAS BORT',buffer.width/2,buffer.height/2);ctx.restore()}
+  cv.width=buffer.width;cv.height=buffer.height;cv.getContext('2d').drawImage(buffer,0,0);
   renderPageList();updateEditButtons();
  }catch(e){if(e?.name!=='RenderingCancelledException'){console.error(e);message('Kunde inte visa sidan.',true)}}
 }
@@ -167,7 +197,7 @@ async function loadFile(file){
   message('Läser PDF-strukturen…');
   const uploadedBytes=new Uint8Array(await file.arrayBuffer()),embedded=await inspectKnownWorkPdf(uploadedBytes),drawingBytes=embedded?.drawingBytes||uploadedBytes,candidate=await pdfjsLib.getDocument({data:drawingBytes.slice()}).promise;await candidate.getPage(1);
   if(pdf)try{await pdf.destroy()}catch(_){}
-  pdf=candidate;sourceBytes=drawingBytes;uploadedSize=uploadedBytes.byteLength;drawingSourceSize=drawingBytes.byteLength;fileName=file.name||'ritning.pdf';workSourceKind=embedded?.kind||'';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};cropRects={};editMode='';dragStart=null;selectPagesMode=false;selectedPages=new Set();lastOutput=null;
+  pdf=candidate;sourceBytes=drawingBytes;uploadedSize=uploadedBytes.byteLength;drawingSourceSize=drawingBytes.byteLength;fileName=file.name||'ritning.pdf';workSourceKind=embedded?.kind||'';page=1;keep=Array(pdf.numPages).fill(true);undo=[];manualMasks={};cropRects={};editMode='';dragStart=null;selectPagesMode=false;selectedPages=new Set();lastOutput=null;previewPage=0;previewZoom=1;
   $('undoPage').disabled=true;$('workspace').hidden=false;$('outputActions').hidden=false;$('resultCard').hidden=true;$('sizeCompare').hidden=false;
   if(embedded){
    $('deepCleanInfo').hidden=false;$('deepCleanTitle').textContent=embedded.kind+' arbets-PDF upptäckt';
@@ -252,10 +282,34 @@ $('resetCrop').onclick=()=>{if(!cropRects[page])return;delete cropRects[page];in
 $('undoErase').onclick=()=>{const masks=masksFor(page);if(!masks.length)return;masks.pop();invalidate();updateEditButtons();renderPreview();message('Senaste dolda området ångrades.')};
 $('clearErases').onclick=()=>{if(!masksFor(page).length)return;manualMasks[page]=[];invalidate();updateEditButtons();renderPreview();message('Alla dolda områden på sida '+page+' visas igen.')};
 const cv=$('previewCanvas');
-cv.addEventListener('pointerdown',e=>{if(!editMode||!pdf)return;e.preventDefault();cv.setPointerCapture?.(e.pointerId);dragStart=pointerPos(e);showDragBox(dragStart,dragStart)});
+cv.addEventListener('pointerdown',e=>{if(!editMode||!pdf||e.button!==0)return;e.preventDefault();cv.setPointerCapture?.(e.pointerId);dragStart=pointerPos(e);showDragBox(dragStart,dragStart)});
 cv.addEventListener('pointermove',e=>{if(!editMode||!dragStart)return;e.preventDefault();showDragBox(dragStart,pointerPos(e))});
 cv.addEventListener('pointerup',e=>{if(!editMode||!dragStart)return;e.preventDefault();finishDrag(e)});
 cv.addEventListener('pointercancel',()=>{dragStart=null;$('eraseBox').hidden=true});
+$('previewZoomIn').onclick=()=>setPreviewZoom(previewZoom*1.25);
+$('previewZoomOut').onclick=()=>setPreviewZoom(previewZoom/1.25);
+$('previewFit').onclick=fitPreview;
+previewWrap.addEventListener('wheel',e=>{
+ if(!pdf||!previewWidth)return;e.preventDefault();
+ const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?previewWrap.clientHeight:1);
+ setPreviewZoom(previewZoom*Math.exp(-Math.max(-240,Math.min(240,delta))*.0025),e.clientX,e.clientY);
+},{passive:false});
+previewWrap.addEventListener('pointerdown',e=>{
+ if(!pdf||e.pointerType!=='mouse'||(e.button!==1&&(e.button!==0||editMode)))return;
+ e.preventDefault();e.stopPropagation();panDrag={id:e.pointerId,x:e.clientX,y:e.clientY,left:previewWrap.scrollLeft,top:previewWrap.scrollTop};
+ previewWrap.setPointerCapture(e.pointerId);previewWrap.classList.add('panning');
+},true);
+previewWrap.addEventListener('pointermove',e=>{
+ if(!panDrag||e.pointerId!==panDrag.id)return;e.preventDefault();
+ previewWrap.scrollLeft=panDrag.left+panDrag.x-e.clientX;previewWrap.scrollTop=panDrag.top+panDrag.y-e.clientY;
+});
+function stopPan(e){
+ if(!panDrag||e.pointerId!==panDrag.id)return;panDrag=null;previewWrap.classList.remove('panning');
+ if(previewWrap.hasPointerCapture(e.pointerId))previewWrap.releasePointerCapture(e.pointerId);
+}
+previewWrap.addEventListener('pointerup',stopPan);
+previewWrap.addEventListener('pointercancel',stopPan);
+previewWrap.addEventListener('lostpointercapture',stopPan);
 $('analyzeSize').onclick=async()=>{try{$('analyzeSize').disabled=true;await buildOutput()}catch(e){console.error(e);message(e.message||'Kunde inte mäta filstorleken.',true)}finally{$('analyzeSize').disabled=false}};
 $('savePdf').onclick=async()=>{try{const r=await output();if(!r)return;if(window.DorrNative?.isNative?.()){await window.DorrNative.saveAndSharePdf(r.bytes,r.name,'Ritningsverktyg – ren PDF');message('PDF klar. Välj Spara till Filer eller dela ritningen.');return}const url=URL.createObjectURL(r.blob),a=document.createElement('a');a.href=url;a.download=r.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}catch(e){console.error(e);message(e.message||'Kunde inte skapa PDF.',true)}};
 window.addEventListener('resize',()=>{if(pdf)renderPreview()});

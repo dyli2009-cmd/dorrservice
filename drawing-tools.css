@@ -61,3 +61,12 @@
 
 /* Keep the drawing on its own layer while it is moved or zoomed. */
 #previewCanvas{will-change:transform}
+#previewWrap{display:block;height:clamp(380px,65vh,720px);min-height:0;padding:0;overscroll-behavior:contain;cursor:grab}
+#previewSurface{display:grid;place-items:center;min-width:100%;min-height:100%;padding:12px}
+#previewWrap.panning,#previewWrap.panning *{cursor:grabbing!important;user-select:none}
+#previewWrap.eraseMode,#previewWrap.cropMode{cursor:crosshair}
+.previewToolbar{flex-wrap:wrap}
+.previewZoomControls{display:flex;align-items:center;gap:4px;margin-left:auto}
+#previewZoomLevel{min-width:40px;text-align:center;font-size:10px;font-variant-numeric:tabular-nums}
+.previewNavigationHint{margin:0;padding:7px 10px;font-size:10px;line-height:1.4;color:#476575;border-top:1px solid #e3e9ec}
+@media(max-width:760px){#previewWrap{height:58vh}.previewZoomControls{gap:3px}.previewToolbar #pageState{width:100%;margin-left:0}}
