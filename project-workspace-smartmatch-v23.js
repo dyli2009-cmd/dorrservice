@@ -625,8 +625,9 @@ function previewSmartExport(){
  const file=currentSmartExportFile();if(!file)return;
  if(smartExportObjectUrl)URL.revokeObjectURL(smartExportObjectUrl);
  smartExportObjectUrl=URL.createObjectURL(file);
- const tab=window.open(smartExportObjectUrl,'_blank','noopener,noreferrer');
- if(!tab)smartExportMessage('Webbläsaren blockerade förhandsgranskningen. Tillåt popupfönster eller använd Ladda ner för att granska PDF:en.','warning');
+ const tab=window.open(smartExportObjectUrl,'_blank');
+ if(tab){try{tab.opener=null}catch(_){}}
+ else smartExportMessage('Webbläsaren blockerade förhandsgranskningen. Tillåt popupfönster eller använd Ladda ner för att granska PDF:en.','warning');
 }
 async function shareSmartExport(){
  const file=currentSmartExportFile();if(!file)return;
