@@ -1156,7 +1156,9 @@ function labGsWorkItem(line){
  const dtTag=/(^|[^A-ZÅÄÖ0-9])D[\s/_-]*T(?=$|[^A-ZÅÄÖ0-9])/i;
  if(!gsTag.test(original)||dtTag.test(original))return null;
  if(line.administrative)return null;
- const detail=original.replace(gsTag,' ').replace(/^[\s:;,\-–—]+|[\s:;,\-–—]+$/g,'').trim();
+ const withoutGs=original.replace(gsTag,' ').trim();
+ if(/(?:^|[\s:;])[-–—]\s*$/.test(withoutGs))return null;
+ const detail=withoutGs.replace(/^[\s:;,\-–—]+|[\s:;,\-–—]+$/g,'').trim();
  if(!detail||/^(?:[-–—.]+|ej\s+aktuellt|ingår\s+ej)$/i.test(detail))return null;
  if(!/[A-ZÅÄÖ]/i.test(detail))return null;
  // Ingen kryssruta för tabellhuvud eller identifieringsfält.
