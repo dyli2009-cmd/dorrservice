@@ -7,8 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v24</title>
-<link rel="stylesheet" href="project-workspace-smartmatch-v24.css?v=24-1">
+<title>Projektflöde SmartMatch – TEST v25</title>
+<link rel="stylesheet" href="project-workspace-smartmatch-v25.css?v=25-1">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -54,7 +54,7 @@
 }
 </style>
 <style>
-/* TEST v24: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
+/* TEST v25: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
 .smartReportsDialog{width:min(850px,96vw);height:min(88dvh,880px);max-height:88dvh;overflow:auto;padding:12px 14px;border-radius:12px}
 .smartReportsDialog .labDiagnosticHead{position:sticky;top:-12px;z-index:10;padding:10px 0 8px;background:#fff;border-bottom:1px solid #d7e5ed}
 .smartReportsList{display:grid;gap:9px;padding-bottom:12px}
@@ -103,7 +103,7 @@
  .pwPositionMore>.pmRow{right:-2px;min-width:166px}
 }
 
-/* v24: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
+/* v25: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
 .labDiagnosticDialog.smartReportsDialog{width:min(610px,94vw);height:auto;max-height:82dvh;padding:10px 12px;overflow:auto}
 .labDiagnosticDialog.smartReportsDialog .labDiagnosticHead{align-items:center}
 .labDiagnosticDialog.smartReportsDialog #labDiagnosticClose{display:grid!important;place-items:center!important;text-align:center!important;padding:0!important;line-height:1!important;min-width:33px;height:33px}
@@ -115,7 +115,7 @@
  .pwProtocol.pwMobileChecks .pwChecklistPane{height:100%;overflow:auto}
 }
 
-/* SmartMatch TEST v24 – skrivbordsmus bara på originaldörrkortet. */
+/* SmartMatch TEST v25 – skrivbordsmus bara på originaldörrkortet. */
 .pwProtocolMouseHint{display:none;color:#607987;font-size:9px;line-height:1.25}
 .pwProtocolToolTitle{display:flex;flex-direction:column;gap:2px;min-width:0}
 @media(hover:hover) and (pointer:fine){
@@ -125,7 +125,7 @@
   .pwProtocolMouseHint{display:block}
 }
 
-/* TEST v24: mindre knappar och kompaktare dörrkortskontroller */
+/* TEST v25: mindre knappar och kompaktare dörrkortskontroller */
 .smartCardsTools{gap:5px!important;padding:5px 8px!important;min-height:0!important}
 .smartCardsTools button,.smartCardsTools #labDiagnoseOpen,.smartCardsTools #smartAddCards{font-size:10px!important;padding:5px 8px!important;min-height:27px!important;line-height:1.2!important;border-radius:7px!important}
 .smartCardsTools #smartCardsNote{font-size:9px!important;line-height:1.3!important}
@@ -152,17 +152,24 @@
  .smartCardsTools #smartCardsNote{flex:1 0 100%}
  .pwProtocol .pwChecklistHeadActions button{font-size:9px!important;padding:4px 5px!important}
 }
+
+/* SmartMatch TEST v25: one compact export strategy – no duplicate-card option */
+.smartCompactExportChoice{border:1px solid #c6e3d2;background:#f0f8f3;border-radius:9px;padding:11px 12px;margin:11px 0}
+.smartCompactExportChoice strong{display:flex;gap:6px;align-items:center;font-size:12px;color:#235c40}
+.smartCompactExportChoice p{margin:6px 0 0;font-size:11px;line-height:1.5;color:#365f4b}
+.smartCompactExportIcon{font-style:normal;font-weight:800;display:inline-grid;place-items:center;background:#fff;border:1px solid #8ebe9d;border-radius:50%;width:19px;height:19px}
+@media(max-width:520px){.smartCompactExportChoice{padding:8px 10px}.smartCompactExportChoice p{font-size:10px}}
 </style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 24">· TEST v24</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
+  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 25">· TEST v25</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
   <div class="pwHeaderActions">
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
-        <button id="pwSavePortable" type="button"><strong>Spara objekt</strong><small>Spara tillbaka i filen som öppnades (dator).</small></button>
+        <button id="pwSavePortable" type="button"><strong>Spara objekt</strong><small>Kompakt PDF utan extra dörrkortskopior.</small></button>
         <button id="pwSaveLocal" type="button"><strong>Spara lokalt</strong><small>Ladda ner eller spara i Filer.</small></button>
         <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Välj filnamn och plats.</small></button>
         <button id="pwSavePdfCopy" type="button"><strong>PDF-kopia</strong><small>Skapa en oförändrad kopia av öppnad PDF.</small></button>
@@ -218,15 +225,15 @@
             <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
           </g>
           <g class="pwProjectMarks">
-            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v24"/>
-            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v24"/>
-            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v24"/>
+            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v25"/>
+            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v25"/>
+            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v25"/>
           </g>
         </svg>
       </div>
       <div class="pwEmptyCard">
         <div class="pwEmptyMark" aria-hidden="true">
-          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V24h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
+          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V25h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
         </div>
         <h1>Projektflöde</h1>
         <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
@@ -288,7 +295,7 @@
 
 <dialog id="pwProtocol" class="pwProtocol">
   <header class="pwProtocolHeader">
-    <button id="pwBack" type="button">← Ritning</button>
+    <button id="pwBack" type="button" title="Tillbaka till den ritningsposition du öppnade">← Till ritningen</button>
     <div class="pwProtocolIdentity">
       <span>PROJEKTPROTOKOLL</span>
       <strong id="pwProtocolCode">—</strong>
@@ -298,7 +305,7 @@
       <strong id="pwProtocolPercent">0%</strong>
       <div class="pwProgressTrack"><i id="pwProtocolBar"></i></div>
     </div>
-    <button id="pwProtocolClose" type="button" aria-label="Stäng">×</button>
+    <button id="pwProtocolClose" type="button" aria-label="Stäng och återgå till den valda ritningspositionen" title="Tillbaka till senast öppnade ritningsposition">×</button>
   </header>
 
   <div class="pwProtocolBody">
@@ -463,7 +470,7 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v24</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div><small>SMARTMATCH · TEST v25</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
   <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
  <p class="labDiagnosticIntro">Sammanfattning av PDF-skanning och dörrkort. Öppna respektive rubrik för mer detaljer.</p><div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
@@ -511,20 +518,19 @@
 
 <dialog id="smartExportDialog" class="smartExportDialog" aria-labelledby="smartExportTitle">
  <div class="smartExportHeader">
-  <div><small>SMARTMATCH · TEST v24</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
+  <div><small>SMARTMATCH · TEST v25</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
   <button id="smartExportClose" type="button" title="Stäng" aria-label="Stäng PDF-granskningen">×</button>
  </div>
- <p class="smartExportIntro">Välj filstorlek innan du sparar eller delar. Ritningens text och originaldörrkort bevaras i PDF-format, utan omvandling till suddiga bilder.</p>
+ <p class="smartExportIntro">Vi skapar en kompakt PDF utan dubbla dörrkort. Granska den verkliga filstorleken före mejl, lokal sparning eller delning. Text och ritning bevaras som PDF.</p>
  <div class="smartExportSizes">
   <div><small>Öppnad PDF</small><strong id="smartExportOriginalSize">– MB</strong></div>
   <div><small>Ny PDF</small><strong id="smartExportFinalSize">Ej skapad</strong></div>
  </div>
- <fieldset class="smartExportModes">
-  <legend>Välj export</legend>
-  <label><input type="radio" name="smartExportMode" value="compact" checked> <span><strong>Kompakt för mejl</strong><small>Inga extra dörrkortskopior. Klickbara ritningspositioner och länkar tillbaka finns kvar. Vid flera positioner per kort visas en positionslista.</small></span></label>
-  <label><input type="radio" name="smartExportMode" value="full"> <span><strong>Fullständig</strong><small>Egen kopia av dörrkortet för varje position, med direktlänk tillbaka. Kan ge en större fil.</small></span></label>
- </fieldset>
- <p id="smartExportStatus" class="smartExportStatus" role="status" aria-live="polite">Välj läge och skapa en granskning innan du delar.</p>
+ <div class="smartCompactExportChoice">
+  <strong><span class="smartCompactExportIcon" aria-hidden="true">✓</span> Kompakt PDF – ett dörrkort per original</strong>
+  <p>Alla ritningspositioner länkas till samma dörrkort, utan extra kortkopior. På dörrkortet finns <b>Till ritning</b>: vid flera positioner visas en klickbar lista så kunden väljer rätt dörr.</p>
+ </div>
+ <p id="smartExportStatus" class="smartExportStatus" role="status" aria-live="polite">Skapa din kompakta PDF och kontrollera filstorleken innan du sparar eller skickar.</p>
  <div class="smartExportActions">
   <button id="smartExportBuild" type="button" class="smartExportPrimary">Optimera & beräkna storlek</button>
   <button id="smartExportPreview" type="button" disabled>Förhandsgranska PDF</button>
@@ -535,7 +541,7 @@
  </div>
  <p class="smartExportNote">Många mejltjänster har gränsen 25 MB, och mejlbilagor kan växa vid överföring. Sikta på ungefär 18 MB eller mindre. Om filen ändå är för stor kan du dela en molnlänk i stället.</p>
 </dialog>
-<script src="project-workspace-smartmatch-v24.js?v=24-1"></script>
+<script src="project-workspace-smartmatch-v25.js?v=25-1"></script>
 
 </body>
 </html>
