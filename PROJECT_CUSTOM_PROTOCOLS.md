@@ -44,3 +44,13 @@ Dörrkort matchas med samma exakta GS-kod och avgränsning som originalflödet p
 ## Separata dörrkort (2.4.263)
 
 Öppna ritningen, välj Egna protokoll och Lägg till dörrkort-PDF när korten ligger i en separat fil. Korten läggs sist i projekt-PDF:en. Verktyget läser därefter alla sidor med de egna mallarna. Befintliga positioner, kontrollstatusar och projektuppgifter behålls. Korten följer med vid projektsparande och fungerar offline efter återöppning. På iOS används den inbyggda filväljaren.
+
+## Snabbkommando och enhetlig kundmall (2.4.264)
+
+I Egna protokoll kan en känd kod som GS1 eller ett fullständigt strukturerat automatik-ID anges i fältet Snabbkommando. Kommandot söker hela projekt-PDF:en och skapar protokoll direkt för entydiga matchningar. Nummerserien GS1 matchar GS1 och högre nummer. Om dörrkortet inte matchar entydigt måste användaren välja rätt sida; osäkra träffar skapas inte automatiskt. Andra kodtyper behöver fortfarande en definierad mall.
+
+För PDF-text prioriteras den uppmätta textpositionen framför en större överlappande annotationsrektangel. I ritningsvyn visas ID-märkning som en kompakt klickbar etikett med kontrollstatus och en pil. Ursprunglig ritning och pildata förstörs inte av den visuella överlagringen. PDF-text och annotationsrektanglar kan ha varierande precision: verklig ersättning av PDF-innehåll och exakt rekonstruktion av en ursprunglig annotationspil återstår att verifiera med en kundritning före en produktionsändring.
+
+Alla Egna protokoll använder nu den befintliga dörrautomatikens A4-kundmallgenerator för Förhandsvisa kundmall och Spara protokoll PDF, med egen rubrik, identitet och kontrollpunkter. En okontrollerad punkt anges uttryckligen som Ej kontrollerad. Godkänn alla ändrar bara ännu ej bedömda punkter, så anmärkningar och redan gjorda bedömningar behålls. Dörrkorts-PDF inkluderar originalkortet som första sida och kundprotokollet efteråt.
+
+Denna version är framtagen på separat utvecklingsgren och bör testas med riktig projekt-PDF på dator, iPad och telefon innan den sammanfogas med main.
