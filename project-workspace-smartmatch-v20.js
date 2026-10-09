@@ -3629,7 +3629,7 @@ function pmPlace(o){
  if(!pdf)return;
  const code=o?.code||pmCode($('pmCode').value);
  if(!code){pmHelp('Ange en beteckning, till exempel GS1 eller 310A.');return}
- smartShowAllGS=true;document.getElementById('pwPositionEditor').open=true;placement={id:o?.id||null,code};el.stage.classList.add('pmPlacing');$('pmCancel').hidden=false;
+ document.getElementById('pwPositionEditor').open=true;placement={id:o?.id||null,code};el.stage.classList.add('pmPlacing');$('pmCancel').hidden=false;
  pmHelp('Klicka eller tryck på rätt dörr på ritningen för '+code+'. Du kan byta sida före placeringen.');
 }
 function pmCounts(){const counts={};instances.forEach(o=>{counts[o.code]=(counts[o.code]||0)+1});const n={};instances.forEach(o=>{o.position=n[o.code]=(n[o.code]||0)+1;o.totalOfCode=counts[o.code]})}
