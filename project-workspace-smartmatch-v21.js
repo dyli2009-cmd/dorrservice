@@ -40,6 +40,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
 const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
+let scanOriginalPageCount=0;
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',currentFileHandle=null,embeddedState={},page=1,scale=1.1,renderTask=null;
 let drawingDetailTimer=null,drawingDetailTask=null,drawingDetailVersion=0,drawingDetailKey="";
 let drawingRenderVersion=0,drawingRenderQueue=Promise.resolve(),drawingRaster=null;
@@ -254,9 +255,11 @@ function save(){
  return payload;
 }
 async function readEmbeddedProjectState(){
+ scanOriginalPageCount=0;
  try{
   const {PDFDocument,PDFName}=PDFLib;
   const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
+  scanOriginalPageCount=Number(doc.catalog.get(PDFName.of('SmartMatch21OriginalPages'))?.asNumber?.()||0);
   const raw=doc.catalog.get(PDFName.of('TillsynoSmartMatchV21Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV20Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV19Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV18Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV17Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV16Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV15Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV13Data'));
   if(!raw)return {};
   const json=decodePdfText(raw);
@@ -991,7 +994,7 @@ function smartRenderScanAudit(){
  if(!el)return;
  const pages=Object.values(smartScanAudit.pages);
  const reported=pages.filter(x=>x.rendered).length;
- const drawingPages=Math.max(0,(scanOriginalPageCount||pdf?.numPages||0)-smartDoorCardPages.size);
+ const drawingPages=Math.max(0,scanPageLimit()-smartDoorCardPages.size);
  const textless=pages.filter(x=>x.rendered&&!x.textItems).length;
  const extras=smartScanAudit.ocrAccepted||0;
  const head='PDF-analys: '+(smartScanStats.gsAnnotationsSeen||0)+' GS från PDF-markeringar · '+
@@ -1000,7 +1003,7 @@ function smartRenderScanAudit(){
  const summary=document.getElementById('smartScanAuditSummary');
  if(summary)summary.textContent=head+' · '+reported+' skannade ritningssidor ('+textless+' utan PDF-text)';
  const pageCounts=document.getElementById('smartPdfPageCounts');
- if(pageCounts)pageCounts.textContent=drawingPages+' ritningssidor · '+smartDoorCardPages.size+' dörrkort · '+(scanOriginalPageCount||pdf?.numPages||0)+' originalsidor';
+ if(pageCounts)pageCounts.textContent=drawingPages+' ritningssidor · '+smartDoorCardPages.size+' dörrkort · '+scanPageLimit()+' originalsidor';
  const body=document.getElementById('smartScanAuditRows');if(!body)return;body.replaceChildren();
  const headings=['Sida','Annot.','PDF-text','Färgområden','Färg+text','Text+färg','OCR-kö','Fel'];
  const table=document.createElement('table'),th=document.createElement('thead'),tr=document.createElement('tr');
@@ -1019,7 +1022,7 @@ function smartRenderScanAudit(){
 async function extractLabGraphicPositions(already=[]){
  const out=[];labGraphicsCandidates=0;labGraphicPositions=0;labColorFirstPositions=0;labFallbackPositions=0;
  let patchesFound=0,patchesWithText=0,unreadableDrawingPages=0;
- for(let p=1;p<=pdf.numPages;p++){
+ for(let p=1;p<=scanPageLimit();p++){
   const text=await readPageText(p);
   const audit=smartAuditPage(p);
   audit.textItems=text.items.length;
@@ -1201,7 +1204,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  let found=[],seen=0;
  const cardPatterns=Object.keys(smartDoorCardIndex).filter(code=>code.length>=2&&code.length<=18).map(code=>({code,rx:new RegExp('(^|[^A-ZÅÄÖ0-9])('+code.replace(/[^A-ZÅÄÖ0-9]/g,'').split('').join('[\\s/_-]*')+')(?=$|[^A-ZÅÄÖ0-9])','g')}));
  return (async()=>{
-  for(let p=1;p<=pdf.numPages;p++){
+  for(let p=1;p<=scanPageLimit();p++){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
@@ -1271,7 +1274,7 @@ function smartFindCardFirstTextPositions(existing=[]){
 async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
- for(let p=1;p<=pdf.numPages;p++){
+ for(let p=1;p<=scanPageLimit();p++){
   setState('SmartMatch TEST v21: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   if(/(?:PLANRITNING|PLAN\s*RITNING|SKALA\s*1\s*:)/i.test(text.raw)&&
@@ -1302,6 +1305,7 @@ async function smartIndexDoorCardsFirst(){
  console.info('[SmartMatch TEST v21] first rows',smartDoorCardFirstRows,'index',smartDoorCardIndex,'unresolved',uncertain);
  return smartDoorCardIndex;
 }
+function scanPageLimit(){return scanOriginalPageCount>0?Math.min(scanOriginalPageCount,pdf.numPages):pdf.numPages}
 function smartHasDoorCard(code){
  return !!(smartDoorCardIndex[String(code||'').toUpperCase()]||[]).length;
 }
@@ -1323,6 +1327,7 @@ async function extractLabMarkedPositions(){
  // with exact /Contents (310a, 310b etc), yellow /C, and precise /Rect.
  // Using 'underlying page text' first loses real markers by reading a neighboring dimension.
  for(const [index,pg] of doc.getPages().entries()){
+  if(index>=scanPageLimit())break;
   const annots=pg.node.Annots();if(!annots)continue;
   for(let j=0;j<annots.size();j++){
    let dict;try{dict=annots.lookup(j,PDFDict)}catch(_){continue}
@@ -1373,7 +1378,7 @@ async function extractLabMarkedPositions(){
  const all=[...result,...reliableGraphic];
  // Exact printed GS identities only. Standalone GS in responsibility tables
  // and descriptions such as GS 230v are not door identities.
- for(let p=1;p<=pdf.numPages;p++){
+ for(let p=1;p<=scanPageLimit();p++){
   if(smartDoorCardPages.has(p))continue;
   const text=await readPageText(p);
   for(const item of text.items){
@@ -3450,7 +3455,7 @@ async function analyze(file){
  const historical=loadSaved().ocrConfirmed;
  smartConfirmedOcr=Array.isArray(historical)?historical.filter(x=>x&&labStrictAnnotationCode(x.code)===x.code&&Array.isArray(x.rect)&&x.rect.length===4&&x.rect.every(Number.isFinite)&&Number.isInteger(x.page)&&x.page>=1&&x.page<=pdf.numPages):[];
  for(const item of smartConfirmedOcr){
-  if(!scanHasDoorCard(item.code)||labAlreadyLocated(marked,item.page,item.code,item.rect))continue;
+  if(item.page>scanPageLimit()||!scanHasDoorCard(item.code)||labAlreadyLocated(marked,item.page,item.code,item.rect))continue;
   marked.push({code:item.code,page:item.page,rect:item.rect,label:item.code,order:950000+marked.length,
    sourceKind:item.code.startsWith('GS')?'gs':'project-code',subtype:'ocr-reviewed',
    scanSource:'ocr-confirmed',confidence:item.confidence||0});
