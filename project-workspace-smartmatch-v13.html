@@ -39,6 +39,12 @@
 .smartScanAuditTable{max-height:270px;overflow:auto}
 .smartScanAuditTable table{border-collapse:collapse;min-width:500px;width:100%}
 </style>
+<style>
+.smartOcrResults{display:grid;gap:6px;margin-top:8px}
+.smartOcrResult{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 9px;border:1px solid #e3cf99;border-radius:6px;background:#fff}
+.smartOcrResult button{padding:5px 9px;border:1px solid #9e9a7b;border-radius:5px;background:#f9fbf7;cursor:pointer}
+#smartOcrStatus{font-size:12px;color:#665c48}
+</style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -96,6 +102,13 @@
    <span>Analysen sker i webbläsaren. Rapporten sparas bara om du väljer att hämta den.</span>
   </div>
   <div id="smartScanAuditRows" class="smartScanAuditTable"></div>
+<div class="smartScanAuditToolbar">
+ <button id="smartRunOcr" type="button">OCR-granska nästa 35 färgmarkeringar</button>
+ <span>Frivilligt: OCR-bibliotek och språkpaket laddas från internet. Själva PDF-bilderna bearbetas lokalt i din webbläsare. Förslag kräver manuell bekräftelse.</span>
+</div>
+<p id="smartOcrStatus">OCR är frivilligt. Den kräver internet för att ladda bibliotek och språkdata.</p>
+<div id="smartOcrResults" class="smartOcrResults"></div>
+
  </details>
 </section>
 <section class="pwToolbar">
