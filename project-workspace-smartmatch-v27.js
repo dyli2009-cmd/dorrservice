@@ -1515,12 +1515,12 @@ function smartTitleFromDrawingRow(value){
   .replace(/\s+/g,' ').trim();
  if(!text||text.length>210)return '';
  // Prefer the printed name, not an assumed floor number.
- const rx=/\b(?:PLANRITNING\s+)?(?:PLAN|VÅNING|VÅN\.?)\s*[:.#-]?\s*(-?\d{1,2}[A-Z]?(?:\s*[-/]\s*\d{1,2})?|BV|KÄLLARE|KALLARE|ENTRÉ|ENTRE|BOTTEN|MARK|VIND|TAK)\b|(?:\b(?:KÄLLARPLAN|KALLARPLAN|ENTRÉPLAN|ENTREPLAN|BOTTENPLAN|MARKPLAN|VINDSPLAN|TAKPLAN|SOUTERRÄNGSPLAN|SUTERRÄNGSPLAN|KÄLLARE|KALLARE|ENTRÉVÅNING|ENTREVANING)\b)/ig;
+ const rx=/\b(?:PLANRITNING\s+)?(?:PLAN|VÅNING|VÅN\.?)\s*[:.#]?\s*(-?\d{1,2}[A-Z]?(?:\s*[-/]\s*\d{1,2})?|BV|KÄLLARE|KALLARE|ENTRÉ|ENTRE|BOTTEN|MARK|VIND|TAK)\b|(?:\b(?:KÄLLARPLAN|KALLARPLAN|ENTRÉPLAN|ENTREPLAN|BOTTENPLAN|MARKPLAN|VINDSPLAN|TAKPLAN|SOUTERRÄNGSPLAN|SUTERRÄNGSPLAN|KÄLLARE|KALLARE|ENTRÉVÅNING|ENTREVANING)\b)/ig;
  const hits=[...text.matchAll(rx)];
  if(hits.length){
   const h=hits[0][0].trim();
   // PLANRITNING without floor or location is not a floor label.
-  const match=h.match(/(?:PLANRITNING\s+)?(PLAN|VÅNING|VÅN\.?)\s*[:.#-]?\s*(.+)/i);
+  const match=h.match(/(?:PLANRITNING\s+)?(PLAN|VÅNING|VÅN\.?)\s*[:.#]?\s*(.+)/i);
   return match?(match[1].startsWith('VÅN')?'VÅNING ':'PLAN ')+match[2].replace(/\s*[-/]\s*/g,' / '):h;
  }
  // Free-form area names are only accepted in a title block; never treat
@@ -2497,6 +2497,7 @@ function renderDrawing(){
  if(!pdf)return Promise.resolve();
  clearDrawingDetail();
  const version=++drawingRenderVersion,documentPdf=pdf,pageNumber=page,targetScale=scale;
+ smartSetCurrentDrawingFloor(pageNumber); // page badge updates before heavy rendering starts
  if(renderTask)try{renderTask.cancel()}catch(_){}
  drawingRenderQueue=drawingRenderQueue.catch(()=>{}).then(async()=>{
   if(version!==drawingRenderVersion)return;
