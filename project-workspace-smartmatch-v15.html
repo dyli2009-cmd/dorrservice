@@ -53,13 +53,62 @@
  background:rgba(249,197,80,.18)!important;
 }
 </style>
+<style>
+/* TEST v15: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
+.smartReportsDialog{width:min(850px,96vw);height:min(88dvh,880px);max-height:88dvh;overflow:auto;padding:12px 14px;border-radius:12px}
+.smartReportsDialog .labDiagnosticHead{position:sticky;top:-12px;z-index:10;padding:10px 0 8px;background:#fff;border-bottom:1px solid #d7e5ed}
+.smartReportsList{display:grid;gap:9px;padding-bottom:12px}
+.smartReportsList>.smartDiscoveryNotice{border:1px solid #d1e2e9;border-radius:8px}
+.smartReportsList .smartReport,.smartReportsList .smartScanAudit,.smartDiagnosticSection{border:1px solid #d5e3e9;border-radius:9px;overflow:hidden;background:#fff;padding:0 11px}
+.smartReportsList summary{padding:10px 0;font-size:13px;font-weight:800;cursor:pointer}
+.smartReportsList .smartReportHelp{font-size:12px;line-height:1.5;color:#586d78;margin:0 0 9px}
+.smartReportsList .smartScanAuditTable,.smartReportsList #smartGSReportBody,.smartReportsList #smartCardFirstRows{overflow:auto;max-height:280px}
+.smartDiagnosticSection .labDiagnosticIntro{padding-top:9px}
+.smartReportsList table{max-width:100%}
+.pwToolbar{display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;flex:none;padding:5px 8px max(6px,env(safe-area-inset-bottom));border-top:1px solid var(--line);border-bottom:0;overflow:visible}
+.pwToolbarNavigation,.pwToolbarWork{display:flex;align-items:center;justify-content:center;gap:5px;max-width:100%}
+.pwToolbarWork{overflow-x:auto;overflow-y:visible}
+.pwToolbarNavigation button,.pwToolbarWork button{min-height:30px}
+.pwGroupAccordion{position:relative}
+.pwGroupAccordion>.pwGroupTitle{cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px 83px 8px 9px;min-height:50px}
+.pwGroupAccordion>.pwGroupTitle:before{content:"▸";display:inline-block;font-size:12px;position:absolute;left:5px;top:10px}
+.pwGroupAccordion[open]>.pwGroupTitle:before{content:"▾"}
+.pwGroupAccordion>.pwGroupTitle strong{padding-left:10px}
+.pwGroupAccordion>.pwGroupTitle span{padding-left:10px;line-height:1.35}
+.pwGroupAccordion>.pwGroupTitle::marker{content:""}
+.pwGroupAccordion>.pwGroupTitle::-webkit-details-marker{display:none}
+.pwDeleteGroup,.pmDeleteGroup{position:absolute;right:5px;top:9px;min-height:28px;padding:3px 6px;font-size:9px;border-color:#e3cac5;color:#9a4032;background:#fff8f7;white-space:nowrap}
+.pwPositionLine{display:grid;grid-template-columns:minmax(0,1fr) 31px;gap:2px;align-items:start;padding:2px 0;border-bottom:1px solid #eef2f4}
+.pwPositionLine .pwPosition{min-width:0;grid-template-columns:minmax(0,1fr) auto;gap:2px;padding:6px 4px}
+.pwPositionLine .pwPosition strong{font-size:10px}
+.pwPositionLine .pwPosition small{font-size:8px;line-height:1.4}
+.pwPositionMore{position:relative}
+.pwPositionMore>summary{list-style:none;display:grid;place-items:center;min-height:27px;cursor:pointer;font-size:18px;font-weight:800;color:#405e6e;border:1px solid #d8e3e7;border-radius:6px;margin-top:5px}
+.pwPositionMore>summary::-webkit-details-marker{display:none}
+.pwPositionMore>.pmRow{position:absolute;right:0;top:35px;z-index:12;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:170px;padding:6px;background:#fff;border:1px solid #bccfd8;border-radius:8px;box-shadow:0 7px 18px #0002}
+.pwPositionMore>.pmRow button{font-size:10px;min-height:29px;padding:4px 5px;white-space:nowrap}
+.pwGroupAccordion[open],.pwGroupAccordion[open] .pwGroupItems{overflow:visible}
+.pwSide{overscroll-behavior:contain}
+@media(max-width:620px){
+ .smartCardsTools{padding:5px 7px;gap:5px;flex-wrap:nowrap}
+ .smartCardsTools button{font-size:10px!important;min-height:31px;padding:5px 7px!important;white-space:nowrap}
+ #smartCardsNote{display:none}
+ .smartReportsDialog{width:100%;height:100dvh;max-height:100dvh;border-radius:0;padding:10px}
+ .smartReportsDialog .labDiagnosticHead{top:-10px}
+ .pwToolbar{padding:4px 4px max(5px,env(safe-area-inset-bottom));gap:3px}
+ .pwToolbarWork{justify-content:flex-start;width:100%;overflow-x:auto}
+ .pwToolbar .pwToolIcon{width:29px;min-width:29px;min-height:29px;font-size:16px}
+ .pwToolbarWork button{font-size:10px;padding:3px 6px;min-height:29px}
+ .pwToolbarNavigation button{min-height:29px}
+ .pwPositionMore>.pmRow{right:-2px;min-width:166px}
+}
+</style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
   <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 15">· TEST v15</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
   <div class="pwHeaderActions">
-    <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa varför en märkning saknas på ritningen">Felsök sökning</button>
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
@@ -74,6 +123,7 @@
 </header>
 
 <div class="smartCardsTools">
+  <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
   <button id="smartAddCards" type="button" title="Om ritning och dörrkort är olika PDF-filer, lägg till dörrkortsfilen">+ Lägg till dörrkort-PDF</button>
   <span id="smartCardsNote">Om ritning och dörrkort ligger i olika filer kan de kombineras här.</span>
   <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" hidden>
@@ -91,69 +141,7 @@
   </div>
 </section>
 
-<div class="smartDiscoveryNotice" role="status">
- <strong>Scanning och koppling räknas separat.</strong>
- <span>Alla numrerade GS-markeringar hittas från ritningen. Dörrkort krävs bara för att öppna protokoll.</span>
- <label><input type="checkbox" id="smartShowAllGS" checked> Visa även GS utan kopplat dörrkort</label>
-</div>
-<section class="smartReport" aria-label="Dörrkortsregistrering">
- <details>
-  <summary id="smartCardFirstTitle">Dörrkort först – första ID-raden (HVC, WC, GS m.fl.)</summary>
-  <div id="smartCardFirstRows" style="max-height:290px;overflow:auto;padding:7px 0"></div>
- </details>
-</section>
-<section class="smartReport">
- <details id="smartGSReport">
-  <summary id="smartGSReportTitle">GS-rapport (visas efter analys)</summary>
-  <div id="smartGSReportBody">Ladda en PDF för att se alla GS-koder och deras dörrkortskopplingar.</div>
- </details>
-</section>
-<section id="smartScanAudit" class="smartScanAudit" aria-label="PDF-scanningsrapport">
- <details id="smartScanAuditDetails">
-  <summary id="smartScanAuditSummary">PDF-analys visas efter uppladdning</summary>
-  <div class="smartScanAuditToolbar">
-   <button id="smartAuditExport" type="button">Hämta felsökningsrapport (JSON)</button>
-   <span>Analysen sker i webbläsaren. Rapporten sparas bara om du väljer att hämta den.</span>
-  </div>
-  <div id="smartScanAuditRows" class="smartScanAuditTable"></div>
-<div class="smartScanAuditToolbar">
- <button id="smartRunOcr" type="button">OCR-granska nästa 35 färgmarkeringar</button>
- <span>Frivilligt: OCR-bibliotek och språkpaket laddas från internet. Själva PDF-bilderna bearbetas lokalt i din webbläsare. Förslag kräver manuell bekräftelse.</span>
-</div>
-<p id="smartOcrStatus">OCR är frivilligt. Den kräver internet för att ladda bibliotek och språkdata.</p>
-<div id="smartOcrResults" class="smartOcrResults"></div>
 
- </details>
-</section>
-<section class="pwToolbar">
-  <button id="pwPrev" type="button" aria-label="Föregående sida">‹</button>
-  <span id="pwPageInfo">Ingen sida</span>
-  <button id="pwNext" type="button" aria-label="Nästa sida">›</button>
-  <button id="pwZoomOut" type="button" aria-label="Zooma ut">−</button>
-  <span id="pwZoomInfo">100%</span>
-  <button id="pwZoomIn" type="button" aria-label="Zooma in">+</button>
-  <button id="pwFit" type="button">Passa</button>
-  <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
-  <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
-  <div class="pwDrawTools" aria-label="Ritverktyg">
-    <div class="pwToolWrap">
-      <button id="pwToolMenuButton" type="button" aria-expanded="false">Verktyg ▾</button>
-      <div id="pwToolMenu" class="pwToolMenu" hidden>
-        <button id="pwToolText" type="button" aria-pressed="false"><strong>Text</strong><small>Lägg text och flytta den fritt.</small></button>
-        <button id="pwToolCallout" type="button" aria-pressed="false"><strong>Text + pil</strong><small>Markera något med pil och tillhörande text.</small></button>
-        <button id="pwToolArrow" type="button" aria-pressed="false"><strong>Pil</strong><small>Rita och finjustera en pil.</small></button>
-        <button id="pwToolImage" type="button"><strong>Ta kort</strong><small>Öppna kameran och placera fotot på ritningen.</small></button>
-        <div class="pwToolMenuDivider"></div>
-        <button id="pwToolDelete" class="pwToolDelete" type="button" disabled><strong>Ta bort markerad</strong><small>Tar bort vald text, pil eller foto.</small></button>
-      </div>
-    </div>
-    <span class="pwToolHistory" aria-label="Ångra och gör om">
-      <button id="pwToolUndo" class="pwToolIcon" type="button" title="Ångra" aria-label="Ångra">↶</button>
-      <button id="pwToolRedo" class="pwToolIcon" type="button" title="Gör om" aria-label="Gör om" disabled>↷</button>
-    </span>
-  </div>
-  <input id="pwImageFile" type="file" accept="image/*" capture="environment" hidden>
-</section>
 
 <main class="pwMain">
   <section id="pwViewer" class="pwViewer">
@@ -213,6 +201,39 @@
     <button id="pwBulkClear" type="button">Avmarkera</button>
   </div>
 </main>
+<section class="pwToolbar" aria-label="Ritningskontroller">
+ <div class="pwToolbarNavigation" aria-label="Sida och zoom">
+  <button id="pwPrev" type="button" aria-label="Föregående sida">‹</button>
+  <span id="pwPageInfo">Ingen sida</span>
+  <button id="pwNext" type="button" aria-label="Nästa sida">›</button>
+  <button id="pwZoomOut" type="button" aria-label="Zooma ut">−</button>
+  <span id="pwZoomInfo">100%</span>
+  <button id="pwZoomIn" type="button" aria-label="Zooma in">+</button>
+ </div>
+ <div class="pwToolbarWork" aria-label="Ritningsverktyg">
+  <button id="pwFit" type="button">Passa</button>
+  <button id="pwBulkSelect" type="button" aria-pressed="false" title="Välj flera positioner">Välj</button>
+  <button id="pwTimeReport" type="button" title="Beräknad arbetstid">Tid</button>
+  <div class="pwDrawTools" aria-label="Ritverktyg">
+    <div class="pwToolWrap">
+      <button id="pwToolMenuButton" type="button" aria-expanded="false">Verktyg ▾</button>
+      <div id="pwToolMenu" class="pwToolMenu" hidden>
+        <button id="pwToolText" type="button" aria-pressed="false"><strong>Text</strong><small>Lägg text och flytta den fritt.</small></button>
+        <button id="pwToolCallout" type="button" aria-pressed="false"><strong>Text + pil</strong><small>Markera något med pil och tillhörande text.</small></button>
+        <button id="pwToolArrow" type="button" aria-pressed="false"><strong>Pil</strong><small>Rita och finjustera en pil.</small></button>
+        <button id="pwToolImage" type="button"><strong>Ta kort</strong><small>Öppna kameran och placera fotot på ritningen.</small></button>
+        <div class="pwToolMenuDivider"></div>
+        <button id="pwToolDelete" class="pwToolDelete" type="button" disabled><strong>Ta bort markerad</strong><small>Tar bort vald text, pil eller foto.</small></button>
+      </div>
+    </div>
+    <span class="pwToolHistory" aria-label="Ångra och gör om">
+      <button id="pwToolUndo" class="pwToolIcon" type="button" title="Ångra" aria-label="Ångra">↶</button>
+      <button id="pwToolRedo" class="pwToolIcon" type="button" title="Gör om" aria-label="Gör om" disabled>↷</button>
+    </span>
+  </div>
+  <input id="pwImageFile" type="file" accept="image/*" capture="environment" hidden>
+ </div>
+</section>
 
 <dialog id="pwProtocol" class="pwProtocol">
   <header class="pwProtocolHeader">
@@ -389,12 +410,54 @@
   <div id="labChoices" class="labChoices"></div>
   <button class="labClose" type="button" onclick="this.closest('dialog').close()">Stäng</button>
 </dialog>
-<dialog id="labDiagnosticDialog" class="labDiagnosticDialog" aria-labelledby="labDiagnosticTitle">
+<dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH TEST · v15</small><h2 id="labDiagnosticTitle">Felsök ritningssökning</h2></div>
-  <button id="labDiagnosticClose" type="button" aria-label="Stäng felsökning">×</button>
+  <div><small>SMARTMATCH · TEST v15</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button>
  </div>
- <p class="labDiagnosticIntro">Jämför alla läsbara förekomster av en beteckning med de positioner som faktiskt visas. Övriga markeringar läggs inte till i projektet.</p>
+ <p class="labDiagnosticIntro">Här ser du vilka ID som lästs från dörrkorten, vilka ritningspositioner som hittats och varför en matchning kan saknas. Stäng med × för att återgå till hela ritningen.</p>
+ <div class="smartReportsList">
+<div class="smartDiscoveryNotice" role="status">
+ <strong>Scanning och koppling räknas separat.</strong>
+ <span>Alla numrerade GS-markeringar hittas från ritningen. Dörrkort krävs bara för att öppna protokoll.</span>
+ <label><input type="checkbox" id="smartShowAllGS" checked> Visa även GS utan kopplat dörrkort</label>
+</div>
+<section class="smartReport" aria-label="Dörrkortsregistrering">
+ <details>
+  <summary id="smartCardFirstTitle">Dörrkort först – första ID-raden (HVC, WC, GS m.fl.)</summary>
+  <p class="smartReportHelp">Här visas ID-beteckningen från första identifierade raden på varje dörrkort, exempelvis GS1, WC eller HVC. Tabellen visar även hur många positioner i ritningen som kopplats till samma beteckning.</p>
+  <div id="smartCardFirstRows" style="max-height:290px;overflow:auto;padding:7px 0"></div>
+ </details>
+</section>
+<section class="smartReport">
+ <details id="smartGSReport">
+  <summary id="smartGSReportTitle">GS-rapport (visas efter analys)</summary>
+  <p class="smartReportHelp">Sammanfattning av aktiva GS-positioner och deras dörrkortskopplingar. Borttagna felträffar räknas inte med i arbetsprojektet.</p>
+  <div id="smartGSReportBody">Ladda en PDF för att se alla GS-koder och deras dörrkortskopplingar.</div>
+ </details>
+</section>
+<section id="smartScanAudit" class="smartScanAudit" aria-label="PDF-scanningsrapport">
+ <details id="smartScanAuditDetails">
+  <summary id="smartScanAuditSummary">PDF-analys visas efter uppladdning</summary>
+  <p class="smartReportHelp">Teknisk sammanställning av vad PDF-läsningen hittat. Den används för att förstå missade eller osäkra träffar. JSON-filen är en felsökningsrapport – inte kundens protokoll.</p>
+  <div class="smartScanAuditToolbar">
+   <button id="smartAuditExport" type="button">Hämta felsökningsrapport (JSON)</button>
+   <span>Analysen sker i webbläsaren. Rapporten sparas bara om du väljer att hämta den.</span>
+  </div>
+  <div id="smartScanAuditRows" class="smartScanAuditTable"></div>
+<div class="smartScanAuditToolbar">
+ <button id="smartRunOcr" type="button">OCR-granska nästa 35 färgmarkeringar</button>
+ <span>Frivilligt: OCR-bibliotek och språkpaket laddas från internet. Själva PDF-bilderna bearbetas lokalt i din webbläsare. Förslag kräver manuell bekräftelse.</span>
+</div>
+<p id="smartOcrStatus">OCR är frivilligt. Den kräver internet för att ladda bibliotek och språkdata.</p>
+<div id="smartOcrResults" class="smartOcrResults"></div>
+
+ </details>
+</section>
+
+ <details class="smartDiagnosticSection">
+  <summary>Felsök en beteckning (valfritt)</summary>
+  <p class="labDiagnosticIntro">Jämför alla läsbara förekomster av en beteckning med de positioner som faktiskt visas. Övriga markeringar läggs inte till i projektet.</p>
  <div class="labDiagnosticSearch">
   <label for="labDiagnosticCode">Beteckning</label>
   <input id="labDiagnosticCode" value="310A" placeholder="Ex. 310A eller GS3" spellcheck="false" autocomplete="off">
@@ -403,8 +466,11 @@
  <p id="labDiagnosticSummary" class="labDiagnosticSummary" role="status" aria-live="polite">Öppna en PDF och tryck på Analysera.</p>
  <div id="labDiagnosticResults" class="labDiagnosticResults"></div>
  <p class="labDiagnosticFoot">Analysen sker lokalt i webbläsaren. Den ändrar inte projektets positioner, protokoll eller sparade PDF.</p>
+
+ </details>
+ </div>
 </dialog>
-<script src="project-workspace-smartmatch-v15.js?v=15-sharp1"></script>
+<script src="project-workspace-smartmatch-v15.js?v=15-layout2"></script>
 
 </body>
 </html>
