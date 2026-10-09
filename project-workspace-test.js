@@ -6,7 +6,7 @@ const labStorage={
  setItem:(key,value)=>localStorage.setItem(LAB_PREFIX+String(key),value),
  removeItem:key=>localStorage.removeItem(LAB_PREFIX+String(key))
 };
-let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0,labDiagnosticSpot=null,labDiagnosticSequence=0;
+let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0,labColorFirstPositions=0,labFallbackPositions=0,labDiagnosticSpot=null,labDiagnosticSequence=0;
 
 const $=id=>document.getElementById(id);
 const el={
@@ -682,8 +682,26 @@ function labPatchCodes(patch,items,vp){
  }
  return accepted.sort((a,b)=>b.score-a.score);
 }
+function labLegacyColorAtRect(bitmap,rect){
+ // Second, independent color check used in TEST v4. Helps restore position labels
+ // missed when connected-color segments are broken up by lines or outlines.
+ const x1=Math.max(0,Math.floor(rect.left)),y1=Math.max(0,Math.floor(rect.top));
+ const x2=Math.min(bitmap.width,Math.ceil(rect.left+rect.width));
+ const y2=Math.min(bitmap.height,Math.ceil(rect.top+rect.height));
+ if(x2-x1<2||y2-y1<2)return false;
+ const step=Math.max(1,Math.floor(Math.sqrt((x2-x1)*(y2-y1)/2000)));
+ let tested=0,colored=0;const d=bitmap.data,w=bitmap.width;
+ for(let y=y1;y<y2;y+=step)for(let x=x1;x<x2;x+=step){
+  const at=(y*w+x)*4,r=d[at],g=d[at+1],b=d[at+2],a=d[at+3];
+  if(a<190)continue;
+  tested++;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  if(max>115&&(max-min)>=24&&(max-min)/Math.max(1,max)>.09)colored++;
+ }
+ return tested>0&&colored>=Math.max(2,Math.ceil(tested*.075));
+}
 async function extractLabGraphicPositions(already=[]){
- const out=[];labGraphicsCandidates=0;labGraphicPositions=0;
+ const out=[];labGraphicsCandidates=0;labGraphicPositions=0;labColorFirstPositions=0;labFallbackPositions=0;
  let patchesFound=0,patchesWithText=0,unreadableDrawingPages=0;
  for(let p=1;p<=pdf.numPages;p++){
   const text=await readPageText(p);
@@ -696,7 +714,7 @@ async function extractLabGraphicPositions(already=[]){
   if(!ctx)continue;
   canvas.width=Math.max(1,Math.ceil(vp.width));canvas.height=Math.max(1,Math.ceil(vp.height));
   try{
-   setState('Projektflöde test v6: granskar färgmarkeringar sida '+p+' av '+pdf.numPages+'…');
+   setState('Projektflöde test v7: granskar färg och text sida '+p+' av '+pdf.numPages+'…');
    await pg.render({canvasContext:ctx,viewport:vp}).promise;
    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
    const patches=labFindColorPatches(pixels);
@@ -713,14 +731,27 @@ async function extractLabGraphicPositions(already=[]){
      out.push({page:p,code:candidate.code,rect:displayRect,
       order:200000+out.length,sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',
       label:candidate.label,subtype:'color-first-pdf',scanScore:Math.round(candidate.coverage*100)});
-     labGraphicsCandidates++;
+     labColorFirstPositions++;
     }
+   }
+   // Restoration pass: if the connected-color scan missed a highlighted label,
+   // retain the reliable TEST v5 text candidates on the SAME rendered page.
+   // This is additive, never removes any of the color-first discoveries.
+   const legacyCandidates=labPrintedCodeCandidates(text.items);
+   for(const candidate of legacyCandidates){
+    if(labAlreadyLocated([...already,...out],p,candidate.code,candidate.rect))continue;
+    const drawn=viewportRect(vp,candidate.rect);
+    if(!labColorAtRect(pixels,drawn)&&!labLegacyColorAtRect(pixels,drawn))continue;
+    if(labAlreadyLocated([...already,...out],p,candidate.code,candidate.rect))continue;
+    out.push({...candidate,page:p,order:300000+out.length,
+      sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',subtype:'text-color-fallback'});
+    labFallbackPositions++;
    }
   }catch(error){console.warn('Färgscanning av ritning sida '+p,error)}
   finally{canvas.width=0;canvas.height=0}
  }
- labGraphicPositions=out.length;
- console.info('[Projektflöde test v6]',{patchesFound,patchesWithText,linkedCandidates:out.length,unreadableDrawingPages});
+ labGraphicPositions=out.length;labGraphicsCandidates=out.length;
+ console.info('[Projektflöde test v7]',{patchesFound,patchesWithText,linkedCandidates:out.length,colorFirst:labColorFirstPositions,textFallback:labFallbackPositions,unreadableDrawingPages});
  return out;
 }
 
@@ -2610,7 +2641,7 @@ async function analyze(file){
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
  else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
- else setState('Projektflöde test: '+matchedProjectInstances().length+' positioner har motsvarande beteckning på dörrkortet · '+matchedPositions+' automatiskt kopplade'+restored+'.');
+ else setState('Projektflöde TEST v7: '+matchedProjectInstances().length+' matchade positioner · '+matchedPositions+' kopplade · färg-först '+labColorFirstPositions+' + textkomplettering '+labFallbackPositions+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
