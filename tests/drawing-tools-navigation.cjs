@@ -25,6 +25,7 @@ const server=http.createServer((req,res)=>{
    await page.locator('#toolFile').setInputFiles({name:'navigation.pdf',mimeType:'application/pdf',buffer:bytes});
    await page.waitForFunction(()=>document.querySelector('#previewCanvas').width>0&&document.querySelector('#toolMessage').textContent.includes('Ritningen är klar'));
    const canvas=page.locator('#previewCanvas'),wrap=page.locator('#previewWrap');
+   assert(await page.locator('#undoDrawing').isDisabled());assert(await page.locator('#redoDrawing').isDisabled());
    assert(await page.locator('#toolPanel').isHidden(),'tools hidden for drawing-first workspace');
    assert(await page.locator('header #savePdf').isVisible(),'save stays at the top');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'workspace fits screen without horizontal overflow');
@@ -75,6 +76,11 @@ const server=http.createServer((req,res)=>{
    const selection={width:100,height:90};
    await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(start.x+selection.width,start.y+selection.height,{steps:8});await page.mouse.up();
    await page.waitForFunction(()=>document.querySelector('#pageState').textContent.includes('beskuren'));
+   await page.locator('#undoDrawing').click();
+   await page.waitForFunction(()=>!document.querySelector('#pageState').textContent.includes('beskuren'));
+   assert(await page.locator('#redoDrawing').isEnabled());
+   await page.locator('#redoDrawing').click();
+   await page.waitForFunction(()=>document.querySelector('#pageState').textContent.includes('beskuren'));
    const download=page.waitForEvent('download');await page.locator('#savePdf').click();
    const doc=await PDFDocument.load(fs.readFileSync(await (await download).path()));
    assert.equal(doc.getPageCount(),2);
@@ -82,8 +88,30 @@ const server=http.createServer((req,res)=>{
    assert(Math.abs(size.width-900*selection.width/drawing.width)<2,'crop maps to PDF coordinates after zoom');
    assert(Math.abs(size.height-600*selection.height/drawing.height)<2);
    assert.deepEqual(doc.getPage(1).getSize(),{width:900,height:600},'view zoom leaves other PDF pages unchanged');
+   // History includes page removal, cleanup settings and manual masks, across pages.
+   await tools('Sidor');await page.locator('#removePage').click();await page.locator('#closeTools').click();
+   assert((await page.locator('#pageState').textContent()).includes('Tas bort'));
+   await page.locator('#nextPage').click();await page.locator('#undoDrawing').click();
+   assert((await page.locator('#pageInfo').textContent()).includes('Sida 1'));
+   assert((await page.locator('#pageState').textContent()).includes('Tas med'));
+   await page.locator('#redoDrawing').click();assert((await page.locator('#pageState').textContent()).includes('Tas bort'));
+   await page.locator('#undoDrawing').click();
+   await tools('Rensa ritningen');await page.locator('#removeText').check();await page.locator('#closeTools').click();
+   assert(await page.locator('#redoDrawing').isDisabled(),'new edit clears redo');
+   await page.locator('#undoDrawing').click();assert(!(await page.locator('#removeText').isChecked()));
+   await page.locator('#redoDrawing').click();assert(await page.locator('#removeText').isChecked());
+   await tools('Dölj eller beskär');await page.locator('#eraseMode').click();
+   const bounds=await canvas.boundingBox(),area=await wrap.boundingBox();
+   const mx=Math.max(bounds.x+10,area.x+10),my=Math.max(bounds.y+10,area.y+10);
+   await page.mouse.move(mx,my);await page.mouse.down();await page.mouse.move(mx+40,my+40,{steps:5});await page.mouse.up();
+   await page.waitForFunction(()=>document.querySelector('#pageState').textContent.includes('1 dolda områden'));
+   await page.locator('#undoDrawing').click();await page.waitForFunction(()=>!document.querySelector('#pageState').textContent.includes('dolda områden'));
+   await page.locator('#redoDrawing').click();await page.waitForFunction(()=>document.querySelector('#pageState').textContent.includes('1 dolda områden'));
+   await page.locator('#toolFile').setInputFiles({name:'fresh.pdf',mimeType:'application/pdf',buffer:bytes});
+   await page.waitForFunction(()=>document.querySelector('#toolMessage').textContent.includes('Ritningen är klar'));
+   assert(await page.locator('#undoDrawing').isDisabled());assert(await page.locator('#redoDrawing').isDisabled());
    assert.deepEqual(errors,[]);
-   await context.close();console.log('PASS '+(mobile?'mobile':'desktop')+': anchored wheel zoom, buttons, page fit, zoomed crop and PDF dimensions');
+   await context.close();console.log('PASS '+(mobile?'mobile':'desktop')+': anchored wheel zoom, buttons, page fit, zoomed crop, PDF dimensions and undo/redo history');
   }
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);server.close();process.exitCode=1});

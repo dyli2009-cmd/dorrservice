@@ -115,3 +115,5 @@ body[data-app-text-size="3"]{--tool-text-factor:1.36}
 .toolPanel summary{font-size:calc(12px * var(--tool-text-factor))}
 .toolPanel .hint,.toolPanel .toggleRow small{font-size:calc(10px * var(--tool-text-factor))}
 .toolPanel .toggleRow strong,.toolPanel .viewLabel,.toolPanel>details>label:not(.toggleRow){font-size:calc(11px * var(--tool-text-factor))}
+
+.previewToolbar #undoDrawing,.previewToolbar #redoDrawing{font-size:20px;line-height:1;padding:5px 7px;min-width:34px;min-height:34px}

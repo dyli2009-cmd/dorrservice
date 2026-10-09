@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.258">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.259">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -18,7 +18,7 @@
   <button id="toolsToggle" type="button" aria-controls="toolPanel" aria-expanded="false" disabled>Verktyg</button>
   <button id="savePdf" class="primary" type="button" disabled>Spara PDF</button>
  </div>
- <span class="version">v2.4.258</span>
+ <span class="version">v2.4.259</span>
 </header>
 
 <main class="toolShell">
@@ -105,6 +105,8 @@
     <button id="prevPage" aria-label="Föregående sida">‹</button>
     <strong id="pageInfo">Sida 1</strong>
     <button id="nextPage" aria-label="Nästa sida">›</button>
+    <button id="undoDrawing" type="button" aria-label="Ångra" title="Ångra senaste ändringen" disabled>↶</button>
+    <button id="redoDrawing" type="button" aria-label="Gör om" title="Gör om senaste ändringen" disabled>↷</button>
     <button id="previewEditMode" type="button" hidden></button>
     <span id="pageState"></span>
    </div>
@@ -130,6 +132,6 @@
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.258"></script>
+<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.259"></script>
 </body>
 </html>
