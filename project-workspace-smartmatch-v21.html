@@ -124,9 +124,9 @@
 
 <div class="smartCardsTools">
   <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
-  <button id="smartAddCards" type="button" title="Om ritning och dörrkort är olika PDF-filer, lägg till dörrkortsfilen">+ Lägg till dörrkort-PDF</button>
-  <span id="smartCardsNote">Om ritning och dörrkort ligger i olika filer kan de kombineras här.</span>
-  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" hidden>
+  <button id="smartAddCards" type="button" title="Lägg till en eller flera PDF-filer med dörrkort">+ Lägg till dörrkort-PDF</button>
+  <span id="smartCardsNote">Välj en eller flera dörrkorts-PDF:er, med valfritt antal sidor.</span>
+  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
 </div>
 <section class="pwProjectBar">
   <div class="pwFileInfo">
@@ -259,11 +259,11 @@
           <button id="pwProtocolZoomOut" type="button" aria-label="Zooma ut originalprotokollet">−</button>
           <span id="pwProtocolZoomInfo">100%</span>
           <button id="pwProtocolZoomIn" type="button" aria-label="Zooma in originalprotokollet">+</button>
-          <button id="pwProtocolMax" type="button" title="Zooma direkt till 300%">300%</button><button id="pwProtocolShowCard" type="button">Dörrkort</button><button id="pwProtocolShowGS" type="button">GS-kontroller →</button><button id="pwProtocolDetailsToggle" type="button" aria-pressed="false">Fler detaljer</button>
+          <button id="pwProtocolMax" type="button" title="Zooma direkt till 300%">300%</button><button id="pwProtocolShowCard" type="button">Dörrkort</button><button id="pwProtocolShowGS" type="button">Kontrollpunkter</button>
         </div>
       </div>
       <div id="pwProtocolCanvasWrap" class="pwProtocolCanvasWrap">
-        <div id="pwProtocolStage" class="pwProtocolStage"><canvas id="pwProtocolCanvas"></canvas><div id="pwProtocolGSLayer" class="pwProtocolGSLayer" aria-label="Arbetskontroller för GS-rader"></div></div>
+        <div id="pwProtocolStage" class="pwProtocolStage"><canvas id="pwProtocolCanvas"></canvas><div id="pwProtocolGSLayer" class="pwProtocolGSLayer" hidden></div></div>
         <div id="pwProtocolMissing" class="pwProtocolMissing" hidden>
           <strong>Protokoll hittades inte automatiskt</strong>
           <p>Positionen är sparad, men ingen säker protokollsida kunde matchas för märkningen.</p>
@@ -276,7 +276,7 @@
         <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
         <div class="pwChecklistHeadActions"><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
       </div>
-      <p class="pwChecklistIntro">Arbetskontrollerna ligger vid GS-raderna på dörrkortet. Här kan du vid behov ändra eller lägga till kontrollpunkter. Tillverkarens DT-moment och tomma informationsfält lämnas orörda.</p>
+      <p class="pwChecklistIntro">En avbockning per arbetsmoment från originalet. Ändra, anteckna eller lägg till en kontrollpunkt vid behov.</p>
       <div id="pwChecklist" class="pwChecklist"></div>
     </aside>
   </div>
@@ -413,9 +413,9 @@
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
   <div><small>SMARTMATCH · TEST v21</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
-  <button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button>
+  <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
- <p class="labDiagnosticIntro">Här ser du vilka ID som lästs från dörrkorten, vilka ritningspositioner som hittats och varför en matchning kan saknas. Stäng med × för att återgå till hela ritningen.</p>
+ <p class="labDiagnosticIntro">Sammanfattning av PDF-skanning och dörrkort. Öppna respektive rubrik för mer detaljer.</p><div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
  <div class="smartReportsList">
 <div class="smartDiscoveryNotice" role="status">
  <strong>Positioner med kopplat dörrkort.</strong>
@@ -439,7 +439,7 @@
 <section id="smartScanAudit" class="smartScanAudit" aria-label="PDF-scanningsrapport">
  <details id="smartScanAuditDetails">
   <summary id="smartScanAuditSummary">PDF-analys visas efter uppladdning</summary>
-  <p class="smartReportHelp">Teknisk sammanställning av vad PDF-läsningen hittat. Den används för att förstå missade eller osäkra träffar. JSON-filen är en felsökningsrapport – inte kundens protokoll.</p>
+  <p class="smartReportHelp">Här ser du bland annat GS från PDF-markeringar, antal skannade ritningssidor och avlästa dörrkort. Felsökningsrapporten är teknisk och ändrar inte projektet.</p>
   <div class="smartScanAuditToolbar">
    <button id="smartAuditExport" type="button">Hämta felsökningsrapport (JSON)</button>
    <span>Analysen sker i webbläsaren. Rapporten sparas bara om du väljer att hämta den.</span>
@@ -455,19 +455,6 @@
  </details>
 </section>
 
- <details class="smartDiagnosticSection">
-  <summary>Felsök en beteckning (valfritt)</summary>
-  <p class="labDiagnosticIntro">Jämför alla läsbara förekomster av en beteckning med de positioner som faktiskt visas. Övriga markeringar läggs inte till i projektet.</p>
- <div class="labDiagnosticSearch">
-  <label for="labDiagnosticCode">Beteckning</label>
-  <input id="labDiagnosticCode" value="310A" placeholder="Ex. 310A eller GS3" spellcheck="false" autocomplete="off">
-  <button id="labDiagnosticRun" type="button">Analysera</button>
- </div>
- <p id="labDiagnosticSummary" class="labDiagnosticSummary" role="status" aria-live="polite">Öppna en PDF och tryck på Analysera.</p>
- <div id="labDiagnosticResults" class="labDiagnosticResults"></div>
- <p class="labDiagnosticFoot">Analysen sker lokalt i webbläsaren. Den ändrar inte projektets positioner, protokoll eller sparade PDF.</p>
-
- </details>
  </div>
 </dialog>
 <script src="project-workspace-smartmatch-v21.js?v=21-1"></script>
