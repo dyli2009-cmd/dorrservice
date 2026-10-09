@@ -482,63 +482,118 @@ async function extractStamps(){
 function labCodeFromMark(value){
  const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').replace(/\s+/g,' ').trim();
  if(!raw)return '';
- // GS 3, G S 3, GS/3 och GS / 3 ska alltid bli samma nyckel: GS3.
- const withSeparators=raw.match(/(?:^|[^A-ZÅÄÖ0-9])G[\s/_-]*S[\s/_-]*([0-9]{1,6}[A-ZÅÄÖ0-9]{0,6})(?=$|[^A-ZÅÄÖ0-9])/);
- if(withSeparators)return 'GS'+withSeparators[1];
- const gs=normalizeCode(raw);if(gs)return gs;
+ // Treat GS 3, GS/3, 310 A, 310-A, 310/A as exact codes.
+ const gs=raw.match(/(?:^|[^A-ZÅÄÖ0-9])G[\s/_-]*S[\s/_-]*([A-ZÅÄÖ0-9]{1,12})(?=$|[^A-ZÅÄÖ0-9])/);
+ if(gs)return 'GS'+gs[1];
+ // Ignore common location/field labels before the actual ID, including "WC 310A" and "DÖRR 1".
+ const identity=raw.match(/^(?:WC|ENTRÉ|ENTRE|DÖRR(?:NR|NUMMER)?|LITTERA|POSITION|BETECKNING|OBJEKT(?:NR|NUMMER)?|RUM|ID)\s*[:#-]?\s+(.+)$/i);
+ if(identity){
+  const candidate=identity[1].replace(/[\s/_-]+/g,'');
+  if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(candidate))return candidate;
+ }
+ const norm=raw.replace(/[\s/_-]+/g,'');
+ if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(norm))return norm;
  const tokens=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];
- const codes=[...new Set(tokens.filter(t=>/^(?:[A-ZÅÄÖ]{0,4}[0-9]{1,6}[A-ZÅÄÖ]{0,4})$/.test(t)))];
- return codes.length===1?codes[0]:'';
+ const candidates=[...new Set(tokens.filter(t=>/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(t)))];
+ return candidates.length===1?candidates[0]:'';
+}
+function labExactDrawingCode(value){
+ // Single marked token or contiguous fragments, never unrelated neighboring labels.
+ const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').trim();
+ // Printed room labels/fields can be adjacent to the true yellow-marked code.
+ // They must never get folded into a new code such as WC310A or 310AWC.
+ const tokens=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];
+ if(tokens.length>1&&tokens.some(t=>/^(?:WC|DÖRR|DÖRRNR|DÖRRNUMMER|LITTERA|POSITION|BETECKNING|RUM|ENTRÉ|ENTRE|ID|DT)$/.test(t)))return '';
+ const compact=raw.replace(/[\s/_-]+/g,'');
+ if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return compact;
+ if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(compact))return compact;
+ return '';
+}
+function labSamePhysicalPosition(mark,pageNo,code,rect){
+ if(mark.page!==pageNo||mark.code!==code||!Array.isArray(mark.rect))return false;
+ const [a1,b1,a2,b2]=mark.rect,[c1,d1,c2,d2]=rect;
+ const w1=Math.abs(a2-a1),w2=Math.abs(c2-c1),h1=Math.abs(b2-b1),h2=Math.abs(d2-d1);
+ const dx=Math.abs((a1+a2-c1-c2)/2),dy=Math.abs((b1+b2-d1-d2)/2);
+ const minW=Math.max(1,Math.min(w1,w2)),minH=Math.max(1,Math.min(h1,h2));
+ const overlapW=Math.max(0,Math.min(Math.max(a1,a2),Math.max(c1,c2))-Math.max(Math.min(a1,a2),Math.min(c1,c2)));
+ const overlapH=Math.max(0,Math.min(Math.max(b1,b2),Math.max(d1,d2))-Math.max(Math.min(b1,b2),Math.min(d1,d2)));
+ // Two nearby same-code labels remain separate. Only largely coincident boxes are duplicates.
+ return dx<=Math.max(2,minW*.42)&&dy<=Math.max(2,minH*.58)&&overlapW/minW>=.55&&overlapH/minH>=.42;
+}
+function labAlreadyLocated(list,pageNo,code,rect){
+ return list.some(o=>labSamePhysicalPosition(o,pageNo,code,rect));
 }
 function labColorAtRect(bitmap,rect){
- // Parse visual color under/around the PDF text. Works for graphics as well as annotations.
- const x1=Math.max(0,Math.floor(rect.left)),y1=Math.max(0,Math.floor(rect.top));
- const x2=Math.min(bitmap.width,Math.ceil(rect.left+rect.width));
- const y2=Math.min(bitmap.height,Math.ceil(rect.top+rect.height));
- const w=x2-x1,h=y2-y1;
- if(w<2||h<2)return false;
- const step=Math.max(1,Math.floor(Math.sqrt(w*h/2000)));
- let tested=0,colored=0;
+ // Sample an area wider than the exact PDF glyph box (some PDF baselines/widths are shifted).
+ // Require colored pixels to cross the label itself, not merely touch a neighboring highlight.
+ const w=Math.max(0,rect.width),h=Math.max(0,rect.height);
+ if(w<1||h<1)return false;
+ const padX=Math.max(3,Math.min(18,h*.9)),padY=Math.max(3,Math.min(14,h*.7));
+ const x1=Math.max(0,Math.floor(rect.left-padX)),y1=Math.max(0,Math.floor(rect.top-padY));
+ const x2=Math.min(bitmap.width,Math.ceil(rect.left+w+padX)),y2=Math.min(bitmap.height,Math.ceil(rect.top+h+padY));
+ if(x2-x1<2||y2-y1<2)return false;
+ const step=Math.max(1,Math.floor(Math.sqrt((x2-x1)*(y2-y1)/2200)));
+ const bins=new Array(5).fill(0),inner=new Array(5).fill(0);
+ let tested=0,colored=0,coreColored=0,coreTotal=0;
  const d=bitmap.data,width=bitmap.width;
  for(let y=y1;y<y2;y+=step)for(let x=x1;x<x2;x+=step){
-  const at=(y*width+x)*4,r=d[at],g=d[at+1],b=d[at+2],alpha=d[at+3];
-  if(alpha<190)continue;
-  tested++;
-  const max=Math.max(r,g,b),min=Math.min(r,g,b);
-  if(max>115&&(max-min)>=24&&(max-min)/Math.max(max,1)>.09)colored++;
- }
- return tested>0&&colored>=Math.max(2,Math.ceil(tested*.075));
-}
-function labPrintedCodeCandidates(items){
- const out=[],seen=new Set();
- for(const row of groupTextRowsForAutomation(items)){
-  const ordered=[...row.items].sort((a,b)=>a.x-b.x);
-  for(let start=0;start<ordered.length;start++){
-   for(let end=start;end<Math.min(start+5,ordered.length);end++){
-    const slice=ordered.slice(start,end+1);
-    if(!gsItemsCloseEnough(slice))break;
-    const joined=slice.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
-    if(joined.length>40)break;
-    const code=labCodeFromMark(joined);
-    if(!code)continue;
-    const rect=rectForTextItems(slice,1);
-    if(!rect)continue;
-    const key=code+'@'+Math.round(rect[0])+'@'+Math.round(rect[1]);
-    if(seen.has(key))continue;
-    seen.add(key);out.push({code,rect,label:joined});
-    // Shortest label wins; don't swallow neighbouring labels into a single position.
-    break;
-   }
+  const k=(y*width+x)*4,r=d[k],g=d[k+1],b=d[k+2],a=d[k+3];
+  if(a<185)continue;
+  const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+  const qualifies=Math.max(r,g,b)>110&&chroma>=22&&chroma/Math.max(1,Math.max(r,g,b))>.08;
+  tested++;if(qualifies)colored++;
+  const relative=(x-rect.left)/Math.max(1,w);
+  if(relative>=0&&relative<=1){
+   const bin=Math.min(4,Math.floor(relative*5));
+   inner[bin]++;
+   if(qualifies){bins[bin]++;coreColored++}
+   coreTotal++;
   }
  }
- return out;
+ const meaningfulBins=bins.filter((v,i)=>v>0&&v/Math.max(1,inner[i])>.045).length;
+ return tested>=3&&colored>=Math.max(2,Math.ceil(tested*.027))&&
+        coreColored>=Math.max(1,Math.ceil(coreTotal*.028))&&meaningfulBins>=Math.min(2,Math.ceil(coreTotal/18));
+}
+function labPrintedCodeCandidates(items){
+ const hits=[],rows=groupTextRowsForAutomation(items);
+ for(const row of rows){
+  const cells=[...row.items].sort((a,b)=>a.x-b.x),occupied=new Set();
+  for(let start=0;start<cells.length;start++){
+   if(occupied.has(start))continue;
+   let best=null;
+   for(let end=start;end<Math.min(start+6,cells.length);end++){
+    const segment=cells.slice(start,end+1);
+    if(end>start){
+     const prev=cells[end-1],now=cells[end];
+     const dx=now.x-(prev.x+Math.max(prev.w,1));
+     // Adjacent characters forming one code must really be close, not just in same row.
+     const maxGap=Math.max(3,Math.min(13,Math.max(prev.h,now.h)*.9));
+     if(dx>maxGap)break;
+    }
+    const raw=segment.map(o=>o.text).join(' ').replace(/\s+/g,' ').trim();
+    if(raw.length>32)break;
+    const code=labExactDrawingCode(raw);
+    if(!code)continue;
+    const rect=rectForTextItems(segment,1.8);if(!rect)continue;
+    const uniquePart=segment.length===1;
+    // Prefer full contiguous code 310A over truncated 310 and GS3 over G / S / 3.
+    const score=code.length*10+segment.length*2+(uniquePart?1:0);
+    if(!best||score>best.score)best={code,rect,label:raw,score,end,start};
+   }
+   if(!best)continue;
+   for(let i=start;i<=best.end;i++)occupied.add(i);
+   const loc={code:best.code,rect:best.rect,label:best.label};
+   if(!labAlreadyLocated(hits.map(o=>({...o,page:1})),1,loc.code,loc.rect))hits.push(loc);
+  }
+ }
+ return hits;
 }
 async function extractLabGraphicPositions(already=[]){
  const out=[];labGraphicsCandidates=0;labGraphicPositions=0;
  for(let p=1;p<=pdf.numPages;p++){
   const text=await readPageText(p);
   if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
-  const possible=labPrintedCodeCandidates(text.items).filter(o=>!gsPositionDuplicate([...already,...out],p,o.code,o.rect));
+  const possible=labPrintedCodeCandidates(text.items).filter(o=>!labAlreadyLocated([...already,...out],p,o.code,o.rect));
   if(!possible.length)continue;
   labGraphicsCandidates+=possible.length;
   const pg=await pdf.getPage(p),natural=pg.getViewport({scale:1});
@@ -555,7 +610,7 @@ async function extractLabGraphicPositions(already=[]){
    for(const candidate of possible){
     const drawn=viewportRect(vp,candidate.rect);
     if(!labColorAtRect(pixels,drawn))continue;
-    if(gsPositionDuplicate([...already,...out],p,candidate.code,candidate.rect))continue;
+    if(labAlreadyLocated([...already,...out],p,candidate.code,candidate.rect))continue;
     out.push({...candidate,page:p,order:200000+out.length,sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',subtype:'colored-pdf-graphic'});
    }
   }catch(error){console.warn('Kunde inte analysera färg i ritning på sida '+p,error)}
@@ -588,7 +643,7 @@ async function extractLabMarkedPositions(){
  }
  const result=[];
  for(const mark of candidates){
-  if(gsPositionDuplicate(result,mark.page,mark.code,mark.rect))continue;
+  if(labAlreadyLocated(result,mark.page,mark.code,mark.rect))continue;
   result.push(mark);
  }
  // Viktigt: färgad text / gula PDF-rektanglar kan vara inritade som grafik,
