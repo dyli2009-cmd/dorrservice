@@ -706,7 +706,7 @@ async function extractLabGraphicPositions(already=[]){
  let patchesFound=0,patchesWithText=0,unreadableDrawingPages=0;
  for(let p=1;p<=pdf.numPages;p++){
   const text=await readPageText(p);
-  if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
+  if(smartDoorCardPages.has(p)||looksLikeAutomationProtocolPage(text.raw)||!text.items.length)continue;
   const pg=await pdf.getPage(p),natural=pg.getViewport({scale:1});
   // Sequential scans: controlled resolution and one bitmap at a time.
   const scale=Math.min(1.5,Math.sqrt(3200000/Math.max(1,natural.width*natural.height)),2600/natural.width,2600/natural.height);
@@ -772,6 +772,7 @@ function labStrictAnnotationCode(value){
 function smartHeaderCode(value){
  const text=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').replace(/\s+/g,' ').trim();
  if(!text)return '';
+ if(/^(?:SIDA|PAGE|SIDNR|SIDAN|REVISION|REV|VERSION|DATUM|ANTAL|RITNINGSNUMMER|PROJEKTNUMMER|ORDERNR|AO|RUMSNAMN)\b/i.test(text))return '';
  // Examples: 'GS1', 'GS / 3', '310A', 'WC GS10', 'Dörrnummer: 140D'.
  const prefix=text.replace(/^(?:DÖRR(?:NUMMER|NR)?|LITTERA|POSITION|BETECKNING|OBJEKT(?:NR|NUMMER)?|DÖRRKORT|WC|ENTRÉ|ENTRE|ID)\s*[:#-]?\s+/i,'');
  if(prefix===text&&text.length>25)return '';
