@@ -501,7 +501,7 @@ async function appendCompactProjectPdf(doc){
    completed?'0.12 0.36 0.21 rg':'0.1 0.33 0.47 rg',
    'BT /F1 9 Tf 7 4 Td ('+label+') Tj ET',
    'Q'
-  ].join('\\n');
+  ].join('\n');
   const appearance=doc.context.flateStream(commands,{
    Type:'XObject',Subtype:'Form',FormType:1,BBox:[0,0,w,h],
    Resources:{Font:{F1:pdfBadgeFont.ref}}
