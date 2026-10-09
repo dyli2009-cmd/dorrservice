@@ -714,9 +714,9 @@ async function labDiagnosticAnalyze(){
   const used=new Set();
   for(const row of rows){
    row.marker=marked.find(m=>m.page===row.page&&gsPositionDuplicate([m],row.page,code,row.rect))||null;
-   row.registered=!!row.marker;
-   if(row.marker)used.add(row.marker);
-   row.possibleDuplicate=!!row.marker&&rows.filter(x=>x!==row&&x.marker===row.marker).length>0;
+   row.possibleDuplicate=!!row.marker&&used.has(row.marker);
+   row.registered=!!row.marker&&!row.possibleDuplicate;
+   if(row.registered)used.add(row.marker);
   }
   for(const m of marked)if(!used.has(m))rows.push({page:m.page,rect:m.rect,raw:m.label||code,parsed:code,marker:m,registered:true,annotation:true,color:null});
   const groups=new Map();
