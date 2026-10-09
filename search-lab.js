@@ -533,8 +533,9 @@ function labHeaderMatch(code,lines){
  if(!rx)return false;
  return lines.some(line=>{
   if(!rx.test(line))return false;
-  // Ignore misleading numbering unrelated to the door identity.
-  if(/^(?:sida|page|rev|revision|datum|version|antal|våning|ritningsnummer|projektnummer|projektnr)\b/i.test(line))return false;
+  // Dörrkort kan ha logga och projekthuvud. Beslagsrader är aldrig ett dörr-ID.
+  if(/\b(?:slutbleck|elslutbleck|lås(?:hus|kista|cylinder)|låshus|cylinder|trycke|dörrstängare|dorrstangare|beslag|artikel(?:nr|nummer)?|produkt|material|antal|montering|kontrollpunkt|sensor|radar|gångjärn|gangjarn|karm|fabrikat|leverantör)\b/i.test(line))return false;
+  if(/^(?:sida|page|rev|revision|datum|version|våning|ritningsnummer|projektnummer|projektnr)\b/i.test(line))return false;
   if(/^\d{1,6}$/.test(code)){
    return line.trim().toUpperCase()===code||/\b(?:DÖRR(?:NUMMER|NR)?|LITTERA|POSITION|BETECKNING|ID|WC)\b/i.test(line);
   }
