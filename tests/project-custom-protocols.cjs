@@ -37,7 +37,7 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator('.pcObject').count(),6);assert.equal(await page.locator('#pwPositionCount').textContent(),'6');
    await page.locator('.pcMarker').first().click();
    await page.locator('.pcChoices [data-status=ok]').first().click();await page.locator('.pcChoices [data-status=remark]').nth(1).click();
-   await page.locator('.pcCheck textarea').nth(1).fill('Behöver justeras');await page.locator('#pcTechnician').fill('Avdyl');await page.locator('#pcSignature').fill('AA');await page.locator('#pcNewPoint').fill('1.3 Extra kontroll');await page.locator('#pcAddPoint button').click();
+   await page.locator('.pcPointNote').nth(1).fill('Behöver justeras');await page.locator('#pcTechnician').fill('Avdyl');await page.locator('#pcSignature').fill('AA');await page.locator('#pcNewPoint').fill('1.3 Extra kontroll');await page.locator('#pcAddPoint button').click();
    assert.equal(await page.locator('.pcCheck').count(),3);assert.equal(await page.locator('#pcProgress').textContent(),'33%');
    await page.locator('#pcNotes').fill('Egen notering');await page.locator('#pcSignature').click();
    const protoDownload=page.waitForEvent('download');await page.locator('#pcExport').click();const proto=await PDFDocument.load(fs.readFileSync(await(await protoDownload).path()));assert(proto.getPageCount()>0);

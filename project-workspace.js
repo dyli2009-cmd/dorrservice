@@ -1081,7 +1081,7 @@ function buildInstances(){
  const saved=loadSaved(),counts={};
  window.TillsynoCustomProtocols?.load(saved.customProtocols);
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
- projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
+ projectMeta=normalizeProjectMeta({...window.TillsynoCustomProtocols?.installationDefaults(),...saved.projectMeta});projectLogoData=String(saved.projectLogoData||'');
  automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  projectStamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
@@ -2338,6 +2338,12 @@ el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()
 window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>renderDrawing())});
 window.TillsynoCustomProtocols?.connect({
  getPdf:()=>pdf,getPage:()=>page,readPageText,save,message:setState,
+ models:PROJECT_AUTOMATION_MODELS,parseAutomation:parseStructuredAutomationId,modelFromText:automationModelFromText,
+ isDoorCardPage:likelyDoorCardPage,isAutomationProtocolPage:looksLikeAutomationProtocolPage,
+ getProjectMeta:()=>normalizeProjectMeta(projectMeta),
+ setProjectMeta(values){projectMeta=normalizeProjectMeta({...projectMeta,...values});syncProjectMetaInputs();save()},
+ existingPositions:()=>matchedProjectInstances().map(o=>({id:o.id,code:o.code,page:o.page,rect:o.rect,progress:o.progress})),
+ async doorCards(code){const found=[];const canonical=normalizeCode(code),rx=canonical?codeRegex(canonical):new RegExp('(^|[^A-ZÅÄÖ0-9])'+String(code).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|[^A-ZÅÄÖ0-9])','i');for(let n=1;n<=pdf.numPages;n++){const text=await readPageText(n);if(likelyDoorCardPage(text)&&rx.test(text.raw))found.push({page:n,points:groupLines(text.items).filter(l=>l.actionable).map(l=>l.label+(l.value?' · '+l.value:''))})}return found},
  async focus(o){page=o.page;await renderDrawing();const pg=await pdf.getPage(page),r=viewportRect(pg.getViewport({scale}),o.rect);el.viewer.scrollTo({left:Math.max(0,r.left-el.viewer.clientWidth/2),top:Math.max(0,r.top-el.viewer.clientHeight/2)})}
 });
 })();
