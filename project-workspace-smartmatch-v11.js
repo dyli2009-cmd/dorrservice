@@ -878,8 +878,9 @@ async function extractLabMarkedPositions(){
    if(!code){
     // FreeText labels with readable, NON-ID contents (e.g. "cyl" or an
     // explanatory note) must never accidentally become door positions.
-    if(subtype==='FreeText'&&String(own||'').trim()){nonIdMarks++;continue}
-    // Only fallback to text below for an empty annotation.
+    if(String(own||'').trim()||String(alternative||'').trim()){nonIdMarks++;continue}
+    // Only fall back to underlying text when an annotation has no identity
+    // metadata at all. 'GS ID'/'GS IDW' are placeholders, NOT door codes.
     const inside=await rawProjectStampText(index+1,rect);
     code=labStrictAnnotationCode(inside);
    }
