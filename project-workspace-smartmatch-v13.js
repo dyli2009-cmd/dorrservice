@@ -750,6 +750,117 @@ function smartExportAudit(){
  a.href=url;a.download=(currentFileName||'ritning').replace(/\.pdf$/i,'')+'-sokrapport-v13.json';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
+
+// Optional browser OCR: run only when user presses the button.
+// Do not upload documents; worker and language packages are downloaded lazily.
+async function smartLoadOcrLibrary(){
+ if(window.Tesseract?.createWorker)return window.Tesseract;
+ if(!smartOcrLibraryPromise){
+  smartOcrLibraryPromise=new Promise((resolve,reject)=>{
+   const sc=document.createElement('script');
+   sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+   sc.async=true;sc.crossOrigin='anonymous';
+   sc.onload=()=>window.Tesseract?.createWorker?resolve(window.Tesseract):reject(new Error('OCR-biblioteket laddades men kunde inte starta'));
+   sc.onerror=()=>reject(new Error('OCR-biblioteket kunde inte laddas. Kontrollera internetanslutningen.'));
+   document.head.appendChild(sc);
+  }).catch(e=>{smartOcrLibraryPromise=null;throw e});
+ }
+ return smartOcrLibraryPromise;
+}
+async function smartAcceptOcrSuggestion(item){
+ if(!pdf||!item||!item.rect)return;
+ if(stamps.some(m=>labSamePhysicalPosition(m,item.page,item.code,item.rect))){
+  window.alert('Den positionen finns redan på ritningen.');return;
+ }
+ const confirmed={code:item.code,page:item.page,rect:item.rect,label:item.code,
+  order:950000+stamps.length,sourceKind:'gs',subtype:'ocr-reviewed',
+  scanSource:'ocr-confirmed',confidence:item.confidence};
+ stamps.push(confirmed);
+ buildInstances();
+ await recalcAll();
+ await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();
+ smartAuditReason('ocrManuallyConfirmed');
+ if(item.button){item.button.disabled=true;item.button.textContent='Tillagd på ritningen'}
+}
+function smartShowOcrResult(item){
+ const root=document.getElementById('smartOcrResults');if(!root)return;
+ const row=document.createElement('div');row.className='smartOcrResult';
+ const name=document.createElement('span');
+ name.textContent='Sida '+item.page+' · '+item.code+' · OCR '+Math.round(item.confidence)+' %'+(smartHasDoorCard(item.code)?' · har dörrkort':' · dörrkort saknas');
+ const button=document.createElement('button');button.type='button';button.textContent='Bekräfta position';
+ item.button=button;button.onclick=()=>smartAcceptOcrSuggestion(item).catch(e=>window.alert(String(e)));
+ row.append(name,button);root.appendChild(row);
+}
+async function smartRunOcrReview(){
+ const button=document.getElementById('smartRunOcr');
+ const status=document.getElementById('smartOcrStatus');
+ const remaining=smartPendingOcr.length;
+ if(!pdf||!remaining){status.textContent=pdf?'Ingen ytterligare färgmarkering väntar på OCR.':'Öppna först en PDF.';return}
+ button.disabled=true;
+ const pdfAtStart=pdf;
+ let worker=null;const batch=smartPendingOcr.splice(0,Math.min(35,remaining));
+ const byPage=new Map();
+ for(const p of batch){const group=byPage.get(p.page)||[];group.push(p);byPage.set(p.page,group)}
+ try{
+  status.textContent='Laddar OCR-motorn. Biblioteket hämtas från CDN, men ritningsbilder analyseras i webbläsaren…';
+  const lib=await smartLoadOcrLibrary();
+  worker=await lib.createWorker('eng',1);
+  await worker.setParameters({tessedit_pageseg_mode:7,tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 /-'});
+  let done=0;
+  for(const [pageNo,entries] of byPage){
+   if(pdf!==pdfAtStart){status.textContent='OCR avbruten: en annan PDF har öppnats.';break}
+   const pageObj=await pdfAtStart.getPage(pageNo),vp0=pageObj.getViewport({scale:1});
+   const factor=Math.max(.25,Math.min(2.5,Math.sqrt(2700000/Math.max(1,vp0.width*vp0.height))));
+   const vp=pageObj.getViewport({scale:factor});
+   const pageCanvas=document.createElement('canvas'),pc=pageCanvas.getContext('2d');
+   if(!pc)continue;
+   pageCanvas.width=Math.ceil(vp.width);pageCanvas.height=Math.ceil(vp.height);
+   try{
+    await pageObj.render({canvasContext:pc,viewport:vp}).promise;
+    for(const entry of entries){
+     done++;status.textContent='OCR-granskning '+done+'/'+batch.length+' · sida '+pageNo+'…';
+     const rect=viewportRect(vp,entry.rect),margin=5;
+     const left=Math.max(0,Math.floor(rect.left-margin)),top=Math.max(0,Math.floor(rect.top-margin));
+     const w=Math.min(pageCanvas.width-left,Math.ceil(rect.width+margin*2));
+     const h=Math.min(pageCanvas.height-top,Math.ceil(rect.height+margin*2));
+     if(w<=3||h<=3)continue;
+     const ratio=Math.min(4,600/Math.max(1,w),150/Math.max(1,h));
+     const crop=document.createElement('canvas');crop.width=Math.ceil(w*ratio);crop.height=Math.ceil(h*ratio);
+     const ctx=crop.getContext('2d');if(!ctx)continue;
+     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,crop.width,crop.height);
+     ctx.filter='grayscale(1) contrast(1.7)';
+     ctx.drawImage(pageCanvas,left,top,w,h,0,0,crop.width,crop.height);
+     try{
+      const {data}=await worker.recognize(crop);
+      const raw=String(data?.text||'').trim();
+      const normalized=labStrictAnnotationCode(raw)||labCodeFromMark(raw);
+      if(!normalized||!/^GS\d{1,6}[A-ZÅÄÖ]{0,3}$/.test(normalized)&&!smartHasDoorCard(normalized)){
+       smartAuditReason('ocrNoExactCode');continue;
+      }
+      const confidence=Number(data?.confidence||0);
+      if(confidence<35){smartAuditReason('ocrLowConfidence');continue}
+      if(stamps.some(m=>labSamePhysicalPosition(m,pageNo,normalized,entry.rect)))continue;
+      const item={page:pageNo,rect:entry.rect,code:normalized,confidence};
+      smartScanAudit.ocrSuggestions.push(item);
+      smartScanAudit.ocrAccepted++;
+      smartShowOcrResult(item);
+     }catch(err){smartScanAudit.ocrErrors.push('Sida '+pageNo+': '+String(err?.message||err))}
+    }
+   }catch(err){smartScanAudit.ocrErrors.push('Sida '+pageNo+': '+String(err?.message||err))}
+   finally{pageCanvas.width=0;pageCanvas.height=0}
+  }
+  status.textContent='OCR klar: '+smartScanAudit.ocrAccepted+' förslag totalt, '+smartPendingOcr.length+' områden kvar. Förslagen läggs INTE till förrän du bekräftar dem.';
+ }catch(err){
+  // OCR is optional: leave the PDF scan and original positions untouched.
+  status.textContent='OCR kunde inte köras: '+String(err?.message||err);
+  smartScanAudit.ocrErrors.push(String(err?.message||err));
+  smartPendingOcr.unshift(...batch);
+ }finally{
+  if(worker)try{await worker.terminate()}catch(_){}
+  button.disabled=false;smartRenderScanAudit();
+ }
+}
+
 function smartRenderScanAudit(){
  const el=document.getElementById('smartScanAudit');
  if(!el)return;
@@ -2872,6 +2983,8 @@ async function analyze(file){
  const dlg=document.getElementById('labDiagnosticDialog');if(dlg?.open)dlg.close();
  smartScanAudit={pages:{},reasons:{},annotationCodes:{},colorFirst:0,textColor:0,ocrCandidates:0,ocrAccepted:0,ocrErrors:[],ocrSuggestions:[]};
  smartPendingOcr=[];
+ const suggestions=document.getElementById('smartOcrResults');if(suggestions)suggestions.replaceChildren();
+ const ocrStatus=document.getElementById('smartOcrStatus');if(ocrStatus)ocrStatus.textContent='OCR är frivilligt. Den kräver internet för att ladda bibliotek och språkdata.';
  setState('Läser projekt-PDF…');document.body.classList.remove('pwStartMode');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('smartmatch-v13-'+fileKey));
  pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];pendingImage=null;bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
@@ -2901,6 +3014,7 @@ document.getElementById('labDiagnosticClose').onclick=()=>document.getElementByI
 document.getElementById('labDiagnosticRun').onclick=labDiagnosticAnalyze;
 document.getElementById('labDiagnosticCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();labDiagnosticAnalyze()}};
 document.getElementById('smartAuditExport').onclick=smartExportAudit;
+document.getElementById('smartRunOcr').onclick=smartRunOcrReview;
 document.getElementById('smartShowAllGS').onchange=e=>{
  smartShowAllGS=!!e.target.checked;
  renderMarkers();renderGroups();
