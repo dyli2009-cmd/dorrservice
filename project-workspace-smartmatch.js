@@ -784,7 +784,7 @@ function smartDoorCardSignals(raw){
  const heading=/\b(?:littera|dörrnummer|dorrnummer|dörrnr|dorrnr|antal)\b/i.test(text);
  const hardware=/\b(?:daglåsning|daglasning|nattlåsning|nattlasning|låshus|lashus|slutbleck|cylinderbehör|cylinderbehor|trycke|beslag)\b/i.test(text);
  const controls=/\b(?:egenkontroll|besiktning|provning|kontrollpunkt|kontrollpunkter)\b/i.test(text);
- return named&&(hardware||heading||controls)||(heading&&hardware&&(controls||/låsning|lasning/i.test(text)));
+ return (named&&(hardware||heading||controls))||(heading&&hardware&&(controls||/låsning|lasning/i.test(text)))||(controls&&hardware&&/\bGS\b/i.test(text));
 }
 async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();
@@ -2706,7 +2706,7 @@ async function analyze(file){
  const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=0;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
+ if(!stamps.length&&!projectStamps.length)setState('SmartMatch TEST v9 hittade '+smartScanStats.cards+' dörrkort men inga bekräftade matchande positioner. PDF-markeringar: '+labSourceMarkCount+'; färg/textkandidater: '+labGraphicsCandidates+'. Bildbaserad text kan behöva OCR.');
  else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
  else {smartScanStats.linkedPositions=matchedProjectInstances().length;smartScanStats.extraGraphic=labGraphicPositions;setState('SmartMatch TEST v9: '+smartScanStats.cards+' dörrkort ('+smartScanStats.cardCodes+' koder) · '+matchedProjectInstances().length+' ritningspositioner · '+smartScanStats.annotationAccepted+' PDF-ID · '+smartScanStats.extraGraphic+' kompletterande bild/textträffar'+restored+'.')}
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
