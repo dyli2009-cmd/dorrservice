@@ -265,7 +265,9 @@ function renderObjects(){
 function renderMarkers(){
  layer.replaceChildren();if(!view)return;
  for(const o of objects.filter(o=>o.page===view.page)){
-  const r=view.viewport.convertToViewportRectangle(o.rect),left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]),w=Math.max(12,Math.abs(r[2]-r[0])),h=Math.max(12,Math.abs(r[3]-r[1]));
+  const r=view.viewport.convertToViewportRectangle(o.rect),originLeft=Math.min(r[0],r[2]),originTop=Math.min(r[1],r[3]),naturalW=Math.abs(r[2]-r[0]),naturalH=Math.abs(r[3]-r[1]);
+  const annotation=o.sourceKind&&o.sourceKind!=='text',w=annotation?Math.min(44,Math.max(16,naturalW)):Math.max(12,Math.min(180,naturalW)),h=annotation?Math.min(18,Math.max(12,naturalH)):Math.max(12,Math.min(30,naturalH));
+  const left=annotation?originLeft+(naturalW-w)/2:originLeft,top=annotation?originTop+(naturalH-h)/2:originTop;
   const b=node('button',undefined,'pcMarker pcMarkerExact');b.type='button';b.style.left=left+'px';b.style.top=top+'px';b.style.width=w+'px';b.style.height=h+'px';
   const pct=progress(o),untested=o.points.every(p=>!p.status);
   b.dataset.progress=String(pct);b.dataset.state=untested?'untested':pct===100?'done':'inprogress';b.dataset.target=o.target||'custom';b.dataset.source=o.sourceKind||'text';
