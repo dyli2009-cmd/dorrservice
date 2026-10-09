@@ -198,6 +198,7 @@ async function openProjectPdf(){
   const blob=await blobFromPickedFile(picked);
   const type=picked.mimeType||blob.type||'application/pdf';
   const file=new File([blob],picked.name||'Projekt.pdf',{type,lastModified:picked.modifiedAt||Date.now()});
+  smartBaseDrawingFile=file;smartAdditionalCardsFile=null;
   await analyze(file);
  }catch(err){
   const message=String(err?.message||err||'');
@@ -2759,7 +2760,7 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!stamps.length&&!projectStamps.length)setState('SmartMatch TEST v11 hittade '+smartScanStats.gsCards+' GS-dörrkort och '+smartScanStats.gsAnnotationsSeen+' numrerade GS-stämplar. Om de ligger i separata PDF-filer, välj Lägg till dörrkort-PDF.');
- else if(!matchedProjectInstances().length)setState('Inga färgmarkerade positioner matchade någon identifiering högst upp på dörrkorten. '+instances.length+' färgmarkeringar kontrollerades men visas inte som positioner.');
+ else if(!matchedProjectInstances().length)setState('SmartMatch TEST v11 läste '+smartScanStats.gsAnnotationsSeen+' GS-stämplar men hittade ingen matchning mot '+smartScanStats.gsCards+' GS-dörrkort. Om dörrkorten ligger i en annan PDF, tryck Lägg till dörrkort-PDF.');
  else {smartScanStats.linkedPositions=matchedProjectInstances().length;smartScanStats.extraGraphic=labGraphicPositions;const unlinked=Object.entries(smartScanStats.gsWithoutCard||{}).map(([code,n])=>code+' ('+n+')').slice(0,6);setState('SmartMatch TEST v11: '+smartScanStats.gsAnnotationsSeen+' GS-stämplar i PDF · '+smartScanStats.gsAnnotationsLinked+' har dörrkort · '+smartScanStats.gsCards+' GS-dörrkort · '+matchedProjectInstances().length+' visade positioner'+(unlinked.length?' · GS utan dörrkort: '+unlinked.join(', '):'')+restored+'.')}
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
