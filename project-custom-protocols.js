@@ -142,6 +142,33 @@ function readCandidates(items,rule,page){
  }
  return found;
 }
+function samePosition(a,b){
+ if(a.ruleId!==b.ruleId||a.page!==b.page)return false;
+ const canonical=value=>value.replace(/[\s_-]+/g,'').toUpperCase();
+ if(canonical(a.code)!==canonical(b.code)){
+  if(a.target!=='selfcheck'||b.target!=='selfcheck')return false;
+  const pa=bridge?.parseAutomation(a.code),pb=bridge?.parseAutomation(b.code);
+  // A plain object label and its full automation ID describe one marking.
+  if(!!pa===!!pb||canonical(pa?.objectNo||a.code)!==canonical(pb?.objectNo||b.code))return false;
+ }
+ const [ax,ay,ar,at]=a.rect,[bx,by,br,bt]=b.rect;
+ // Duplicate only when both hit centres belong to the same marking, not a nearby door.
+ return (ax+ar)/2>=bx-3&&(ax+ar)/2<=br+3&&(ay+at)/2>=by-3&&(ay+at)/2<=bt+3||
+        (bx+br)/2>=ax-3&&(bx+br)/2<=ar+3&&(by+bt)/2>=ay-3&&(by+bt)/2<=at+3;
+}
+function markedCandidates(marks,items,rule,page){
+ const found=[];
+ for(const mark of marks){
+  const rect=mark.rect,label=mark.label||mark.code||'';
+  const synthetic={text:label,x:rect[0],y:rect[1],w:Math.max(1,rect[2]-rect[0]),h:Math.max(1,rect[3]-rect[1])};
+  for(const hit of readCandidates([synthetic],rule,page)){
+   hit.rect=rect.slice();hit.id=idFor(rule,page,hit.code,rect);hit.sourceKind=mark.sourceKind||'marking';
+   if(rule.target==='selfcheck')Object.assign(hit,objectInfo(hit.code,items,rect));
+   found.push(hit);
+  }
+ }
+ return found.sort((a,b)=>Number(!!bridge?.parseAutomation(b.code))-Number(!!bridge?.parseAutomation(a.code))).filter((hit,index,all)=>!all.slice(0,index).some(o=>samePosition(o,hit)));
+}
 function scanPages(pdf){
  const scope=$('pcScanScope').value;if(scope==='current')return [bridge.getPage()];
  if(scope==='all')return Array.from({length:pdf.numPages},(_,i)=>i+1);
@@ -155,15 +182,16 @@ async function scan(){
   for(const page of pages){
    if(version!==scanVersion||pdf!==bridge.getPdf())return;
    $('pcMessage').textContent='Läser sida '+page+' av '+pdf.numPages+'…';
-   const text=await bridge.readPageText(page);if(text.items.length)readable++;
+   const text=await bridge.readPageText(page),marks=await bridge.sourceMarkings(page);if(text.items.length||marks.length)readable++;
    for(const rule of rules){
     if(rule.target==='doorcard'&&bridge.isDoorCardPage(text))continue;
     if(rule.target==='selfcheck'&&bridge.isAutomationProtocolPage(text.raw))continue;
-    for(const hit of readCandidates(text.items,rule,page))if(!known.has(hit.id)){found.push(hit);known.add(hit.id)}
+    for(const hit of [...markedCandidates(marks,text.items,rule,page),...readCandidates(text.items,rule,page)])if(!known.has(hit.id)&&![...objects,...found].some(o=>samePosition(o,hit))){found.push(hit);known.add(hit.id)}
    }
   }
+  const sourcePages=[...new Set([...found,...objects].filter(c=>c.target==='doorcard').map(c=>c.page))];
   const cards=new Map();for(const hit of found.filter(c=>c.target==='doorcard')){
-   if(!cards.has(hit.code))cards.set(hit.code,await bridge.doorCards(hit.code));
+   if(!cards.has(hit.code))cards.set(hit.code,await bridge.doorCards(hit.code,sourcePages));
    hit.cardMatches=cards.get(hit.code);hit.protocolPage=hit.cardMatches.length===1?hit.cardMatches[0].page:null;
    hit.points=hit.protocolPage?hit.cardMatches[0].points:[];
   }
@@ -193,7 +221,7 @@ $('pcCreate').onclick=()=>{
 function progress(o){return o.points.length?Math.round(o.points.filter(p=>p.status==='ok'||p.status==='na').length/o.points.length*100):0}
 function updateCombinedStats(){
  if(!objects.length)return;
- const existing=bridge?.existingPositions()||[],replaced=existing.filter(e=>objects.some(o=>o.target==='doorcard'&&o.page===e.page&&o.code.replace(/[\s_-]/g,'').toUpperCase()===e.code.replace(/[\s_-]/g,'').toUpperCase()&&Math.abs((o.rect[0]+o.rect[2]-e.rect[0]-e.rect[2])/2)<30&&Math.abs((o.rect[1]+o.rect[3]-e.rect[1]-e.rect[3])/2)<20));
+ const existing=bridge?.existingPositions()||[],replaced=existing.filter(e=>objects.some(o=>o.target==='doorcard'&&samePosition(o,{...e,ruleId:o.ruleId})));
  const baseCount=Math.max(0,baseStats.count-replaced.length),total=baseCount+objects.length,done=baseStats.done-replaced.filter(o=>o.progress===100).length+objects.filter(o=>o.points.length&&progress(o)===100).length;
  $('pwPositionCount').textContent=$('pwMatchedCount').textContent=String(total);$('pwDoneCount').textContent=String(done);
  $('pwTotalProgress').textContent=Math.round((baseStats.progress*baseCount+objects.reduce((sum,o)=>sum+progress(o),0))/total)+'%';
@@ -206,7 +234,7 @@ function renderMarkers(){
  layer.replaceChildren();if(!view)return;
  for(const o of objects.filter(o=>o.page===view.page)){
   const r=view.viewport.convertToViewportRectangle(o.rect),left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]);
-   const b=node('button',undefined,'pcMarker');b.type='button';b.style.left=left+'px';b.style.top=top+'px';b.style.width=Math.max(24,Math.abs(r[2]-r[0]))+'px';b.style.height=Math.max(24,Math.abs(r[3]-r[1]))+'px';b.dataset.progress=String(progress(o));b.title=o.code+' · '+o.title;b.setAttribute('aria-label',b.title);b.append(node('span',progress(o)===100?'✓':o.target==='doorcard'?'DK':'EK'));
+   const b=node('button',undefined,'pcMarker');b.type='button';b.style.left=left+'px';b.style.top=top+'px';b.style.width=Math.max(24,Math.abs(r[2]-r[0]))+'px';b.style.height=Math.max(24,Math.abs(r[3]-r[1]))+'px';b.dataset.progress=String(progress(o));b.dataset.target=o.target||'custom';b.title=o.code+' · '+o.title;b.setAttribute('aria-label',b.title);b.append(node('span',progress(o)===100?'✓':o.target==='doorcard'?'DK':'EK'));
   b.onpointerdown=e=>e.stopPropagation();b.ontouchstart=e=>e.stopPropagation();b.onclick=e=>{e.stopPropagation();openProtocol(o)};layer.appendChild(b);
  }
 }

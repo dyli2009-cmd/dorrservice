@@ -34,3 +34,9 @@ Objekt–modellkod–antal läser exempelvis 1111-45-3 till objekt 1111, modellk
 Företag och installatör använder Projektflödets gemensamma projectMeta. Datum, tekniker och signatur delas mellan de nya egenkontrollerna. Kund- och projektuppgifter stannar i projektet; företags- och installatörsuppgifter kan användas som förval från enheten. Gemensamma uppgifter följer med i projekt-PDF och egenkontrollens PDF-export.
 
 `tests/project-linked-protocols.cjs` verifierar mallkopiorna, nummerserier, exakta kortkopplingar, val vid flera kort, saknade kort, originalkort vid PDF-export, automatisk avläsning av modell/antal, gemensamma uppgifter, offline och portabelt projekt i den licensierade sidan.
+
+## Guidad avläsning av markeringar (2.4.262)
+
+Egna protokoll läser även Stamp, Highlight, FreeText och Square, deras kodfält och texten under markeringen. GS-koder normaliseras med Projektflödets befintliga funktion. Hela objektnumret–modellkoden–antalet bevaras för egenkontroller. Samma position som också finns som PDF-text skapar bara en träff; upprepad avläsning lämnar redan skapade protokoll och deras status kvar.
+
+Dörrkort matchas med samma exakta GS-kod och avgränsning som originalflödet på alla sidor utanför ritningssidorna. Kortet behöver ingen särskild rubrik. En unik träff kan öppnas direkt; vid flera träffar väljer användaren rätt sida. Det befintliga flödets extraktion, protokoll och kontroller ändras inte.

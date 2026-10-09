@@ -2336,14 +2336,53 @@ el.addChecklistItem.onclick=()=>openItemEditor(selectedInstance());
 el.itemEditorClose.onclick=closeItemEditor;el.editCancel.onclick=closeItemEditor;el.editSave.onclick=saveItemEditor;
 el.itemEditor.addEventListener('cancel',e=>{e.preventDefault();closeItemEditor()});
 window.addEventListener('resize',()=>{if(pdf)requestAnimationFrame(()=>renderDrawing())});
+// Read-only adapter for the separate guided protocol tool. Original extraction stays unchanged.
+let customMarkPdf=null,customMarkPromise=null;
+async function customSourceMarkings(pageNo){
+ if(customMarkPdf!==pdf){
+  customMarkPdf=pdf;
+  customMarkPromise=(async()=>{
+   const {PDFDocument,PDFName,PDFDict}=PDFLib,doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false}),out=[];
+   for(const [pi,pg] of doc.getPages().entries()){
+    const annots=pg.node.Annots();if(!annots)continue;
+    for(let i=0;i<annots.size();i++){
+     let dict;try{dict=annots.lookup(i,PDFDict)}catch(_){continue}
+     if(!dict)continue;
+     const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
+     if(!['Stamp','Highlight','FreeText','Square'].includes(subtype))continue;
+     const rect=rectFromAnnotation(dict);if(!rect)continue;
+     const labels=new Set();
+     for(const key of ['Contents','Subj','T','NM','Name']){
+      const raw=decodePdfText(dict.get(PDFName.of(key)));
+      const label=normalizeCode(raw)||normalizeProjectStampText(raw);if(label)labels.add(label);
+     }
+     const under=await rawProjectStampText(pi+1,rect),label=normalizeCode(under)||normalizeProjectStampText(under);if(label)labels.add(label);
+     for(const label of labels)out.push({page:pi+1,rect,label,sourceKind:'annotation'});
+    }
+   }
+   return out;
+  })();
+ }
+ const marks=await customMarkPromise;
+ return [...marks,...stamps.map(o=>({...o,label:o.code})),...projectStamps].filter(o=>o.page===pageNo);
+}
 window.TillsynoCustomProtocols?.connect({
- getPdf:()=>pdf,getPage:()=>page,readPageText,save,message:setState,
+ getPdf:()=>pdf,getPage:()=>page,readPageText,sourceMarkings:customSourceMarkings,save,message:setState,
  models:PROJECT_AUTOMATION_MODELS,parseAutomation:parseStructuredAutomationId,modelFromText:automationModelFromText,
  isDoorCardPage:likelyDoorCardPage,isAutomationProtocolPage:looksLikeAutomationProtocolPage,
  getProjectMeta:()=>normalizeProjectMeta(projectMeta),
  setProjectMeta(values){projectMeta=normalizeProjectMeta({...projectMeta,...values});syncProjectMetaInputs();save()},
  existingPositions:()=>matchedProjectInstances().map(o=>({id:o.id,code:o.code,page:o.page,rect:o.rect,progress:o.progress})),
- async doorCards(code){const found=[];const canonical=normalizeCode(code),rx=canonical?codeRegex(canonical):new RegExp('(^|[^A-ZÅÄÖ0-9])'+String(code).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|[^A-ZÅÄÖ0-9])','i');for(let n=1;n<=pdf.numPages;n++){const text=await readPageText(n);if(likelyDoorCardPage(text)&&rx.test(text.raw))found.push({page:n,points:groupLines(text.items).filter(l=>l.actionable).map(l=>l.label+(l.value?' · '+l.value:''))})}return found},
+ async doorCards(code,sourcePages=[]){
+  const found=[],canonical=normalizeCode(code),drawingPages=new Set([...stamps,...projectStamps].map(o=>o.page));
+  for(const n of sourcePages)drawingPages.add(n);
+  const rx=canonical?codeRegex(canonical):projectStampRegex(code);if(!rx)return found;
+  for(let n=1;n<=pdf.numPages;n++){
+   const text=await readPageText(n);
+   if(!drawingPages.has(n)&&rx.test(text.raw))found.push({page:n,points:groupLines(text.items).filter(l=>l.actionable).map(l=>l.label+(l.value?' · '+l.value:''))});
+  }
+  return found
+ },
  async focus(o){page=o.page;await renderDrawing();const pg=await pdf.getPage(page),r=viewportRect(pg.getViewport({scale}),o.rect);el.viewer.scrollTo({left:Math.max(0,r.left-el.viewer.clientWidth/2),top:Math.max(0,r.top-el.viewer.clientHeight/2)})}
 });
 })();

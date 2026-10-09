@@ -3,3 +3,5 @@
 
 .pcCheckHead{align-items:flex-start}.pcBody .pcPointLabel{font-weight:700;resize:none;overflow:hidden;min-height:44px;line-height:1.4}
 @media(max-width:520px){.pcCandidateEquipment{grid-column:1 / -1;grid-row:2}}
+
+.pcMarker[data-target="doorcard"]:not([data-progress="100"]){border-color:#b58b00;background:#ffdf4938}.pcMarker[data-target="doorcard"]:not([data-progress="100"]) span{background:#e7bd23;color:#342b0b}.pcMarker[data-target="selfcheck"]:not([data-progress="100"]){border-color:#176ea5;background:#2189cf2b}.pcMarker[data-target="selfcheck"]:not([data-progress="100"]) span{background:#176ea5}
