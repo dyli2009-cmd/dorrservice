@@ -70,3 +70,10 @@
 .pcPositionEditor #pcPositionInfo{grid-column:1 / -1;margin:0;font-size:11px}
 .pcProtocol[data-position-only="true"]>.pcBody>.pcMeta,.pcProtocol[data-position-only="true"] .pcProgress,.pcProtocol[data-position-only="true"] .pcAddPoint,.pcProtocol[data-position-only="true"] .pcNotes,.pcProtocol[data-position-only="true"] .pcActions,.pcProtocol[data-position-only="true"] #pcProtocolMessage{display:none}
 @media(max-width:520px){.pcPositionEditor #pcPositionInfo{grid-column:1}}
+
+.pcPositionDialog .pcSecondary{font-size:12px;font-weight:700;min-height:40px;border:1px solid #87a3b3;border-radius:7px;background:#fff;color:#174a64;cursor:pointer}
+.pcPositionSuggestions[data-pick="true"]{pointer-events:auto!important;cursor:crosshair;touch-action:none}
+.pcPositionPickBar{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(500px,calc(100vw - 22px));display:flex;align-items:center;gap:12px;background:#132b38;color:#fff;padding:12px;border-radius:12px;box-shadow:0 8px 28px #0005;z-index:9999;font-size:12px;font-weight:700}
+.pcPositionPickBar[hidden]{display:none!important}
+.pcPositionPickBar span{flex:1}
+.pcPositionPickBar button{background:#fff;color:#173746;border:0;border-radius:7px;padding:8px 14px;min-height:34px;font:inherit;cursor:pointer}
