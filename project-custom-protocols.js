@@ -47,7 +47,7 @@ const markup=`
  <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
  <div id="pcObjectMeta" class="pcMeta pcObjectMeta" hidden><label>Objekt<input id="pcObjectNo" maxlength="80"></label><label id="pcModelLabel">Typ av automatik<select id="pcModel"></select></label><label id="pcEquipmentLabel" hidden>Typ av utrustning<input id="pcEquipmentType" maxlength="160"></label><label>Antal / löpnummer<input id="pcQuantity" inputmode="numeric" maxlength="12"></label></div>
  <section id="pcCardPreview" hidden><div class="pcCardTools"><strong id="pcCardLabel">Originaldörrkort</strong><button id="pcCardOut" type="button" aria-label="Zooma ut dörrkort">−</button><button id="pcCardIn" type="button" aria-label="Zooma in dörrkort">+</button></div><div id="pcCardWrap"><canvas id="pcCardCanvas"></canvas></div></section>
- <div class="pcProgress"><strong id="pcProgress">0%</strong><span>godkänd eller ej aktuell</span><button id="pcApproveAll" type="button">✓ Godkänn alla</button></div><div id="pcChecks"></div>
+ <div class="pcProgress"><strong id="pcProgress">0%</strong><span>kontrollerade punkter</span><button id="pcApproveAll" type="button">✓ Godkänn alla</button></div><div id="pcChecks"></div>
  <form id="pcAddPoint" class="pcAddPoint"><label>Ny kontrollpunkt<input id="pcNewPoint" maxlength="500" required placeholder="Nummer och beskrivning"></label><button type="submit">+ Lägg till</button></form>
  <label class="pcNotes">Allmän notering<textarea id="pcNotes" rows="3" maxlength="10000"></textarea></label>
  <div class="pcActions"><button id="pcPreview" type="button">Visa kundmall</button><button id="pcExport" type="button">Spara protokoll PDF</button></div><p id="pcProtocolMessage" role="status"></p></div>
@@ -250,7 +250,7 @@ async function runQuickCommand(){
 $('pcRunCode').onclick=()=>runQuickCommand().catch(error=>$('pcMessage').textContent='Kunde inte läsa kommandot: '+(error.message||error));
 $('pcQuickCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('pcRunCode').click()}};
 
-function progress(o){return o.points.length?Math.round(o.points.filter(p=>p.status==='ok'||p.status==='na').length/o.points.length*100):0}
+function progress(o){return o.points.length?Math.round(o.points.filter(p=>['ok','na','remark'].includes(p.status)).length/o.points.length*100):0}
 function updateCombinedStats(){
  if(!objects.length)return;
  const existing=bridge?.existingPositions()||[],replaced=existing.filter(e=>objects.some(o=>o.target==='doorcard'&&samePosition(o,{...e,ruleId:o.ruleId})));
