@@ -102,6 +102,18 @@
  .pwToolbarNavigation button{min-height:29px}
  .pwPositionMore>.pmRow{right:-2px;min-width:166px}
 }
+
+/* v21: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
+.labDiagnosticDialog.smartReportsDialog{width:min(610px,94vw);height:auto;max-height:82dvh;padding:10px 12px;overflow:auto}
+.labDiagnosticDialog.smartReportsDialog .labDiagnosticHead{align-items:center}
+.labDiagnosticDialog.smartReportsDialog #labDiagnosticClose{display:grid!important;place-items:center!important;text-align:center!important;padding:0!important;line-height:1!important;min-width:33px;height:33px}
+#pwProtocolBackToCard{display:none}
+@media(max-width:820px){
+ .labDiagnosticDialog.smartReportsDialog{width:min(570px,94vw);height:auto;max-height:77dvh;border-radius:12px;padding:8px 9px}
+ .pwProtocol.pwMobileChecks #pwProtocolBackToCard{display:grid;place-items:center;min-height:32px;padding:4px 7px;font-size:10px}
+ .pwProtocol.pwMobileChecks .pwProtocolBody{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+ .pwProtocol.pwMobileChecks .pwChecklistPane{height:100%;overflow:auto}
+}
 </style>
 </head>
 <body class="pwStartMode">
@@ -274,7 +286,7 @@
     <aside class="pwChecklistPane">
       <div class="pwChecklistHead">
         <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
-        <div class="pwChecklistHeadActions"><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
+        <div class="pwChecklistHeadActions"><button id="pwProtocolBackToCard" type="button">← Dörrkort</button><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
       </div>
       <p class="pwChecklistIntro">En avbockning per arbetsmoment från originalet. Ändra, anteckna eller lägg till en kontrollpunkt vid behov.</p>
       <div id="pwChecklist" class="pwChecklist"></div>
