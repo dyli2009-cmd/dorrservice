@@ -881,7 +881,8 @@ function openSelfcheckExport(){
 }
 function closeSelfcheckExport(){if(el.selfcheckExportDialog.open)el.selfcheckExportDialog.close()}
 function safePdfName(value){return String(value||'dorrautomatik').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'dorrautomatik'}
-function createAutomationSelfcheckPdf(o){
+function createAutomationSelfcheckPdf(o,options={}){
+ const entries=options.entries||PROJECT_AUTOMATION_CHECKS,meta=options.meta||projectMeta,heading=options.title||'CHECKLISTA REVISION DÖRRAUTOMATIK';
  if(!window.jspdf?.jsPDF)throw new Error('PDF-generatorn kunde inte laddas.');
  const doc=new jspdf.jsPDF('p','mm','a4'),left=12,width=186;
  const txt=(value,x,y,size=8,bold=false,color=[25,40,48],opts)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...color);doc.text(String(value||''),x,y,opts||{})};
@@ -889,23 +890,23 @@ function createAutomationSelfcheckPdf(o){
  const cell=(label,value,x,y,w,h=7,bold=false,signature=false)=>{doc.setFillColor(252,252,252);doc.setDrawColor(150,150,150);doc.setLineWidth(.2);doc.rect(x,y,w,h,'FD');doc.setFont('helvetica','bold');doc.setFontSize(7.4);doc.setTextColor(82,82,82);const lw=Math.min(w-7,doc.getTextWidth(label)+2.2);doc.text(label,x+1.5,y+h/2+1);if(String(value||'')){doc.setFont('helvetica',signature?'italic':(bold?'bold':'normal'));doc.setFontSize(signature?9.1:8.5);doc.setTextColor(...(signature?[70,125,165]:[20,20,20]));doc.text(doc.splitTextToSize(String(value),Math.max(5,w-lw-3)).slice(0,1),x+1.5+lw,y+h/2+1)}};
  const mark=(kind,cx,cy)=>{doc.setTextColor(20,20,20);if(kind==='na'){doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('-',cx,cy+1,{align:'center'});return}doc.setFont('zapfdingbats','normal');doc.setFontSize(10.2);doc.text(String.fromCharCode(kind==='remark'?53:51),cx,cy+1.2,{align:'center'})};
  doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);addLogo(left,8,58,18);doc.line(left+58,8,left+58,26);
- txt('Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
- txt('CHECKLISTA REVISION DÖRRAUTOMATIK',left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
+ txt(options.title?'EGENKONTROLL':'Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
+ txt(heading.toLocaleUpperCase('sv'),left+58+(width-58)/2,18.7,11.9,true,[25,25,25],{align:'center'});
  txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
- cell('Bokat datum:',projectMeta.date,left,y,93);cell('Nästa provning:',projectMeta.nextDate,left+93,y,93);y+=7;
- cell('ANLÄGGNING:',projectMeta.projectName,left,y,93,7,true);cell('Anläggningsnr:',projectMeta.facilityNo,left+93,y,93,7,true);y+=7;
- cell('SERVICEFÖRETAG:',projectMeta.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',projectMeta.customer,left+93,y,93,7,true);y+=7;
- cell('Kontaktperson på objektet:',projectMeta.companyContact,left,y,93);cell('Kontaktperson:',projectMeta.contact,left+93,y,93);y+=7;
- cell('Telefon:',projectMeta.companyPhone,left,y,93);cell('Telefon:',projectMeta.phone,left+93,y,93);y+=7;
- cell('Adress:',projectMeta.companyAddress,left,y,93);cell('Adress:',projectMeta.address,left+93,y,93);y+=7;
- cell('Postnummer / Postadress:',[projectMeta.companyPostalCode,projectMeta.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[projectMeta.postalCode,projectMeta.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
- cell('ID / märkning:',automationDisplayId(o),left,y,54,8,true);cell('Typ av automatik:',o.model||o.modelCode,left+54,y,66,8,true);cell('AO nummer:',projectMeta.order,left+120,y,66,8,true);y+=8;
- cell('Placering / Dörrlittra:',o.location,left,y,93,8);cell('Utförd av / tekniker:',projectMeta.technician,left+93,y,93,8,true);y+=10;
+ cell('Bokat datum:',meta.date,left,y,93);cell('Nästa provning:',meta.nextDate,left+93,y,93);y+=7;
+ cell('ANLÄGGNING:',meta.projectName,left,y,93,7,true);cell('Anläggningsnr:',meta.facilityNo,left+93,y,93,7,true);y+=7;
+ cell('SERVICEFÖRETAG:',meta.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',meta.customer,left+93,y,93,7,true);y+=7;
+ cell('Kontaktperson på objektet:',meta.companyContact,left,y,93);cell('Kontaktperson:',meta.contact,left+93,y,93);y+=7;
+ cell('Telefon:',meta.companyPhone,left,y,93);cell('Telefon:',meta.phone,left+93,y,93);y+=7;
+ cell('Adress:',meta.companyAddress,left,y,93);cell('Adress:',meta.address,left+93,y,93);y+=7;
+ cell('Postnummer / Postadress:',[meta.companyPostalCode,meta.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[meta.postalCode,meta.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
+ cell('ID / märkning:',automationDisplayId(o),left,y,54,8,true);cell('Typ av automatik:',o.model||o.modelCode,left+54,y,66,8,true);cell('AO nummer:',meta.order,left+120,y,66,8,true);y+=8;
+ cell('Placering / Dörrlittra:',o.location,left,y,93,8);cell('Utförd av / tekniker:',meta.technician,left+93,y,93,8,true);y+=10;
  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8);doc.setTextColor(35,35,35);const lines=t.split('\n'),hy=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,hy,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,hy,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
- const notesReserve=30,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,PROJECT_AUTOMATION_CHECKS.length)));
- PROJECT_AUTOMATION_CHECKS.forEach(([id,title])=>{
-  const check=o.checks?.[id]||{};let xx=left;const vals=[id,title,'','','',projectMeta.signature||''];
+ const notesReserve=30,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,entries.length)));
+ entries.forEach(([id,title])=>{
+  const check=o.checks?.[id]||{};let xx=left;const vals=[id,title,'','','',meta.signature||''];
   vals.forEach((v,i)=>{doc.setFillColor(...(i===1?[248,248,248]:[255,255,255]));doc.setDrawColor(145,145,145);doc.rect(xx,y,ws[i],rowH,'FD');
    if(i===1){const titleSize=rowH<7?6.8:7.4,lines=doc.splitTextToSize(title,ws[i]-4).slice(0,2),step=rowH<7?2.4:2.7,startY=y+rowH/2-((lines.length-1)*step)/2+.7;doc.setFont('helvetica','normal');doc.setFontSize(titleSize);doc.setTextColor(25,25,25);doc.text(lines,xx+1.7,startY,{lineHeightFactor:1})}
    else if(i===2&&check.result==='na')mark('na',xx+ws[i]/2,y+rowH/2);
@@ -917,12 +918,46 @@ function createAutomationSelfcheckPdf(o){
   });y+=rowH;
  });
  y+=3;doc.setFillColor(238,238,238);doc.setDrawColor(130,130,130);doc.rect(left,y,width,6,'FD');txt('ALLMÄN INFO / ANMÄRKNING',left+2,y+4.2,8.2,true,[55,55,55]);y+=6;
- const issueText=[...PROJECT_AUTOMATION_CHECKS.flatMap(([id,title])=>{const c=o.checks?.[id];return c?.result==='remark'?[id+' – '+(c.note?.trim()||title)]:[]}),o.notes].filter(Boolean).join('  ·  ');
+ const issueText=[...entries.flatMap(([id,title])=>{const c=o.checks?.[id];return c?.result==='remark'?[id+' – '+(c.note?.trim()||title)]:[]}),o.notes].filter(Boolean).join('  ·  ');
  const boxH=Math.max(12,276-y);doc.setFillColor(255,255,255);doc.setDrawColor(145,145,145);doc.rect(left,y,width,boxH,'FD');
  if(issueText){doc.setFont('helvetica','normal');doc.setFontSize(8.3);doc.setTextColor(35,35,35);doc.text(doc.splitTextToSize(issueText,width-7).slice(0,12),left+3,y+5,{lineHeightFactor:1.1})}
- doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([projectMeta.company,projectMeta.projectName||projectMeta.facilityNo].filter(Boolean).join(' · ')||'Tillsyno',left,289,7,false,[89,110,123]);txt('Sida 1 av 1',177,289,7,false,[89,110,123]);
+ doc.setDrawColor(204,215,223);doc.line(left,284,198,284);txt([meta.company,meta.projectName||meta.facilityNo].filter(Boolean).join(' · ')||'Tillsyno',left,289,7,false,[89,110,123]);txt('Sida 1 av 1',177,289,7,false,[89,110,123]);
  return doc;
 }
+
+function createGuidedCustomerDoc(o){
+ const entries=(o.points||[]).map((p,i)=>{
+  const raw=String(p.label||'').trim(),match=raw.match(/^(\d+(?:\.\d+)*[a-z]?)\s+(.+)$/i);
+  return {num:match?match[1]:String(i+1),label:match?match[2]:raw,point:p};
+ });
+ const data={objectNo:o.objectNo||o.code,modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.quantity||'',location:o.location||'',checks:Object.fromEntries(entries.map(e=>[e.num,{result:e.point.status||'',note:e.point.note||''}])),notes:o.notes||''};
+ const meta={...projectMeta,...(o.target==='selfcheck'?{}:{date:o.date||projectMeta.date,technician:o.technician||projectMeta.technician,signature:o.signature||projectMeta.signature})};
+ return createAutomationSelfcheckPdf(data,{title:o.title||'Egenkontroll',meta,entries:entries.map(e=>[e.num,e.label])});
+}
+async function showGuidedCustomerPreview(o){
+ if(!o)return;
+ const doc=createGuidedCustomerDoc(o),payload=doc.output('arraybuffer');
+ if(automationPreviewPdf)try{await automationPreviewPdf.destroy()}catch(_){}
+ automationPreviewPdf=await pdfjsLib.getDocument({data:new Uint8Array(payload)}).promise;
+ el.automationPreviewTitle.textContent=o.code+' · '+o.title;
+ const heading=el.automationPreviewDialog.querySelector('.pwAutomationHead strong');heading.textContent=o.title;
+ el.automationPreviewDialog.showModal();
+ requestAnimationFrame(()=>renderAutomationCustomerPreview().catch(console.error));
+}
+async function exportGuidedCustomerPdf(o){
+ if(!o)throw Error('Välj ett protokoll.');
+ const doc=createGuidedCustomerDoc(o);
+ let pdfData=new Uint8Array(doc.output('arraybuffer'));
+ if(o.target==='doorcard'&&o.protocolPage){
+  const out=await PDFLib.PDFDocument.create(),original=await PDFLib.PDFDocument.load(bytes.slice(),{ignoreEncryption:true}),report=await PDFLib.PDFDocument.load(pdfData);
+  const [card]=await out.copyPages(original,[o.protocolPage-1]);out.addPage(card);
+  for(const p of await out.copyPages(report,report.getPageIndices()))out.addPage(p);
+  pdfData=new Uint8Array(await out.save());
+ }
+ const filename='Checklista-'+safePdfName(o.code||o.title)+'.pdf';
+ return deliverProjectFile(new File([pdfData],filename,{type:'application/pdf'}),o.title||'Egenkontroll','Kundprotokoll');
+}
+
 async function renderAutomationCustomerPreview(){
  if(!automationPreviewPdf)return;
  if(automationPreviewRenderTask)try{automationPreviewRenderTask.cancel()}catch(_){}
@@ -2368,6 +2403,7 @@ async function customSourceMarkings(pageNo){
 }
 window.TillsynoCustomProtocols?.connect({
  getPdf:()=>pdf,getPage:()=>page,readPageText,sourceMarkings:customSourceMarkings,save,message:setState,
+  previewCustomer:showGuidedCustomerPreview,exportCustomer:exportGuidedCustomerPdf,
  async pickDoorCards(){
   const picker=getNativeFilePicker();
   if(picker){const result=await picker.pickFiles({types:['application/pdf'],limit:1,readData:false}),picked=result.files?.[0];return picked?new File([await blobFromPickedFile(picked)],picked.name||'Dörrkort.pdf',{type:'application/pdf'}):null}
