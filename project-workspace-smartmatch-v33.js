@@ -114,7 +114,7 @@ function updateSmartScanStatus(text){
  status.hidden=!smartScanActive;
  if(!smartScanActive)return;
  const message=String(text||'');
- const progress=message.match(/(\\d+)\\s+av\\s+(\\d+)/i);
+ const progress=message.match(/(\d+)\s+av\s+(\d+)/i);
  let stage='Skannar PDF';
  if(/dörrkortens|dörrkort/i.test(message))stage='Skannar dörrkort';
  else if(/färg|ritning|markeringar|positioner/i.test(message))stage='Skannar ritning';
