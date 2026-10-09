@@ -40,3 +40,40 @@
 @media(max-width:520px){.pcDialog.pcProtocol{width:100%;height:100dvh;max-height:none;border-radius:0}.pcProtocol .pcBody{padding:9px}.pcProtocol .pcChoices button{min-height:34px;font-size:9px;padding:3px}.pcProtocol .pcActions button{font-size:10px}}
 
 .pcMarker.pcMarkerExact .pcMarkerText{min-height:100%;display:flex;align-items:center}
+
+/* v2.4.265: simplified project positions, separate from legacy custom protocols. */
+.pcPositionDialog{width:min(520px,calc(100vw - 16px));max-height:calc(100dvh - 16px)}
+.pcPositionDialog .pcBody{display:grid;gap:11px}
+.pcPositionDialog .pcBody>p{margin:0}
+.pcPositionDialog .pcBody>label{font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:5px}
+.pcPositionDialog input,.pcPositionDialog select{font:inherit;font-size:14px;min-height:39px;width:100%;padding:8px;border:1px solid #b4c4cc;background:#fff;color:#203440;border-radius:7px}
+.pcPositionDialog .pcPrimary{font-size:13px;font-weight:800;min-height:43px;border:0;border-radius:7px;background:#126f9d;color:#fff;cursor:pointer}
+.pcPositionDialog .pcPrimary:disabled{opacity:.6;cursor:wait}
+.pcPositionDialog details{padding:10px 0;border-top:1px solid #d1dde3}
+.pcPositionDialog details summary{font-size:11px;font-weight:650;color:#607782;cursor:pointer}
+.pcPositionDialog details button{margin-top:8px;font-size:11px}
+.pcPositionSuggestions{pointer-events:none;z-index:6}
+.pcPositionSuggestion{position:absolute;pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1px dashed #c57024;border-radius:3px;background:#fef3deed;color:#7a450e;box-shadow:0 1px 3px #0002;min-height:0;padding:0 2px;font-size:10px;font-weight:800;overflow:visible}
+.pcPositionSuggestion:focus-visible{outline:3px solid #126f9d;outline-offset:2px}
+.pcPositionSuggestion:hover,.pcPositionSuggestion:active{background:#f8d491;color:#173746}
+.pwViewer.noteMode .pcPositionSuggestion{pointer-events:none}
+.pcPositionEditor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px;padding:10px;background:white;border:1px solid #d7e0e4;border-radius:9px}
+.pcPositionEditor[hidden]{display:none}
+.pcPositionEditor label{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700}
+.pcPositionEditor label:nth-child(3){grid-column:1 / -1}
+.pcPositionEditor input,.pcPositionEditor select{font:inherit;font-size:13px;min-width:0;min-height:34px;padding:6px;border:1px solid #c0cfd6;border-radius:5px;background:white}
+.pcRemovePosition{grid-column:1 / -1;justify-self:end;font-size:10px;min-height:30px;color:#9c3434;background:#fff0f0;border:1px solid #deb8b8;border-radius:5px}
+.pcObjects .pcObject{border:1px solid #d1dde3;border-radius:7px;background:#fff;padding:8px;cursor:pointer}
+.pcObjects .pcObject:hover{background:#edf4f7}
+@media(max-width:520px){.pcPositionEditor{grid-template-columns:1fr}.pcPositionEditor label:nth-child(3){grid-column:1}.pcPositionDialog{width:calc(100vw - 12px)}}
+
+.pcPositionEditor #pcPositionInfo{grid-column:1 / -1;margin:0;font-size:11px}
+.pcProtocol[data-position-only="true"]>.pcBody>.pcMeta,.pcProtocol[data-position-only="true"] .pcProgress,.pcProtocol[data-position-only="true"] .pcAddPoint,.pcProtocol[data-position-only="true"] .pcNotes,.pcProtocol[data-position-only="true"] .pcActions,.pcProtocol[data-position-only="true"] #pcProtocolMessage{display:none}
+@media(max-width:520px){.pcPositionEditor #pcPositionInfo{grid-column:1}}
+
+.pcPositionDialog .pcSecondary{font-size:12px;font-weight:700;min-height:40px;border:1px solid #87a3b3;border-radius:7px;background:#fff;color:#174a64;cursor:pointer}
+.pcPositionSuggestions[data-pick="true"]{pointer-events:auto!important;cursor:crosshair;touch-action:none}
+.pcPositionPickBar{position:fixed;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(500px,calc(100vw - 22px));display:flex;align-items:center;gap:12px;background:#132b38;color:#fff;padding:12px;border-radius:12px;box-shadow:0 8px 28px #0005;z-index:9999;font-size:12px;font-weight:700}
+.pcPositionPickBar[hidden]{display:none!important}
+.pcPositionPickBar span{flex:1}
+.pcPositionPickBar button{background:#fff;color:#173746;border:0;border-radius:7px;padding:8px 14px;min-height:34px;font:inherit;cursor:pointer}

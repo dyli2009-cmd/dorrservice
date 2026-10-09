@@ -20,12 +20,13 @@ const server=http.createServer((req,res)=>{
   for(const mobile of [false,true]){
    const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1366,height:900},isMobile:mobile,hasTouch:mobile,acceptDownloads:true});await context.addInitScript(()=>{window.showSaveFilePicker=undefined;window.showOpenFilePicker=undefined;Object.defineProperty(navigator,'share',{value:undefined,configurable:true})});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto(url);await page.waitForFunction(()=>window.TillsynoCustomProtocols&&navigator.serviceWorker.controller&&document.querySelector('#tillsynoOfflineStatus')?.dataset.ready==='true');
-   await page.locator('#pcStart').click();
+   await page.locator('#pcStart').click();await page.locator('#pcOpenOld').click();
    const addRule=async(code,mode,title,points)=>{await page.locator('#pcNewRule').click();await page.locator('#pcCode').fill(code);await page.locator('#pcMatchMode').selectOption(mode);await page.locator('#pcTitle').fill(title);await page.locator('#pcPoints').fill(points);await page.locator('#pcRuleForm button[type=submit]').click()};
    await addRule('GZ','prefix','Egenkontroll GZ','1.1 Infästning\n1.2 Funktionsprov');
    await addRule('14-18','exact','Egenkontroll eget nummer','1.1 Kontroll av lås');
    assert.equal(await page.locator('.pcRule').count(),2);await page.locator('#pcClose').click();
    await page.locator('#pwFile').setInputFiles({name:'egna-koder.pdf',mimeType:'application/pdf',buffer:bytes});
+   await page.locator('#pcOpen').click();await page.locator('#pcOpenOld').click();await page.locator('#pcScan').click();
    await page.waitForFunction(()=>document.querySelectorAll('.pcCandidate').length===7);
    assert.equal(await page.locator('#pcCreate').isDisabled(),true,'review required before creating protocols');
    if(process.env.PROJECT_QA_DIR)await page.screenshot({path:path.join(process.env.PROJECT_QA_DIR,(mobile?'mobile':'desktop')+'-matches.png')});
@@ -43,7 +44,7 @@ const server=http.createServer((req,res)=>{
    const protoDownload=page.waitForEvent('download');await page.locator('#pcExport').click();const proto=await PDFDocument.load(fs.readFileSync(await(await protoDownload).path()));assert(proto.getPageCount()>0);
    if(process.env.PROJECT_QA_DIR)await page.screenshot({path:path.join(process.env.PROJECT_QA_DIR,(mobile?'mobile':'desktop')+'-protocol.png')});
    await page.locator('#pcBack').click();
-   await page.locator('#pcOpen').click();await page.locator('#pcScan').click();await page.waitForFunction(()=>document.querySelector('#pcMessage').textContent.includes('Inga nya träffar'));await page.locator('#pcClose').click();
+   await page.locator('#pcOpen').click();await page.locator('#pcOpenOld').click();await page.locator('#pcScan').click();await page.waitForFunction(()=>document.querySelector('#pcMessage').textContent.includes('Inga nya träffar'));await page.locator('#pcClose').click();
    const download=page.waitForEvent('download');await page.locator('#pwSaveProject').click();await page.locator('#pwSavePortable').click();portable=fs.readFileSync(await(await download).path());
    const saved=await PDFDocument.load(portable),data=JSON.parse(saved.catalog.get(PDFName.of('TillsynoProjectData')).decodeText());
    assert.equal(data.customProtocols.objects.length,6);assert.equal(data.customProtocols.rules.length,2);assert.equal(data.customProtocols.objects[0].points[1].note,'Behöver justeras');assert.equal(data.customProtocols.objects[0].signature,'AA');
@@ -60,6 +61,6 @@ const server=http.createServer((req,res)=>{
    assert.deepEqual(errors,[]);await context.close();console.log('PASS '+(mobile?'mobile':'desktop')+': own templates, exact/prefix matching, review, clickable protocols, portable PDF, offline recovery, new PDF matching, edits and export');
   }
   // Import on a fresh device: no local templates or project status required.
-  const fresh=await browser.newContext();const page=await fresh.newPage();await page.goto(url);await page.locator('#pwFile').setInputFiles({name:'projekt-sparat.pdf',mimeType:'application/pdf',buffer:portable});await page.waitForFunction(()=>document.querySelectorAll('.pcObject').length===6);await page.locator('.pcObject').first().click();await page.waitForFunction(()=>document.querySelector('#pcProtocol').open);assert.equal(await page.locator('#pcProgress').textContent(),'33%');assert.equal(await page.locator('#pcTechnician').inputValue(),'Avdyl');await page.locator('#pcBack').click();await page.locator('#pcOpen').click();assert.equal(await page.locator('.pcRule').count(),2);await fresh.close();console.log('PASS fresh device: rules and protocol state restored from project PDF');
+  const fresh=await browser.newContext();const page=await fresh.newPage();await page.goto(url);await page.locator('#pwFile').setInputFiles({name:'projekt-sparat.pdf',mimeType:'application/pdf',buffer:portable});await page.waitForFunction(()=>document.querySelectorAll('.pcObject').length===6);await page.locator('.pcObject').first().click();await page.waitForFunction(()=>document.querySelector('#pcProtocol').open);assert.equal(await page.locator('#pcProgress').textContent(),'33%');assert.equal(await page.locator('#pcTechnician').inputValue(),'Avdyl');await page.locator('#pcBack').click();await page.locator('#pcOpen').click();await page.locator('#pcOpenOld').click();assert.equal(await page.locator('.pcRule').count(),2);await fresh.close();console.log('PASS fresh device: rules and protocol state restored from project PDF');
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
 })().catch(error=>{console.error(error);server.close();process.exitCode=1});

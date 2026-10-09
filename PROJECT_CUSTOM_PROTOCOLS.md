@@ -54,3 +54,19 @@ För PDF-text prioriteras den uppmätta textpositionen framför en större över
 Alla Egna protokoll använder nu den befintliga dörrautomatikens A4-kundmallgenerator för Förhandsvisa kundmall och Spara protokoll PDF, med egen rubrik, identitet och kontrollpunkter. En okontrollerad punkt anges uttryckligen som Ej kontrollerad. Godkänn alla ändrar bara ännu ej bedömda punkter, så anmärkningar och redan gjorda bedömningar behålls. Dörrkorts-PDF inkluderar originalkortet som första sida och kundprotokollet efteråt.
 
 Denna version är framtagen på separat utvecklingsgren och bör testas med riktig projekt-PDF på dator, iPad och telefon innan den sammanfogas med main.
+
+## Förenklat flöde – Egna positioner (2.4.265)
+
+Det nya normala flödet är **Egna positioner**, inte Egna protokoll:
+
+1. Öppna en projekt-PDF. PDF-märkningen **DA** blir klickbar på den synliga ritningssidan när texten går att läsa.
+2. Klicka direkt på en märkning för att skapa en enskild projektposition, eller öppna **Egna positioner** och välj **Sök alla och skapa positioner** för att hitta alla fristående DA-märkningar på ritningssidorna.
+3. Positionerna sparas direkt med projektstatus; dubbletter på samma koordinater läggs inte till igen. De visas i projektets positionspanel.
+4. Öppna en position för att ändra dess märkning och placering, koppla någon av de befintliga kontrollmallarna, välja en valfri dörrkortssida i projektets PDF, granska eller exportera kundprotokoll.
+5. Spara projektet som PDF för att bädda in ändrade positioner, mallkopplingar och arbetsstatus. Lokalt kan informationen även lagras i appens sparade status.
+
+**Bakåtkompatibilitet:** äldre Egna protokoll finns kvar i projektdata och kan öppnas genom **Tidigare egna protokoll** i dialogen. Befintligt GS-flöde och automatikens egenkontroller är orörda. Data för äldre protokoll raderas inte. Normalt öppnas det gamla mallbyggarflödet inte automatiskt längre.
+
+**Begränsningar:** märkningar läses från PDF-text och annotationsetiketter; röd färg i sig identifieras inte. Skannade bild-PDF:er utan text kräver separat OCR, och automatisk koppling till ett visst dörrkort görs inte när koden inte är unik – ange i stället den länkade sidans nummer i positionens detaljer. Testa funktionerna i arbetsgrenen på riktig PDF innan uppdateringen förs över till produktion.
+
+**Bildritningar:** När DA inte har ett textlager använder du **Placera själv på ritningen**. Tryck på en eller flera platser med märkningen och avsluta med **Klart**. Detta kräver ingen OCR och lämnar original-PDF:n oförändrad. Automatisk sökning förutsätter fortfarande läsbar PDF-text eller en PDF-annotation med DA som etikett.
