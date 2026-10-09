@@ -10,7 +10,7 @@ const labStorage={
 let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0,labColorFirstPositions=0,labFallbackPositions=0,labDiagnosticSpot=null,labDiagnosticSequence=0;
 let smartDoorCardIndex={},smartDoorCardPages=new Set(),smartScanStats={};
 let smartDoorCardFirstRows={},smartCardFirstTextHits=0;
-let smartBaseDrawingFile=null,smartAdditionalCardsFile=null;
+let smartBaseDrawingFile=null,smartAdditionalCardsFile=null,smartImportedCardPages=new Set(),smartImportReport={files:0,pages:0,recognized:0,unrecognized:0};
 let scanCardCodes=new Set(),scanPageEligibility=new Map();
 // Beteckningar användaren valt att ignorera återkommer inte efter ny PDF-analys.
 let ignoredCodes=new Set();
@@ -255,11 +255,13 @@ function save(){
  return payload;
 }
 async function readEmbeddedProjectState(){
- scanOriginalPageCount=0;
+ scanOriginalPageCount=0;smartImportedCardPages=new Set();
  try{
   const {PDFDocument,PDFName}=PDFLib;
   const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
   scanOriginalPageCount=Number(doc.catalog.get(PDFName.of('SmartMatch21OriginalPages'))?.asNumber?.()||0);
+  const imported=decodePdfText(doc.catalog.get(PDFName.of('SmartMatch24ImportedCards'))||'');
+  smartImportedCardPages=new Set(imported.split(',').map(Number).filter(n=>Number.isInteger(n)&&n>0));
   const raw=doc.catalog.get(PDFName.of('TillsynoSmartMatchV24Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV23Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV22Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV21Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV20Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV19Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV18Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV17Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV16Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV15Data'))||doc.catalog.get(PDFName.of('TillsynoSmartMatchV13Data'));
   if(!raw)return {};
   const json=decodePdfText(raw);
@@ -1518,7 +1520,8 @@ async function smartIndexDoorCardsFirst(){
  for(let p=1;p<=scanPageLimit();p++){
   setState('SmartMatch TEST v24: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
-  if(/(?:PLANRITNING|PLAN\s*RITNING|SKALA\s*1\s*:)/i.test(text.raw)&&
+  const importedDoorCard=smartImportedCardPages.has(p);
+  if(!importedDoorCard&&/(?:PLANRITNING|PLAN\s*RITNING|SKALA\s*1\s*:)/i.test(text.raw)&&
      !/(?:DÖRRKORT|DORRKORT|BESLAGSKORT|DÖRRSPECIFIKATION|EGENKONTROLL)/i.test(text.raw))continue;
   const height=pg.getViewport({scale:1}).height;
   const first=smartFirstCardIdentity(text,height);
@@ -1527,7 +1530,7 @@ async function smartIndexDoorCardsFirst(){
   const strongCardPattern=/(?:DÖRRKORT|DORRKORT|BESLAGSKORT|DÖRRSPECIFIKATION|EGENKONTROLL)/i.test(text.raw);
   const hasHardware=/(?:LÅSHUS|LASHUS|SLUTBLECK|CYLINDER|DAGLÅSNING|DAGLASNING|TRYCKE)/i.test(text.raw);
   const drawing=/(?:PLANRITNING|PLAN\s*RITNING|SKALA\s*1\s*:)/i.test(text.raw)&&!strongCardPattern;
-  const isCard=!drawing&&(eligible||(!!first&&strongCardPattern&&hasHardware));
+  const isCard=importedDoorCard||(!drawing&&(eligible||(!!first&&strongCardPattern&&hasHardware)));
   if(!isCard)continue;
   smartDoorCardPages.add(p);
   if(!first){uncertain.push({page:p,reason:'ingen entydig identifieringsrad'});continue}
@@ -1535,6 +1538,8 @@ async function smartIndexDoorCardsFirst(){
   pages.push(p);smartDoorCardIndex[code]=pages;
   smartDoorCardFirstRows[p]={code,row:first.row,area:first.area};
  }
+ smartImportReport.recognized=[...smartImportedCardPages].filter(p=>smartDoorCardFirstRows[p]?.code).length;
+ smartImportReport.unrecognized=Math.max(0,smartImportedCardPages.size-smartImportReport.recognized);
  smartScanStats={
   cards:Object.values(smartDoorCardIndex).reduce((n,pages)=>n+pages.length,0),
   cardCodes:Object.keys(smartDoorCardIndex).length,
@@ -3630,17 +3635,28 @@ async function fitDrawing(){
  scale=Math.max(.25,Math.min(2.5,(el.viewer.clientWidth-12)/vp.width,(el.viewer.clientHeight-12)/vp.height));await renderDrawing();
 }
 async function smartMergeDrawingWithCards(drawingFile,cardsFiles){
- const doc=await PDFLib.PDFDocument.create();
- for(const file of [drawingFile,...(Array.isArray(cardsFiles)?cardsFiles:[cardsFiles]).filter(Boolean)]){
-  const input=await PDFLib.PDFDocument.load(new Uint8Array(await file.arrayBuffer()),{ignoreEncryption:true,updateMetadata:false});
-  const pages=await doc.copyPages(input,input.getPageIndices());
-  for(const page of pages)doc.addPage(page);
- }
- const output=await doc.save({useObjectStreams:false});
- return new File([output],fileStem(drawingFile.name)+'-med-dorrkort-v24.pdf',{type:'application/pdf'});
+ const {PDFDocument,PDFName,PDFString,PDFHexString}=PDFLib;
+ const doc=await PDFDocument.create();
+ const importedPages=[],cards=(Array.isArray(cardsFiles)?cardsFiles:[cardsFiles]).filter(Boolean);
+ const copy=async(file,isCard)=>{
+  const input=await PDFDocument.load(new Uint8Array(await file.arrayBuffer()),{ignoreEncryption:true,updateMetadata:false});
+  const copies=await doc.copyPages(input,input.getPageIndices());
+  for(const page of copies){
+   doc.addPage(page);
+   if(isCard)importedPages.push(doc.getPageCount());
+  }
+ };
+ await copy(drawingFile,false);
+ for(const file of cards)await copy(file,true);
+ // The merged PDF has a different byte hash. Persist work-state IN it, so
+ // existing placed markers, ticked rows and customer information survive.
+ const payload=makeProjectPayload();
+ doc.catalog.set(PDFName.of('TillsynoSmartMatchV24Data'),PDFHexString.fromText(JSON.stringify(payload)));
+ doc.catalog.set(PDFName.of('SmartMatch24ImportedCards'),PDFString.of(importedPages.join(',')));
+ const output=await doc.save({useObjectStreams:true});
+ return {file:new File([output],fileStem(drawingFile.name)+'-med-dorrkort-v24.pdf',{type:'application/pdf'}),
+  importedPages,cardFiles:cards.length};
 }
-
-
 
 function smartRenderFirstCardReport(){
  const title=document.getElementById('smartCardFirstTitle'),target=document.getElementById('smartCardFirstRows');
@@ -3776,13 +3792,15 @@ document.getElementById('smartCardsFile').onchange=async e=>{
  smartAdditionalCardsFile=[...(Array.isArray(smartAdditionalCardsFile)?smartAdditionalCardsFile:[]),...cards];currentFileHandle=null;
  try{setState('Sammanfogar ritningar och dörrkort lokalt…');
   const merged=await smartMergeDrawingWithCards(smartBaseDrawingFile,smartAdditionalCardsFile);
-  await analyze(merged);
+  await analyze(merged.file);
+  smartImportReport.files=merged.cardFiles;smartImportReport.pages=merged.importedPages.length;
   const note=document.getElementById('smartCardsNote');
-  if(note)note.textContent=smartAdditionalCardsFile.length+' dörrkorts-PDF sammanfogade (alla sidor ingår).';
+  if(note)note.textContent=merged.cardFiles+' PDF-filer · '+merged.importedPages.length+' tillagda sidor · '+smartImportReport.recognized+' identifierade dörrkort'+(smartImportReport.unrecognized?' · '+smartImportReport.unrecognized+' utan läsbart ID (kan kopplas manuellt)':'')+'.';
+  setState('Dörrkort-PDF inlästa: '+smartImportReport.recognized+' identifierade kort av '+merged.importedPages.length+' sidor · '+matchedProjectInstances().length+' ritningspositioner kopplade.');
   e.target.value='';
  }catch(err){console.error(err);setState('Kunde inte kombinera PDF-filerna: '+(err?.message||err))}
 };
-el.file.onchange=e=>{const file=e.target.files?.[0];if(file){smartBaseDrawingFile=file;smartAdditionalCardsFile=null;currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
+el.file.onchange=e=>{const file=e.target.files?.[0];if(file){smartBaseDrawingFile=file;smartAdditionalCardsFile=null;smartImportedCardPages=new Set();currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
 el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=toggleSaveMenu;
 el.savePortable.onclick=savePortableProject;
