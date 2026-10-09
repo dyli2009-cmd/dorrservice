@@ -7,8 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v23</title>
-<link rel="stylesheet" href="project-workspace-smartmatch-v23.css?v=23-1">
+<title>Projektflöde SmartMatch – TEST v24</title>
+<link rel="stylesheet" href="project-workspace-smartmatch-v24.css?v=24-1">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -54,7 +54,7 @@
 }
 </style>
 <style>
-/* TEST v23: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
+/* TEST v24: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
 .smartReportsDialog{width:min(850px,96vw);height:min(88dvh,880px);max-height:88dvh;overflow:auto;padding:12px 14px;border-radius:12px}
 .smartReportsDialog .labDiagnosticHead{position:sticky;top:-12px;z-index:10;padding:10px 0 8px;background:#fff;border-bottom:1px solid #d7e5ed}
 .smartReportsList{display:grid;gap:9px;padding-bottom:12px}
@@ -103,7 +103,7 @@
  .pwPositionMore>.pmRow{right:-2px;min-width:166px}
 }
 
-/* v23: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
+/* v24: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
 .labDiagnosticDialog.smartReportsDialog{width:min(610px,94vw);height:auto;max-height:82dvh;padding:10px 12px;overflow:auto}
 .labDiagnosticDialog.smartReportsDialog .labDiagnosticHead{align-items:center}
 .labDiagnosticDialog.smartReportsDialog #labDiagnosticClose{display:grid!important;place-items:center!important;text-align:center!important;padding:0!important;line-height:1!important;min-width:33px;height:33px}
@@ -115,7 +115,7 @@
  .pwProtocol.pwMobileChecks .pwChecklistPane{height:100%;overflow:auto}
 }
 
-/* SmartMatch TEST v23 – skrivbordsmus bara på originaldörrkortet. */
+/* SmartMatch TEST v24 – skrivbordsmus bara på originaldörrkortet. */
 .pwProtocolMouseHint{display:none;color:#607987;font-size:9px;line-height:1.25}
 .pwProtocolToolTitle{display:flex;flex-direction:column;gap:2px;min-width:0}
 @media(hover:hover) and (pointer:fine){
@@ -124,20 +124,49 @@
   #pwProtocolCanvasWrap.isMousePanning,#pwProtocolCanvasWrap.isMousePanning canvas{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
   .pwProtocolMouseHint{display:block}
 }
+
+/* TEST v24: mindre knappar och kompaktare dörrkortskontroller */
+.smartCardsTools{gap:5px!important;padding:5px 8px!important;min-height:0!important}
+.smartCardsTools button,.smartCardsTools #labDiagnoseOpen,.smartCardsTools #smartAddCards{font-size:10px!important;padding:5px 8px!important;min-height:27px!important;line-height:1.2!important;border-radius:7px!important}
+.smartCardsTools #smartCardsNote{font-size:9px!important;line-height:1.3!important}
+.pwHeaderActions .pwSaveWrap > #pwSaveProject{font-size:11px!important;min-height:28px!important;padding:5px 9px!important}
+.pwSaveMenu button{padding:7px 9px!important;min-height:0!important;gap:2px!important}
+.pwSaveMenu button strong{font-size:11px!important}
+.pwSaveMenu button small{font-size:9px!important;line-height:1.2!important}
+.pwProtocolIdentity>span{font-size:9px!important}
+.pwProtocolIdentity>strong{font-size:14px!important}
+.pwProtocolIdentity>small{font-size:9px!important}
+.pwProtocol .pwProtocolTools strong{font-size:10px!important}
+.pwProtocol .pwProtocolZoomTools button{font-size:10px!important;padding:4px 6px!important}
+.pwProtocol .pwChecklistHead>div>span{font-size:8px!important}
+.pwProtocol .pwChecklistHead strong{font-size:11px!important}
+.pwProtocol .pwChecklistHeadActions{display:flex!important;flex-wrap:wrap!important;gap:4px!important;align-items:center}
+.pwProtocol .pwChecklistHeadActions button{font-size:9px!important;min-height:27px!important;padding:4px 6px!important}
+.pwProtocol .pwChecklistIntro{font-size:10px!important}
+.pwProtocol .pwCheckRow{gap:4px!important;padding:5px!important}
+.pwProtocol .pwCheckContent strong{font-size:10px!important}
+.pwProtocol .pwCheckContent small,.pwProtocol .pwCheckTime{font-size:9px!important}
+.smartExportActions{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:620px){
+ .smartCardsTools{flex-wrap:wrap;gap:4px!important}
+ .smartCardsTools #smartCardsNote{flex:1 0 100%}
+ .pwProtocol .pwChecklistHeadActions button{font-size:9px!important;padding:4px 5px!important}
+}
 </style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 23">· TEST v23</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
+  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 24">· TEST v24</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
   <div class="pwHeaderActions">
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
-        <button id="pwSavePortable" type="button"><strong>Granska & optimera PDF</strong><small>Kontrollera filstorlek före mejl eller delning. Välj kompakt eller fullständig PDF.</small></button>
-        <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Öppna PDF-granskning och välj fil att spara eller dela.</small></button>
-        <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar en kopia av PDF-filen utan nya statusändringar.</small></button>
-        <button id="pwSaveSelfchecks" type="button" hidden><strong>Egenkontroller PDF</strong><small>Välj vilka dörrautomatiker som ska sparas som kundprotokoll.</small></button>
+        <button id="pwSavePortable" type="button"><strong>Spara objekt</strong><small>Spara tillbaka i filen som öppnades (dator).</small></button>
+        <button id="pwSaveLocal" type="button"><strong>Spara lokalt</strong><small>Ladda ner eller spara i Filer.</small></button>
+        <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Välj filnamn och plats.</small></button>
+        <button id="pwSavePdfCopy" type="button"><strong>PDF-kopia</strong><small>Skapa en oförändrad kopia av öppnad PDF.</small></button>
+        <button id="pwSaveCopy" type="button"><strong>Skicka mejl</strong><small>Granska storlek och bifoga med din mejlapp.</small></button>
       </div>
     </div>
   </div>
@@ -147,7 +176,7 @@
 <div class="smartCardsTools">
   <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
   <button id="smartAddCards" type="button" title="Lägg till en eller flera PDF-filer med dörrkort">+ Lägg till dörrkort-PDF</button>
-  <span id="smartCardsNote">Välj en eller flera dörrkorts-PDF:er, med valfritt antal sidor.</span>
+  <span id="smartCardsNote">Lägg till en eller flera PDF-filer. Antal hittade dörrkort visas här.</span>
   <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
 </div>
 <section class="pwProjectBar">
@@ -189,15 +218,15 @@
             <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
           </g>
           <g class="pwProjectMarks">
-            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v23"/>
-            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v23"/>
-            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v23"/>
+            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v24"/>
+            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v24"/>
+            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v24"/>
           </g>
         </svg>
       </div>
       <div class="pwEmptyCard">
         <div class="pwEmptyMark" aria-hidden="true">
-          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V23h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
+          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V24h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
         </div>
         <h1>Projektflöde</h1>
         <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
@@ -296,7 +325,7 @@
     <aside class="pwChecklistPane">
       <div class="pwChecklistHead">
         <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
-        <div class="pwChecklistHeadActions"><button id="pwProtocolBackToCard" type="button">← Dörrkort</button><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
+        <div class="pwChecklistHeadActions"><button id="pwProtocolBackToCard" type="button">← Dörrkort</button><small id="pwChecklistMeta">0 punkter</small><button id="pwChecklistMarkAll" type="button">✓ Markera alla</button><button id="pwChecklistClearAll" type="button">Avmarkera</button><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
       </div>
       <p class="pwChecklistIntro">En avbockning per arbetsmoment från originalet. Ändra, anteckna eller lägg till en kontrollpunkt vid behov.</p>
       <div id="pwChecklist" class="pwChecklist"></div>
@@ -434,7 +463,7 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v23</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div><small>SMARTMATCH · TEST v24</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
   <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
  <p class="labDiagnosticIntro">Sammanfattning av PDF-skanning och dörrkort. Öppna respektive rubrik för mer detaljer.</p><div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
@@ -482,7 +511,7 @@
 
 <dialog id="smartExportDialog" class="smartExportDialog" aria-labelledby="smartExportTitle">
  <div class="smartExportHeader">
-  <div><small>SMARTMATCH · TEST v23</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
+  <div><small>SMARTMATCH · TEST v24</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
   <button id="smartExportClose" type="button" title="Stäng" aria-label="Stäng PDF-granskningen">×</button>
  </div>
  <p class="smartExportIntro">Välj filstorlek innan du sparar eller delar. Ritningens text och originaldörrkort bevaras i PDF-format, utan omvandling till suddiga bilder.</p>
@@ -499,12 +528,14 @@
  <div class="smartExportActions">
   <button id="smartExportBuild" type="button" class="smartExportPrimary">Optimera & beräkna storlek</button>
   <button id="smartExportPreview" type="button" disabled>Förhandsgranska PDF</button>
-  <button id="smartExportShare" type="button" disabled>Spara / dela</button>
-  <button id="smartExportDownload" type="button" disabled>Ladda ner</button>
+  <button id="smartExportSaveObject" type="button" disabled>Spara objekt</button>
+  <button id="smartExportDownload" type="button" disabled>Spara lokalt</button>
+  <button id="smartExportSaveAs" type="button" disabled>Spara som…</button>
+  <button id="smartExportShare" type="button" disabled>Skicka mejl</button>
  </div>
  <p class="smartExportNote">Många mejltjänster har gränsen 25 MB, och mejlbilagor kan växa vid överföring. Sikta på ungefär 18 MB eller mindre. Om filen ändå är för stor kan du dela en molnlänk i stället.</p>
 </dialog>
-<script src="project-workspace-smartmatch-v23.js?v=23-1"></script>
+<script src="project-workspace-smartmatch-v24.js?v=24-1"></script>
 
 </body>
 </html>
