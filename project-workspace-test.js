@@ -6,7 +6,7 @@ const labStorage={
  setItem:(key,value)=>localStorage.setItem(LAB_PREFIX+String(key),value),
  removeItem:key=>localStorage.removeItem(LAB_PREFIX+String(key))
 };
-let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0;
+let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0;
 
 const $=id=>document.getElementById(id);
 const el={
@@ -478,12 +478,91 @@ async function extractStamps(){
  return out;
 }
 // SÖKLABB: endast markerad, läsbar text. Ingen fristående GS-textskanning.
+
 function labCodeFromMark(value){
- const raw=String(value||'').toUpperCase().replace(/\s+/g,' ').trim();
+ const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').replace(/\s+/g,' ').trim();
+ if(!raw)return '';
+ // GS 3, G S 3, GS/3 och GS / 3 ska alltid bli samma nyckel: GS3.
+ const withSeparators=raw.match(/(?:^|[^A-ZÅÄÖ0-9])G[\s/_-]*S[\s/_-]*([0-9]{1,6}[A-ZÅÄÖ0-9]{0,6})(?=$|[^A-ZÅÄÖ0-9])/);
+ if(withSeparators)return 'GS'+withSeparators[1];
  const gs=normalizeCode(raw);if(gs)return gs;
  const tokens=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];
  const codes=[...new Set(tokens.filter(t=>/^(?:[A-ZÅÄÖ]{0,4}[0-9]{1,6}[A-ZÅÄÖ]{0,4})$/.test(t)))];
  return codes.length===1?codes[0]:'';
+}
+function labColorAtRect(bitmap,rect){
+ // Parse visual color under/around the PDF text. Works for graphics as well as annotations.
+ const x1=Math.max(0,Math.floor(rect.left)),y1=Math.max(0,Math.floor(rect.top));
+ const x2=Math.min(bitmap.width,Math.ceil(rect.left+rect.width));
+ const y2=Math.min(bitmap.height,Math.ceil(rect.top+rect.height));
+ const w=x2-x1,h=y2-y1;
+ if(w<2||h<2)return false;
+ const step=Math.max(1,Math.floor(Math.sqrt(w*h/2000)));
+ let tested=0,colored=0;
+ const d=bitmap.data,width=bitmap.width;
+ for(let y=y1;y<y2;y+=step)for(let x=x1;x<x2;x+=step){
+  const at=(y*width+x)*4,r=d[at],g=d[at+1],b=d[at+2],alpha=d[at+3];
+  if(alpha<190)continue;
+  tested++;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  if(max>115&&(max-min)>=24&&(max-min)/Math.max(max,1)>.09)colored++;
+ }
+ return tested>0&&colored>=Math.max(2,Math.ceil(tested*.075));
+}
+function labPrintedCodeCandidates(items){
+ const out=[],seen=new Set();
+ for(const row of groupTextRowsForAutomation(items)){
+  const ordered=[...row.items].sort((a,b)=>a.x-b.x);
+  for(let start=0;start<ordered.length;start++){
+   for(let end=start;end<Math.min(start+5,ordered.length);end++){
+    const slice=ordered.slice(start,end+1);
+    if(!gsItemsCloseEnough(slice))break;
+    const joined=slice.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+    if(joined.length>40)break;
+    const code=labCodeFromMark(joined);
+    if(!code)continue;
+    const rect=rectForTextItems(slice,1);
+    if(!rect)continue;
+    const key=code+'@'+Math.round(rect[0])+'@'+Math.round(rect[1]);
+    if(seen.has(key))continue;
+    seen.add(key);out.push({code,rect,label:joined});
+    // Shortest label wins; don't swallow neighbouring labels into a single position.
+    break;
+   }
+  }
+ }
+ return out;
+}
+async function extractLabGraphicPositions(already=[]){
+ const out=[];labGraphicsCandidates=0;labGraphicPositions=0;
+ for(let p=1;p<=pdf.numPages;p++){
+  const text=await readPageText(p);
+  if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
+  const possible=labPrintedCodeCandidates(text.items).filter(o=>!gsPositionDuplicate([...already,...out],p,o.code,o.rect));
+  if(!possible.length)continue;
+  labGraphicsCandidates+=possible.length;
+  const pg=await pdf.getPage(p),natural=pg.getViewport({scale:1});
+  // Cap raster memory on large drawings.
+  const scale=Math.min(1.2,Math.sqrt(2600000/Math.max(1,natural.width*natural.height)),2200/natural.width,2200/natural.height);
+  const vp=pg.getViewport({scale:Math.max(.02,scale)});
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx)continue;
+  canvas.width=Math.max(1,Math.ceil(vp.width));canvas.height=Math.max(1,Math.ceil(vp.height));
+  try{
+   const task=pg.render({canvasContext:ctx,viewport:vp});
+   await task.promise;
+   const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+   for(const candidate of possible){
+    const drawn=viewportRect(vp,candidate.rect);
+    if(!labColorAtRect(pixels,drawn))continue;
+    if(gsPositionDuplicate([...already,...out],p,candidate.code,candidate.rect))continue;
+    out.push({...candidate,page:p,order:200000+out.length,sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',subtype:'colored-pdf-graphic'});
+   }
+  }catch(error){console.warn('Kunde inte analysera färg i ritning på sida '+p,error)}
+  finally{canvas.width=0;canvas.height=0}
+ }
+ labGraphicPositions=out.length;
+ return out;
 }
 async function extractLabMarkedPositions(){
  const {PDFDocument,PDFName,PDFDict}=PDFLib;
@@ -497,24 +576,28 @@ async function extractLabMarkedPositions(){
    if(!dict)continue;
    const subtype=decodePdfText(dict.get(PDFName.of('Subtype'))).replace('/','');
    if(!['Highlight','Stamp','Square','FreeText'].includes(subtype))continue;
-   // Rektanglar och fritext måste ha en uttrycklig färguppgift.
    if(['Square','FreeText'].includes(subtype)&&!dict.get(PDFName.of('C'))&&!dict.get(PDFName.of('IC')))continue;
    const rect=rectFromAnnotation(dict);if(!rect)continue;
    labSourceMarkCount++;
    const under=await rawProjectStampText(index+1,rect);
    const meta=annotationProjectText(dict);
-   const code=labCodeFromMark(under)||stampCode(dict)||labCodeFromMark(meta);
+   const code=labCodeFromMark(under)||labCodeFromMark(stampCode(dict))||labCodeFromMark(meta);
    if(!code){labUnreadableMarks++;continue}
    candidates.push({page:index+1,code,rect,order:j,sourceKind:code.startsWith('GS')?'gs':'project-code',label:under||meta,subtype});
   }
  }
- // A colored mark and a stamp in the same place represent one position.
- const result=[];for(const mark of candidates){
+ const result=[];
+ for(const mark of candidates){
   if(gsPositionDuplicate(result,mark.page,mark.code,mark.rect))continue;
   result.push(mark);
  }
- return result;
+ // Viktigt: färgad text / gula PDF-rektanglar kan vara inritade som grafik,
+ // inte som en annotation. Titta även på färgen i den faktiska ritningsbilden.
+ setState('Projektflöde test: hittar även markerad text i ritningens grafik…');
+ const graphic=await extractLabGraphicPositions(result);
+ return [...result,...graphic];
 }
+
 function labHeaderRows(text){
  const items=(text?.items||[]).slice().sort((a,b)=>b.y-a.y||a.x-b.x),rows=[];
  for(const item of items){
@@ -2217,8 +2300,8 @@ async function analyze(file){
  const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=0;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!projectStamps.length)setState('Inga läsbara projektmarkeringar hittades i den här PDF-filen.');
- else setState('Projektflöde test: '+instances.length+' markerade positioner · '+matchedPositions+' kopplade till dörrkort'+restored+'.');
+ if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
+ else setState('Projektflöde test: '+instances.length+' markerade positioner (varav '+labGraphicPositions+' från inritad färg) · '+matchedPositions+' kopplade till dörrkort'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
