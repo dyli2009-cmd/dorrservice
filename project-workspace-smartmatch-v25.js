@@ -282,6 +282,42 @@ async function readEmbeddedProjectState(){
 /* Compact exporter shares each original door-card page instead of duplicating it
    for every marked position. If a card has multiple drawing locations, its
    'Till ritning' link opens a small clickable list of those locations. */
+/* Remove orphaned page/resource objects left by prior per-door copies and
+   replaced index pages. Reachability is traced from the PDF trailer/catalog,
+   so referenced fonts, images, annotations and original page streams remain. */
+function smartCompactPruneUnreachablePdfObjects(doc){
+ const {PDFRef,PDFDict,PDFArray,PDFStream}=PDFLib,ctx=doc.context;
+ const roots=Object.values(ctx.trailerInfo||{}).filter(Boolean);
+ const reachable=new Set(),visited=new WeakSet(),queue=[...roots];
+ while(queue.length){
+  const item=queue.pop();
+  if(!item)continue;
+  if(item instanceof PDFRef){
+   const id=item.toString();
+   if(reachable.has(id))continue;
+   reachable.add(id);
+   const target=ctx.lookup(item);if(target)queue.push(target);
+   continue;
+  }
+  if(typeof item!=='object'||visited.has(item))continue;
+  visited.add(item);
+  if(item instanceof PDFArray){
+   for(const child of item.asArray())queue.push(child);
+  }else if(item instanceof PDFStream){
+   queue.push(item.dict);
+  }else if(item instanceof PDFDict){
+   for(const entry of item.entries())queue.push(entry[1]);
+  }
+ }
+ const root=ctx.trailerInfo?.Root;
+ if(!root||!reachable.has(String(root)))return 0;
+ let removed=0;
+ for(const [ref] of ctx.enumerateIndirectObjects()){
+  if(!reachable.has(ref.toString())){ctx.delete(ref);removed++}
+ }
+ return removed;
+}
+
 async function appendCompactProjectPdf(doc){
  const {PDFName,PDFNumber,PDFString,StandardFonts,rgb}=PDFLib;
  const extraKeys=['SmartMatch23ExtraPages','SmartMatch21ExtraPages','SmartMatch18ExtraPages','SmartMatch17ExtraPages'];
@@ -295,6 +331,27 @@ async function appendCompactProjectPdf(doc){
  }
  const originalCount=doc.getPageCount();
  const originalPages=Array.from({length:originalCount},(_,i)=>doc.getPage(i));
+ // v24/v25 exported buttons were painted onto the source card page.
+ // Preserve them once rather than painting another identical label on each save.
+ const previouslyLabeled=new Set(
+  String(doc.catalog.get(PDFName.of('SmartMatch25LabeledCards'))?.decodeText?.()||'')
+   .split(',').map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=originalCount)
+ );
+ for(const [i,page] of originalPages.entries()){
+  const annotArray=page.node.Annots?.();
+  if(!annotArray)continue;
+  for(const ref of annotArray.asArray()){
+   try{
+    const annot=doc.context.lookup(ref);
+    const name=annot?.get?.(PDFName.of('NM'))?.decodeText?.()||'';
+    if(!/^SM(?:23|25):/.test(name))continue;
+    const rect=annot?.get?.(PDFName.of('Rect'));
+    const x=rect?.get?.(0)?.asNumber?.(),y=rect?.get?.(1)?.asNumber?.();
+    if(Number.isFinite(x)&&Number.isFinite(y)&&Math.abs(x-6)<1&&Math.abs(y-5)<1)
+     previouslyLabeled.add(i+1);
+   }catch(_){}
+  }
+ }
  // Strip generated links (and dangling links) without touching original PDF content.
  for(const page of originalPages){
   const array=page.node.Annots?.();if(!array)continue;
@@ -302,7 +359,7 @@ async function appendCompactProjectPdf(doc){
    try{
     const annot=doc.context.lookup(ref);
     const name=annot?.get?.(PDFName.of('NM'))?.decodeText?.()||'';
-    if(/^SM(?:17|18|21|23):/.test(name))return false;
+    if(/^SM(?:17|18|21|23|25):/.test(name))return false;
     const action=doc.context.lookup(annot?.get?.(PDFName.of('A')));
     const destination=doc.context.lookup(action?.get?.(PDFName.of('D')));
     return !removedRefs.has(String(destination?.get?.(0)));
@@ -316,7 +373,7 @@ async function appendCompactProjectPdf(doc){
   const [x1,y1,x2,y2]=rect.map(Number);
   const dest=point?[target.ref,PDFName.of('XYZ'),Math.max(0,point[0]),Math.max(0,point[1]),null]:[target.ref,PDFName.of('Fit')];
   const ann=doc.context.obj({
-   Type:'Annot',Subtype:'Link',NM:PDFString.of('SM23:'+(++sequence)),
+   Type:'Annot',Subtype:'Link',NM:PDFString.of('SM25:'+(++sequence)),
    Rect:[Math.min(x1,x2),Math.min(y1,y2),Math.max(x1,x2),Math.max(y1,y2)],
    Border:[0,0,0],A:{S:'GoTo',D:dest}
   });
@@ -385,14 +442,18 @@ async function appendCompactProjectPdf(doc){
   const text='TILL RITNING  |  '+rows.length+' position'+(rows.length===1?'':'er');
   const boxWidth=Math.min(w-14,Math.max(128,font.widthOfTextAtSize(text,8.5)+15));
   if(boxWidth<60)continue;
-  page.drawRectangle({x:6,y:5,width:boxWidth,height:23,color:rgb(1,1,1),borderColor:rgb(.26,.53,.67),borderWidth:1});
-  page.drawText(text,{x:12,y:13,size:8.5,font,color:rgb(.05,.31,.47)});
+  if(!previouslyLabeled.has(cardIndex+1)){
+   page.drawRectangle({x:6,y:5,width:boxWidth,height:23,color:rgb(1,1,1),borderColor:rgb(.26,.53,.67),borderWidth:1});
+   page.drawText(text,{x:12,y:13,size:8.5,font,color:rgb(.05,.31,.47)});
+   previouslyLabeled.add(cardIndex+1);
+  }
   const target=rows.length===1?originalPages[rows[0].page-1]:cardReturnTargets.get(cardIndex)?.page;
   if(!target)continue;
   const position=rows.length===1?[Math.max(0,rows[0].rect[0]-35),Math.min(target.getHeight(),rows[0].rect[3]+90)]:null;
   link(page,[6,5,6+boxWidth,28],target,position);
  }
  doc.catalog.set(PDFName.of('SmartMatch21OriginalPages'),PDFNumber.of(originalCount));
+ doc.catalog.set(PDFName.of('SmartMatch25LabeledCards'),PDFString.of([...previouslyLabeled].sort((a,b)=>a-b).join(',')));
  doc.catalog.set(PDFName.of('SmartMatch23ExtraPages'),PDFNumber.of(pagesAdded));
  doc.catalog.set(PDFName.of('SmartMatch21ExtraPages'),PDFNumber.of(0));
  return {originalPages:originalCount,extraPages:pagesAdded,cards:byCard.size,positions:linked.length};
@@ -405,6 +466,8 @@ async function buildPortableProjectPdf(){
  doc.catalog.set(PDFName.of('TillsynoSmartMatchV25Data'),PDFHexString.fromText(JSON.stringify(payload)));
  doc.catalog.set(PDFName.of('TillsynoSmartMatchV25Schema'),PDFString.of('1'));
  await appendCompactProjectPdf(doc);
+ const orphansRemoved=smartCompactPruneUnreachablePdfObjects(doc);
+ if(orphansRemoved)console.info('[SmartMatch v25] tog bort gamla oanvända PDF-objekt:',orphansRemoved);
  const saved=await doc.save({useObjectStreams:true});
  embeddedState=payload;
  // Behåll originalfilen i arbetsminnet; den separata PDF:en innehåller länkarna.
