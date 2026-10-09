@@ -798,14 +798,14 @@ function smartDoorCardSignals(raw,headerCodes=[]){
  const text=String(raw||'');
  const named=/(?:dörrkort|dorrkort|beslagskort|beslagsförteckning|dörrspecifikation|dorrspecifikation)/i.test(text);
  const heading=/(?:littera|dörrnummer|dorrnummer|dörrnr|dorrnr|antal)/i.test(text);
- const hardware=/(?:daglåsning|daglasning|nattlåsning|nattlasning|låshus|lashus|slutbleck|cylinderbehör|cylinderbehor|trycke|beslag|styrbleck)/i.test(text);
+ const hardware=/(?:daglåsning|daglasning|nattlåsning|nattlasning|låshus|lashus|slutbleck|cylinder|trycke|beslag|styrbleck)/i.test(text);
  const controls=/(?:egenkontroll|besiktning|provning|kontrollpunkt|kontrollpunkter)/i.test(text);
  const gsCode=headerCodes.some(code=>/^GS\d/.test(code));
  const equipmentGroups=['låshus','lashus','slutbleck','cylinder','trycke','beslag','styrbleck','daglås','daglas','nattlås','nattlas'].filter(word=>text.toLowerCase().includes(word)).length;
  if(/\b(?:PLANRITNING|PLAN\s*RITNING|SKALA\s*1\s*:)\b/i.test(text)&&!named&&!controls&&!heading)return false;
  return (named&&(hardware||heading||controls))||
   (heading&&hardware&&(controls||/låsning|lasning/i.test(text)))||
-  (gsCode&&hardware&&(controls||heading||equipmentGroups>=2));
+  (gsCode&&hardware&&(controls||equipmentGroups>=2));
 }
 
 async function smartIndexDoorCardsFirst(){
