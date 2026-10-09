@@ -2739,6 +2739,42 @@ async function smartMergeDrawingWithCards(drawingFile,cardsFile){
  return new File([output],fileStem(drawingFile.name)+'-med-dorrkort-v11.pdf',{type:'application/pdf'});
 }
 
+
+function smartRenderGSReport(){
+ const container=document.getElementById('smartGSReportBody');
+ const caption=document.getElementById('smartGSReportTitle');
+ if(!container||!caption)return;
+ container.replaceChildren();
+ const counts={},linked={};
+ for(const stamp of stamps){
+  if(!/^GS\d/.test(stamp.code))continue;
+  counts[stamp.code]=(counts[stamp.code]||0)+1;
+  if((protocolCandidates[stamp.code]||[]).length)linked[stamp.code]=(linked[stamp.code]||0)+1;
+ }
+ const codes=Object.keys(counts).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
+ const total=Object.values(counts).reduce((a,b)=>a+b,0);
+ const paired=Object.values(linked).reduce((a,b)=>a+b,0);
+ caption.textContent='GS-rapport: '+total+' numrerade stämplar, '+paired+' med dörrkort';
+ const table=document.createElement('table');
+ table.style.cssText='width:100%;border-collapse:collapse;font-size:12px';
+ const head=document.createElement('thead'),headRow=document.createElement('tr');
+ for(const label of ['GS-kod','Hittade stämplar','Dörrkort','Kopplade']){
+  const cell=document.createElement('th');cell.textContent=label;cell.style.cssText='text-align:left;padding:6px 8px;border-bottom:1px solid #bfd4df';headRow.appendChild(cell);
+ }
+ head.appendChild(headRow);table.appendChild(head);
+ const body=document.createElement('tbody');
+ for(const code of codes){
+  const tr=document.createElement('tr');
+  const values=[code,String(counts[code]),(protocolCandidates[code]||[]).join(', ')||'Saknas',String(linked[code]||0)];
+  for(const value of values){
+   const cell=document.createElement('td');cell.textContent=value;cell.style.cssText='padding:6px 8px;border-bottom:1px solid #deedf2';tr.appendChild(cell);
+  }
+  if(!linked[code])tr.style.color='#a33e2c';
+  body.appendChild(tr);
+ }
+ table.appendChild(body);container.appendChild(table);
+}
+
 async function analyze(file){
  labDiagnosticSequence++;labDiagnosticSpot=null;
  const dlg=document.getElementById('labDiagnosticDialog');if(dlg?.open)dlg.close();
@@ -2763,7 +2799,7 @@ async function analyze(file){
  if(!stamps.length&&!projectStamps.length)setState('SmartMatch TEST v11 hittade '+smartScanStats.gsCards+' GS-dörrkort och '+smartScanStats.gsAnnotationsSeen+' numrerade GS-stämplar. Om de ligger i separata PDF-filer, välj Lägg till dörrkort-PDF.');
  else if(!matchedProjectInstances().length)setState('SmartMatch TEST v11 läste '+smartScanStats.gsAnnotationsSeen+' GS-stämplar men hittade ingen matchning mot '+smartScanStats.gsCards+' GS-dörrkort. Om dörrkorten ligger i en annan PDF, tryck Lägg till dörrkort-PDF.');
  else {smartScanStats.linkedPositions=matchedProjectInstances().length;smartScanStats.extraGraphic=labGraphicPositions;const unlinked=Object.entries(smartScanStats.gsWithoutCard||{}).map(([code,n])=>code+' ('+n+')').slice(0,6);setState('SmartMatch TEST v11: '+smartScanStats.gsAnnotationsSeen+' GS-stämplar i PDF · '+smartScanStats.gsAnnotationsLinked+' har dörrkort · '+smartScanStats.gsCards+' GS-dörrkort · '+matchedProjectInstances().length+' visade positioner'+(unlinked.length?' · GS utan dörrkort: '+unlinked.join(', '):'')+restored+'.')}
- await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
+ await renderDrawing();renderGroups();updateStats();smartRenderGSReport();requestAnimationFrame(fitDrawing);
 
 }
 document.getElementById('labDiagnoseOpen').onclick=()=>document.getElementById('labDiagnosticDialog').showModal();
