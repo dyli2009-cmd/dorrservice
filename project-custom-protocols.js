@@ -405,7 +405,7 @@ function beginPositionPicking(){
  $('pcPositionDialog').close();$('pcPositionPickBar').hidden=false;suggestionLayer.dataset.pick='true';renderPositionSuggestions();
 }
 suggestionLayer.addEventListener('pointerdown',e=>{if(positionPicking){e.preventDefault();e.stopImmediatePropagation()}});
-suggestionLayer.addEventListener('click',e=>{
+suggestionLayer.addEventListener('pointerup',e=>{
  if(!positionPicking||!view||!bridge?.getPdf())return;
  e.preventDefault();e.stopImmediatePropagation();
  const area=suggestionLayer.getBoundingClientRect();
