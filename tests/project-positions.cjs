@@ -42,6 +42,9 @@ const server=http.createServer((req,res)=>{
    await page.locator('#pcAssignPositionTemplate').selectOption('automation_selfcheck');
    assert(await page.locator('.pcCheck').count()>0,'existing template can be assigned after creation');
    assert(!await page.locator('#pcPreview').isHidden(),'customer template becomes available');
+   await page.locator('#pcPositionLinkedPage').fill('2');await page.locator('#pcPositionLinkedPage').dispatchEvent('change');
+   await page.waitForFunction(()=>document.querySelector('#pcCardCanvas').width>0);
+   assert.equal(await page.locator('#pcCardPreview').isHidden(),false,'an existing PDF page can be linked to a position');
    await page.locator('#pcPositionName').fill('DA-1');await page.locator('#pcPositionName').dispatchEvent('change');
    assert((await page.locator('#pcIdentity').textContent()).includes('DA-1'),'position name is editable');
    await page.locator('.pcChoices [data-status=ok]').first().click();
