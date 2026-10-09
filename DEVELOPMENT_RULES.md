@@ -52,7 +52,7 @@ SmartMatch TEST är en fristående experimentversion och ska inte förväxlas me
 - Skapa nya `project-workspace-smartmatch-vNN.html`, `.js` och `.css` för den nya versionen. Behåll föregående version oförändrad som jämförelse/återgång.
 - Uppdatera konsekvent sidrubrik, versionsmärkning, resursreferenser, logg- och nedladdningsnamn. Använd en separat lokal lagringsnyckel för varje testversion.
 - Läs gärna tidigare testversioners inbäddade projekt-PDF-data så att tidigare arbete går att ta med till den nya versionen. Skriv däremot nytt projektformat under den nya versionen.
-- Nuvarande senast skapade testversion: **TEST v16**. Nästa ändringsomgång blir **TEST v17**.
+- Nuvarande senast skapade testversion: **TEST v17**. Nästa ändringsomgång blir **TEST v18**.
 - TEST-versionen betyder **inte** att Tillsyno-appen eller TestFlight har uppdaterats. Publicering dit kontrolleras separat.
 
 ## 3. Kontrollflöde
