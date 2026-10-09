@@ -289,7 +289,9 @@ async function appendGsStatusPdf(doc){
   doc.getPages().slice(-previous).forEach(p=>removedRefs.add(String(p.ref)));
   for(let i=0;i<previous;i++)doc.removePage(doc.getPageCount()-1);
  }
- const originals=doc.getPages(),baseCount=originals.length;
+ const baseCount=doc.getPageCount();
+ // pdf-lib kan behålla en gammal sidcache efter removePage(); använd faktisk sidräknare.
+ const originals=Array.from({length:baseCount},(_,i)=>doc.getPage(i));
  // Previous SmartMatch annotation links must not point at removed status pages.
  for(const p of originals){
   const arr=p.node.Annots?.();if(!arr)continue;
