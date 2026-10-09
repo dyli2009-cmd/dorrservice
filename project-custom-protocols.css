@@ -66,3 +66,7 @@
 .pcObjects .pcObject{border:1px solid #d1dde3;border-radius:7px;background:#fff;padding:8px;cursor:pointer}
 .pcObjects .pcObject:hover{background:#edf4f7}
 @media(max-width:520px){.pcPositionEditor{grid-template-columns:1fr}.pcPositionEditor label:nth-child(3){grid-column:1}.pcPositionDialog{width:calc(100vw - 12px)}}
+
+.pcPositionEditor #pcPositionInfo{grid-column:1 / -1;margin:0;font-size:11px}
+.pcProtocol[data-position-only="true"]>.pcBody>.pcMeta,.pcProtocol[data-position-only="true"] .pcProgress,.pcProtocol[data-position-only="true"] .pcAddPoint,.pcProtocol[data-position-only="true"] .pcNotes,.pcProtocol[data-position-only="true"] .pcActions,.pcProtocol[data-position-only="true"] #pcProtocolMessage{display:none}
+@media(max-width:520px){.pcPositionEditor #pcPositionInfo{grid-column:1}}
