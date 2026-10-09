@@ -44,7 +44,7 @@ const markup=`
 <dialog id="pcProtocol" class="pcDialog pcProtocol">
  <header class="pcHead"><button id="pcBack" type="button">← Ritning</button><div><small id="pcIdentity"></small><strong id="pcProtocolTitle"></strong></div><button id="pcProtocolClose" type="button" aria-label="Stäng eget protokoll">×</button></header>
  <div class="pcBody"><div class="pcMeta"><label>Datum<input id="pcDate" type="date"></label><label>Utförd av<input id="pcTechnician" maxlength="160"></label><label>Signatur<input id="pcSignature" maxlength="160"></label></div>
- <div id="pcPositionEditor" class="pcPositionEditor" hidden><label>Position / märkning<input id="pcPositionName" maxlength="80"></label><label>Placering<input id="pcPositionLocation" maxlength="160" placeholder="Till exempel korridor, entré eller rumsnummer"></label><label>Koppla kontrollmall<select id="pcAssignPositionTemplate"><option value="">Ingen mall – bara position</option></select></label><button id="pcRemovePosition" type="button" class="pcRemovePosition">Ta bort position</button></div>
+ <div id="pcPositionEditor" class="pcPositionEditor" hidden><label>Position / märkning<input id="pcPositionName" maxlength="80"></label><label>Placering<input id="pcPositionLocation" maxlength="160" placeholder="Till exempel korridor, entré eller rumsnummer"></label><label>Koppla kontrollmall<select id="pcAssignPositionTemplate"><option value="">Ingen mall – bara position</option></select></label><p id="pcPositionInfo" class="pcMuted">Positionen är skapad. Välj en kontrollmall när du vill börja kontrollera.</p><button id="pcRemovePosition" type="button" class="pcRemovePosition">Ta bort position</button></div>
   <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
  <div id="pcObjectMeta" class="pcMeta pcObjectMeta" hidden><label>Objekt<input id="pcObjectNo" maxlength="80"></label><label id="pcModelLabel">Typ av automatik<select id="pcModel"></select></label><label id="pcEquipmentLabel" hidden>Typ av utrustning<input id="pcEquipmentType" maxlength="160"></label><label>Antal / löpnummer<input id="pcQuantity" inputmode="numeric" maxlength="12"></label></div>
  <section id="pcCardPreview" hidden><div class="pcCardTools"><strong id="pcCardLabel">Originaldörrkort</strong><button id="pcCardOut" type="button" aria-label="Zooma ut dörrkort">−</button><button id="pcCardIn" type="button" aria-label="Zooma in dörrkort">+</button></div><div id="pcCardWrap"><canvas id="pcCardCanvas"></canvas></div></section>
@@ -445,7 +445,10 @@ function renderChecks(){
    const choices=node('div',undefined,'pcChoices');for(const [value,title] of [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']]){const b=node('button',title);b.type='button';b.dataset.status=value;b.classList.toggle('active',point.status===value);b.onclick=()=>{point.status=point.status===value?'':value;persist();renderChecks()};choices.appendChild(b)}
   const note=node('textarea');note.className='pcPointNote';note.rows=2;note.maxLength=5000;note.placeholder='Kommentar / anmärkning';note.value=point.note||'';note.setAttribute('aria-label','Kommentar till '+point.label);note.onchange=()=>{point.note=note.value;persist()};row.append(head,choices,note);$('pcChecks').appendChild(row);requestAnimationFrame(()=>{label.style.height='auto';label.style.height=label.scrollHeight+'px'});
  }
- $('pcProgress').textContent=progress(o)+'%';
+ $('pcProgress').textContent=o.points.length?progress(o)+'%':'Ingen mall';
+  $('pcProtocol').dataset.positionOnly=String(o.target==='position'&&!o.points.length);
+  $('pcPositionInfo').hidden=o.points.length>0;
+  $('pcApproveAll').hidden=!o.points.length;
 }
 $('pcApproveAll').onclick=()=>{if(!selectedObject)return;for(const point of selectedObject.points)if(!point.status)point.status='ok';persist();renderChecks()};
 $('pcAddPoint').onsubmit=e=>{e.preventDefault();const label=$('pcNewPoint').value.trim();if(!label||!selectedObject)return;selectedObject.points.push({id:uid(),label,status:'',note:''});$('pcNewPoint').value='';persist();renderChecks()};
