@@ -12,6 +12,8 @@ let smartDoorCardIndex={},smartDoorCardPages=new Set(),smartScanStats={};
 let smartDoorCardFirstRows={},smartCardFirstTextHits=0;
 let smartBaseDrawingFile=null,smartAdditionalCardsFile=null;
 let smartShowAllGS=true;
+// Beteckningar användaren valt att ignorera återkommer inte efter ny PDF-analys.
+let ignoredCodes=new Set();
 let smartScanAudit={pages:{},reasons:{},annotationCodes:{},colorFirst:0,textColor:0,ocrCandidates:0,ocrAccepted:0,ocrErrors:[]};
 let smartPendingOcr=[],smartConfirmedOcr=[],smartOcrWorker=null,smartOcrLibraryPromise=null;
 
@@ -221,7 +223,7 @@ function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date
 function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
 
 function makeProjectPayload(){
- const payload={manualPositions:manualPositions.map(o=>({...o,rect:[...o.rect]})),positionEdits:JSON.parse(JSON.stringify(positionEdits)),labManualLinks:{...labManualLinks},schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',ocrConfirmed:smartConfirmedOcr.map(o=>({page:o.page,code:o.code,rect:[...o.rect],confidence:o.confidence||0})),automationItems:automationItems.map(o=>({
+ const payload={manualPositions:manualPositions.map(o=>({...o,rect:[...o.rect]})),positionEdits:JSON.parse(JSON.stringify(positionEdits)),ignoredCodes:[...ignoredCodes],labManualLinks:{...labManualLinks},schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',ocrConfirmed:smartConfirmedOcr.map(o=>({page:o.page,code:o.code,rect:[...o.rect],confidence:o.confidence||0})),automationItems:automationItems.map(o=>({
   id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
  })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
@@ -1963,6 +1965,7 @@ function effectiveChecks(o,def){
 function buildInstances(){
  const saved=loadSaved(),counts={};
  manualPositions=Array.isArray(saved.manualPositions)?saved.manualPositions:[];positionEdits=saved.positionEdits||{};
+ ignoredCodes=new Set(Array.isArray(saved.ignoredCodes)?saved.ignoredCodes.filter(c=>typeof c==='string'):[]);
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
  labManualLinks=saved.labManualLinks&&typeof saved.labManualLinks==='object'?{...saved.labManualLinks}:{};
  projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
@@ -1983,8 +1986,8 @@ function buildInstances(){
   return {...s,sourceKind:'project-code',id,position:counts[countKey],checks:old.checks||{},overrides:old.overrides||{},customItems:Array.isArray(old.customItems)?old.customItems:[],progress:Number(old.progress||0)};
  });
  instances=[...gsInstances,...freeInstances].sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
- instances=instances.filter(o=>!positionEdits[o.id]?.deleted).map(o=>({...o,...positionEdits[o.id]}));
- manualPositions.forEach(o=>{const old=saved.instances?.[o.id]||{};instances.push({...o,checks:old.checks||{},overrides:old.overrides||{},customItems:old.customItems||[],progress:old.progress||0})});
+ instances=instances.filter(o=>!positionEdits[o.id]?.deleted&&!ignoredCodes.has(positionEdits[o.id]?.code||o.code)).map(o=>({...o,...positionEdits[o.id]}));
+ manualPositions.forEach(o=>{if(ignoredCodes.has(o.code))return;const old=saved.instances?.[o.id]||{};instances.push({...o,checks:old.checks||{},overrides:old.overrides||{},customItems:old.customItems||[],progress:old.progress||0})});
  const totals={};
  instances.forEach(o=>{const key=o.sourceKind+'|'+o.code;totals[key]=(totals[key]||0)+1});
  instances.forEach(o=>o.totalOfCode=totals[o.sourceKind+'|'+o.code]);pmCounts();
@@ -2701,12 +2704,14 @@ function renderAutomationMarkers(){
 }
 function renderGroups(){
  pmRefresh();
+ // Behåll öppna grupper när procent/status uppdateras.
+ const expandedCodes=new Set([...el.groups.querySelectorAll('.pwGroupAccordion[open]')].map(n=>n.dataset.code));
  const groups={};
  smartVisibleInstances().filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
  const visibleAutomations=PROJECT_AUTOMATION_ENABLED?automationItems.filter(o=>!currentOnly||o.page===page):[];
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
- const missingCodes=Object.keys(smartDoorCardIndex).filter(code=>!instances.some(o=>o.code===code));
+ const missingCodes=Object.keys(smartDoorCardIndex).filter(code=>!ignoredCodes.has(code)&&!instances.some(o=>o.code===code));
  missingCodes.forEach(code=>{const section=document.createElement('section');section.className='pwGroup';const b=document.createElement('button');b.type='button';b.className='pwPosition';b.textContent=code+' · dörrkort finns, placering saknas';b.onclick=()=>{$('pmCode').value=code;$('pmCard').value=protocolMap[code]||'';pmPlace()};section.appendChild(b);el.groups.appendChild(section)});
  if(!codes.length&&!visibleAutomations.length&&!missingCodes.length){const p=document.createElement('p');p.className='pwMuted';p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';el.groups.appendChild(p);return}
  if(visibleAutomations.length){
@@ -2722,19 +2727,29 @@ function renderGroups(){
   wrap.appendChild(list);el.groups.appendChild(wrap);
  }
  codes.forEach(code=>{
-  const wrap=document.createElement('section');wrap.className='pwGroup';
-  const title=document.createElement('div');title.className='pwGroupTitle';
+  const wrap=document.createElement('details');wrap.className='pwGroup pwGroupAccordion';wrap.dataset.code=code;wrap.open=expandedCodes.has(code);
+  const title=document.createElement('summary');title.className='pwGroupTitle';
   const strong=document.createElement('strong');strong.textContent=code;
   const span=document.createElement('span');span.textContent=groups[code].length+' positioner · '+(protocolMap[code]?'dörrkort ✓':labState(code)==='ambiguous'?'välj dörrkort':'saknar dörrkort');
   title.append(strong,span);wrap.appendChild(title);
+  const removeAll=document.createElement('button');removeAll.type='button';removeAll.className='pmDeleteGroup';removeAll.textContent='Ta bort alla';removeAll.title='Ta bort alla positioner med beteckningen '+code;
+  removeAll.onclick=e=>{e.preventDefault();e.stopPropagation();void pmRemoveGroup(code)};wrap.appendChild(removeAll);
   const list=document.createElement('div');list.className='pwGroupItems';
   groups[code].forEach(o=>{
+   const line=document.createElement('div');line.className='pwPositionLine';
    const b=document.createElement('button');b.type='button';b.className='pwPosition';
    const left=document.createElement('span'),s=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
-   s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;small.textContent='Ritning sida '+o.page+(protocolMap[code]?' · dörrkort sida '+protocolMap[code]:' · '+(labState(code)==='ambiguous'?'flera möjliga dörrkort':'ingen säker dörrkortskoppling'));pct.textContent=o.progress+'%';
-   left.append(s,small);b.append(left,pct);b.onclick=()=>{pmSelect(o);focusInstance(o)};list.appendChild(b);
+   s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;
+   small.textContent='Ritning sida '+o.page+(protocolMap[code]?' · dörrkort sida '+protocolMap[code]:' · '+(labState(code)==='ambiguous'?'flera möjliga dörrkort':'ingen säker koppling'));
+   pct.textContent=o.progress+'%';left.append(s,small);b.append(left,pct);b.onclick=()=>{pmSelect(o);focusInstance(o)};
+   const menu=document.createElement('details');menu.className='pwPositionMore';
+   const menuTitle=document.createElement('summary');menuTitle.textContent='⋯';menuTitle.title='Visa åtgärder för '+code+' position '+o.position;menuTitle.setAttribute('aria-label',menuTitle.title);
+   menu.appendChild(menuTitle);
    const tools=document.createElement('div');tools.className='pmRow';
-   for(const [label,fn] of [['Flytta',()=>pmPlace(o)],['Ändra beteckning',()=>pmRename(o)],['Dörrkort',()=>pmSelect(o)],['Ta bort',()=>pmRemove(o)]]){const action=document.createElement('button');action.type='button';action.textContent=label;action.onclick=fn;tools.appendChild(action)}list.appendChild(tools);
+   for(const [label,fn] of [['↔ Flytta',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['▣ Dörrkort',()=>pmSelect(o)],['× Ta bort',()=>pmRemove(o)]]){
+    const action=document.createElement('button');action.type='button';action.textContent=label;action.onclick=fn;tools.appendChild(action);
+   }
+   menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
   });
   wrap.appendChild(list);el.groups.appendChild(wrap);
  });
@@ -3107,7 +3122,7 @@ function smartRenderFirstCardReport(){
  const title=document.getElementById('smartCardFirstTitle'),target=document.getElementById('smartCardFirstRows');
  if(!title||!target)return;
  const entries=Object.entries(smartDoorCardFirstRows).sort((a,b)=>Number(a[0])-Number(b[0]));
- title.textContent='Dörrkort först: '+entries.length+' kort · '+Object.keys(smartDoorCardIndex).length+
+ title.textContent='Dörrkort – '+entries.length+' kort · '+Object.keys(smartDoorCardIndex).length+
  ' olika ID · '+smartCardFirstTextHits+' extra ritningsträffar via text';
  target.replaceChildren();
  if(!entries.length){target.textContent='Inga säkra dörrkort hittades. Positioner på ritningen behålls ändå.';return}
@@ -3136,7 +3151,7 @@ function smartRenderGSReport(){
  if(!container||!caption)return;
  container.replaceChildren();
  const counts={},linked={};
- for(const stamp of stamps){
+ for(const stamp of instances){
   if(!/^GS\d/.test(stamp.code))continue;
   counts[stamp.code]=(counts[stamp.code]||0)+1;
   if((protocolCandidates[stamp.code]||[]).length)linked[stamp.code]=(linked[stamp.code]||0)+1;
@@ -3144,7 +3159,7 @@ function smartRenderGSReport(){
  const codes=Object.keys(counts).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
  const total=Object.values(counts).reduce((a,b)=>a+b,0);
  const paired=Object.values(linked).reduce((a,b)=>a+b,0);
- caption.textContent='GS-rapport: '+total+' hittade GS-positioner · '+paired+' med dörrkort · '+(total-paired)+' ännu utan koppling';
+ caption.textContent='GS-positioner: '+total+' aktiva · '+paired+' med dörrkort · '+(total-paired)+' utan koppling';
  const table=document.createElement('table');
  table.style.cssText='width:100%;border-collapse:collapse;font-size:12px';
  const head=document.createElement('thead'),headRow=document.createElement('tr');
@@ -3208,7 +3223,7 @@ async function analyze(file){
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();requestAnimationFrame(fitDrawing);
 
 }
-document.getElementById('labDiagnoseOpen').onclick=()=>document.getElementById('labDiagnosticDialog').showModal();
+document.getElementById('labDiagnoseOpen').onclick=()=>{smartRenderFirstCardReport();smartRenderGSReport();smartRenderScanAudit();document.getElementById('labDiagnosticDialog').showModal()};
 document.getElementById('labDiagnosticClose').onclick=()=>document.getElementById('labDiagnosticDialog').close();
 document.getElementById('labDiagnosticRun').onclick=labDiagnosticAnalyze;
 document.getElementById('labDiagnosticCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();labDiagnosticAnalyze()}};
@@ -3379,19 +3394,34 @@ async function pmCommit(point){
  let o=instances.find(o=>o.id===mode.id);
  if(o){o.page=page;o.rect=rect;if(o.manual){Object.assign(manualPositions.find(p=>p.id===o.id),{page,rect})}else positionEdits[o.id]={...positionEdits[o.id],page,rect}}
  else{o={id:'manual:'+crypto.randomUUID(),manual:true,code:mode.code,page,rect,order:0,sourceKind:/^GS\d/.test(mode.code)?'gs':'project-code',checks:{},overrides:{},customItems:[],progress:0};manualPositions.push({...o});instances.push(o)}
- selectedId=o.id;pmCancel();pmCounts();await recalcAll();pmSelect(o);pmHelp(o.code+' sparad på sida '+page+(protocolMap[o.code]?' · kopplad till dörrkort sida '+protocolMap[o.code]:'. Välj dörrkortets sida för att koppla.'));
+ ignoredCodes.delete(mode.code);selectedId=o.id;pmCancel();pmCounts();await recalcAll();pmSelect(o);pmHelp(o.code+' sparad på sida '+page+(protocolMap[o.code]?' · kopplad till dörrkort sida '+protocolMap[o.code]:'. Välj dörrkortets sida för att koppla.'));
 }
 async function pmRename(o){
  const value=window.prompt('Rätt beteckning för denna position:',o.code);if(value===null)return;
  const code=pmCode(value);if(!code){pmHelp('Beteckningen kunde inte läsas. Exempel: GS1, GS 1, 310A.');return}
- o.code=code;if(o.manual)manualPositions.find(p=>p.id===o.id).code=code;else positionEdits[o.id]={...positionEdits[o.id],code};
+ ignoredCodes.delete(code);o.code=code;if(o.manual)manualPositions.find(p=>p.id===o.id).code=code;else positionEdits[o.id]={...positionEdits[o.id],code};
  pmCounts();await recalcAll();pmSelect(o);
+}
+async function pmRemoveGroup(code){
+ const matches=instances.filter(o=>o.code===code);
+ if(!matches.length)return;
+ const total=matches.length;
+ if(!window.confirm('Ta bort alla '+total+' positioner för '+code+' i hela projektet?\n\nDessa positioner räknas då inte med i projektets procent. Spara en projekt-PDF efteråt för att behålla ändringen.'))return;
+ if(placement?.code===code)pmCancel();
+ ignoredCodes.add(code);
+ const ids=new Set(matches.map(o=>o.id));
+ for(const o of matches){if(!o.manual)positionEdits[o.id]={...positionEdits[o.id],deleted:true};bulkSelected.delete(o.id)}
+ manualPositions=manualPositions.filter(o=>!ids.has(o.id));
+ instances=instances.filter(o=>!ids.has(o.id));
+ if(ids.has(selectedId))selectedId='';
+ pmCounts();await recalcAll();smartRenderGSReport();smartRenderFirstCardReport();
+ pmHelp(total+' positioner för '+code+' borttagna ur arbetsprojektet. Spara projekt-PDF för att behålla ändringen.');
 }
 async function pmRemove(o){
  if(!window.confirm('Ta bort denna placering av '+o.code+' på sida '+o.page+'?'))return;
  if(placement?.id===o.id)pmCancel();
- if(o.manual)manualPositions=manualPositions.filter(p=>p.id!==o.id);else positionEdits[o.id]={deleted:true};
- instances=instances.filter(p=>p.id!==o.id);pmCounts();await recalcAll();pmHelp('Placeringen borttagen. Övriga positioner finns kvar.');
+ if(o.manual)manualPositions=manualPositions.filter(p=>p.id!==o.id);else positionEdits[o.id]={...positionEdits[o.id],deleted:true};
+ instances=instances.filter(p=>p.id!==o.id);pmCounts();await recalcAll();smartRenderGSReport();smartRenderFirstCardReport();pmHelp('Placeringen borttagen. Övriga positioner finns kvar.');
 }
 $('pmAdd').onclick=()=>pmPlace();$('pmCancel').onclick=pmCancel;
 $('pmCode').oninput=()=>{$('pmCard').value=protocolMap[pmCode($('pmCode').value)]||''};
