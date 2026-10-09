@@ -521,8 +521,9 @@ async function writePdfToHandle(handle,data){
   await writable.close();
  }
 }
-let smartExportBytes=null,smartExportMode=null,smartExportObjectUrl=null,smartExportIntent='local';
+let smartExportBytes=null,smartExportMode=null,smartExportObjectUrl=null,smartExportIntent='local',smartExportRunId=0;
 function releaseSmartExport(){
+ smartExportRunId++;
  if(smartExportObjectUrl){URL.revokeObjectURL(smartExportObjectUrl);smartExportObjectUrl=null}
  smartExportBytes=null;smartExportMode=null;
  const detail=document.getElementById('smartExportFinalSize');
@@ -578,11 +579,14 @@ async function prepareSmartExport(){
  const btn=document.getElementById('smartExportBuild');
  if(!bytes||btn.disabled)return;
  releaseSmartExport();btn.disabled=true;
+ const attempt=smartExportRunId;
+ const dialog=document.getElementById('smartExportDialog');
  const chosen=currentSmartExportMode();
  smartFileSizeReviewSetSaving('Analyserar och beräknar filstorlek…','working');
  smartExportMessage('Skapar kompakt PDF med ett originaldörrkort per sida och klickbara ritningspositioner…');
  try{
   const data=await buildPortableProjectPdf();
+  if(attempt!==smartExportRunId||!dialog.open)return;
   smartExportBytes=data;smartExportMode=chosen;
   const before=bytes.length,after=data.length;
   document.getElementById('smartExportFinalSize').textContent=prettyPdfSize(after);
@@ -606,9 +610,10 @@ async function prepareSmartExport(){
   smartExportMessage(message,after>18*1024*1024?'warning':'good');
   setState('Kompakt PDF klar: '+prettyPdfSize(after)+'. Originaldörrkorten har inte dubblerats.');
  }catch(e){
+  if(attempt!==smartExportRunId||!dialog.open)return;
   console.error(e);smartExportMessage('PDF-exporten misslyckades: '+(e?.message||e),'warning');
   smartFileSizeReviewSetSaving('Kunde inte beräkna kompakt storlek för den här filen. Originalstorleken ovan är korrekt.','warning');
- }finally{btn.disabled=false}
+ }finally{if(attempt===smartExportRunId)btn.disabled=false}
 }
 function previewSmartExport(){
  const file=currentSmartExportFile();if(!file)return;
@@ -3752,11 +3757,11 @@ async function analyze(file){
  const suggestions=document.getElementById('smartOcrResults');if(suggestions)suggestions.replaceChildren();
  const ocrStatus=document.getElementById('smartOcrStatus');if(ocrStatus)ocrStatus.textContent='OCR är frivilligt. Den kräver internet för att ladda bibliotek och språkdata.';
  smartCardFirstTextHits=0;
+ document.getElementById('smartPdfInspect').disabled=true;
  setState('Läser projekt-PDF…');document.body.classList.remove('pwStartMode');const ab=await file.arrayBuffer();bytes=new Uint8Array(ab);fileKey=hashBytes(bytes);currentFileName=file.name||'Tillsyno-projekt.pdf';
  embeddedState=await readEmbeddedProjectState();projectId=String(embeddedState.projectId||('smartmatch-v26-'+fileKey));
  releaseSmartExport();pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;page=1;scale=1.1;pageTexts={};protocolDefs={};drawingNotes=[];drawingViewport=null;drawingNoteDrag=null;selectedDrawingNoteId='';drawingUndoStack=[];drawingRedoStack=[];pendingImage=null;bulkSelected.clear();bulkSelectMode=false;el.bulkSelect.setAttribute('aria-pressed','false');updateBulkBar();setDrawingTool('');
  el.fileName.textContent=currentFileName;el.empty.hidden=true;el.saveProject.disabled=false;
- document.getElementById('smartPdfInspect').disabled=false;
  const restoredCount=embeddedState?.instances?Object.keys(embeddedState.instances).length:0;
  setState(restoredCount?'Sparad projektstatus hittad. Läser positioner och protokoll…':'Läser projektmarkeringar och dörr-ID:n…');
  const scanStart=performance.now();
@@ -3791,7 +3796,9 @@ async function analyze(file){
   setState('SmartMatch TEST v26: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
  else setState('SmartMatch TEST v26: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v26]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
- await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();requestAnimationFrame(fitDrawing);
+ await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
+ document.getElementById('smartPdfInspect').disabled=false;
+ requestAnimationFrame(fitDrawing);
 
 }
 document.getElementById('labDiagnoseOpen').onclick=()=>{smartRenderFirstCardReport();smartRenderGSReport();smartRenderScanAudit();document.getElementById('labDiagnosticDialog').showModal()};
