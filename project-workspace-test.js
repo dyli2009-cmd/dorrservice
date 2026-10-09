@@ -500,7 +500,10 @@ function labCodeFromMark(value){
 function labExactDrawingCode(value){
  // Single marked token or contiguous fragments, never unrelated neighboring labels.
  const raw=String(value||'').toUpperCase().replace(/[\u00a0\u2007\u202f]/g,' ').trim();
- // In printed drawing text, keep the highlighted identifier tight; don't swallow 'WC' next to it.
+ // Printed room labels/fields can be adjacent to the true yellow-marked code.
+ // They must never get folded into a new code such as WC310A or 310AWC.
+ const tokens=raw.match(/[A-ZÅÄÖ0-9]+/g)||[];
+ if(tokens.length>1&&tokens.some(t=>/^(?:WC|DÖRR|DÖRRNR|DÖRRNUMMER|LITTERA|POSITION|BETECKNING|RUM|ENTRÉ|ENTRE|ID|DT)$/.test(t)))return '';
  const compact=raw.replace(/[\s/_-]+/g,'');
  if(/^GS[A-ZÅÄÖ0-9]{1,12}$/.test(compact))return compact;
  if(/^[A-ZÅÄÖ]{0,4}\d{1,6}[A-ZÅÄÖ]{0,4}$/.test(compact))return compact;
