@@ -1521,7 +1521,7 @@ function smartTitleFromDrawingRow(value){
   const h=hits[0][0].trim();
   // PLANRITNING without floor or location is not a floor label.
   const match=h.match(/(?:PLANRITNING\s+)?(PLAN|VÅNING|VÅN\.?)\s*[:.#]?\s*(.+)/i);
-  return match?(match[1].startsWith('VÅN')?'VÅNING ':'PLAN ')+match[2].replace(/\s*[-/]\s*/g,' / '):h;
+  return match?(match[1].startsWith('VÅN')?'VÅNING ':'PLAN ')+match[2].trim():h;
  }
  // Free-form area names are only accepted in a title block; never treat
  // e.g. arbitrary room text in the drawing body as a whole-floor title.
