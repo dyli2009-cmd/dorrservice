@@ -272,109 +272,115 @@ async function readEmbeddedProjectState(){
 }
 
 /* v21-projekt PDF: internt navigerbara dörrkort + statussidor. */
+/* TEST v21 PDF: one independent, clickable door-card copy per drawing position.
+   Each copy has its own GoTo "back" annotation, so the return page and position
+   are deterministic in ordinary PDF readers rather than browser history. */
 async function appendGsStatusPdf(doc){
  const {PDFName,PDFNumber,PDFString,StandardFonts,rgb}=PDFLib;
- const extraKey=PDFName.of('SmartMatch18ExtraPages');
- const previous18=Number(doc.catalog.get(extraKey)?.asNumber?.()||0);
- const previous17=Number(doc.catalog.get(PDFName.of('SmartMatch17ExtraPages'))?.asNumber?.()||0);
- const previous=previous18||previous17;
- const allBefore=doc.getPages();
+ const extra21=PDFName.of('SmartMatch21ExtraPages');
+ const counts=[
+  Number(doc.catalog.get(extra21)?.asNumber?.()||0),
+  Number(doc.catalog.get(PDFName.of('SmartMatch18ExtraPages'))?.asNumber?.()||0),
+  Number(doc.catalog.get(PDFName.of('SmartMatch17ExtraPages'))?.asNumber?.()||0)
+ ];
+ const previous=counts.find(n=>Number.isInteger(n)&&n>0&&n<doc.getPageCount())||0;
  const removedRefs=new Set();
- if(Number.isInteger(previous)&&previous>0&&previous<allBefore.length){
-  allBefore.slice(-previous).forEach(p=>removedRefs.add(String(p.ref)));
+ if(previous){
+  doc.getPages().slice(-previous).forEach(p=>removedRefs.add(String(p.ref)));
   for(let i=0;i<previous;i++)doc.removePage(doc.getPageCount()-1);
  }
- const pages=doc.getPages(),baseCount=pages.length;
- // Ta bort tidigare v21-länkar, samt äldre länkar till borttagna statusbilagor.
- for(const p of pages){
-  const annots=p.node.Annots?.();
-  if(!annots)continue;
-  const kept=annots.asArray().filter(ref=>{
+ const originals=doc.getPages(),baseCount=originals.length;
+ // Previous SmartMatch annotation links must not point at removed status pages.
+ for(const p of originals){
+  const arr=p.node.Annots?.();if(!arr)continue;
+  const kept=arr.asArray().filter(ref=>{
    try{
-    const a=doc.context.lookup(ref),nm=a?.get?.(PDFName.of('NM'))?.decodeText?.()||'';
-    if(nm.startsWith('SM18:'))return false;
-    const action=doc.context.lookup(a?.get?.(PDFName.of('A')));
+    const annot=doc.context.lookup(ref);
+    const name=annot?.get?.(PDFName.of('NM'))?.decodeText?.()||'';
+    if(/^SM(?:17|18|21):/.test(name))return false;
+    const action=doc.context.lookup(annot?.get?.(PDFName.of('A')));
     const dest=doc.context.lookup(action?.get?.(PDFName.of('D')));
-    const destRef=dest?.get?.(0);
-    return !removedRefs.has(String(destRef));
+    return !removedRefs.has(String(dest?.get?.(0)));
    }catch(_){return true}
   });
-  if(kept.length!==annots.size())p.node.set(PDFName.of('Annots'),doc.context.obj(kept));
+  if(kept.length!==arr.size())p.node.set(PDFName.of('Annots'),doc.context.obj(kept));
  }
- let n=0;
- const link=(source,rect,target,position)=>{
-  if(!source||!target||!Array.isArray(rect)||rect.length!==4||!rect.every(Number.isFinite))return;
+ let nextLink=0;
+ function goTo(source,rect,target,position=null){
+  if(!source||!target||!rect||rect.length!==4||!rect.every(Number.isFinite))return;
   const [x1,y1,x2,y2]=rect.map(Number);
-  const dest=position?[target.ref,PDFName.of('XYZ'),position[0],position[1],null]:[target.ref,PDFName.of('Fit')];
-  const ann=doc.context.obj({Type:'Annot',Subtype:'Link',NM:PDFString.of('SM18:'+(++n)),Rect:[Math.min(x1,x2),Math.min(y1,y2),Math.max(x1,x2),Math.max(y1,y2)],Border:[0,0,0],A:{S:'GoTo',D:dest}});
+  const targetX=position?Math.max(0,Number(position[0])||0):null;
+  const targetY=position?Math.max(0,Number(position[1])||0):null;
+  const destination=position?[target.ref,PDFName.of('XYZ'),targetX,targetY,null]:[target.ref,PDFName.of('Fit')];
+  const annotation=doc.context.obj({
+   Type:'Annot',Subtype:'Link',NM:PDFString.of('SM21:'+(++nextLink)),
+   Rect:[Math.min(x1,x2),Math.min(y1,y2),Math.max(x1,x2),Math.max(y1,y2)],
+   Border:[0,0,0],A:{S:'GoTo',D:destination}
+  });
   let arr=source.node.Annots?.();
   if(!arr){arr=doc.context.obj([]);source.node.set(PDFName.of('Annots'),arr)}
-  arr.push(doc.context.register(ann));
+  arr.push(doc.context.register(annotation));
+ }
+ const textFont=await doc.embedFont(StandardFonts.Helvetica);
+ const headFont=await doc.embedFont(StandardFonts.HelveticaBold);
+ function safe(text){
+  return String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   .replace(/[^ -~]/g,' ').replace(/\s+/g,' ').trim();
+ }
+ const short=(text,n=90)=>{const str=safe(text);return str.length>n?str.slice(0,n-3)+'...':str};
+ const linked=instances.filter(o=>
+  Number.isInteger(o.page)&&o.page>0&&o.page<=baseCount&&
+  Number.isInteger(protocolMap[o.code])&&protocolMap[o.code]>0&&protocolMap[o.code]<=baseCount&&
+  Array.isArray(o.rect)&&o.rect.length===4&&o.rect.every(Number.isFinite)
+ ).sort((a,b)=>a.page-b.page||a.code.localeCompare(b.code,'sv',{numeric:true})||a.position-b.position);
+ const copies=[];
+ for(const o of linked){
+  const originalCard=protocolMap[o.code]-1,draw=originals[o.page-1];
+  // Same source card can be used by 100+ drawing positions. A unique PDF page
+  // is necessary for a reliable static return link (GoBack is viewer-specific).
+  const [copy]=await doc.copyPages(doc,[originalCard]);
+  const nav=doc.addPage(copy),w=nav.getWidth(),label='TILL RITNING  |  '+short(o.code,18)+'  |  SIDA '+o.page;
+  const width=Math.min(Math.max(130,textFont.widthOfTextAtSize(label,9)+20),Math.max(130,w-12));
+  nav.drawRectangle({x:6,y:5,width,height:23,color:rgb(1,1,1),borderColor:rgb(.25,.53,.67),borderWidth:1});
+  nav.drawText(label,{x:13,y:13,size:9,font:textFont,color:rgb(.04,.31,.49)});
+  goTo(nav,[6,5,6+width,28],draw,[Math.max(0,o.rect[0]-40),Math.min(draw.getHeight(),o.rect[3]+90)]);
+  // Only the annotated rectangle on the original drawing is clickable.
+  goTo(draw,[o.rect[0]-3,o.rect[1]-3,o.rect[2]+3,o.rect[3]+3],nav);
+  copies.push({o,nav});
+ }
+ let sheet=null,y=0,statusPages=0;
+ const begin=()=>{
+  sheet=doc.addPage([595,842]);statusPages++;y=808;
+  sheet.drawText('SmartMatch TEST v21  /  Kontrollpunkter',{x:25,y,size:14,font:headFont,color:rgb(.1,.32,.44)});
+  y-=24;
+  sheet.drawText('Klicka pa en position for att visa dess dorrkort. Anvand TILL RITNING for att ga tillbaka.',{x:25,y,size:9,font:textFont,color:rgb(.3,.4,.45)});
+  y-=28;
  };
- const normal=await doc.embedFont(StandardFonts.Helvetica),bold=await doc.embedFont(StandardFonts.HelveticaBold);
- const clean=s=>String(s||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/[^\u0020-\u00ff]/g,'?');
- const clip=(s,k=89)=>{s=clean(s);return s.length>k?s.slice(0,k-3)+'...':s};
- const matched=instances.filter(o=>o.page>0&&o.page<=baseCount&&protocolMap[o.code]>0&&protocolMap[o.code]<=baseCount);
- const unlinked=[]; // Dörrkortslösa positioner ingår inte i v21-exporten.
- let sheet=null,y=0,extra=0;
- const make=()=>{sheet=doc.addPage([595,842]);extra++;y=809;sheet.drawText('SmartMatch TEST v21 - projektstatus',{x:25,y,font:bold,size:15,color:rgb(.11,.28,.4)});y-=25;sheet.drawText('Kopplade positioner separat  /  Okopplade positioner gemensamt',{x:25,y,font:normal,size:9,color:rgb(.38,.41,.43)});y-=25};
- const write=(line,size=9,strong=false)=>{
-  if(!sheet||y<47)make();
-  const v={page:sheet,y};sheet.drawText(clip(line),{x:25,y,font:strong?bold:normal,size,color:rgb(.16,.25,.3)});
-  y-=size+6;return v;
- };
- const firstByCard={};
- for(const o of matched){
-  const def=await protocolDef(o.code),items=effectiveChecks(o,def).filter(it=>it.source==='base');
-  if(!sheet||y<112)make();
-  const top=write(o.code+'  position '+o.position+'/'+o.totalOfCode+'  ritning s.'+o.page+'  dörrkort s.'+protocolMap[o.code],11,true);
-  firstByCard[o.code]??=top;
-  link(top.page,[25,top.y-2,330,top.y+13],pages[protocolMap[o.code]-1]);
-  link(top.page,[350,top.y-2,555,top.y+13],pages[o.page-1],[Number(o.rect?.[0])||0,Number(o.rect?.[3])||pages[o.page-1].getHeight()]);
-  if(!items.length)write('Inga säkert avlästa GS-arbetsrader.',8);
-  for(const item of items){
-   const s=gsStages(o,item),mark=v=>v?'X':' ';
-   write('['+mark(s.mount)+'] Monterat  ['+mark(s.drift)+'] Drift  ['+mark(s.test)+'] Provat  '+clip(item.label+' '+(item.value||''),35),8);
-   if(s.note)write('ANM: '+clip(s.note,70),8);
+ function put(line,size=9,bold=false){
+  if(!sheet||y<46)begin();
+  const pos={page:sheet,y};
+  sheet.drawText(short(line),{x:26,y,size,font:bold?headFont:textFont,color:rgb(.16,.23,.3)});
+  y-=size+6;
+  return pos;
+ }
+ if(!copies.length){begin();put('Inga positioner med sakert kopplat dorrkort att sammanstalla.')}
+ for(const {o,nav} of copies){
+  if(!sheet||y<110)begin();
+  const header=put(o.code+' - position '+o.position+'/'+o.totalOfCode+' - ritning s.'+o.page+' - dorrkort s.'+protocolMap[o.code],10,true);
+  goTo(header.page,[23,header.y-3,560,header.y+14],nav);
+  const def=await protocolDef(o.code);
+  const checks=effectiveChecks(o,def);
+  if(!checks.length)put('Inga kontroller avlasta fran originalet.',8);
+  for(const item of checks){
+   put((o.checks[item.key]?'[X] ':'[ ] ')+short(tidyGsText(item.label+' '+(item.value||'')),73),8);
+   const remark=o.rowStages?.[item.key]?.note||item.note||'';
+   if(remark)put('ANM: '+short(remark,78),8);
   }
-  y-=8;
+  y-=6;
  }
- // Samtliga okopplade visas i ett enda sammanhängande avsnitt, även över sidbrytningar.
- let unlinkedIntro=null;
- if(unlinked.length){
-  if(!sheet||y<85)make();
-  y-=7;unlinkedIntro=write('UTAN DÖRRKORT  /  '+unlinked.length+' positioner',12,true);
-  write('Dessa har ingen säker dörrkortskoppling och räknas inte i arbetsprocenten.',8);
-  for(const o of unlinked){
-   const line=write(o.code+'  ·  position '+o.position+' av '+o.totalOfCode+'  ·  ritning sida '+o.page,9);
-   link(line.page,[25,line.y-3,515,line.y+11],pages[o.page-1],[Number(o.rect?.[0])||0,Number(o.rect?.[3])||pages[o.page-1].getHeight()]);
-   y-=3;
-  }
- }
- if(!extra){make();write('Inga projektpositioner att redovisa.')}
- // Originalets länkar till dörrkort och gemensam statussida.
- const oldLinked=!!doc.catalog.get(PDFName.of('SmartMatch17Links'));
- for(const o of matched){
-  const draw=pages[o.page-1],card=pages[protocolMap[o.code]-1],rect=o.rect?.map(Number);
-  if(!draw||!card||rect?.length!==4||!rect.every(Number.isFinite))continue;
-  if(!oldLinked)link(draw,[rect[0]-3,rect[1]-3,rect[2]+3,rect[3]+3],card);
- }
- if(unlinkedIntro){
-  for(const o of unlinked){
-   const draw=pages[o.page-1],rect=o.rect?.map(Number);
-   if(draw&&rect?.length===4&&rect.every(Number.isFinite))
-    link(draw,[rect[0]-3,rect[1]-3,rect[2]+3,rect[3]+3],unlinkedIntro.page);
-  }
- }
- for(const [code,top] of Object.entries(firstByCard)){
-  const card=pages[protocolMap[code]-1];if(!card)continue;
-  const x=Math.max(7,card.getWidth()-124);
-  if(!doc.catalog.get(PDFName.of('SmartMatch18FooterDrawn'))&&!oldLinked)
-   card.drawText('GS-status / ritning',{x,y:8,font:normal,size:8,color:rgb(.06,.37,.6)});
-  link(card,[x,4,x+117,23],top.page);
- }
- doc.catalog.set(PDFName.of('SmartMatch18FooterDrawn'),PDFNumber.of(1));
- doc.catalog.set(extraKey,PDFNumber.of(extra));
+ doc.catalog.set(PDFName.of('SmartMatch21OriginalPages'),PDFNumber.of(baseCount));
+ doc.catalog.set(extra21,PDFNumber.of(copies.length+statusPages));
+ return {linkedPositions:copies.length,originalPages:baseCount,navigationCopies:copies.length,statusPages};
 }
 async function buildPortableProjectPdf(){
  const {PDFDocument,PDFName,PDFHexString,PDFString}=PDFLib;
@@ -385,9 +391,9 @@ async function buildPortableProjectPdf(){
  await appendGsStatusPdf(doc);
  const saved=await doc.save({useObjectStreams:false});
  embeddedState=payload;
- // Originalets arbetsbytes ändras inte av en separat PDF-export.
+ // Behåll originalfilen i arbetsminnet; den separata PDF:en innehåller länkarna.
  try{labStorage.setItem(storageKey(),JSON.stringify(payload))}catch(_){}
- return bytes;
+ return new Uint8Array(saved);
 }
 function downloadProjectFile(file){
  const url=URL.createObjectURL(file),a=document.createElement('a');
