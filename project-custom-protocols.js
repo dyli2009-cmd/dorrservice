@@ -297,6 +297,122 @@ function renderMarkers(){
  }
 }
 
+
+/* Simple PDF positions. The previous rules, cards and state stay available for older projects. */
+let positionCode='DA',positionTemplate='',positionScanBusy=false,positionPreviewVersion=0,positionPdf=null;
+const positionCache=new Map();
+for(const [key,t] of Object.entries(TEMPLATES)){
+ for(const id of ['pcPositionTemplate','pcAssignPositionTemplate']){
+  const opt=node('option',t.label);opt.value=key;$(id).appendChild(opt);
+ }
+}
+function normalizePositionCode(value){return String(value||'').normalize('NFKC').trim().toUpperCase().replace(/[–—]/g,'-').replace(/\s+/g,'')}
+function positionRule(code){return {id:'position:'+code,code,mode:'exact',title:'Position '+code,points:[],target:'position',template:''}}
+function positionPoints(template){
+ const t=TEMPLATES[template];return t?.checks?.map(([n,label])=>({id:uid(),label:n+' '+label,status:'',note:''}))||[];
+}
+function positionOverlaps(a,b){
+ if(Number(a.page)!==Number(b.page))return false;
+ const [ax,ay,ar,at]=a.rect,[bx,by,br,bt]=b.rect;
+ const left=Math.max(Math.min(ax,ar),Math.min(bx,br)),right=Math.min(Math.max(ax,ar),Math.max(bx,br));
+ const bottom=Math.max(Math.min(ay,at),Math.min(by,bt)),top=Math.min(Math.max(ay,at),Math.max(by,bt));
+ if(right>=left&&top>=bottom)return true;
+ const acx=(ax+ar)/2,acy=(ay+at)/2,bcx=(bx+br)/2,bcy=(by+bt)/2;
+ return Math.abs(acx-bcx)<3&&Math.abs(acy-bcy)<3;
+}
+function isCreatedPosition(hit){
+ return objects.some(o=>normalizePositionCode(o.sourceCode||o.code)===normalizePositionCode(hit.code)&&positionOverlaps(o,hit))
+ ||(bridge?.existingPositions()||[]).some(o=>normalizePositionCode(o.code)===normalizePositionCode(hit.code)&&positionOverlaps(o,hit));
+}
+async function findPositionHits(pageNo,code,sourcePdf){
+ if(!sourcePdf)return [];
+ if(sourcePdf!==positionPdf){positionPdf=sourcePdf;positionCache.clear()}
+ const key=pageNo+':'+code;if(positionCache.has(key))return positionCache.get(key);
+ const text=await bridge.readPageText(pageNo);
+ if(bridge.isDoorCardPage(text)||bridge.isAutomationProtocolPage(text.raw)){positionCache.set(key,[]);return []}
+ const rule=positionRule(code),textHits=readCandidates(text.items,rule,pageNo);
+ const marks=await bridge.sourceMarkings(pageNo);
+ const marked=markedCandidates(marks,text.items,rule,pageNo);
+ const found=[];
+ for(const hit of [...textHits,...marked]){
+  hit.sourceCode=code;
+  if(!found.some(existing=>positionOverlaps(existing,hit)))found.push(hit);
+ }
+ if(sourcePdf===bridge.getPdf())positionCache.set(key,found);
+ return found;
+}
+function addPosition(hit){
+ if(isCreatedPosition(hit))return null;
+ const key='position@'+hit.page+':'+normalizePositionCode(hit.code)+':'+hit.rect.map(n=>Math.round(n*10)).join(':');
+ const item={id:key,ruleId:'position:'+hit.code,code:hit.code,sourceCode:hit.code,page:hit.page,rect:hit.rect.slice(),sourceKind:hit.sourceKind||'text',title:'Position '+hit.code,target:'position',template:positionTemplate,points:positionPoints(positionTemplate),location:'',objectNo:hit.code,modelCode:'',model:'',quantity:'',date:'',technician:'',signature:'',notes:''};
+ objects.push(item);return item;
+}
+async function renderPositionSuggestions(){
+ const version=++positionPreviewVersion,sourcePdf=bridge?.getPdf(),current=view;
+ suggestionLayer.replaceChildren();
+ const code=positionCode;
+ if(!sourcePdf||!current||!code||positionScanBusy)return;
+ let hits=[];
+ try{hits=await findPositionHits(current.page,code,sourcePdf)}catch(error){console.warn('Kunde inte läsa märkningarna på sidan',error);return}
+ if(version!==positionPreviewVersion||sourcePdf!==bridge.getPdf()||current!==view||positionScanBusy)return;
+ for(const hit of hits){
+  if(isCreatedPosition(hit))continue;
+  const r=current.viewport.convertToViewportRectangle(hit.rect);
+  const x=Math.min(r[0],r[2]),y=Math.min(r[1],r[3]),w=Math.abs(r[2]-r[0]),h=Math.abs(r[3]-r[1]);
+  if(![x,y,w,h].every(Number.isFinite))continue;
+  const b=node('button',hit.code,'pcPositionSuggestion');b.type='button';
+  b.style.left=x+'px';b.style.top=y+'px';
+  b.style.width=Math.max(18,Math.min(90,w))+'px';b.style.height=Math.max(17,Math.min(48,h))+'px';
+  b.title='Skapa projektposition '+hit.code+' på sida '+hit.page;
+  b.setAttribute('aria-label',b.title);b.onpointerdown=e=>e.stopPropagation();
+  b.onclick=e=>{e.preventDefault();e.stopPropagation();const o=addPosition(hit);if(!o)return;persist();renderPositionSuggestions();bridge?.message('Position '+o.code+' skapad på sida '+o.page);};
+  suggestionLayer.appendChild(b);
+ }
+}
+async function searchAndCreatePositions(){
+ if(positionScanBusy)return;
+ const code=normalizePositionCode($('pcPositionCode').value),sourcePdf=bridge?.getPdf();
+ if(!sourcePdf){$('pcPositionMessage').textContent='Öppna först en projekt-PDF.';return}
+ if(!/^[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9_/-]{0,39}$/.test(code)){$('pcPositionMessage').textContent='Skriv en märkning, till exempel DA eller D.';return}
+ if(code.length===1&&!window.confirm('En enda bokstav kan finnas på många ställen. Vill du söka efter alla fristående '+code+'?'))return;
+ positionCode=code;positionTemplate=$('pcPositionTemplate').value;
+ positionScanBusy=true;$('pcFindPositions').disabled=true;const found=[];let added=0;
+ try{
+  for(let p=1;p<=sourcePdf.numPages;p++){
+   if(sourcePdf!==bridge.getPdf())throw Error('PDF:en ändrades under sökningen. Försök igen.');
+   $('pcPositionMessage').textContent='Söker '+code+' · sida '+p+' av '+sourcePdf.numPages;
+   for(const hit of await findPositionHits(p,code,sourcePdf)){
+    const newItem=addPosition(hit);if(newItem){found.push(newItem);added++}
+   }
+  }
+  if(added)persist();
+  $('pcPositionMessage').textContent=added+' nya '+code+'-positioner skapade. '+(added?'Öppna dem under Positioner och välj kontrollmall.':'Alla hittade märkningar finns redan som positioner, eller så saknas läsbar märkning.')+(code==='DA'?' Sökningen använder text och etiketter, inte färgen röd.':'');
+  if(added){$('pcPositionDialog').close();bridge?.message(added+' nya '+code+'-positioner på ritningen.')}
+ }catch(error){$('pcPositionMessage').textContent='Sökningen avbröts: '+(error.message||error);if(added)persist()}
+ finally{positionScanBusy=false;$('pcFindPositions').disabled=false;renderPositionSuggestions()}
+}
+function openPositions(){ $('pcPositionCode').value=positionCode;$('pcPositionTemplate').value=positionTemplate;$('pcPositionMessage').textContent='Sök hela ritningen eller tryck direkt på märkningen på sidan.';if(!$('pcPositionDialog').open)$('pcPositionDialog').showModal();}
+$('pcPositionClose').onclick=()=>$('pcPositionDialog').close();
+$('pcPositionDialog').addEventListener('cancel',()=>{});
+$('pcFindPositions').onclick=searchAndCreatePositions;
+$('pcPositionCode').onchange=()=>{positionCode=normalizePositionCode($('pcPositionCode').value)||'DA';renderPositionSuggestions()};
+$('pcPositionCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();searchAndCreatePositions()}};
+$('pcPositionTemplate').onchange=()=>{positionTemplate=$('pcPositionTemplate').value};
+$('pcOpenOld').onclick=()=>{$('pcPositionDialog').close();openManager()};
+$('pcPositionName').onchange=()=>{if(!selectedObject||selectedObject.target!=='position')return;const code=normalizePositionCode($('pcPositionName').value);if(!code){$('pcPositionName').value=selectedObject.code;return}selectedObject.code=code;selectedObject.title='Position '+code;selectedObject.objectNo=code;$('pcIdentity').textContent=code+' · sida '+selectedObject.page;$('pcProtocolTitle').textContent=selectedObject.title;persist()};
+$('pcPositionLocation').onchange=()=>{if(selectedObject?.target==='position'){selectedObject.location=$('pcPositionLocation').value.trim();persist()}};
+$('pcAssignPositionTemplate').onchange=()=>{
+ const o=selectedObject;if(!o||o.target!=='position')return;
+ const next=$('pcAssignPositionTemplate').value;if(next===o.template)return;
+ if(o.points.some(p=>p.status||p.note)&&!window.confirm('Du har redan kontrollerat punkter. Byta mall och förlora dessa svar?')){$('pcAssignPositionTemplate').value=o.template||'';return}
+ o.template=next;o.points=positionPoints(next);o.title=next?(TEMPLATES[next]?.label||'Position '+o.code):'Position '+o.code;
+ $('pcProtocolTitle').textContent=o.title;persist();renderChecks();$('pcPreview').hidden=$('pcExport').hidden=!o.points.length;
+};
+$('pcRemovePosition').onclick=()=>{
+ const o=selectedObject;if(!o||o.target!=='position'||!window.confirm('Ta bort position '+o.code+' på sida '+o.page+'?'))return;
+ objects=objects.filter(item=>item!==o);closeProtocol();persist();renderPositionSuggestions();
+};
+
 async function openProtocol(o,focus=false){
  if(focus)await bridge?.focus(o);
  selectedObject=o;$('pcIdentity').textContent=o.code+' · sida '+o.page;$('pcProtocolTitle').textContent=o.title;
