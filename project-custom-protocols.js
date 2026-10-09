@@ -62,13 +62,14 @@ const POSITION_UI=`
   <p class="pcIntro">Hitta märkningar på ritningen och samla dem bland projektpositionerna. Börja med DA. Du kan också trycka direkt på en DA-märkning på ritningen.</p>
   <label>Märkning att hitta<input id="pcPositionCode" value="DA" maxlength="40" autocomplete="off" spellcheck="false" placeholder="DA"></label>
   <label>Kontrollmall (valfritt)<select id="pcPositionTemplate"><option value="">Ingen mall – bara position</option></select></label>
-  <button type="button" id="pcFindPositions" class="pcPrimary">Sök alla och skapa positioner</button>
+  <button type="button" id="pcFindPositions" class="pcPrimary">Sök alla och skapa positioner</button><button type="button" id="pcPlacePosition" class="pcSecondary">Placera själv på ritningen</button>
   <p id="pcPositionMessage" class="pcMuted" role="status">Söker i ritningens läsbara PDF-text och markeringsetiketter. Redan skapade positioner behålls.</p>
   <p class="pcMuted">Efteråt trycker du på positionen för att ändra namn, koppla kontrollmall eller börja kontrollera. Originalritningen ändras inte.</p>
   <details id="pcOldWorkflow"><summary>Tidigare egna protokoll</summary><p class="pcMuted">Äldre protokoll och kopplingar sparas oförändrade.</p><button type="button" id="pcOpenOld">Öppna tidigare verktyg</button></details>
  </div>
 </dialog>`;
 document.body.insertAdjacentHTML('beforeend',POSITION_UI);
+document.body.insertAdjacentHTML('beforeend','<div id="pcPositionPickBar" class="pcPositionPickBar" hidden><span id="pcPositionPickHelp">Tryck på DA i ritningen för att skapa positioner.</span><button type="button" id="pcPositionPickDone">Klart</button></div>');
 
 const managerButton=document.createElement('button');managerButton.id='pcOpen';managerButton.type='button';managerButton.textContent='Egna positioner';document.querySelector('.pwHeaderActions').prepend(managerButton);
 const startButton=document.createElement('button');startButton.id='pcStart';startButton.type='button';startButton.textContent='+ Egna positioner';document.querySelector('.pwEmptyCard').appendChild(startButton);
@@ -299,7 +300,7 @@ function renderMarkers(){
 
 
 /* Simple PDF positions. The previous rules, cards and state stay available for older projects. */
-let positionCode='DA',positionTemplate='',positionScanBusy=false,positionPreviewVersion=0,positionPdf=null;
+let positionCode='DA',positionTemplate='',positionScanBusy=false,positionPreviewVersion=0,positionPdf=null,positionPicking=false,positionPlaceCount=0;
 const positionCache=new Map();
 for(const [key,t] of Object.entries(TEMPLATES)){
  for(const id of ['pcPositionTemplate','pcAssignPositionTemplate']){
@@ -350,6 +351,7 @@ function addPosition(hit){
 async function renderPositionSuggestions(){
  const version=++positionPreviewVersion,sourcePdf=bridge?.getPdf(),current=view;
  suggestionLayer.replaceChildren();
+ if(positionPicking)return;
  const code=positionCode;
  if(!sourcePdf||!current||!code||positionScanBusy)return;
  let hits=[];
@@ -391,7 +393,33 @@ async function searchAndCreatePositions(){
  }catch(error){$('pcPositionMessage').textContent='Sökningen avbröts: '+(error.message||error);if(added)persist()}
  finally{positionScanBusy=false;$('pcFindPositions').disabled=false;renderPositionSuggestions()}
 }
-function openPositions(){ $('pcPositionCode').value=positionCode;$('pcPositionTemplate').value=positionTemplate;$('pcPositionMessage').textContent='Sök hela ritningen eller tryck direkt på märkningen på sidan.';if(!$('pcPositionDialog').open)$('pcPositionDialog').showModal();}
+function stopPositionPicking(){
+ positionPicking=false;suggestionLayer.dataset.pick='false';$('pcPositionPickBar').hidden=true;renderPositionSuggestions();
+}
+function beginPositionPicking(){
+ const code=normalizePositionCode($('pcPositionCode').value);
+ if(!bridge?.getPdf()){$('pcPositionMessage').textContent='Öppna en projekt-PDF först.';return}
+ if(!/^[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9_/-]{0,39}$/.test(code)){$('pcPositionMessage').textContent='Ange märkningen först, exempelvis DA.';return}
+ positionCode=code;positionTemplate=$('pcPositionTemplate').value;positionPicking=true;positionPlaceCount=0;
+ $('pcPositionPickHelp').textContent='Tryck på '+code+' i ritningen för att skapa positioner.';
+ $('pcPositionDialog').close();$('pcPositionPickBar').hidden=false;suggestionLayer.dataset.pick='true';renderPositionSuggestions();
+}
+suggestionLayer.addEventListener('pointerdown',e=>{if(positionPicking){e.preventDefault();e.stopImmediatePropagation()}});
+suggestionLayer.addEventListener('click',e=>{
+ if(!positionPicking||!view||!bridge?.getPdf())return;
+ e.preventDefault();e.stopImmediatePropagation();
+ const area=suggestionLayer.getBoundingClientRect();
+ const px=e.clientX-area.left,py=e.clientY-area.top;
+ if(px<0||py<0||px>area.width||py>area.height)return;
+ const [x,y]=view.viewport.convertToPdfPoint(px,py),halfW=14/view.viewport.scale,halfH=10/view.viewport.scale;
+ const hit={page:view.page,code:positionCode,rect:[x-halfW,y-halfH,x+halfW,y+halfH],sourceKind:'manual'};
+ const o=addPosition(hit);
+ if(o){positionPlaceCount++;persist();$('pcPositionPickHelp').textContent=positionPlaceCount+' '+positionCode+'-positioner skapade. Tryck på nästa eller välj Klart.'}
+ else $('pcPositionPickHelp').textContent='Den här positionen finns redan. Tryck på nästa '+positionCode+' eller välj Klart.';
+});
+$('pcPlacePosition').onclick=beginPositionPicking;
+$('pcPositionPickDone').onclick=stopPositionPicking;
+function openPositions(){ if(positionPicking)stopPositionPicking(); $('pcPositionCode').value=positionCode;$('pcPositionTemplate').value=positionTemplate;$('pcPositionMessage').textContent='Sök hela ritningen eller tryck direkt på märkningen på sidan.';if(!$('pcPositionDialog').open)$('pcPositionDialog').showModal();}
 $('pcPositionClose').onclick=()=>$('pcPositionDialog').close();
 $('pcPositionDialog').addEventListener('cancel',()=>{});
 $('pcFindPositions').onclick=searchAndCreatePositions;
@@ -491,7 +519,7 @@ window.TillsynoCustomProtocols={
  connect(api){bridge=api},
  installationDefaults(){return Object.fromEntries(COMPANY_FIELDS.filter(key=>typeof sharedDefaults?.[key]==='string').map(key=>[key,sharedDefaults[key]]))},
  snapshot(){return copy({schema:1,rules,objects})},
- load(payload){scanVersion++;positionPreviewVersion++;positionCache.clear();positionPdf=null;scanning=false;view=null;layer.replaceChildren();suggestionLayer.replaceChildren();closeProtocol();candidates=[];$('pcResults').hidden=true;
+ load(payload){scanVersion++;positionPreviewVersion++;positionCache.clear();positionPdf=null;positionPicking=false;suggestionLayer.dataset.pick='false';$('pcPositionPickBar').hidden=true;scanning=false;view=null;layer.replaceChildren();suggestionLayer.replaceChildren();closeProtocol();candidates=[];$('pcResults').hidden=true;
   if(payload&&payload.schema===1){rules=validRules(copy(payload.rules||[]));objects=validObjects(copy(payload.objects||[]))}
   else{try{rules=JSON.parse(localStorage.getItem(LIBRARY)||'[]')}catch(_){rules=[]}rules=validRules(rules);objects=[]}renderObjects();renderRules();},
  render(viewport,page){view={viewport,page};renderMarkers();renderPositionSuggestions()},
