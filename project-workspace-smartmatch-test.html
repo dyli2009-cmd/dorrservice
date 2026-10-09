@@ -7,8 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v29</title>
-<link rel="stylesheet" href="project-workspace-smartmatch-v29.css?v=29-1">
+<title>Projektflöde SmartMatch – TEST v30</title>
+<link rel="stylesheet" href="project-workspace-smartmatch-v30.css?v=30-1">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -54,7 +54,7 @@
 }
 </style>
 <style>
-/* TEST v29: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
+/* TEST v30: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
 .smartReportsDialog{width:min(850px,96vw);height:min(88dvh,880px);max-height:88dvh;overflow:auto;padding:12px 14px;border-radius:12px}
 .smartReportsDialog .labDiagnosticHead{position:sticky;top:-12px;z-index:10;padding:10px 0 8px;background:#fff;border-bottom:1px solid #d7e5ed}
 .smartReportsList{display:grid;gap:9px;padding-bottom:12px}
@@ -103,7 +103,7 @@
  .pwPositionMore>.pmRow{right:-2px;min-width:166px}
 }
 
-/* v29: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
+/* v30: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
 .labDiagnosticDialog.smartReportsDialog{width:min(610px,94vw);height:auto;max-height:82dvh;padding:10px 12px;overflow:auto}
 .labDiagnosticDialog.smartReportsDialog .labDiagnosticHead{align-items:center}
 .labDiagnosticDialog.smartReportsDialog #labDiagnosticClose{display:grid!important;place-items:center!important;text-align:center!important;padding:0!important;line-height:1!important;min-width:33px;height:33px}
@@ -115,7 +115,7 @@
  .pwProtocol.pwMobileChecks .pwChecklistPane{height:100%;overflow:auto}
 }
 
-/* SmartMatch TEST v29 – skrivbordsmus bara på originaldörrkortet. */
+/* SmartMatch TEST v30 – skrivbordsmus bara på originaldörrkortet. */
 .pwProtocolMouseHint{display:none;color:#607987;font-size:9px;line-height:1.25}
 .pwProtocolToolTitle{display:flex;flex-direction:column;gap:2px;min-width:0}
 @media(hover:hover) and (pointer:fine){
@@ -125,7 +125,7 @@
   .pwProtocolMouseHint{display:block}
 }
 
-/* TEST v29: mindre knappar och kompaktare dörrkortskontroller */
+/* TEST v30: mindre knappar och kompaktare dörrkortskontroller */
 .smartCardsTools{gap:5px!important;padding:5px 8px!important;min-height:0!important}
 .smartCardsTools button,.smartCardsTools #labDiagnoseOpen,.smartCardsTools #smartAddCards{font-size:10px!important;padding:5px 8px!important;min-height:27px!important;line-height:1.2!important;border-radius:7px!important}
 .smartCardsTools #smartCardsNote{font-size:9px!important;line-height:1.3!important}
@@ -153,14 +153,14 @@
  .pwProtocol .pwChecklistHeadActions button{font-size:9px!important;padding:4px 5px!important}
 }
 
-/* SmartMatch TEST v29: one compact export strategy – no duplicate-card option */
+/* SmartMatch TEST v30: one compact export strategy – no duplicate-card option */
 .smartCompactExportChoice{border:1px solid #c6e3d2;background:#f0f8f3;border-radius:9px;padding:11px 12px;margin:11px 0}
 .smartCompactExportChoice strong{display:flex;gap:6px;align-items:center;font-size:12px;color:#235c40}
 .smartCompactExportChoice p{margin:6px 0 0;font-size:11px;line-height:1.5;color:#365f4b}
 .smartCompactExportIcon{font-style:normal;font-weight:800;display:inline-grid;place-items:center;background:#fff;border:1px solid #8ebe9d;border-radius:50%;width:19px;height:19px}
 @media(max-width:520px){.smartCompactExportChoice{padding:8px 10px}.smartCompactExportChoice p{font-size:10px}}
 
-/* SmartMatch TEST v29: one-tap PDF size review in the compact tools bar. */
+/* SmartMatch TEST v30: one-tap PDF size review in the compact tools bar. */
 .smartCardsTools #smartPdfInspect{
  font-size:10px!important;min-height:27px!important;
  padding:5px 8px!important;line-height:1.2!important;
@@ -180,7 +180,7 @@
 }
 
 
-/* TEST v29: compact plan/floor name in the always-visible project header */
+/* TEST v30: compact plan/floor name in the always-visible project header */
 .pwFileInfo{flex:1 1 auto;min-width:0}
 .pwFileHeadline{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%}
 .pwFileHeadline #pwFileName{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -197,7 +197,7 @@
 }
 
 
-/* TEST v29: One top-right 'Granska PDF' action. Legacy save and card-import
+/* TEST v30: One top-right 'Granska PDF' action. Legacy save and card-import
    controls stay in DOM to protect existing event handlers, never in UI. */
 .pwHeaderActions .pwSaveWrap[hidden],
 .smartCardsTools #smartAddCards[hidden],
@@ -225,12 +225,55 @@
  .pwHeader{grid-template-columns:38px minmax(0,1fr) 76px;gap:4px}
 }
 
+
+/* TEST v30: tools and page navigation above the drawing, compact project name.
+   Internal counters remain populated for analysis, not shown in work header. */
+.pwToolbar{position:relative;z-index:20;overflow:visible;flex:0 0 auto;
+ padding:5px 8px!important;min-height:37px!important;
+ gap:6px;background:#f5f9fb}
+.pwToolbarWork{display:flex;align-items:center;gap:5px;order:0;flex:0 0 auto}
+.pwToolbarNavigation{display:flex;align-items:center;gap:4px;order:1;flex:0 0 auto;margin-left:5px}
+.pwToolbarWork .pwDrawTools{order:-1;border-left:0!important;border-right:1px solid #d4dee3;padding:0 6px 0 0}
+.pwToolbar button{min-height:28px!important;padding:4px 7px!important;font-size:10px!important}
+.pwToolbar .pwToolIcon{min-width:29px!important;width:29px!important;height:29px!important;font-size:17px!important}
+.pwToolWrap{position:relative;z-index:21}
+.pwToolMenu{z-index:110!important}
+.pwProjectBar{padding:4px 9px!important;gap:4px!important;min-height:30px!important}
+.pwProjectBar .pwFileInfo{flex:1 1 auto}
+.pwProjectBar .pwStats{display:none!important}
+.pwFileHeadline{gap:6px}
+.pwFileHeadline #pwFileName{font-size:11px!important;font-weight:750;flex:0 1 auto;max-width:55vw}
+.pwProjectBar #pwPlanTag{font-size:9px!important;padding:3px 6px!important;max-width:33vw;border-radius:6px}
+.pwVisuallyHidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;
+ margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;
+ white-space:nowrap!important;border:0!important}
+@media(max-width:900px){
+ .pwToolbar{overflow-x:auto!important;overflow-y:visible!important;overscroll-behavior-x:contain;
+  scrollbar-width:thin;-webkit-overflow-scrolling:touch;justify-content:flex-start}
+ .pwToolbarWork{flex-shrink:0}
+ .pwToolbarNavigation{flex-shrink:0}
+ /* A horizontally scrollable toolbar would otherwise clip its dropdown on tablets. */
+ .pwToolMenu{position:fixed!important;left:10px!important;right:10px!important;
+  bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;
+  width:auto!important;max-height:68dvh;overflow-y:auto!important;z-index:1010!important}
+}
+@media(max-width:520px){
+ .pwToolbar{padding:4px 6px!important;gap:2px}
+ .pwToolbarWork,.pwToolbarNavigation{gap:3px}
+ .pwToolbar button{min-height:28px!important;padding:4px 6px!important;font-size:10px!important}
+ .pwToolbar #pwPageInfo{min-width:67px!important}
+ .pwToolbar .pwToolIcon{min-width:27px!important;width:27px!important}
+ .pwProjectBar{padding:3px 7px!important;min-height:25px!important}
+ .pwFileHeadline #pwFileName{font-size:10px!important;max-width:56vw}
+ .pwProjectBar #pwPlanTag{font-size:9px!important;padding:2px 5px!important}
+}
+
 </style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 29">· TEST v29</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
+  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 30">· TEST v30</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
   <div class="pwHeaderActions">
     <!-- Legacy save controls remain in DOM to preserve existing handlers, but are
          hidden: the single visible entry is Granska PDF + save within dialog. -->
@@ -249,87 +292,6 @@
   <input id="pwFile" type="file" accept="application/pdf,.pdf" hidden>
 </header>
 
-<div class="smartCardsTools">
-  <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
-  <!-- Keep the importer internally for existing PDFs/project logic.
-       Its button and status no longer clutter the public toolbar. -->
-  <button id="smartAddCards" type="button" hidden aria-hidden="true" tabindex="-1">Lägg till dörrkort-PDF</button>
-  <span id="smartCardsNote" hidden aria-hidden="true"></span>
-  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
-</div>
-<section class="pwProjectBar">
-  <div class="pwFileInfo">
-    <div class="pwFileHeadline"><strong id="pwFileName">Ingen projektfil</strong><span id="pwPlanTag" class="pwPlanTag" title="Läst från ritningens stämpel" aria-live="polite" hidden></span></div>
-    <small id="pwState">Öppna en PDF. SmartMatch läser dörrkorten först och placerar sedan klickbara matchningar direkt på ritningen.</small>
-  </div>
-  <div class="pwStats">
-    <span><b id="pwPositionCount">0</b><small>med kort</small></span>
-    <span><b id="pwMatchedCount">0</b><small>kopplade</small></span>
-    <span><b id="pwDoneCount">0</b><small>klara</small></span>
-    <span><b id="pwTotalProgress">0%</b><small>totalt</small></span>
-  </div>
-</section>
-
-
-
-<main class="pwMain">
-  <section id="pwViewer" class="pwViewer">
-    <div id="pwStage" class="pwStage">
-      <canvas id="pwCanvas"></canvas>
-      <svg id="pwDrawingNotes" class="pwDrawingNotes" aria-hidden="true"></svg>
-      <div id="pwSelectionRect" class="pwSelectionRect" hidden></div>
-      <div id="pwMarkers" class="pwMarkers" aria-label="GS- och projektpositioner"></div>
-      <div id="pwAutomationMarkers" class="pwAutomationMarkers" aria-label="Dörrautomatikens egenkontroller"></div>
-    </div>
-    <div id="pwEmpty" class="pwEmpty">
-      <div class="pwProjectBackdrop" aria-hidden="true">
-        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
-          <g class="pwPlanLines">
-            <path d="M80 120H420V310H560V120H920V295H1110"/>
-            <path d="M145 520V360H350V590H650V430H850V565H1060V320"/>
-            <path d="M420 120V55M560 310V420M920 255V355M350 360V290"/>
-            <path d="M180 205h120v90H180zM715 125h125v105H715zM865 430h125v95H865z"/>
-          </g>
-          <g class="pwDoorSymbols">
-            <path d="M420 235v75h75M420 310a75 75 0 0 1 75-75"/>
-            <path d="M650 430v75h75M650 505a75 75 0 0 0 75-75"/>
-            <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
-          </g>
-          <g class="pwProjectMarks">
-            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v29"/>
-            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v29"/>
-            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v29"/>
-          </g>
-        </svg>
-      </div>
-      <div class="pwEmptyCard">
-        <div class="pwEmptyMark" aria-hidden="true">
-          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V29h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
-        </div>
-        <h1>Projektflöde</h1>
-        <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
-      </div>
-    </div>
-  </section>
-
-  <aside id="pwSide" class="pwSide">
-    <div class="pwSideHead">
-      <div><span>PROJEKT</span><strong>Positioner</strong></div>
-      <div class="pwSideHeadActions">
-        <button id="pwCurrentPageOnly" type="button" aria-pressed="false">Aktuell sida</button>
-        <button id="pwHidePositions" type="button" title="Göm positioner">Dölj</button>
-      </div>
-    </div>
-    <details id="pwPositionEditor" class="pwPositionEditor"><summary>＋ Placera / koppla</summary><div class="pwPositionTools"><label>Beteckning<input id="pmCode" list="pmCodes" placeholder="GS5"><datalist id="pmCodes"></datalist></label><button id="pmAdd" type="button">Placera</button><label>Dörrkortssida<input id="pmCard" type="number" min="1" placeholder="Sida"></label><button id="pmLink" type="button">Koppla kort</button><button id="pmCancel" type="button" hidden>Avbryt</button><p id="pmHelp" aria-live="polite">Välj position eller skriv en beteckning.</p></div></details><div id="pwGroups" class="pwGroups"><p class="pwMuted">Positionerna visas här efter analys.</p></div>
-  </aside>
-  <button id="pwShowPositions" class="pwShowPositions" type="button" hidden>Positioner</button>
-  <div id="pwBulkBar" class="pwBulkBar" hidden>
-    <strong id="pwBulkCount">0 valda</strong>
-    <button id="pwBulkPage" type="button">Alla på sidan</button>
-    <button id="pwBulkDone" type="button">Klarmarkera</button>
-    <button id="pwBulkClear" type="button">Avmarkera</button>
-  </div>
-</main>
 <section class="pwToolbar" aria-label="Ritningskontroller">
  <div class="pwToolbarNavigation" aria-label="Sida och zoom">
   <button id="pwPrev" type="button" aria-label="Föregående sida">‹</button>
@@ -363,6 +325,89 @@
   <input id="pwImageFile" type="file" accept="image/*" capture="environment" hidden>
  </div>
 </section>
+
+<div class="smartCardsTools">
+  <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
+  <!-- Keep the importer internally for existing PDFs/project logic.
+       Its button and status no longer clutter the public toolbar. -->
+  <button id="smartAddCards" type="button" hidden aria-hidden="true" tabindex="-1">Lägg till dörrkort-PDF</button>
+  <span id="smartCardsNote" hidden aria-hidden="true"></span>
+  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
+</div>
+<section class="pwProjectBar">
+  <div class="pwFileInfo">
+    <div class="pwFileHeadline"><strong id="pwFileName">Ingen projektfil</strong><span id="pwPlanTag" class="pwPlanTag" title="Läst från ritningens stämpel" aria-live="polite" hidden></span></div>
+    <small id="pwState" class="pwVisuallyHidden" role="status" aria-live="polite">Öppna en PDF. SmartMatch läser dörrkorten först och placerar sedan klickbara matchningar direkt på ritningen.</small>
+  </div>
+  <div class="pwStats">
+    <span><b id="pwPositionCount">0</b><small>med kort</small></span>
+    <span><b id="pwMatchedCount">0</b><small>kopplade</small></span>
+    <span><b id="pwDoneCount">0</b><small>klara</small></span>
+    <span><b id="pwTotalProgress">0%</b><small>totalt</small></span>
+  </div>
+</section>
+
+
+
+<main class="pwMain">
+  <section id="pwViewer" class="pwViewer">
+    <div id="pwStage" class="pwStage">
+      <canvas id="pwCanvas"></canvas>
+      <svg id="pwDrawingNotes" class="pwDrawingNotes" aria-hidden="true"></svg>
+      <div id="pwSelectionRect" class="pwSelectionRect" hidden></div>
+      <div id="pwMarkers" class="pwMarkers" aria-label="GS- och projektpositioner"></div>
+      <div id="pwAutomationMarkers" class="pwAutomationMarkers" aria-label="Dörrautomatikens egenkontroller"></div>
+    </div>
+    <div id="pwEmpty" class="pwEmpty">
+      <div class="pwProjectBackdrop" aria-hidden="true">
+        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+          <g class="pwPlanLines">
+            <path d="M80 120H420V310H560V120H920V305H1110"/>
+            <path d="M145 520V360H350V590H650V430H850V565H1060V320"/>
+            <path d="M420 120V55M560 310V420M920 255V355M350 360V300"/>
+            <path d="M180 205h120v90H180zM715 125h125v105H715zM865 430h125v95H865z"/>
+          </g>
+          <g class="pwDoorSymbols">
+            <path d="M420 235v75h75M420 310a75 75 0 0 1 75-75"/>
+            <path d="M650 430v75h75M650 505a75 75 0 0 0 75-75"/>
+            <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
+          </g>
+          <g class="pwProjectMarks">
+            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v30"/>
+            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v30"/>
+            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v30"/>
+          </g>
+        </svg>
+      </div>
+      <div class="pwEmptyCard">
+        <div class="pwEmptyMark" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V30h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v30H38"/><path d="M8 51h48"/></svg>
+        </div>
+        <h1>Projektflöde</h1>
+        <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
+      </div>
+    </div>
+  </section>
+
+  <aside id="pwSide" class="pwSide">
+    <div class="pwSideHead">
+      <div><span>PROJEKT</span><strong>Positioner</strong></div>
+      <div class="pwSideHeadActions">
+        <button id="pwCurrentPageOnly" type="button" aria-pressed="false">Aktuell sida</button>
+        <button id="pwHidePositions" type="button" title="Göm positioner">Dölj</button>
+      </div>
+    </div>
+    <details id="pwPositionEditor" class="pwPositionEditor"><summary>＋ Placera / koppla</summary><div class="pwPositionTools"><label>Beteckning<input id="pmCode" list="pmCodes" placeholder="GS5"><datalist id="pmCodes"></datalist></label><button id="pmAdd" type="button">Placera</button><label>Dörrkortssida<input id="pmCard" type="number" min="1" placeholder="Sida"></label><button id="pmLink" type="button">Koppla kort</button><button id="pmCancel" type="button" hidden>Avbryt</button><p id="pmHelp" aria-live="polite">Välj position eller skriv en beteckning.</p></div></details><div id="pwGroups" class="pwGroups"><p class="pwMuted">Positionerna visas här efter analys.</p></div>
+  </aside>
+  <button id="pwShowPositions" class="pwShowPositions" type="button" hidden>Positioner</button>
+  <div id="pwBulkBar" class="pwBulkBar" hidden>
+    <strong id="pwBulkCount">0 valda</strong>
+    <button id="pwBulkPage" type="button">Alla på sidan</button>
+    <button id="pwBulkDone" type="button">Klarmarkera</button>
+    <button id="pwBulkClear" type="button">Avmarkera</button>
+  </div>
+</main>
+
 
 <dialog id="pwProtocol" class="pwProtocol">
   <header class="pwProtocolHeader">
@@ -541,7 +586,7 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v29</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div><small>SMARTMATCH · TEST v30</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
   <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
  <p class="labDiagnosticIntro">Sammanfattning av PDF-skanning och dörrkort. Öppna respektive rubrik för mer detaljer.</p><div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
@@ -589,7 +634,7 @@
 
 <dialog id="smartExportDialog" class="smartExportDialog" aria-labelledby="smartExportTitle">
  <div class="smartExportHeader">
-  <div><small>SMARTMATCH · TEST v29</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
+  <div><small>SMARTMATCH · TEST v30</small><h2 id="smartExportTitle">Granska & optimera PDF</h2></div>
   <button id="smartExportClose" type="button" title="Stäng" aria-label="Stäng PDF-granskningen">×</button>
  </div>
  <p class="smartExportIntro">Vi behåller bara originalets ritnings- och dörrkortssidor. Ingen extra SmartMatch-rapport läggs som PDF-sidor. Granska filstorleken före delning.</p>
@@ -617,7 +662,7 @@
  </div>
  <p class="smartExportNote">Många mejltjänster har gränsen 25 MB, och mejlbilagor kan växa vid överföring. Sikta på ungefär 18 MB eller mindre. Om filen ändå är för stor kan du dela en molnlänk i stället.</p>
 </dialog>
-<script src="project-workspace-smartmatch-v29.js?v=29-1"></script>
+<script src="project-workspace-smartmatch-v30.js?v=30-1"></script>
 
 </body>
 </html>
