@@ -417,3 +417,27 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
 .labChoices{display:grid;gap:8px;margin:12px 0}
 .labChoices button{font:inherit;font-size:14px;text-align:left;padding:11px;border:1px solid #8aabbc;background:#f3f9fc;border-radius:7px}
 .labClose{padding:9px 16px;border:1px solid #a2adb7;background:white;border-radius:7px}
+
+/* Projektflöde test v4 – endast felsökningsfunktion. */
+.labDiagnosticOpen{white-space:nowrap;font-size:12px;padding:7px 10px;border:1px solid #80a8b7;border-radius:8px;background:#eaf4f8;color:#153848;cursor:pointer}
+.labDiagnosticDialog{width:min(650px,95vw);max-height:85vh;overflow:auto;border:1px solid #d0dfe5;border-radius:14px;padding:16px 18px 20px;background:#fff;color:#173347;box-shadow:0 16px 55px #0005}
+.labDiagnosticDialog::backdrop{background:#0b2638aa}
+.labDiagnosticHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.labDiagnosticHead small{font-size:10px;color:#527482;font-weight:700;letter-spacing:.08em}
+.labDiagnosticHead h2{font-size:20px;margin:4px 0 10px}
+#labDiagnosticClose{width:34px;height:34px;border-radius:8px;border:1px solid #ccd8dd;background:#fff;font-size:23px;cursor:pointer}
+.labDiagnosticIntro,.labDiagnosticFoot{font-size:12px;line-height:1.5;color:#576977;margin:5px 0 12px}
+.labDiagnosticSearch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.labDiagnosticSearch label{font-size:12px;font-weight:600}
+.labDiagnosticSearch input{width:115px;min-width:95px;padding:9px;border-radius:8px;border:1px solid #a6bdc7;font-size:14px;text-transform:uppercase;color:#173347;background:#fff}
+.labDiagnosticSearch button{padding:9px 14px;background:#163c50;color:white;border:0;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer}
+.labDiagnosticSearch button:disabled{opacity:.5;cursor:wait}
+.labDiagnosticSummary{background:#f0f7fb;border-radius:8px;padding:10px;margin:8px 0;font-size:12px;line-height:1.6;white-space:pre-line}
+.labDiagnosticResults{display:grid;gap:7px;max-height:46vh;overflow:auto}
+.labDiagnosticHit{width:100%;border:1px solid #d5e1e5;border-left:4px solid #c88c3e;border-radius:8px;background:white;color:#233c4b;padding:10px;text-align:left;cursor:pointer;display:grid;gap:3px;font-size:12px}
+.labDiagnosticHit[data-level="found"]{border-left-color:#359c72}
+.labDiagnosticHit[data-level="error"]{border-left-color:#be553e}
+.labDiagnosticHit b{font-size:13px}
+.labDiagnosticHit small{color:#657783}
+.labDiagnosticFrame{position:absolute;pointer-events:none;z-index:70;border:3px dashed #c73a34;box-shadow:0 0 0 5px #fada4477;background:#ffe18b35;border-radius:5px}
+@media(max-width:550px){.labDiagnosticOpen{font-size:11px;padding:6px 8px}.labDiagnosticDialog{padding:14px}.labDiagnosticSearch{gap:6px}}
