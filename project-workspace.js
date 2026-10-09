@@ -954,7 +954,7 @@ async function exportGuidedCustomerPdf(o){
  if(!o)throw Error('Välj ett protokoll.');
  const doc=createGuidedCustomerDoc(o);
  let pdfData=new Uint8Array(doc.output('arraybuffer'));
- if(o.target==='doorcard'&&o.protocolPage){
+ if((o.target==='doorcard'||o.target==='position')&&o.protocolPage){
   const out=await PDFLib.PDFDocument.create(),original=await PDFLib.PDFDocument.load(bytes.slice(),{ignoreEncryption:true}),report=await PDFLib.PDFDocument.load(pdfData);
   const [card]=await out.copyPages(original,[o.protocolPage-1]);out.addPage(card);
   for(const p of await out.copyPages(report,report.getPageIndices()))out.addPage(p);
