@@ -26,6 +26,7 @@ const server=http.createServer((req,res)=>{
    await addRule('14-18','exact','Egenkontroll eget nummer','1.1 Kontroll av lås');
    assert.equal(await page.locator('.pcRule').count(),2);await page.locator('#pcClose').click();
    await page.locator('#pwFile').setInputFiles({name:'egna-koder.pdf',mimeType:'application/pdf',buffer:bytes});
+   await page.locator('#pcOpen').click();await page.locator('#pcOpenOld').click();await page.locator('#pcScan').click();
    await page.waitForFunction(()=>document.querySelectorAll('.pcCandidate').length===7);
    assert.equal(await page.locator('#pcCreate').isDisabled(),true,'review required before creating protocols');
    if(process.env.PROJECT_QA_DIR)await page.screenshot({path:path.join(process.env.PROJECT_QA_DIR,(mobile?'mobile':'desktop')+'-matches.png')});
