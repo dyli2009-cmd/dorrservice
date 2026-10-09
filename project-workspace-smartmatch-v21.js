@@ -3368,7 +3368,7 @@ async function smartMergeDrawingWithCards(drawingFile,cardsFiles){
   for(const page of pages)doc.addPage(page);
  }
  const output=await doc.save({useObjectStreams:false});
- return new File([output],fileStem(drawingFile.name)+'-med-dorrkort-v11.pdf',{type:'application/pdf'});
+ return new File([output],fileStem(drawingFile.name)+'-med-dorrkort-v21.pdf',{type:'application/pdf'});
 }
 
 
@@ -3504,12 +3504,12 @@ document.getElementById('smartAddCards').onclick=()=>document.getElementById('sm
 document.getElementById('smartCardsFile').onchange=async e=>{
  const cards=[...(e.target.files||[])].filter(file=>/\.pdf$/i.test(file.name)||file.type==='application/pdf');if(!cards.length)return;
  if(!smartBaseDrawingFile){setState('Öppna först ritningsfilen och välj sedan dörrkorten.');return}
- smartAdditionalCardsFile=cards;currentFileHandle=null;
+ smartAdditionalCardsFile=[...(Array.isArray(smartAdditionalCardsFile)?smartAdditionalCardsFile:[]),...cards];currentFileHandle=null;
  try{setState('Sammanfogar ritningar och dörrkort lokalt…');
-  const merged=await smartMergeDrawingWithCards(smartBaseDrawingFile,cards);
+  const merged=await smartMergeDrawingWithCards(smartBaseDrawingFile,smartAdditionalCardsFile);
   await analyze(merged);
   const note=document.getElementById('smartCardsNote');
-  if(note)note.textContent=cards.length+' dörrkorts-PDF tillagda (alla sidor i varje fil).';
+  if(note)note.textContent=smartAdditionalCardsFile.length+' dörrkorts-PDF sammanfogade (alla sidor ingår).';
   e.target.value='';
  }catch(err){console.error(err);setState('Kunde inte kombinera PDF-filerna: '+(err?.message||err))}
 };
@@ -3626,6 +3626,7 @@ el.protocolZoomIn.onclick=()=>setProtocolScale(protocolScale+.2);
 el.protocolMax.onclick=()=>setProtocolScale(3);
 el.protocolShowCard.onclick=()=>{el.protocol.classList.remove('pwMobileChecks');el.protocol.classList.add('pwMobileCard');el.protocolCanvasWrap.scrollLeft=0};
 el.protocolShowGS.onclick=()=>{el.protocol.classList.remove('pwMobileCard');el.protocol.classList.add('pwMobileChecks')};
+document.getElementById('pwProtocolBackToCard').onclick=()=>el.protocolShowCard.click();
 el.protocolCanvasWrap.addEventListener('touchstart',beginProtocolTouch,{passive:false});
 el.protocolCanvasWrap.addEventListener('touchmove',moveProtocolTouch,{passive:false});
 el.protocolCanvasWrap.addEventListener('touchend',endProtocolTouch,{passive:false});
