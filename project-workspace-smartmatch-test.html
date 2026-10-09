@@ -7,8 +7,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v20</title>
-<link rel="stylesheet" href="project-workspace-smartmatch-v20.css?v=20-1">
+<title>Projektflöde SmartMatch – TEST v21</title>
+<link rel="stylesheet" href="project-workspace-smartmatch-v21.css?v=21-1">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -54,7 +54,7 @@
 }
 </style>
 <style>
-/* TEST v20: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
+/* TEST v21: låt ritningen fylla arbetsytan – rapporterna öppnas i en vy. */
 .smartReportsDialog{width:min(850px,96vw);height:min(88dvh,880px);max-height:88dvh;overflow:auto;padding:12px 14px;border-radius:12px}
 .smartReportsDialog .labDiagnosticHead{position:sticky;top:-12px;z-index:10;padding:10px 0 8px;background:#fff;border-bottom:1px solid #d7e5ed}
 .smartReportsList{display:grid;gap:9px;padding-bottom:12px}
@@ -102,17 +102,29 @@
  .pwToolbarNavigation button{min-height:29px}
  .pwPositionMore>.pmRow{right:-2px;min-width:166px}
 }
+
+/* v21: denna stil ligger efter sidans gamla inline-CSS för säker mobilprioritet. */
+.labDiagnosticDialog.smartReportsDialog{width:min(610px,94vw);height:auto;max-height:82dvh;padding:10px 12px;overflow:auto}
+.labDiagnosticDialog.smartReportsDialog .labDiagnosticHead{align-items:center}
+.labDiagnosticDialog.smartReportsDialog #labDiagnosticClose{display:grid!important;place-items:center!important;text-align:center!important;padding:0!important;line-height:1!important;min-width:33px;height:33px}
+#pwProtocolBackToCard{display:none}
+@media(max-width:820px){
+ .labDiagnosticDialog.smartReportsDialog{width:min(570px,94vw);height:auto;max-height:77dvh;border-radius:12px;padding:8px 9px}
+ .pwProtocol.pwMobileChecks #pwProtocolBackToCard{display:grid;place-items:center;min-height:32px;padding:4px 7px;font-size:10px}
+ .pwProtocol.pwMobileChecks .pwProtocolBody{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+ .pwProtocol.pwMobileChecks .pwChecklistPane{height:100%;overflow:auto}
+}
 </style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
   <a class="pwHome" href="./" aria-label="Hem">‹ Hem</a>
-  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 20">· TEST v20</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
+  <div class="pwTitle"><strong>Projektflöde SmartMatch <span class="pwTitleVersion" aria-label="Testversion 21">· TEST v21</span></strong><small>Första ID-raden → ritning → dörrkort</small></div>
   <div class="pwHeaderActions">
     <div class="pwSaveWrap">
       <button id="pwSaveProject" type="button" aria-expanded="false" disabled>Spara ▾</button>
       <div id="pwSaveMenu" class="pwSaveMenu" hidden>
-        <button id="pwSavePortable" type="button"><strong>Spara projekt</strong><small>Skapar en separat testkopia med namn -smartmatch-v20.pdf. Originalet skrivs inte över.</small></button>
+        <button id="pwSavePortable" type="button"><strong>Spara projekt</strong><small>Skapar en separat testkopia med namn -smartmatch-v21.pdf. Originalet skrivs inte över.</small></button>
         <button id="pwSaveAs" type="button"><strong>Spara som…</strong><small>Spara en separat testkopia av PDF-filen.</small></button>
         <button id="pwSaveCopy" type="button"><strong>PDF-kopia</strong><small>Sparar en kopia av PDF-filen utan nya statusändringar.</small></button>
         <button id="pwSaveSelfchecks" type="button" hidden><strong>Egenkontroller PDF</strong><small>Välj vilka dörrautomatiker som ska sparas som kundprotokoll.</small></button>
@@ -124,9 +136,9 @@
 
 <div class="smartCardsTools">
   <button id="labDiagnoseOpen" type="button" class="labDiagnosticOpen" title="Visa dörrkort, GS-rapport, PDF-analys och felsökning">Analys & rapporter</button>
-  <button id="smartAddCards" type="button" title="Om ritning och dörrkort är olika PDF-filer, lägg till dörrkortsfilen">+ Lägg till dörrkort-PDF</button>
-  <span id="smartCardsNote">Om ritning och dörrkort ligger i olika filer kan de kombineras här.</span>
-  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" hidden>
+  <button id="smartAddCards" type="button" title="Lägg till en eller flera PDF-filer med dörrkort">+ Lägg till dörrkort-PDF</button>
+  <span id="smartCardsNote">Välj en eller flera dörrkorts-PDF:er, med valfritt antal sidor.</span>
+  <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
 </div>
 <section class="pwProjectBar">
   <div class="pwFileInfo">
@@ -167,15 +179,15 @@
             <path d="M920 255v70h70M920 325a70 70 0 0 1 70-70"/>
           </g>
           <g class="pwProjectMarks">
-            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v20"/>
-            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v20"/>
-            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v20"/>
+            <circle cx="300" cy="230" r="18"/><path d="M291 230h18M300 221v21"/>
+            <circle cx="770" cy="480" r="18"/><path d="M761 480h18M770 471v21"/>
+            <circle cx="1020" cy="205" r="18"/><path d="M1011 205h18M1020 196v21"/>
           </g>
         </svg>
       </div>
       <div class="pwEmptyCard">
         <div class="pwEmptyMark" aria-hidden="true">
-          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V20h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
+          <svg viewBox="0 0 64 64"><path d="M11 51V14h27v38"/><path d="M18 51V21h13v31"/><circle cx="28" cy="36" r="1.7"/><path d="M38 22h15v29H38"/><path d="M8 51h48"/></svg>
         </div>
         <h1>Projektflöde</h1>
         <button id="pwOpenProjectEmpty" class="pwOpen pwOpenLarge" type="button">Öppna projekt-PDF</button>
@@ -259,11 +271,11 @@
           <button id="pwProtocolZoomOut" type="button" aria-label="Zooma ut originalprotokollet">−</button>
           <span id="pwProtocolZoomInfo">100%</span>
           <button id="pwProtocolZoomIn" type="button" aria-label="Zooma in originalprotokollet">+</button>
-          <button id="pwProtocolMax" type="button" title="Zooma direkt till 300%">300%</button><button id="pwProtocolShowCard" type="button">Dörrkort</button><button id="pwProtocolShowGS" type="button">GS-kontroller →</button><button id="pwProtocolDetailsToggle" type="button" aria-pressed="false">Fler detaljer</button>
+          <button id="pwProtocolMax" type="button" title="Zooma direkt till 300%">300%</button><button id="pwProtocolShowCard" type="button">Dörrkort</button><button id="pwProtocolShowGS" type="button">Kontrollpunkter</button>
         </div>
       </div>
       <div id="pwProtocolCanvasWrap" class="pwProtocolCanvasWrap">
-        <div id="pwProtocolStage" class="pwProtocolStage"><canvas id="pwProtocolCanvas"></canvas><div id="pwProtocolGSLayer" class="pwProtocolGSLayer" aria-label="Arbetskontroller för GS-rader"></div></div>
+        <div id="pwProtocolStage" class="pwProtocolStage"><canvas id="pwProtocolCanvas"></canvas><div id="pwProtocolGSLayer" class="pwProtocolGSLayer" hidden></div></div>
         <div id="pwProtocolMissing" class="pwProtocolMissing" hidden>
           <strong>Protokoll hittades inte automatiskt</strong>
           <p>Positionen är sparad, men ingen säker protokollsida kunde matchas för märkningen.</p>
@@ -274,9 +286,9 @@
     <aside class="pwChecklistPane">
       <div class="pwChecklistHead">
         <div><span>ARBETSPROTOKOLL</span><strong>Kontrollpunkter från originalet</strong></div>
-        <div class="pwChecklistHeadActions"><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
+        <div class="pwChecklistHeadActions"><button id="pwProtocolBackToCard" type="button">← Dörrkort</button><small id="pwChecklistMeta">0 punkter</small><button id="pwAddChecklistItem" type="button">＋ Lägg till</button></div>
       </div>
-      <p class="pwChecklistIntro">Arbetskontrollerna ligger vid GS-raderna på dörrkortet. Här kan du vid behov ändra eller lägga till kontrollpunkter. Tillverkarens DT-moment och tomma informationsfält lämnas orörda.</p>
+      <p class="pwChecklistIntro">En avbockning per arbetsmoment från originalet. Ändra, anteckna eller lägg till en kontrollpunkt vid behov.</p>
       <div id="pwChecklist" class="pwChecklist"></div>
     </aside>
   </div>
@@ -412,10 +424,10 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v20</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
-  <button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button>
+  <div><small>SMARTMATCH · TEST v21</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
- <p class="labDiagnosticIntro">Här ser du vilka ID som lästs från dörrkorten, vilka ritningspositioner som hittats och varför en matchning kan saknas. Stäng med × för att återgå till hela ritningen.</p>
+ <p class="labDiagnosticIntro">Sammanfattning av PDF-skanning och dörrkort. Öppna respektive rubrik för mer detaljer.</p><div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
  <div class="smartReportsList">
 <div class="smartDiscoveryNotice" role="status">
  <strong>Positioner med kopplat dörrkort.</strong>
@@ -439,7 +451,7 @@
 <section id="smartScanAudit" class="smartScanAudit" aria-label="PDF-scanningsrapport">
  <details id="smartScanAuditDetails">
   <summary id="smartScanAuditSummary">PDF-analys visas efter uppladdning</summary>
-  <p class="smartReportHelp">Teknisk sammanställning av vad PDF-läsningen hittat. Den används för att förstå missade eller osäkra träffar. JSON-filen är en felsökningsrapport – inte kundens protokoll.</p>
+  <p class="smartReportHelp">Här ser du bland annat GS från PDF-markeringar, antal skannade ritningssidor och avlästa dörrkort. Felsökningsrapporten är teknisk och ändrar inte projektet.</p>
   <div class="smartScanAuditToolbar">
    <button id="smartAuditExport" type="button">Hämta felsökningsrapport (JSON)</button>
    <span>Analysen sker i webbläsaren. Rapporten sparas bara om du väljer att hämta den.</span>
@@ -455,22 +467,9 @@
  </details>
 </section>
 
- <details class="smartDiagnosticSection">
-  <summary>Felsök en beteckning (valfritt)</summary>
-  <p class="labDiagnosticIntro">Jämför alla läsbara förekomster av en beteckning med de positioner som faktiskt visas. Övriga markeringar läggs inte till i projektet.</p>
- <div class="labDiagnosticSearch">
-  <label for="labDiagnosticCode">Beteckning</label>
-  <input id="labDiagnosticCode" value="310A" placeholder="Ex. 310A eller GS3" spellcheck="false" autocomplete="off">
-  <button id="labDiagnosticRun" type="button">Analysera</button>
- </div>
- <p id="labDiagnosticSummary" class="labDiagnosticSummary" role="status" aria-live="polite">Öppna en PDF och tryck på Analysera.</p>
- <div id="labDiagnosticResults" class="labDiagnosticResults"></div>
- <p class="labDiagnosticFoot">Analysen sker lokalt i webbläsaren. Den ändrar inte projektets positioner, protokoll eller sparade PDF.</p>
-
- </details>
  </div>
 </dialog>
-<script src="project-workspace-smartmatch-v20.js?v=20-1"></script>
+<script src="project-workspace-smartmatch-v21.js?v=21-1"></script>
 
 </body>
 </html>
