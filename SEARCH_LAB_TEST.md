@@ -1,30 +1,26 @@
-# Tillsyno Söklabb – separat test av ritningssökning
+# Projektflöde test – fristående testkopia
 
-## Säker avgränsning
-- Öppnas direkt genom `search-lab.html`, inte via ordinarie Projektflöde.
-- Testkoden, HTML och CSS finns enbart i `search-lab.js`, `search-lab.html` och `search-lab.css`. Ingen befintlig appfil behöver ändras.
-- Testets localStorage är prefixat med `tillsyno-search-lab:v1:` och läser/skriver `TillsynoSearchLabData` separat i PDF.
-- Testets sparfunktion skapar `-soktest.pdf` som separat fil; originalet skrivs inte över.
-- Ordinarie Projektflöde/Kontrollflöde påverkas inte.
+**Öppna:** `project-workspace-test.html` på samma GitHub Pages-adress som ordinarie Projektflöde.
 
-## Regler att prova
-1. Utgå enbart från **färgmarkerade positioner** i PDF (markeringsannoteringar: highlight, stamp, color square/free text).
-2. Läs märkningstexten i markeringen: `GS14`, `140D`, `A101`, `1` etc. Färgen kan variera.
-3. Registrera varje plats som separat position, även upprepade koder.
-4. Läs igenom samma PDF och bygg kandidatregister över dörrkort. Matcha **endast de första fyra relevanta identifieringsraderna**; vanliga sidhuvuden ignoreras.
-5. Acceptera t.ex. `WC GS14` för `GS14`, aldrig `GS140` för `GS14`.
-6. Uteslut beslagstexter som låshus, slutbleck, cylinder, trycke, artikelnummer etc. från matchningsrader.
-7. Unik protokollsida kopplas automatiskt; om flera sidor matchar går det att välja manuellt; om ingen sida matchar ligger positionen kvar.
-8. Kopplade positioner öppnar originalkortet och den ordinarie projektchecklistan, med separat status per position.
+## Avgränsning
+- Testsidan är visuellt en kopia av **hela Projektflödet** med samma ritningsyta, verktyg, positioner, dörrkort och checklistor.
+- Inga produktionsfiler (`project-workspace.html/js/css`, `index.html`, Kontrollflöde, iOS) är ändrade.
+- Testsidan använder separata **project-workspace-test.html/js/css**.
+- Ursprungliga länken `search-lab.html` skickar vidare till nya testsidan.
+- Lagring och återöppning är separerade genom `tillsyno-project-workspace-test:v1:` och PDF-nyckeln `TillsynoProjectTestData`. Originalets `TillsynoProjectData` läses/skrivs inte av testet.
+- Spara projekt skapar alltid en separat `-soktest.pdf`. Ingenting skrivs över i originalfilen.
 
-## Begränsningar (testversion 1)
-- Ingen OCR och ingen bildanalys av inskannade/utplattade färgmarkeringar. Testet kräver åtkomliga PDF-annoteringar och läsbar text eller koder i annotationernas metadata.
-- En dörrkortsida med flera separata dörrkort i olika kolumner kan behöva bättre geometrisk uppdelning.
-- Textordningen i vissa PDF:er kan skilja från visuell ordning; den heuristiska fyrstegsradsgränsen kan behöva justeras med verkliga ritningar.
-- Denna testlänk är en fristående webbsida, inte en ny TestFlight-version.
+## Vad som testas i den VANLIGA ritningsvyn
+1. Öppna en PDF som vanligt.
+2. Motorn hittar separata färgmarkeringar med läsbar beteckning, t.ex. `GS14`, `140D`, `1`, även om färgen skiljer.
+3. Varje annoterad markering blir egen position med sida och PDF-koordinater.
+4. Motorn läser hela PDF:en och matchar kod i dörrkortets högst fyra första relevanta identifieringsrader, inte artikel-/beslagsrader.
+5. Säkert matchade positioner får klickbar dörrkorts-/protokollvy och checklista.
+6. Ej matchade positioner visas också på ritningen och i **den befintliga positionslistan**, med status.
+7. Om flera dörrkort innehåller samma identifierare får användaren välja korrekt dörrkort när positionen öppnas.
+8. Testpositioner och bockad checklista sparas separat per position.
 
-## Testfall
-- En färgmarkerad `GS14` på ritning + dörrkort vars övre rad säger `WC GS14` = match.
-- Flera färgmarkerade `GS14` på olika platser = flera positioner, samma länkade dörrkort och separata statusar.
-- `WC GS1` med `Slutbleck GS14` längre ner = ingen falsk GS14-koppling.
-- `WC 140D`, `Dörr 1` samt saknade/ambivalenta matchningar.
+## Testgränser
+- PDF-färg måste vara tillgänglig som en läsbar markering/annotering med text. Färg inbakad i en bild är inte avläsbar i denna version (ingen OCR).
+- Matchning av dokument med flera dörrkort per PDF-sida och ovanlig layout kan behöva utvecklas vidare efter verkliga tester.
+- Testversionen finns som separat webbsida, inte som TestFlight-installation.
