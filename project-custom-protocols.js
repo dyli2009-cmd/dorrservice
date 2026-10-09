@@ -21,6 +21,8 @@ const markup=`
 <dialog id="pcManager" class="pcDialog">
  <header class="pcHead"><div><small>PROJEKTFLÖDE</small><strong>Egna koder & protokoll</strong></div><button id="pcClose" type="button" aria-label="Stäng egna protokoll">×</button></header>
  <div class="pcBody"><div class="headerDetails pcOffline"></div><p class="pcIntro">Ange vad appen ska hitta i ritningen och vilka kontrollpunkter som ska kopplas till varje träff. Du väljer själv vilka träffar som blir protokoll.</p>
+ <div class="pcCommand"><label>Snabbkommando – kod eller objekt-ID<input id="pcQuickCode" maxlength="100" placeholder="GS1 eller 2167-20-24-45-2"></label><button id="pcRunCode" type="button">Hitta och skapa</button></div>
+ <p class="pcMuted">Hitta positioner automatiskt. Oklara dörrkort väljer du själv.</p>
  <div id="pcRules" class="pcRules"></div><button id="pcNewRule" type="button">+ Lägg till mall</button>
  <button id="pcAttachCards" type="button">Lägg till dörrkort-PDF</button><input id="pcCardsFile" type="file" accept="application/pdf,.pdf" hidden>
  <p class="pcMuted">Har du dörrkorten i en separat fil? Lägg till dem här. De följer med när du sparar projektet.</p>
@@ -45,10 +47,10 @@ const markup=`
  <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
  <div id="pcObjectMeta" class="pcMeta pcObjectMeta" hidden><label>Objekt<input id="pcObjectNo" maxlength="80"></label><label id="pcModelLabel">Typ av automatik<select id="pcModel"></select></label><label id="pcEquipmentLabel" hidden>Typ av utrustning<input id="pcEquipmentType" maxlength="160"></label><label>Antal / löpnummer<input id="pcQuantity" inputmode="numeric" maxlength="12"></label></div>
  <section id="pcCardPreview" hidden><div class="pcCardTools"><strong id="pcCardLabel">Originaldörrkort</strong><button id="pcCardOut" type="button" aria-label="Zooma ut dörrkort">−</button><button id="pcCardIn" type="button" aria-label="Zooma in dörrkort">+</button></div><div id="pcCardWrap"><canvas id="pcCardCanvas"></canvas></div></section>
- <div class="pcProgress"><strong id="pcProgress">0%</strong><span>godkänd eller ej aktuell</span></div><div id="pcChecks"></div>
+ <div class="pcProgress"><strong id="pcProgress">0%</strong><span>kontrollerade punkter</span><button id="pcApproveAll" type="button">✓ Godkänn alla</button></div><div id="pcChecks"></div>
  <form id="pcAddPoint" class="pcAddPoint"><label>Ny kontrollpunkt<input id="pcNewPoint" maxlength="500" required placeholder="Nummer och beskrivning"></label><button type="submit">+ Lägg till</button></form>
  <label class="pcNotes">Allmän notering<textarea id="pcNotes" rows="3" maxlength="10000"></textarea></label>
- <div class="pcActions"><button id="pcExport" type="button">Spara protokoll PDF</button></div><p id="pcProtocolMessage" role="status"></p></div>
+ <div class="pcActions"><button id="pcPreview" type="button">Visa kundmall</button><button id="pcExport" type="button">Spara protokoll PDF</button></div><p id="pcProtocolMessage" role="status"></p></div>
 </dialog>`;
 document.body.insertAdjacentHTML('beforeend',markup);
 const managerButton=document.createElement('button');managerButton.id='pcOpen';managerButton.type='button';managerButton.textContent='Egna protokoll';document.querySelector('.pwHeaderActions').prepend(managerButton);
@@ -107,8 +109,9 @@ $('pcRuleForm').onsubmit=e=>{
 function escapeRegExp(value){return value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function matcher(rule){
  const series=rule.mode==='sequence'?rule.code.match(/^(\p{L}+)[\s_-]*(\d+)$/u):null;
- const literal=escapeRegExp((series?series[1]:rule.code).normalize('NFKC')).replace(/ /g,'[ \\t]+');
- const suffix=series?'[ \\t_-]*[0-9]+':rule.mode==='object'?'(?:(?:[ \\t]*[-–—][ \\t]*[0-9]+){2,})?':rule.mode==='exact'?'':'(?:[ \\t_-]*[0-9][\\p{L}\\p{N}]*(?:[._/-][\\p{L}\\p{N}]+)*)?';
+ const structured=rule.mode==='exact'&&/^\d+(?:-\d+){2,}$/.test(rule.code.replace(/\s+/g,''));
+ const literal=structured?rule.code.replace(/\s+/g,'').split('').map(c=>c==='-'?'[ \\t]*[-–—][ \\t]*':escapeRegExp(c)+'[ \\t]*').join(''):series?series[1].split('').map(escapeRegExp).join('[ \\t_-]*'):escapeRegExp(rule.code.normalize('NFKC')).replace(/ /g,'[ \\t]+');
+ const suffix=series?'[ \\t_-]*[0-9](?:[ \\t]*[0-9])*':rule.mode==='object'?'(?:(?:[ \\t]*[-–—][ \\t]*[0-9]+){2,})?':rule.mode==='exact'?'':'(?:[ \\t_-]*[0-9][\\p{L}\\p{N}]*(?:[._/-][\\p{L}\\p{N}]+)*)?';
  return new RegExp('(?<![\\p{L}\\p{N}_/-])'+literal+suffix+'(?![\\p{L}\\p{N}_/-])','giu');
 }
 function idFor(rule,page,code,rect){return rule.id+(rule.target&&rule.target!=='custom'?'|'+rule.target:'')+'@'+page+':'+rect.map(n=>Math.round(n*10)).join(':')+':'+code.toLocaleUpperCase('sv')}
@@ -134,11 +137,11 @@ function readCandidates(items,rule,page){
    for(const item of group){const part=item.text.normalize('NFKC');const previous=segments[segments.length-1];if(text&&previous&&item.x-previous.item.x-previous.item.w>Math.max(1,item.h*.12))text+=' ';const start=text.length;text+=part;segments.push({start,end:text.length,item})}
    const re=matcher(rule);
    for(const match of text.matchAll(re)){
-    if(rule.mode==='sequence'){const minimum=Number(rule.code.match(/\d+$/)?.[0]||0),number=Number(match[0].match(/\d+$/)?.[0]);if(number<minimum)continue}
+    if(rule.mode==='sequence'){const minimum=Number(rule.code.match(/\d+$/)?.[0]||0),number=Number(match[0].replace(/[^0-9]/g,''));if(number<minimum)continue}
     const hits=segments.filter(s=>s.end>match.index&&s.start<match.index+match[0].length);if(!hits.length)continue;
     const pieces=hits.map(s=>{const a=Math.max(match.index,s.start)-s.start,b=Math.min(match.index+match[0].length,s.end)-s.start,length=s.end-s.start;return {...s.item,x:s.item.x+s.item.w*a/length,w:s.item.w*(b-a)/length}});
     const rect=[Math.min(...pieces.map(i=>i.x))-2,Math.min(...pieces.map(i=>i.y-i.h*.35))-2,Math.max(...pieces.map(i=>i.x+i.w))+2,Math.max(...pieces.map(i=>i.y+i.h*.95))+2];
-    const code=match[0].trim();found.push({id:idFor(rule,page,code,rect),ruleId:rule.id,code,page,rect,title:rule.title,points:rule.points.slice(),selected:false,target:rule.target||'custom',template:rule.template||'',...(rule.target==='selfcheck'?objectInfo(code,items,rect):{})});
+    const code=rule.mode==='sequence'?match[0].replace(/[\s_-]+/g,'').toUpperCase():rule.mode==='exact'&&/^\d+(?:-\d+){2,}$/.test(rule.code.replace(/\s/g,''))?match[0].replace(/\s+/g,'').replace(/[–—]/g,'-'):match[0].trim();found.push({id:idFor(rule,page,code,rect),ruleId:rule.id,code,page,rect,title:rule.title,points:rule.points.slice(),selected:false,target:rule.target||'custom',template:rule.template||'',sourceKind:'text',...(rule.target==='selfcheck'?objectInfo(code,items,rect):{})});
    }
   }
  }
@@ -188,7 +191,7 @@ async function scan(){
    for(const rule of rules){
     if(rule.target==='doorcard'&&bridge.isDoorCardPage(text))continue;
     if(rule.target==='selfcheck'&&bridge.isAutomationProtocolPage(text.raw))continue;
-    for(const hit of [...markedCandidates(marks,text.items,rule,page),...readCandidates(text.items,rule,page)])if(!known.has(hit.id)&&![...objects,...found].some(o=>samePosition(o,hit))){found.push(hit);known.add(hit.id)}
+    for(const hit of [...readCandidates(text.items,rule,page),...markedCandidates(marks,text.items,rule,page)])if(!known.has(hit.id)&&![...objects,...found].some(o=>samePosition(o,hit))){found.push(hit);known.add(hit.id)}
    }
   }
   const sourcePages=[...new Set([...found,...objects].filter(c=>c.target==='doorcard').map(c=>c.page))];
@@ -215,12 +218,40 @@ function renderCandidates(){
 }
 function fillModels(select,value=''){select.replaceChildren();const empty=node('option','Typ ej avläst / välj typ');empty.value='';select.appendChild(empty);for(const [code,name] of bridge?.models||[]){const option=node('option',code+' · '+name);option.value=code;select.appendChild(option)}select.value=value||''}
 function updateCreateButton(){const n=candidates.filter(c=>c.selected).length;$('pcCreate').disabled=!n;$('pcCreate').textContent='Skapa '+n+' valda protokoll'}
-$('pcCreate').onclick=()=>{
- const known=new Set(objects.map(o=>o.id));const chosen=candidates.filter(c=>c.selected&&!known.has(c.id));
- for(const c of chosen)objects.push({id:c.id,ruleId:c.ruleId,code:c.code,page:c.page,rect:c.rect,title:c.title,target:c.target,template:c.template,protocolPage:c.protocolPage||null,objectNo:c.objectNo||'',modelCode:c.modelCode||'',model:c.model||'',quantity:c.quantity||'',points:c.points.map(label=>({id:uid(),label,status:'',note:''})),date:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10),technician:'',signature:'',notes:''});
- persist();closeManager();bridge?.message(chosen.length+' egna protokoll skapades. Klicka på markeringen eller välj under Egna protokoll.');
-};
-function progress(o){return o.points.length?Math.round(o.points.filter(p=>p.status==='ok'||p.status==='na').length/o.points.length*100):0}
+function createSelected(){
+ const known=new Set(objects.map(o=>o.id)),chosen=candidates.filter(c=>c.selected&&!known.has(c.id));
+ for(const c of chosen)objects.push({id:c.id,ruleId:c.ruleId,code:c.code,page:c.page,rect:c.rect,title:c.title,target:c.target,template:c.template,sourceKind:c.sourceKind||'text',protocolPage:c.protocolPage||null,objectNo:c.objectNo||'',modelCode:c.modelCode||'',model:c.model||'',quantity:c.quantity||'',points:c.points.map(label=>({id:uid(),label,status:'',note:''})),date:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10),technician:'',signature:'',notes:''});
+ persist();closeManager();bridge?.message(chosen.length+' egna protokoll skapades. Klicka på märkningen eller välj under Egna protokoll.');
+ return chosen.length;
+}
+$('pcCreate').onclick=createSelected;
+async function runQuickCommand(){
+ const input=$('pcQuickCode').value.toUpperCase().replace(/[–—]/g,'-').trim();
+ const gs=input.match(/\bGS\s*[0-9]+\b/i),serial=input.match(/\b[0-9]{1,6}(?:\s*-\s*[0-9]{1,6}){2,}\b/);
+ const code=(serial?.[0]||gs?.[0]||input).replace(/\s*-\s*/g,'-').replace(/\s+/g,'').trim();
+ if(!code){$('pcMessage').textContent='Skriv en kod eller ett objekt-ID.';return}
+ if(!bridge?.getPdf()){$('pcMessage').textContent='Öppna en ritning först.';return}
+ let rule=rules.find(r=>r.code.replace(/\s+/g,'').toUpperCase()===code);
+ if(!rule){
+  const parsed=bridge.parseAutomation(code),isGs=/^GS\d+$/i.test(code);
+  if(!parsed&&!isGs){editRule();$('pcCode').value=code;$('pcMessage').textContent='Skapa först en mall med kontrollpunkter för den här koden.';return}
+  const template=TEMPLATES.automation_selfcheck;
+  rule={id:uid(),code,mode:isGs?'sequence':'exact',title:isGs?'Dörrkort':template?.label||'Egenkontroll dörrautomatik',target:isGs?'doorcard':'selfcheck',template:isGs?'':'automation_selfcheck',points:isGs?[]:(template?.checks||[]).map(([n,label])=>n+' '+label)};
+  rules.push(rule);saveLibrary();persist();renderRules();
+ }
+ $('pcScanScope').value='all';$('pcPagesLabel').hidden=true;$('pcRunCode').disabled=true;
+ try{
+  await scan();
+  const ready=candidates.filter(c=>c.ruleId===rule.id&&(c.target!=='doorcard'||!!c.protocolPage));
+  if(!ready.length){$('pcMessage').textContent='Ingen säker matchning för '+code+'. Kontrollera träffarna och välj dörrkort manuellt vid behov.';return}
+  ready.forEach(c=>c.selected=true);
+  const count=createSelected();bridge?.message(count+' träffar skapades från kommandot '+code+'.');
+ }finally{$('pcRunCode').disabled=false}
+}
+$('pcRunCode').onclick=()=>runQuickCommand().catch(error=>$('pcMessage').textContent='Kunde inte läsa kommandot: '+(error.message||error));
+$('pcQuickCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('pcRunCode').click()}};
+
+function progress(o){return o.points.length?Math.round(o.points.filter(p=>['ok','na','remark'].includes(p.status)).length/o.points.length*100):0}
 function updateCombinedStats(){
  if(!objects.length)return;
  const existing=bridge?.existingPositions()||[],replaced=existing.filter(e=>objects.some(o=>o.target==='doorcard'&&samePosition(o,{...e,ruleId:o.ruleId})));
@@ -235,11 +266,18 @@ function renderObjects(){
 function renderMarkers(){
  layer.replaceChildren();if(!view)return;
  for(const o of objects.filter(o=>o.page===view.page)){
-  const r=view.viewport.convertToViewportRectangle(o.rect),left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]);
-   const b=node('button',undefined,'pcMarker');b.type='button';b.style.left=left+'px';b.style.top=top+'px';b.style.width=Math.max(24,Math.abs(r[2]-r[0]))+'px';b.style.height=Math.max(24,Math.abs(r[3]-r[1]))+'px';b.dataset.progress=String(progress(o));b.dataset.target=o.target||'custom';b.title=o.code+' · '+o.title;b.setAttribute('aria-label',b.title);b.append(node('span',progress(o)===100?'✓':o.target==='doorcard'?'DK':'EK'));
+  const r=view.viewport.convertToViewportRectangle(o.rect),originLeft=Math.min(r[0],r[2]),originTop=Math.min(r[1],r[3]),naturalW=Math.abs(r[2]-r[0]),naturalH=Math.abs(r[3]-r[1]);
+  const annotation=o.sourceKind&&o.sourceKind!=='text',w=annotation?Math.min(44,Math.max(16,naturalW)):Math.max(12,Math.min(180,naturalW)),h=annotation?Math.min(18,Math.max(12,naturalH)):Math.max(12,Math.min(30,naturalH));
+  const left=annotation?originLeft+(naturalW-w)/2:originLeft,top=annotation?originTop+(naturalH-h)/2:originTop;
+  const b=node('button',undefined,'pcMarker pcMarkerExact');b.type='button';b.style.left=left+'px';b.style.top=top+'px';b.style.width=w+'px';b.style.height=h+'px';
+  const pct=progress(o),untested=o.points.every(p=>!p.status);
+  b.dataset.progress=String(pct);b.dataset.state=untested?'untested':pct===100?'done':'inprogress';b.dataset.target=o.target||'custom';b.dataset.source=o.sourceKind||'text';
+  b.title=o.code+' · '+o.title+' · '+(untested?'Ej kontrollerad':pct+'% klar');b.setAttribute('aria-label',b.title);
+  b.append(node('span',o.code,'pcMarkerText'),node('small',untested?'Ej kontrollerad':pct===100?'✓':pct+'%','pcMarkerStatus'));
   b.onpointerdown=e=>e.stopPropagation();b.ontouchstart=e=>e.stopPropagation();b.onclick=e=>{e.stopPropagation();openProtocol(o)};layer.appendChild(b);
  }
 }
+
 async function openProtocol(o,focus=false){
  if(focus)await bridge?.focus(o);
  selectedObject=o;$('pcIdentity').textContent=o.code+' · sida '+o.page;$('pcProtocolTitle').textContent=o.title;
@@ -265,11 +303,13 @@ function renderChecks(){
  for(const point of o.points){
   const row=node('section',undefined,'pcCheck'),head=node('div',undefined,'pcCheckHead'),label=node('textarea');label.className='pcPointLabel';label.rows=2;label.value=point.label;label.maxLength=500;label.oninput=()=>{label.style.height='auto';label.style.height=label.scrollHeight+'px'};label.setAttribute('aria-label','Kontrollpunkt');label.onchange=()=>{if(label.value.trim()){point.label=label.value.trim();persist()}else label.value=point.label};
   const remove=node('button','×');remove.type='button';remove.setAttribute('aria-label','Ta bort kontrollpunkt');remove.onclick=()=>{o.points=o.points.filter(p=>p.id!==point.id);persist();renderChecks()};head.append(label,remove);
-  const choices=node('div',undefined,'pcChoices');for(const [value,title] of [['ok','✓ Godkänd'],['remark','! Anmärkning'],['na','– Ej aktuell']]){const b=node('button',title);b.type='button';b.dataset.status=value;b.classList.toggle('active',point.status===value);b.onclick=()=>{point.status=point.status===value?'':value;persist();renderChecks()};choices.appendChild(b)}
+  const state=node('small',point.status?({ok:'Godkänd',remark:'Anmärkning',na:'Ej aktuell'}[point.status]||'Ej kontrollerad'):'Ej kontrollerad','pcCheckState');row.appendChild(state);
+   const choices=node('div',undefined,'pcChoices');for(const [value,title] of [['na','Ingår ej'],['ok','Klart utan anmärkning'],['remark','Klart med anmärkning']]){const b=node('button',title);b.type='button';b.dataset.status=value;b.classList.toggle('active',point.status===value);b.onclick=()=>{point.status=point.status===value?'':value;persist();renderChecks()};choices.appendChild(b)}
   const note=node('textarea');note.className='pcPointNote';note.rows=2;note.maxLength=5000;note.placeholder='Kommentar / anmärkning';note.value=point.note||'';note.setAttribute('aria-label','Kommentar till '+point.label);note.onchange=()=>{point.note=note.value;persist()};row.append(head,choices,note);$('pcChecks').appendChild(row);requestAnimationFrame(()=>{label.style.height='auto';label.style.height=label.scrollHeight+'px'});
  }
  $('pcProgress').textContent=progress(o)+'%';
 }
+$('pcApproveAll').onclick=()=>{if(!selectedObject)return;for(const point of selectedObject.points)if(!point.status)point.status='ok';persist();renderChecks()};
 $('pcAddPoint').onsubmit=e=>{e.preventDefault();const label=$('pcNewPoint').value.trim();if(!label||!selectedObject)return;selectedObject.points.push({id:uid(),label,status:'',note:''});$('pcNewPoint').value='';persist();renderChecks()};
 for(const [id,key] of [['pcDate','date'],['pcTechnician','technician'],['pcSignature','signature'],['pcNotes','notes']])$(id).onchange=()=>{if(selectedObject){if(selectedObject.target==='selfcheck'&&key!=='notes'){bridge.setProjectMeta({[key]:$(id).value});if(COMPANY_FIELDS.includes(key)){sharedDefaults[key]=$(id).value;try{localStorage.setItem(DEFAULTS,JSON.stringify(sharedDefaults))}catch(_){}}syncShared()}else selectedObject[key]=$(id).value;persist()}};
 for(const [id,key] of [['pcObjectNo','objectNo'],['pcQuantity','quantity']])$(id).onchange=()=>{if(selectedObject){selectedObject[key]=$(id).value.trim();persist()}};
@@ -279,21 +319,8 @@ $('pcEditShared').onclick=()=>{openManager();document.querySelector('.pcShared')
 $('pcCardOut').onclick=()=>{cardScale=Math.max(.5,cardScale-.25);renderCard().catch(e=>$('pcProtocolMessage').textContent=e.message)};
 $('pcCardIn').onclick=()=>{cardScale=Math.min(4,cardScale+.25);renderCard().catch(e=>$('pcProtocolMessage').textContent=e.message)};
 function closeProtocol(){cardVersion++;cardPage=0;if(cardRenderTask)try{cardRenderTask.cancel()}catch(_){}if($('pcProtocol').open)$('pcProtocol').close();selectedObject=null}
-$('pcExport').onclick=async()=>{
- const o=selectedObject;if(!o)return;
- try{
-  const doc=new jspdf.jsPDF({unit:'mm',format:'a4'});let y=16;
-  const line=(text,size=10,bold=false)=>{doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);const lines=doc.splitTextToSize(String(text||''),178);for(const l of lines){if(y>275){doc.addPage();y=16}doc.text(l,16,y);y+=size*.45+2}};
-  const meta=o.target==='selfcheck'?bridge.getProjectMeta():o;
-  line(o.title,16,true);line(o.code+' · ritningssida '+o.page,11,true);
-  if(o.target==='selfcheck'){line('Objekt: '+o.objectNo+'    Typ: '+o.model+'    Antal / löpnummer: '+o.quantity);for(const [key,title] of SHARED_FIELDS.filter(([key])=>!['date','technician','signature'].includes(key)))if(meta[key])line(title+': '+meta[key])}
-  line('Datum: '+meta.date+'    Utförd av: '+meta.technician);line('Signatur: '+meta.signature);line('Godkänd / ej aktuell: '+progress(o)+'%');y+=4;
-  for(const p of o.points){line(p.label,10,true);line('Status: '+({ok:'Godkänd',remark:'Anmärkning',na:'Ej aktuell'}[p.status]||'Ej kontrollerad'));if(p.note)line('Kommentar: '+p.note);y+=3}
-  if(o.notes){line('Allmän notering',11,true);line(o.notes)}
-  const name=(o.title+'-'+o.code).replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-')+'.pdf';
-  if(o.target==='doorcard'&&o.protocolPage){const out=await PDFLib.PDFDocument.create(),source=await PDFLib.PDFDocument.load(await bridge.getPdf().getData(),{ignoreEncryption:true}),summary=await PDFLib.PDFDocument.load(doc.output('arraybuffer'));const [original]=await out.copyPages(source,[o.protocolPage-1]);out.addPage(original);for(const p of await out.copyPages(summary,summary.getPageIndices()))out.addPage(p);const url=URL.createObjectURL(new Blob([await out.save()],{type:'application/pdf'})),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),30000)}else doc.save(name);
- }catch(error){$('pcProtocolMessage').textContent='Kunde inte skapa PDF: '+error.message}
-};
+$('pcPreview').onclick=async()=>{if(!selectedObject)return;try{await bridge.previewCustomer(selectedObject)}catch(error){$('pcProtocolMessage').textContent='Kundmallen kunde inte visas: '+(error.message||error)}};
+$('pcExport').onclick=async()=>{if(!selectedObject)return;try{const ok=await bridge.exportCustomer(selectedObject);$('pcProtocolMessage').textContent=ok?'Kundprotokollet är klart.':'Sparandet avbröts.'}catch(error){$('pcProtocolMessage').textContent='Kunde inte skapa PDF: '+(error.message||error)}};
 $('pcOpen').onclick=$('pcStart').onclick=openManager;$('pcClose').onclick=closeManager;$('pcNewRule').onclick=()=>editRule();$('pcCancelRule').onclick=()=>{$('pcRuleForm').hidden=true};$('pcScan').onclick=scan;
 $('pcSelectAll').onclick=()=>{candidates.forEach(c=>c.selected=c.target!=='doorcard'||!!c.protocolPage);renderCandidates()};$('pcSelectNone').onclick=()=>{candidates.forEach(c=>c.selected=false);renderCandidates()};
 $('pcScanScope').onchange=()=>{$('pcPagesLabel').hidden=$('pcScanScope').value!=='pages'};

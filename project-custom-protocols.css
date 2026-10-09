@@ -5,3 +5,38 @@
 @media(max-width:520px){.pcCandidateEquipment{grid-column:1 / -1;grid-row:2}}
 
 .pcMarker[data-target="doorcard"]:not([data-progress="100"]){border-color:#b58b00;background:#ffdf4938}.pcMarker[data-target="doorcard"]:not([data-progress="100"]) span{background:#e7bd23;color:#342b0b}.pcMarker[data-target="selfcheck"]:not([data-progress="100"]){border-color:#176ea5;background:#2189cf2b}.pcMarker[data-target="selfcheck"]:not([data-progress="100"]) span{background:#176ea5}
+
+/* Guided project markers: compact text replacement anchored at the exact PDF text coordinates. */
+.pcCommand{display:flex;align-items:end;gap:8px;padding:10px;background:#e7eff3;border:1px solid #d1dde3;border-radius:9px}.pcCommand label{flex:1}.pcCommand button{min-height:38px;background:#126f9d;border-color:#126f9d;color:#fff;white-space:nowrap}
+.pcMarker.pcMarkerExact{min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible;box-shadow:none;cursor:pointer;z-index:1}
+.pcMarker.pcMarkerExact .pcMarkerText{position:absolute;left:0;top:0;right:auto;display:block;min-width:100%;width:max-content;max-width:240px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #176ea5;border-radius:3px;background:#fff;color:#173746;font-size:clamp(8px,0.85vw,11px);font-weight:800;line-height:1.4;padding:1px 3px;box-shadow:0 1px 3px #0002;pointer-events:none}
+.pcMarker.pcMarkerExact .pcMarkerText::after{content:'';position:absolute;bottom:-5px;left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #176ea5}
+.pcMarker.pcMarkerExact .pcMarkerStatus{position:absolute;top:auto;right:auto;left:0;bottom:-16px;display:block;background:#607782;color:#fff;border:0;border-radius:3px;padding:0 3px;white-space:nowrap;font-size:8px;line-height:13px;pointer-events:none}
+.pcMarker.pcMarkerExact[data-state=done] .pcMarkerText{border-color:#238354}.pcMarker.pcMarkerExact[data-state=done] .pcMarkerStatus{background:#238354}
+.pcMarker.pcMarkerExact[data-state=inprogress] .pcMarkerText{border-color:#b66b0a}.pcMarker.pcMarkerExact[data-state=inprogress] .pcMarkerStatus{background:#b66b0a}
+.pcMarker.pcMarkerExact[data-state=untested] .pcMarkerStatus{background:#647989}
+@media(max-width:520px){.pcCommand{flex-direction:column;align-items:stretch}.pcCommand button{width:100%}.pcMarker.pcMarkerExact .pcMarkerText{font-size:9px}}
+
+.pcMarker.pcMarkerExact::after{content:'';position:absolute;left:3px;top:100%;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #176ea5;pointer-events:none}
+.pcMarker.pcMarkerExact[data-state=done]::after{border-top-color:#238354}
+.pcMarker.pcMarkerExact[data-state=inprogress]::after{border-top-color:#b66b0a}
+.pcCheckState{display:block;margin:5px 0 0;font-size:10px;font-weight:650;color:#647989}
+.pcProgress button{margin-left:auto;min-height:32px;font-size:10px;background:#126f9d;border-color:#126f9d;color:white}
+
+/* The guided checklist follows the same presentation language as the existing automation checklist. */
+.pcDialog.pcProtocol{width:min(800px,calc(100vw - 20px));max-height:min(95dvh,980px);border:0;border-radius:14px;box-shadow:0 24px 80px #0006;background:#f7f9fa}
+.pcProtocol .pcHead{padding:10px 12px;background:#132b38}
+.pcProtocol .pcBody{padding:10px}
+.pcProtocol .pcMeta,.pcProtocol .pcShared{background:#fff;border:1px solid #d7e0e4;border-radius:9px;padding:9px}
+.pcProtocol .pcProgress{padding:8px;background:#fff;border:1px solid #d9e2e6;border-radius:8px}
+.pcProtocol .pcCheck{padding:9px;background:#fff;border:1px solid #e6ecef;border-radius:7px;margin-bottom:5px}
+.pcProtocol .pcChoices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.pcProtocol .pcChoices button{min-height:32px;padding:4px 6px;font-size:10px;line-height:1.15;border-radius:5px;background:#f2f5f7}
+.pcProtocol .pcChoices [data-status=ok].active{background:#e2f2e8;border-color:#4a9770;color:#1c7147}
+.pcProtocol .pcChoices [data-status=remark].active{background:#fbe5e2;border-color:#c57168;color:#ad3630}
+.pcProtocol .pcChoices [data-status=na].active{background:#e1e7eb;border-color:#8898a3;color:#203440}
+.pcProtocol .pcActions{position:sticky;bottom:-10px;padding:9px 0;background:#f7f9fa;border-top:1px solid #d9e2e6}
+.pcProtocol #pcPreview{background:#fff;border-color:#9badb7;color:#173746}.pcProtocol #pcExport{background:#173746;border-color:#173746;color:#fff}
+@media(max-width:520px){.pcDialog.pcProtocol{width:100%;height:100dvh;max-height:none;border-radius:0}.pcProtocol .pcBody{padding:9px}.pcProtocol .pcChoices button{min-height:34px;font-size:9px;padding:3px}.pcProtocol .pcActions button{font-size:10px}}
+
+.pcMarker.pcMarkerExact .pcMarkerText{min-height:100%;display:flex;align-items:center}
