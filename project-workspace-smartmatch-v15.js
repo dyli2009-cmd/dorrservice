@@ -1027,6 +1027,7 @@ function smartNormalizeCardLabel(value){
  // Never turn a multiword document heading into a synthesized door identity.
  if(/^[A-ZÅÄÖ]{2,6}$/.test(compact) && /^[A-ZÅÄÖ]{2,6}$/.test(raw))return compact;
  if(/^[A-ZÅÄÖ]{2,6}[\s/_-]+\d{1,5}[A-ZÅÄÖ]{0,2}$/.test(raw))return compact;
+ if(/^[A-ZÅÄÖ]{2,6}[\s/_-]+[A-ZÅÄÖ]$/.test(raw))return compact;
  return '';
 }
 function smartFirstRowIdentifier(row){
@@ -1072,13 +1073,14 @@ function smartFindCardFirstTextPositions(existing=[]){
  // Exact, card-driven PDF-text search. Works for WC/HVC without digits and
  // without colored backgrounds. Each occurrence retains independent coordinates.
  let found=[],seen=0;
+ const cardPatterns=Object.keys(smartDoorCardIndex).filter(code=>code.length>=2&&code.length<=18).map(code=>({code,rx:new RegExp('(^|[^A-ZÅÄÖ0-9])('+code.replace(/[^A-ZÅÄÖ0-9]/g,'').split('').join('[\\s/_-]*')+')(?=$|[^A-ZÅÄÖ0-9])','g')}));
  return (async()=>{
   for(let p=1;p<=pdf.numPages;p++){
    if(smartDoorCardPages.has(p))continue;
    setState('SmartMatch TEST v15: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
-   for(const row of rows){
+   for(const [rowNo,row] of rows.entries()){
     const cells=[...(row.items||[])].filter(c=>String(c.text||'').trim()).sort((a,b)=>a.x-b.x);
     for(let start=0;start<cells.length;start++){
      // Search up to four adjacent PDF text fragments. Longer matches win so
@@ -1094,17 +1096,14 @@ function smartFindCardFirstTextPositions(existing=[]){
       const code=smartExactCardText(raw);
       if(!code)continue;
       const rect=rectForTextItems(segment,1.2);if(!rect)continue;
-      matches.push({page:p,code,rect,raw,start,end,score:code.length*15+(end-start+1)*3});
+      matches.push({page:p,rowNo,code,rect,raw,start,end,score:code.length*15+(end-start+1)*3});
      }
      // One PDF text item can contain the identity plus a room description.
      // Match exact token boundaries, never substrings of longer codes.
      const item=cells[start],raw=String(item.text||'').toUpperCase();
      if(raw.length<5||raw.length>90||smartExactCardText(raw))continue;
      if(/\b(?:SLUTBLECK|LÅSHUS|CYLINDER|TRYCKE|ARTIKEL|MONTERAS|ANTAL)\b/.test(raw))continue;
-     for(const code of Object.keys(smartDoorCardIndex)){
-      if(code.length<2||code.length>18)continue;
-      const flexible=code.replace(/[^A-ZÅÄÖ0-9]/g,'').split('').join('[\\s/_-]*');
-      const rx=new RegExp('(^|[^A-ZÅÄÖ0-9])('+flexible+')(?=$|[^A-ZÅÄÖ0-9])','g');
+     for(const {code,rx} of cardPatterns){
       for(const match of raw.matchAll(rx)){
        const offset=match.index+match[1].length;
        // "WC GS10" has a contextual room prefix, not necessarily two door IDs.
@@ -1112,20 +1111,26 @@ function smartFindCardFirstTextPositions(existing=[]){
        const fraction=offset/Math.max(1,raw.length),portion=match[2].length/Math.max(1,raw.length);
        const label={...item,text:match[2],x:item.x+item.w*fraction,w:item.w*portion};
        const rect=rectForTextItems([label],1.2);if(!rect)continue;
-       matches.push({page:p,code,rect,raw:match[2],start,end:start,score:code.length*15-5});
+       matches.push({page:p,rowNo,code,rect,raw:match[2],start,end:start,score:code.length*15-5});
       }
      }
     }
    }
    matches.sort((a,b)=>b.score-a.score||a.start-b.start);
-   const occupied=new Set();
    for(const m of matches){
-    const occupiedKey=(m.start)+'-'+(m.end);
-    if(occupied.has(occupiedKey)||labAlreadyLocated([...existing,...found],p,m.code,m.rect))continue;
-    // Avoid duplicate short fragments nested in the stronger long label.
-    if(found.some(x=>x.page===p&&labSamePhysicalPosition({page:p,code:m.code,rect:x.rect},p,m.code,m.rect)))continue;
-    occupied.add(occupiedKey);
-    found.push({page:p,code:m.code,rect:m.rect,order:850000+seen++,
+    if(labAlreadyLocated([...existing,...found],p,m.code,m.rect))continue;
+    // Only suppress a weaker reading when it actually overlaps the *same*
+    // physical label. Identical WC labels on different rows stay separate.
+    const overwritten=found.some(x=>{
+      if(x.page!==p||x.rowNo!==m.rowNo||x.score<m.score)return false;
+      const r=x.rect,t=m.rect;
+      const overlapW=Math.max(0,Math.min(r[2],t[2])-Math.max(r[0],t[0]));
+      const overlapH=Math.max(0,Math.min(r[3],t[3])-Math.max(r[1],t[1]));
+      const area=Math.max(1,Math.min(Math.abs((r[2]-r[0])*(r[3]-r[1])),Math.abs((t[2]-t[0])*(t[3]-t[1]))));
+      return overlapW*overlapH/area>.67;
+    });
+    if(overwritten)continue;
+    found.push({page:p,rowNo:m.rowNo,score:m.score,code:m.code,rect:m.rect,order:850000+seen++,
       label:m.raw,sourceKind:m.code.startsWith('GS')?'gs':'project-code',
       subtype:'doorcard-first-pdf-text',scanSource:'doorcard-first-text',scanScore:65});
    }
