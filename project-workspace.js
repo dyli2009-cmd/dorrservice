@@ -983,6 +983,7 @@ async function openAutomationCustomerPreview(){
   if(automationPreviewPdf)try{await automationPreviewPdf.destroy()}catch(_){}
   automationPreviewPdf=await pdfjsLib.getDocument({data:new Uint8Array(arrayBuffer)}).promise;
   el.automationPreviewTitle.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');
+  el.automationPreviewDialog.querySelector('.pwAutomationHead strong').textContent='Checklista revision dörrautomatik';
   el.automationPreviewDialog.showModal();
   requestAnimationFrame(()=>renderAutomationCustomerPreview().catch(console.error));
  }catch(err){console.error(err);setState('Kundmallen kunde inte visas: '+(err?.message||err))}
