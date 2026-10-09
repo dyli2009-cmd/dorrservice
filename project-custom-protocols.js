@@ -44,7 +44,7 @@ const markup=`
 <dialog id="pcProtocol" class="pcDialog pcProtocol">
  <header class="pcHead"><button id="pcBack" type="button">← Ritning</button><div><small id="pcIdentity"></small><strong id="pcProtocolTitle"></strong></div><button id="pcProtocolClose" type="button" aria-label="Stäng eget protokoll">×</button></header>
  <div class="pcBody"><div class="pcMeta"><label>Datum<input id="pcDate" type="date"></label><label>Utförd av<input id="pcTechnician" maxlength="160"></label><label>Signatur<input id="pcSignature" maxlength="160"></label></div>
- <div id="pcPositionEditor" class="pcPositionEditor" hidden><label>Position / märkning<input id="pcPositionName" maxlength="80"></label><label>Placering<input id="pcPositionLocation" maxlength="160" placeholder="Till exempel korridor, entré eller rumsnummer"></label><label>Koppla kontrollmall<select id="pcAssignPositionTemplate"><option value="">Ingen mall – bara position</option></select></label><p id="pcPositionInfo" class="pcMuted">Positionen är skapad. Välj en kontrollmall när du vill börja kontrollera.</p><button id="pcRemovePosition" type="button" class="pcRemovePosition">Ta bort position</button></div>
+ <div id="pcPositionEditor" class="pcPositionEditor" hidden><label>Position / märkning<input id="pcPositionName" maxlength="80"></label><label>Placering<input id="pcPositionLocation" maxlength="160" placeholder="Till exempel korridor, entré eller rumsnummer"></label><label>Koppla kontrollmall<select id="pcAssignPositionTemplate"><option value="">Ingen mall – bara position</option></select></label><label>Koppla PDF-sida / dörrkort (valfritt)<input id="pcPositionLinkedPage" type="number" inputmode="numeric" min="1" step="1" placeholder="Sidnummer i projekt-PDF"></label><p id="pcPositionInfo" class="pcMuted">Positionen är skapad. Välj en kontrollmall när du vill börja kontrollera.</p><button id="pcRemovePosition" type="button" class="pcRemovePosition">Ta bort position</button></div>
   <p id="pcSharedInfo" class="pcMuted" hidden></p><button id="pcEditShared" type="button" hidden>Företag & installatör</button>
  <div id="pcObjectMeta" class="pcMeta pcObjectMeta" hidden><label>Objekt<input id="pcObjectNo" maxlength="80"></label><label id="pcModelLabel">Typ av automatik<select id="pcModel"></select></label><label id="pcEquipmentLabel" hidden>Typ av utrustning<input id="pcEquipmentType" maxlength="160"></label><label>Antal / löpnummer<input id="pcQuantity" inputmode="numeric" maxlength="12"></label></div>
  <section id="pcCardPreview" hidden><div class="pcCardTools"><strong id="pcCardLabel">Originaldörrkort</strong><button id="pcCardOut" type="button" aria-label="Zooma ut dörrkort">−</button><button id="pcCardIn" type="button" aria-label="Zooma in dörrkort">+</button></div><div id="pcCardWrap"><canvas id="pcCardCanvas"></canvas></div></section>
@@ -344,7 +344,7 @@ async function findPositionHits(pageNo,code,sourcePdf){
 function addPosition(hit){
  if(isCreatedPosition(hit))return null;
  const key='position@'+hit.page+':'+normalizePositionCode(hit.code)+':'+hit.rect.map(n=>Math.round(n*10)).join(':');
- const item={id:key,ruleId:'position:'+hit.code,code:hit.code,sourceCode:hit.code,page:hit.page,rect:hit.rect.slice(),sourceKind:hit.sourceKind||'text',title:'Position '+hit.code,target:'position',template:positionTemplate,points:positionPoints(positionTemplate),location:'',objectNo:hit.code,modelCode:'',model:'',quantity:'',date:'',technician:'',signature:'',notes:''};
+ const item={id:key,ruleId:'position:'+hit.code,code:hit.code,sourceCode:hit.code,page:hit.page,rect:hit.rect.slice(),sourceKind:hit.sourceKind||'text',title:'Position '+hit.code,target:'position',template:positionTemplate,points:positionPoints(positionTemplate),location:'',objectNo:hit.code,modelCode:'',model:'',quantity:'',protocolPage:null,date:'',technician:'',signature:'',notes:''};
  objects.push(item);return item;
 }
 async function renderPositionSuggestions(){
@@ -401,6 +401,15 @@ $('pcPositionTemplate').onchange=()=>{positionTemplate=$('pcPositionTemplate').v
 $('pcOpenOld').onclick=()=>{$('pcPositionDialog').close();openManager()};
 $('pcPositionName').onchange=()=>{if(!selectedObject||selectedObject.target!=='position')return;const code=normalizePositionCode($('pcPositionName').value);if(!code){$('pcPositionName').value=selectedObject.code;return}selectedObject.code=code;selectedObject.title='Position '+code;selectedObject.objectNo=code;$('pcIdentity').textContent=code+' · sida '+selectedObject.page;$('pcProtocolTitle').textContent=selectedObject.title;persist()};
 $('pcPositionLocation').onchange=()=>{if(selectedObject?.target==='position'){selectedObject.location=$('pcPositionLocation').value.trim();persist()}};
+$('pcPositionLinkedPage').onchange=()=>{
+ const o=selectedObject;if(o?.target!=='position')return;
+ const raw=$('pcPositionLinkedPage').value.trim(),n=Number(raw),limit=bridge?.getPdf()?.numPages||0;
+ if(raw&&(!Number.isInteger(n)||n<1||n>limit||n===o.page)){
+  $('pcProtocolMessage').textContent='Välj ett sidnummer mellan 1 och '+limit+', men inte ritningens egen sida.';$('pcPositionLinkedPage').value=o.protocolPage||'';return
+ }
+ o.protocolPage=raw?n:null;cardPage=o.protocolPage||0;cardScale=1;$('pcCardPreview').hidden=!cardPage;persist();
+ if(cardPage)renderCard().catch(error=>$('pcProtocolMessage').textContent=error.message||String(error));
+};
 $('pcAssignPositionTemplate').onchange=()=>{
  const o=selectedObject;if(!o||o.target!=='position')return;
  const next=$('pcAssignPositionTemplate').value;if(next===o.template)return;
@@ -419,11 +428,11 @@ async function openProtocol(o,focus=false){
  for(const [id,key] of [['pcDate','date'],['pcTechnician','technician'],['pcSignature','signature'],['pcNotes','notes']])$(id).value=o[key]||'';
  $('pcProtocolMessage').textContent='Positionen sparas med projektet. Välj kontrollmall om den ska få kontrollpunkter.';
   const manual=o.target==='position';$('pcPositionEditor').hidden=!manual;
-  $('pcPositionName').value=o.code;$('pcPositionLocation').value=o.location||'';$('pcAssignPositionTemplate').value=TEMPLATES[o.template]?o.template:'';
+  $('pcPositionName').value=o.code;$('pcPositionLocation').value=o.location||'';$('pcPositionLinkedPage').value=o.protocolPage||'';$('pcAssignPositionTemplate').value=TEMPLATES[o.template]?o.template:'';
   $('pcPreview').hidden=$('pcExport').hidden=manual&&!o.points.length;
  const self=o.target==='selfcheck';$('pcSharedInfo').hidden=$('pcEditShared').hidden=$('pcObjectMeta').hidden=!self;$('pcObjectNo').value=o.objectNo||o.code;$('pcQuantity').value=o.quantity||'';fillModels($('pcModel'),o.modelCode);syncShared();
  const auto=['automation','automation_selfcheck'].includes(o.template);$('pcModelLabel').hidden=!auto;$('pcEquipmentLabel').hidden=auto;$('pcEquipmentType').value=o.model||'';
- cardPage=o.target==='doorcard'?o.protocolPage:0;cardScale=1;$('pcCardPreview').hidden=!cardPage;
+ cardPage=o.target==='doorcard'||o.target==='position'?o.protocolPage:0;cardScale=1;$('pcCardPreview').hidden=!cardPage;
  renderChecks();if(!$('pcProtocol').open)$('pcProtocol').showModal();if(cardPage)await renderCard();
 }
 async function renderCard(){
