@@ -44,6 +44,17 @@ Regler:
 
 När Projektflöde diskuteras ska fokus ligga på Projektflöde och inga ändringar göras i Kontrollflöde om användaren inte uttryckligen först låser upp Kontrollflödet.
 
+## SmartMatch TEST – versionsregel
+
+SmartMatch TEST är en fristående experimentversion och ska inte förväxlas med Tillsynos globala appversionsnummer.
+
+- Varje **ny ändringsomgång** i SmartMatch TEST får **nästa heltal**: v15 → v16 → v17 → v18.
+- Skapa nya `project-workspace-smartmatch-vNN.html`, `.js` och `.css` för den nya versionen. Behåll föregående version oförändrad som jämförelse/återgång.
+- Uppdatera konsekvent sidrubrik, versionsmärkning, resursreferenser, logg- och nedladdningsnamn. Använd en separat lokal lagringsnyckel för varje testversion.
+- Läs gärna tidigare testversioners inbäddade projekt-PDF-data så att tidigare arbete går att ta med till den nya versionen. Skriv däremot nytt projektformat under den nya versionen.
+- Nuvarande senast skapade testversion: **TEST v16**. Nästa ändringsomgång blir **TEST v17**.
+- TEST-versionen betyder **inte** att Tillsyno-appen eller TestFlight har uppdaterats. Publicering dit kontrolleras separat.
+
 ## 3. Kontrollflöde
 Kontrollflöde är den gemensamma arbetsytan för kontroll/protokoll.
 
