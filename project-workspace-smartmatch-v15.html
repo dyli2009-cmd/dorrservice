@@ -45,6 +45,14 @@
 .smartOcrResult button{padding:5px 9px;border:1px solid #9e9a7b;border-radius:5px;background:#f9fbf7;cursor:pointer}
 #smartOcrStatus{font-size:12px;color:#665c48}
 </style>
+<style>
+/* Card-first plain PDF-text matches need checking against the printed door symbol. */
+.pwStampHit[data-scan-source="text-candidate"]{
+ border-style:dashed!important;
+ border-color:#ac6e21!important;
+ background:rgba(249,197,80,.18)!important;
+}
+</style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -90,7 +98,7 @@
 </div>
 <section class="smartReport" aria-label="Dörrkortsregistrering">
  <details>
-  <summary id="smartCardFirstTitle">Dörrkort först – första ID-raden</summary>
+  <summary id="smartCardFirstTitle">Dörrkort först – första ID-raden (HVC, WC, GS m.fl.)</summary>
   <div id="smartCardFirstRows" style="max-height:290px;overflow:auto;padding:7px 0"></div>
  </details>
 </section>
