@@ -991,13 +991,16 @@ function smartRenderScanAudit(){
  if(!el)return;
  const pages=Object.values(smartScanAudit.pages);
  const reported=pages.filter(x=>x.rendered).length;
+ const drawingPages=Math.max(0,(scanOriginalPageCount||pdf?.numPages||0)-smartDoorCardPages.size);
  const textless=pages.filter(x=>x.rendered&&!x.textItems).length;
  const extras=smartScanAudit.ocrAccepted||0;
  const head='PDF-analys: '+(smartScanStats.gsAnnotationsSeen||0)+' GS från PDF-markeringar · '+
  (smartScanAudit.colorFirst||0)+' färg+text · '+(smartScanAudit.textColor||0)+' text+färg · '+
  smartPendingOcr.length+' färgområden för OCR-granskning · '+extras+' OCR-förslag';
  const summary=document.getElementById('smartScanAuditSummary');
- if(summary)summary.textContent=head+' · '+reported+' scannade sidor ('+textless+' utan PDF-text)';
+ if(summary)summary.textContent=head+' · '+reported+' skannade ritningssidor ('+textless+' utan PDF-text)';
+ const pageCounts=document.getElementById('smartPdfPageCounts');
+ if(pageCounts)pageCounts.textContent=drawingPages+' ritningssidor · '+smartDoorCardPages.size+' dörrkort · '+(scanOriginalPageCount||pdf?.numPages||0)+' originalsidor';
  const body=document.getElementById('smartScanAuditRows');if(!body)return;body.replaceChildren();
  const headings=['Sida','Annot.','PDF-text','Färgområden','Färg+text','Text+färg','OCR-kö','Fel'];
  const table=document.createElement('table'),th=document.createElement('thead'),tr=document.createElement('tr');
@@ -3072,7 +3075,7 @@ async function renderProtocolPage(pageNo){
  try{await task.promise}catch(e){if(e?.name==='RenderingCancelledException')return;throw e}
  if(version!==protocolRenderVersion)return;
  el.protocolZoomInfo.textContent=Math.round(protocolScale*100)+'%';
- await renderGsControlsOnCard(vp,version);
+ // Ingen separat GS-överläggskolumn i v21 – endast en kompakt kontrollista.
 }
 function gsStages(o,item){
  const prior=!!o.checks?.[item.key],saved=o.rowStages?.[item.key];
@@ -3165,13 +3168,17 @@ async function removeChecklistItem(o,item){
  delete o.checks[item.key];
  await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();await renderChecklist(o);
 }
+function tidyGsText(value){
+ return String(value||'').replace(/\b(GS\d*)\b(?:[\s,;\/]+\1\b)+/gi,'$1')
+  .replace(/\bGS\b(?:[\s,;\/]+GS\b)+/gi,'GS').replace(/\s+/g,' ').trim();
+}
 function appendEditableCheck(o,item){
  const row=document.createElement('div');row.className='pwCheckRow'+(o.checks[item.key]?' done':'');
  const input=document.createElement('input');input.type='checkbox';input.checked=!!o.checks[item.key];input.setAttribute('aria-label','Klarmarkera '+item.label);
  const content=document.createElement('div');content.className='pwCheckContent';
- const strong=document.createElement('strong');strong.textContent=item.label;
+ const strong=document.createElement('strong');strong.textContent=tidyGsText(item.label);
  content.appendChild(strong);
- if(item.value){const small=document.createElement('small');small.textContent=item.value;content.appendChild(small)}
+ if(item.value){const small=document.createElement('small');small.textContent=tidyGsText(item.value);content.appendChild(small)}
  const time=resolveItemMinutes(item),timeTag=document.createElement('span');timeTag.className='pwCheckTime'+(time.minutes===null?' missing':'');
  timeTag.textContent=time.minutes===null?'⏱ Ingen tid':'⏱ '+formatWorkMinutes(time.minutes)+(time.source==='item'?' · egen':'');
  content.appendChild(timeTag);
@@ -3180,7 +3187,7 @@ function appendEditableCheck(o,item){
  const edit=document.createElement('button');edit.type='button';edit.textContent='Ändra';edit.onclick=()=>openItemEditor(o,item);
  const remove=document.createElement('button');remove.type='button';remove.className='pwRemoveItem';remove.textContent='Ta bort';remove.onclick=()=>removeChecklistItem(o,item);
  actions.append(edit,remove);row.append(input,content,actions);
- input.onchange=async()=>{o.checks[item.key]=input.checked;o.rowStages??={};o.rowStages[item.key]={...gsStages(o,item),mount:input.checked,drift:input.checked,test:input.checked};row.classList.toggle('done',input.checked);await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();if(el.timeDialog.open)await renderTimeReport()};
+ input.onchange=async()=>{o.checks[item.key]=input.checked;row.classList.toggle('done',input.checked);await recalc(o);save();syncProtocolProgress(o);updateStats();renderGroups();renderMarkers();if(el.timeDialog.open)await renderTimeReport()};
  el.checklist.appendChild(row);
 }
 async function renderChecklist(o){
@@ -3204,7 +3211,7 @@ function syncProtocolProgress(o){el.protocolPercent.textContent=o.progress+'%';e
 async function openProtocol(o){
  selectedId=o.id;restoreView={page,scale,left:el.viewer.scrollLeft,top:el.viewer.scrollTop};
  el.protocolCode.textContent=o.code;el.protocolPosition.textContent='Position '+o.position+' av '+o.totalOfCode+' · ritningssida '+o.page+(protocolMap[o.code]?' · protokollsida '+protocolMap[o.code]:'');
- await recalc(o);syncProtocolProgress(o);protocolScale=1;el.protocol.classList.add('pwGsCompact');el.protocolDetailsToggle.setAttribute('aria-pressed','false');el.protocolDetailsToggle.textContent='Fler detaljer';el.protocol.showModal();
+ await recalc(o);syncProtocolProgress(o);protocolScale=1;el.protocol.classList.remove('pwGsCompact','pwMobileChecks');el.protocol.classList.add('pwMobileCard');el.protocol.showModal();
  await Promise.all([renderProtocolPage(protocolMap[o.code]),renderChecklist(o)]);
 }
 function closeProtocol(){
@@ -3340,9 +3347,9 @@ async function fitDrawing(){
  if(!pdf)return;const pg=await pdf.getPage(page),vp=pg.getViewport({scale:1});
  scale=Math.max(.25,Math.min(2.5,(el.viewer.clientWidth-12)/vp.width,(el.viewer.clientHeight-12)/vp.height));await renderDrawing();
 }
-async function smartMergeDrawingWithCards(drawingFile,cardsFile){
+async function smartMergeDrawingWithCards(drawingFile,cardsFiles){
  const doc=await PDFLib.PDFDocument.create();
- for(const file of [drawingFile,cardsFile]){
+ for(const file of [drawingFile,...(Array.isArray(cardsFiles)?cardsFiles:[cardsFiles]).filter(Boolean)]){
   const input=await PDFLib.PDFDocument.load(new Uint8Array(await file.arrayBuffer()),{ignoreEncryption:true,updateMetadata:false});
   const pages=await doc.copyPages(input,input.getPageIndices());
   for(const page of pages)doc.addPage(page);
@@ -3467,21 +3474,30 @@ async function analyze(file){
 }
 document.getElementById('labDiagnoseOpen').onclick=()=>{smartRenderFirstCardReport();smartRenderGSReport();smartRenderScanAudit();document.getElementById('labDiagnosticDialog').showModal()};
 document.getElementById('labDiagnosticClose').onclick=()=>document.getElementById('labDiagnosticDialog').close();
-document.getElementById('labDiagnosticRun').onclick=labDiagnosticAnalyze;
-document.getElementById('labDiagnosticCode').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();labDiagnosticAnalyze()}};
+const smartReportDialog=document.getElementById('labDiagnosticDialog');
+let smartReportScale=1;
+const smartReportSetScale=n=>{
+ smartReportScale=Math.max(.85,Math.min(1.5,n));
+ smartReportDialog.style.setProperty('--report-font-scale',String(smartReportScale));
+};
+document.getElementById('smartReportFontMinus').onclick=()=>smartReportSetScale(smartReportScale-.1);
+document.getElementById('smartReportFontPlus').onclick=()=>smartReportSetScale(smartReportScale+.1);
+smartReportSetScale(1);
+// Test v21 har ingen separat sökruta för felsökning av beteckningar.
 document.getElementById('smartAuditExport').onclick=smartExportAudit;
 document.getElementById('smartRunOcr').onclick=smartRunOcrReview;
 // Endast matchade positioner används i TEST v21.
 document.getElementById('smartAddCards').onclick=()=>document.getElementById('smartCardsFile').click();
 document.getElementById('smartCardsFile').onchange=async e=>{
- const cards=e.target.files?.[0];if(!cards)return;
+ const cards=[...(e.target.files||[])].filter(file=>/\.pdf$/i.test(file.name)||file.type==='application/pdf');if(!cards.length)return;
  if(!smartBaseDrawingFile){setState('Öppna först ritningsfilen och välj sedan dörrkorten.');return}
  smartAdditionalCardsFile=cards;currentFileHandle=null;
  try{setState('Sammanfogar ritningar och dörrkort lokalt…');
   const merged=await smartMergeDrawingWithCards(smartBaseDrawingFile,cards);
   await analyze(merged);
   const note=document.getElementById('smartCardsNote');
-  if(note)note.textContent='Dörrkort inlästa: '+cards.name;
+  if(note)note.textContent=cards.length+' dörrkorts-PDF tillagda (alla sidor i varje fil).';
+  e.target.value='';
  }catch(err){console.error(err);setState('Kunde inte kombinera PDF-filerna: '+(err?.message||err))}
 };
 el.file.onchange=e=>{const file=e.target.files?.[0];if(file){smartBaseDrawingFile=file;smartAdditionalCardsFile=null;currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
@@ -3595,13 +3611,8 @@ el.protocolFit.onclick=fitProtocolPage;
 el.protocolZoomOut.onclick=()=>setProtocolScale(protocolScale-.2);
 el.protocolZoomIn.onclick=()=>setProtocolScale(protocolScale+.2);
 el.protocolMax.onclick=()=>setProtocolScale(3);
-el.protocolShowCard.onclick=()=>{el.protocolCanvasWrap.scrollLeft=0};
-el.protocolShowGS.onclick=()=>{const width=parseFloat(el.protocolCanvas.style.width)||0;el.protocolCanvasWrap.scrollLeft=Math.max(0,width-el.protocolCanvasWrap.clientWidth/3)};
-el.protocolDetailsToggle.onclick=()=>{
- const detailed=el.protocol.classList.toggle('pwGsCompact')===false;
- el.protocolDetailsToggle.setAttribute('aria-pressed',String(detailed));
- el.protocolDetailsToggle.textContent=detailed?'Dölj detaljer':'Fler detaljer';
-};
+el.protocolShowCard.onclick=()=>{el.protocol.classList.remove('pwMobileChecks');el.protocol.classList.add('pwMobileCard');el.protocolCanvasWrap.scrollLeft=0};
+el.protocolShowGS.onclick=()=>{el.protocol.classList.remove('pwMobileCard');el.protocol.classList.add('pwMobileChecks')};
 el.protocolCanvasWrap.addEventListener('touchstart',beginProtocolTouch,{passive:false});
 el.protocolCanvasWrap.addEventListener('touchmove',moveProtocolTouch,{passive:false});
 el.protocolCanvasWrap.addEventListener('touchend',endProtocolTouch,{passive:false});
