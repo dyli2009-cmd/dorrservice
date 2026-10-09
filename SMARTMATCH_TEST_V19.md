@@ -1,0 +1,4 @@
+# SmartMatch TEST v19 – Samlad mapp för saknade dörrkort
+Fast testlänk: https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html
+
+Alla aktiva positioner som saknar säker dörrkortskoppling samlas under en enda mapp, även FD, 02, GS och andra kodtyper. När mappen öppnas visas samtliga positioner direkt under små kodrubriker. Menyn ⋯ på varje position erbjuder Flytta, Ändra, Ändra dörrkort, Ta bort. Ändra dörrkort stödjer manuellt PDF-sidnummer. Mappen har Ta bort alla med bekräftelse för alla okopplade positioner i hela projektet; kopplade positioner påverkas inte. Mappen minns sitt öppna läge. Positionsverktygen är mindre och hopfällbara, med fingervänliga åtgärdsknappar. Test v18 behålls, v19 läser tidigare v18-data och PDF-exportens gemensamma avsnitt med okopplade finns kvar. Kräver praktiskt mobil/iPad-test före ordinarie driftsättning.
