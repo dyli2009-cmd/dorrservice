@@ -588,37 +588,139 @@ function labPrintedCodeCandidates(items){
  }
  return hits;
 }
+
+// Search TEST v6: Color-first geometry; then PDF text; then door-card matching (existing logic).
+function labIsHighlightedPixel(r,g,b,a){
+ if(a<185)return false;
+ const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+ return mx>=132&&mx-mn>=27&&(mx-mn)/Math.max(1,mx)>.105;
+}
+function labFindColorPatches(bitmap){
+ // Each rendered page is capped at 2.6 megapixels. A 2/3-pixel grid keeps iPhone memory bounded.
+ const stride=Math.max(2,Math.ceil(Math.max(bitmap.width,bitmap.height)/1500));
+ const gw=Math.ceil(bitmap.width/stride),gh=Math.ceil(bitmap.height/stride);
+ const color=new Uint8Array(gw*gh),seen=new Uint8Array(gw*gh);
+ const d=bitmap.data;
+ for(let gy=0;gy<gh;gy++){
+  const y=Math.min(bitmap.height-1,gy*stride+Math.floor(stride/2));
+  for(let gx=0;gx<gw;gx++){
+   const x=Math.min(bitmap.width-1,gx*stride+Math.floor(stride/2)),at=(y*bitmap.width+x)*4;
+   if(labIsHighlightedPixel(d[at],d[at+1],d[at+2],d[at+3]))color[gy*gw+gx]=1;
+  }
+ }
+ const regions=[],queue=new Int32Array(color.length);
+ for(let i=0;i<color.length;i++){
+  if(!color[i]||seen[i])continue;
+  let head=0,tail=0,count=0,minX=gw,maxX=0,minY=gh,maxY=0;
+  queue[tail++]=i;seen[i]=1;
+  while(head<tail){
+   const at=queue[head++],x=at%gw,y=(at-x)/gw;
+   count++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);
+   for(let yy=Math.max(0,y-1);yy<=Math.min(gh-1,y+1);yy++){
+    for(let xx=Math.max(0,x-1);xx<=Math.min(gw-1,x+1);xx++){
+     const n=yy*gw+xx;
+     if(!seen[n]&&color[n]){seen[n]=1;queue[tail++]=n}
+    }
+   }
+  }
+  const width=(maxX-minX+1)*stride,height=(maxY-minY+1)*stride;
+  const fill=count/Math.max(1,(maxX-minX+1)*(maxY-minY+1));
+  if(count<5||width<7||height<5||width>bitmap.width*.36||height>bitmap.height*.16)continue;
+  if(width/Math.max(1,height)<.72||width/Math.max(1,height)>24||fill<.13)continue;
+  regions.push({left:minX*stride,top:minY*stride,width,height,fill,count});
+ }
+ return regions;
+}
+function labPatchPdfRect(vp,patch){
+ const a=vp.convertToPdfPoint(patch.left,patch.top);
+ const b=vp.convertToPdfPoint(patch.left+patch.width,patch.top+patch.height);
+ return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];
+}
+function labPatchOverlap(patch,box){
+ const width=Math.max(1,box.width),height=Math.max(1,box.height);
+ const intersectionWidth=Math.max(0,Math.min(patch.left+patch.width,box.left+box.width)-Math.max(patch.left,box.left));
+ const intersectionHeight=Math.max(0,Math.min(patch.top+patch.height,box.top+box.height)-Math.max(patch.top,box.top));
+ return (intersectionWidth/width)*(intersectionHeight/height);
+}
+function labPatchCodes(patch,items,vp){
+ const margin=Math.max(2,Math.min(8,patch.height*.38));
+ const boundary={left:patch.left-margin,top:patch.top-margin,width:patch.width+margin*2,height:patch.height+margin*2};
+ const relevant=items.filter(item=>{
+  const r=rectForTextItems([item],0);if(!r)return false;
+  const box=viewportRect(vp,r),coverage=labPatchOverlap(boundary,box);
+  return coverage>.16;
+ });
+ if(!relevant.length)return [];
+ const candidates=labPrintedCodeCandidates(relevant);
+ // Sometimes PDF.js keeps two adjacent words as a single text item. Extract
+ // substrings and estimate their bounding boxes instead of swallowing WC/other text.
+ for(const item of relevant){
+  const raw=String(item.text||''),matches=[...raw.matchAll(/(?:G[\s/_-]*S[\s/_-]*[0-9]{1,6}[A-ZÅÄÖ0-9]{0,5}|[A-ZÅÄÖ]{0,3}[0-9]{1,6}[A-ZÅÄÖ]{0,3})/gi)];
+  if(raw.length>45)continue;
+  for(const match of matches){
+   if(match.index===0&&match[0].length===raw.length)continue;
+   const code=labExactDrawingCode(match[0]);if(!code)continue;
+   const fracStart=match.index/Math.max(1,raw.length),fracEnd=(match.index+match[0].length)/Math.max(1,raw.length);
+   const x=item.x+item.w*fracStart,w=item.w*(fracEnd-fracStart);
+   const segment={...item,text:match[0],x,w};
+   const rect=rectForTextItems([segment],1);
+   if(rect)candidates.push({code,rect,label:match[0]});
+  }
+ }
+ const accepted=[];
+ for(const candidate of candidates){
+  const box=viewportRect(vp,candidate.rect);
+  const coverage=labPatchOverlap(patch,box);
+  const marginCoverage=labPatchOverlap(boundary,box);
+  if(coverage<.16||marginCoverage<.38)continue;
+  if(!accepted.some(o=>o.code===candidate.code&&labSamePhysicalPosition({page:1,code:o.code,rect:o.rect},1,candidate.code,candidate.rect))){
+   accepted.push({...candidate,coverage,score:coverage*100+Math.min(15,candidate.code.length)*2});
+  }
+ }
+ return accepted.sort((a,b)=>b.score-a.score);
+}
 async function extractLabGraphicPositions(already=[]){
  const out=[];labGraphicsCandidates=0;labGraphicPositions=0;
+ let patchesFound=0,patchesWithText=0,unreadableDrawingPages=0;
  for(let p=1;p<=pdf.numPages;p++){
   const text=await readPageText(p);
   if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
-  const possible=labPrintedCodeCandidates(text.items).filter(o=>!labAlreadyLocated([...already,...out],p,o.code,o.rect));
-  if(!possible.length)continue;
-  labGraphicsCandidates+=possible.length;
   const pg=await pdf.getPage(p),natural=pg.getViewport({scale:1});
-  // Cap raster memory on large drawings.
-  const scale=Math.min(1.2,Math.sqrt(2600000/Math.max(1,natural.width*natural.height)),2200/natural.width,2200/natural.height);
+  // Sequential scans: controlled resolution and one bitmap at a time.
+  const scale=Math.min(1.5,Math.sqrt(3200000/Math.max(1,natural.width*natural.height)),2600/natural.width,2600/natural.height);
   const vp=pg.getViewport({scale:Math.max(.02,scale)});
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
   if(!ctx)continue;
   canvas.width=Math.max(1,Math.ceil(vp.width));canvas.height=Math.max(1,Math.ceil(vp.height));
   try{
-   const task=pg.render({canvasContext:ctx,viewport:vp});
-   await task.promise;
+   setState('Projektflöde test v6: granskar färgmarkeringar sida '+p+' av '+pdf.numPages+'…');
+   await pg.render({canvasContext:ctx,viewport:vp}).promise;
    const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
-   for(const candidate of possible){
-    const drawn=viewportRect(vp,candidate.rect);
-    if(!labColorAtRect(pixels,drawn))continue;
-    if(labAlreadyLocated([...already,...out],p,candidate.code,candidate.rect))continue;
-    out.push({...candidate,page:p,order:200000+out.length,sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',subtype:'colored-pdf-graphic'});
+   const patches=labFindColorPatches(pixels);
+   patchesFound+=patches.length;
+   if(!text.items.length&&patches.length)unreadableDrawingPages++;
+   for(const patch of patches){
+    const codes=labPatchCodes(patch,text.items,vp);
+    if(!codes.length)continue;
+    patchesWithText++;
+    // A colored island can contain several labels; keep distinct exact text boxes.
+    for(const candidate of codes){
+     const displayRect=candidate.rect; // Exact location of the read code, not a nearby label.
+     if(labAlreadyLocated([...already,...out],p,candidate.code,displayRect))continue;
+     out.push({page:p,code:candidate.code,rect:displayRect,
+      order:200000+out.length,sourceKind:candidate.code.startsWith('GS')?'gs':'project-code',
+      label:candidate.label,subtype:'color-first-pdf',scanScore:Math.round(candidate.coverage*100)});
+     labGraphicsCandidates++;
+    }
    }
-  }catch(error){console.warn('Kunde inte analysera färg i ritning på sida '+p,error)}
+  }catch(error){console.warn('Färgscanning av ritning sida '+p,error)}
   finally{canvas.width=0;canvas.height=0}
  }
  labGraphicPositions=out.length;
+ console.info('[Projektflöde test v6]',{patchesFound,patchesWithText,linkedCandidates:out.length,unreadableDrawingPages});
  return out;
 }
+
 async function extractLabMarkedPositions(){
  const {PDFDocument,PDFName,PDFDict}=PDFLib;
  const doc=await PDFDocument.load(bytes.slice(),{ignoreEncryption:true,updateMetadata:false});
