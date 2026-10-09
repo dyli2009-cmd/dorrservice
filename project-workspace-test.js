@@ -6,7 +6,7 @@ const labStorage={
  setItem:(key,value)=>localStorage.setItem(LAB_PREFIX+String(key),value),
  removeItem:key=>localStorage.removeItem(LAB_PREFIX+String(key))
 };
-let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0;
+let labManualLinks={},protocolCandidates={},labUnreadableMarks=0,labSourceMarkCount=0,labGraphicsCandidates=0,labGraphicPositions=0;
 
 const $=id=>document.getElementById(id);
 const el={
@@ -534,16 +534,17 @@ function labPrintedCodeCandidates(items){
  return out;
 }
 async function extractLabGraphicPositions(already=[]){
- const out=[];
+ const out=[];labGraphicsCandidates=0;labGraphicPositions=0;
  for(let p=1;p<=pdf.numPages;p++){
   const text=await readPageText(p);
   if(looksLikeAutomationProtocolPage(text.raw)||likelyDoorCardPage(text))continue;
   const possible=labPrintedCodeCandidates(text.items).filter(o=>!gsPositionDuplicate([...already,...out],p,o.code,o.rect));
   if(!possible.length)continue;
+  labGraphicsCandidates+=possible.length;
   const pg=await pdf.getPage(p),natural=pg.getViewport({scale:1});
   // Cap raster memory on large drawings.
   const scale=Math.min(1.2,Math.sqrt(2600000/Math.max(1,natural.width*natural.height)),2200/natural.width,2200/natural.height);
-  const vp=pg.getViewport({scale:Math.max(.13,scale)});
+  const vp=pg.getViewport({scale:Math.max(.02,scale)});
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
   if(!ctx)continue;
   canvas.width=Math.max(1,Math.ceil(vp.width));canvas.height=Math.max(1,Math.ceil(vp.height));
@@ -560,6 +561,7 @@ async function extractLabGraphicPositions(already=[]){
   }catch(error){console.warn('Kunde inte analysera färg i ritning på sida '+p,error)}
   finally{canvas.width=0;canvas.height=0}
  }
+ labGraphicPositions=out.length;
  return out;
 }
 async function extractLabMarkedPositions(){
@@ -2298,8 +2300,8 @@ async function analyze(file){
  const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=0;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
- if(!stamps.length&&!projectStamps.length)setState('Inga läsbara projektmarkeringar hittades i den här PDF-filen.');
- else setState('Projektflöde test: '+instances.length+' markerade positioner · '+matchedPositions+' kopplade till dörrkort'+restored+'.');
+ if(!stamps.length&&!projectStamps.length)setState('Inga färgmarkerade positioner kunde verifieras. PDF-markeringar: '+labSourceMarkCount+' (oläsbara: '+labUnreadableMarks+'). Textkandidater i ritningen: '+labGraphicsCandidates+' (utan säker färgträff). Testa en annan ritning eller granska om färgen ligger i en bild.');
+ else setState('Projektflöde test: '+instances.length+' markerade positioner (varav '+labGraphicPositions+' från inritad färg) · '+matchedPositions+' kopplade till dörrkort'+restored+'.');
  await renderDrawing();renderGroups();updateStats();requestAnimationFrame(fitDrawing);
 
 }
