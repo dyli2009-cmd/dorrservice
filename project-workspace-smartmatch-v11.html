@@ -17,6 +17,12 @@
 #smartAddCards{padding:7px 11px;border:1px solid #6899ae;border-radius:8px;background:#fff;color:#17465b;font-weight:700;cursor:pointer}
 #smartCardsNote{color:#315b6e}
 </style>
+<style>
+.smartReport{padding:0 12px;background:#f4f9fb;color:#183d50;border-bottom:1px solid #deebf0;font-size:12px}
+.smartReport details{padding:6px 0}
+.smartReport summary{cursor:pointer;font-weight:700}
+.smartReport #smartGSReportBody{max-height:320px;overflow:auto;padding:6px 0 8px}
+</style>
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -55,6 +61,12 @@
   </div>
 </section>
 
+<section class="smartReport">
+ <details id="smartGSReport">
+  <summary id="smartGSReportTitle">GS-rapport (visas efter analys)</summary>
+  <div id="smartGSReportBody">Ladda en PDF för att se alla GS-koder och deras dörrkortskopplingar.</div>
+ </details>
+</section>
 <section class="pwToolbar">
   <button id="pwPrev" type="button" aria-label="Föregående sida">‹</button>
   <span id="pwPageInfo">Ingen sida</span>
