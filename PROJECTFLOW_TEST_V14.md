@@ -44,3 +44,23 @@ flytt av automatisk och manuell position, ändrad beteckning, borttagning samt
 PDF-återöppning efter tömd localStorage. `SAMPLE_PDF` kan sättas till en lokal
 PDF för att även kontrollera ett verkligt underlag. Kundens PDF ingår inte i repot.
 Fysisk telefon har inte testats.
+
+## Skarpare ritningsvisning – TEST v14 och v15
+
+Öppningsbilden tar hänsyn till skärmens pixeltäthet (upp till 2×) inom samma
+minnesgräns för hela sidan. Efter cirka 300 ms utan rörelse ritas det synliga
+området separat, med upp till 3× pixeltäthet och högst cirka 3 miljoner pixlar.
+Under förflyttning/pinch används den begränsade översiktsbilden. Inga
+positionskoordinater, PDF-original eller kontrollpunkter ändras. Detaljbilden
+uppdateras efter zoom, rullning och sidbyte.
+
+```
+NODE_PATH=/workspace/.tillsyno-tools/node_modules node tests/drawing-sharpness-v14.cjs
+```
+
+Använd `TEST_VERSION=15` framför testkommandona för senaste testversionen.
+
+Verifierat i TEST v14 och v15, i Chromium med 2× skärmupplösning: skarpare öppningsbild, exakt
+passning mot PDF-koordinater, begränsat bildminne, återanvänd översiktsbild
+under zoom och uppdaterad detaljbild efter rörelse/sidbyte. Positions- och
+PDF-återöppningstestet passerade också efter ändringen.

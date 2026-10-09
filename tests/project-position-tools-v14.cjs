@@ -1,3 +1,4 @@
+const testVersion=process.env.TEST_VERSION||'14';
 const {chromium}=require('playwright');
 const {PDFDocument,StandardFonts,PDFName,PDFString}=require('pdf-lib');
 const assert=require('node:assert/strict');
@@ -15,10 +16,10 @@ const root=path.join(__dirname,'..');
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('https://positions.test/**',route=>{
    const name=new URL(route.request().url()).pathname.slice(1);let body=fs.readFileSync(path.join(root,name));
-   if(name==='project-workspace-smartmatch-v14.js')body=Buffer.from(body.toString().replace('})();',`window.pmTest={analyze,pmCommit,pmPlace,pmRename,pmRemove,buildPortableProjectPdf,buildInstances,makeProjectPayload,get:()=>({instances,protocolMap,manualPositions,positionEdits})};})();`));
+   if(name===`project-workspace-smartmatch-v${testVersion}.js`)body=Buffer.from(body.toString().replace(/\}\)\(\);(?=\s*$)/,`window.pmTest={analyze,pmCommit,pmPlace,pmRename,pmRemove,buildPortableProjectPdf,buildInstances,makeProjectPayload,get:()=>({instances,protocolMap,manualPositions,positionEdits})};})();`));
    return route.fulfill({contentType:name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':'text/html',body});
   });
-  await page.goto('https://positions.test/project-workspace-smartmatch-v14.html');
+  await page.goto(`https://positions.test/project-workspace-smartmatch-v${testVersion}.html`);
   await page.evaluate(async data=>{await pmTest.analyze(new File([new Uint8Array(data)],'fixture.pdf',{type:'application/pdf'}))},[...bytes]);
   let state=await page.evaluate(()=>pmTest.get());assert(state.instances.some(o=>o.code==='GS1'),'Plain GS 1 text found');assert(state.instances.some(o=>o.code==='GS2'),'Uncolored annotation found');assert(!state.instances.some(o=>o.code==='GS230V'),'Responsibility voltage is not a position');
   await page.locator('#pmCode').fill('GS 1');await page.locator('#pmAdd').click();

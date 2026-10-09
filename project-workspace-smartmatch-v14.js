@@ -38,6 +38,7 @@ const ctx=el.canvas.getContext('2d');
 const protocolCtx=el.protocolCanvas.getContext('2d');
 
 let pdf=null,bytes=null,fileKey='',projectId='',currentFileName='Tillsyno-projekt.pdf',currentFileHandle=null,embeddedState={},page=1,scale=1.1,renderTask=null;
+let drawingDetailTimer=null,drawingDetailTask=null,drawingDetailVersion=0,drawingDetailKey="";
 let drawingRenderVersion=0,drawingRenderQueue=Promise.resolve(),drawingRaster=null;
 const DRAWING_MAX_PIXELS=4000000,DRAWING_MAX_SIDE=4096;
 let drawingPan=null,drawingTouch=null,drawingWheelTimer=null,drawingWheelBaseScale=1,drawingWheelTargetScale=1,drawingWheelFocus=null;
@@ -1906,6 +1907,7 @@ function updateStats(){
 }
 function renderDrawing(){
  if(!pdf)return Promise.resolve();
+ clearDrawingDetail();
  const version=++drawingRenderVersion,documentPdf=pdf,pageNumber=page,targetScale=scale;
  if(renderTask)try{renderTask.cancel()}catch(_){}
  drawingRenderQueue=drawingRenderQueue.catch(()=>{}).then(async()=>{
@@ -1913,7 +1915,7 @@ function renderDrawing(){
   const pg=await documentPdf.getPage(pageNumber);if(version!==drawingRenderVersion)return;
   const vp=pg.getViewport({scale:targetScale}),natural=pg.getViewport({scale:1});
   // Marker and note coordinates use the full logical viewport; only pixels are capped.
-  const raster=pg.getViewport({scale:Math.min(targetScale,Math.sqrt(DRAWING_MAX_PIXELS/(natural.width*natural.height)),DRAWING_MAX_SIDE/natural.width,DRAWING_MAX_SIDE/natural.height)});
+  const raster=pg.getViewport({scale:Math.min(targetScale*Math.min(2,window.devicePixelRatio||1),Math.sqrt(DRAWING_MAX_PIXELS/(natural.width*natural.height)),DRAWING_MAX_SIDE/natural.width,DRAWING_MAX_SIDE/natural.height)});
   const width=Math.ceil(raster.width),height=Math.ceil(raster.height);
   if(!drawingRaster||drawingRaster.document!==documentPdf||drawingRaster.page!==pageNumber||drawingRaster.width!==width||drawingRaster.height!==height){
    const nextCanvas=document.createElement('canvas');nextCanvas.width=width;nextCanvas.height=height;
@@ -1926,7 +1928,7 @@ function renderDrawing(){
   el.canvas.style.width=vp.width+'px';el.canvas.style.height=vp.height+'px';
   el.stage.style.width=vp.width+'px';el.stage.style.height=vp.height+'px';
   el.pageInfo.textContent='Sida '+pageNumber+' / '+documentPdf.numPages;el.zoomInfo.textContent=Math.round(targetScale*100)+'%';
-  renderDrawingNotes(vp);renderMarkers();renderAutomationMarkers();
+  renderDrawingNotes(vp);renderMarkers();renderAutomationMarkers();scheduleDrawingDetail();
 
  });
  return drawingRenderQueue;
@@ -3257,6 +3259,50 @@ el.stage.addEventListener('pointercancel',()=>{pmPointer=null},true);
 el.stage.addEventListener('click',e=>{if(placement||Date.now()<pmSuppressClickUntil){e.stopImmediatePropagation();e.preventDefault()}},true);
 for(const name of ['touchstart','touchmove','touchend','touchcancel'])el.stage.addEventListener(name,e=>{if(placement||Date.now()<pmSuppressClickUntil){e.stopImmediatePropagation();e.preventDefault()}},{capture:true,passive:false});
 pmRefresh();
+
+
+// Keep the bounded whole-page preview during navigation. Rasterize just the
+// visible PDF area at screen resolution after motion stops; coordinates stay
+// in the original logical viewport, including markers and manually moved doors.
+const drawingDetailCanvas=document.createElement('canvas');
+drawingDetailCanvas.id='pwDrawingDetail';drawingDetailCanvas.hidden=true;
+drawingDetailCanvas.style.cssText='position:absolute;pointer-events:none;box-shadow:none;';
+el.canvas.after(drawingDetailCanvas);
+function clearDrawingDetail(){
+ clearTimeout(drawingDetailTimer);drawingDetailVersion++;drawingDetailKey='';drawingDetailCanvas.hidden=true;
+ if(drawingDetailTask){try{drawingDetailTask.cancel()}catch(_){}drawingDetailTask=null}
+}
+function scheduleDrawingDetail(){
+ clearTimeout(drawingDetailTimer);
+ drawingDetailTimer=setTimeout(()=>{void renderDrawingDetail().catch(err=>{if(err?.name!=='RenderingCancelledException')console.warn('Ritningens detaljvisning',err)})},300);
+}
+async function renderDrawingDetail(){
+ if(!pdf||drawingPan||drawingTouch||drawingWheelTimer||el.stage.style.transform)return;
+ const documentPdf=pdf,pageNumber=page,targetScale=scale,version=++drawingDetailVersion;
+ const viewer=el.viewer.getBoundingClientRect(),stage=el.stage.getBoundingClientRect();
+ const width=parseFloat(el.stage.style.width)||0,height=parseFloat(el.stage.style.height)||0;
+ const left=Math.max(0,viewer.left-stage.left),top=Math.max(0,viewer.top-stage.top);
+ const w=Math.min(width-left,el.viewer.clientWidth),h=Math.min(height-top,el.viewer.clientHeight);
+ if(w<=0||h<=0)return;
+ // A viewport-sized canvas protects memory even at maximum zoom on A1 drawings.
+ const ratio=Math.min(window.devicePixelRatio||1,3,Math.sqrt(3000000/(w*h)),4096/w,4096/h);
+ const key=[pageNumber,targetScale,left,top,w,h,ratio].join(':');
+ if(key===drawingDetailKey&&!drawingDetailCanvas.hidden)return;
+ const pg=await documentPdf.getPage(pageNumber);
+ if(version!==drawingDetailVersion||pdf!==documentPdf||page!==pageNumber||scale!==targetScale)return;
+ const canvas=document.createElement('canvas');canvas.width=Math.ceil(w*ratio);canvas.height=Math.ceil(h*ratio);
+ const task=pg.render({canvasContext:canvas.getContext('2d'),viewport:pg.getViewport({scale:targetScale*ratio}),transform:[1,0,0,1,-left*ratio,-top*ratio]});
+ drawingDetailTask=task;
+ try{await task.promise}finally{if(drawingDetailTask===task)drawingDetailTask=null}
+ if(version!==drawingDetailVersion||pdf!==documentPdf||page!==pageNumber||scale!==targetScale){canvas.width=canvas.height=0;return}
+ drawingDetailCanvas.width=canvas.width;drawingDetailCanvas.height=canvas.height;
+ drawingDetailCanvas.getContext('2d').drawImage(canvas,0,0);canvas.width=canvas.height=0;
+ Object.assign(drawingDetailCanvas.style,{left:left+'px',top:top+'px',width:w+'px',height:h+'px'});
+ drawingDetailKey=key;drawingDetailCanvas.hidden=false;
+}
+el.viewer.addEventListener('scroll',()=>{clearDrawingDetail();scheduleDrawingDetail()},{passive:true});
+for(const event of ['pointerdown','touchstart','wheel'])el.viewer.addEventListener(event,()=>{clearDrawingDetail();scheduleDrawingDetail()},{capture:true,passive:true});
+for(const event of ['pointerup','pointercancel','touchend','touchcancel'])el.viewer.addEventListener(event,scheduleDrawingDetail,{passive:true});
 
 // Egna protokoll är borttaget. Ordinarie projektpositioner och kontrollprotokoll är kvar.
 })();

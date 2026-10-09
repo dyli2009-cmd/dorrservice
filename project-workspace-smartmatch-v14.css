@@ -505,3 +505,5 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
   }
   .pwStartMode .pwHeaderActions .pwSaveWrap{visibility:hidden}
 }
+
+#pwDrawingDetail[hidden]{display:none!important}
