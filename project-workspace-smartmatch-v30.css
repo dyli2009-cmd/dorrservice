@@ -798,6 +798,10 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
   scrollbar-width:thin;-webkit-overflow-scrolling:touch;justify-content:flex-start}
  .pwToolbarWork{flex-shrink:0}
  .pwToolbarNavigation{flex-shrink:0}
+ /* A horizontally scrollable toolbar would otherwise clip its dropdown on tablets. */
+ .pwToolMenu{position:fixed!important;left:10px!important;right:10px!important;
+  bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;
+  width:auto!important;max-height:68dvh;overflow-y:auto!important;z-index:1010!important}
 }
 @media(max-width:520px){
  .pwToolbar{padding:4px 6px!important;gap:2px}
