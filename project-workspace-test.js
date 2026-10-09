@@ -1091,8 +1091,6 @@ function effectiveChecks(o,def){
 }
 function buildInstances(){
  const saved=loadSaved(),counts={};
- // Preserve old custom-protocol data in saved PDFs without loading the removed tool.
- legacyCustomProtocols=saved.customProtocols&&typeof saved.customProtocols==='object'?saved.customProtocols:null;
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
  labManualLinks=saved.labManualLinks&&typeof saved.labManualLinks==='object'?{...saved.labManualLinks}:{};
  projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
