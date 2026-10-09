@@ -70,3 +70,48 @@
 #previewZoomLevel{min-width:40px;text-align:center;font-size:10px;font-variant-numeric:tabular-nums}
 .previewNavigationHint{margin:0;padding:7px 10px;font-size:10px;line-height:1.4;color:#476575;border-top:1px solid #e3e9ec}
 @media(max-width:760px){#previewWrap{height:58vh}.previewZoomControls{gap:3px}.previewToolbar #pageState{width:100%;margin-left:0}}
+
+/* One drawing workspace, with tools available on demand. */
+.toolHeader{grid-template-columns:auto 1fr auto auto}
+.toolHeader .headerActions{display:flex;flex-direction:row;gap:6px}
+.headerActions button{min-height:34px;padding:6px 10px;border:1px solid #506b78;border-radius:7px;background:#203e4d;color:#fff;font-size:11px;font-weight:700}
+.headerActions #savePdf{background:#e6f3f0;border-color:#e6f3f0;color:#153d37}
+.headerActions button:disabled{opacity:.45;cursor:default}
+.headerActions #toolsToggle[aria-expanded="true"]{background:#e7eff3;color:#173746}
+.workspace{display:block}
+.toolPanel{position:fixed;right:12px;top:66px;bottom:12px;width:min(340px,calc(100vw - 24px));overflow:auto;z-index:30;box-shadow:0 8px 32px #17374633}
+.toolPanel[hidden]{display:none!important}
+.toolPanelHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 4px 8px;font-size:14px}
+.toolPanelHead button{width:34px;height:34px;border:1px solid #c4d1d7;border-radius:7px;background:#f7fafb;font-size:22px;color:#294653}
+.panelSection summary{font-size:12px;font-weight:700;cursor:pointer;padding:8px 0}
+.panelSection summary::marker{color:#66808e}
+.viewLabel{font-size:10px;color:#476575;margin:7px 0}
+.toolPanel .previewZoomControls{margin:0 0 8px;justify-content:flex-start}
+.previewZoomControls button{min-height:34px;border:1px solid #c4d1d7;border-radius:7px;background:#f7fafb;color:#294653;padding:6px 9px;font-size:11px;font-weight:700}
+.previewZoomControls button:disabled{opacity:.45}
+.toolPanel .globalTextControls{display:flex;align-items:center;color:#294653}
+.toolPanel [data-app-text-level]{display:block}
+#previewEditMode{background:#e4f0f5;border-color:#14769c;color:#173f55}
+#previewEditMode[hidden]{display:none}
+.toolPanel .sizeCompare{padding:8px}.toolPanel .sizeStats{grid-template-columns:1fr 1fr}
+.toolPanel .deepCleanInfo{flex-direction:column;align-items:flex-start;margin-top:8px}
+.hasDrawing .toolIntro,.hasDrawing #toolMessage:not(.error):not(.busy){display:none}
+.hasDrawing .toolShell{width:100%;padding:10px}
+.hasDrawing #previewWrap{height:calc(100dvh - 124px);max-height:none;min-height:300px}
+@media(max-width:560px){
+ .toolHeader{grid-template-columns:auto 1fr auto;gap:7px;padding:8px}
+ .toolHeader>div:not(.headerActions) strong{font-size:12px}.toolHeader small,.toolHeader .version{display:none}
+ .headerActions{gap:4px!important}.headerActions button{padding:6px;font-size:10px}
+ .backBtn{padding:6px;font-size:10px}
+ .toolPanel{top:62px}
+ .hasDrawing .toolShell{padding:6px}
+ .hasDrawing #previewWrap{height:calc(100dvh - 110px)}
+}
+body{--tool-text-factor:1}
+body[data-app-text-size="-1"]{--tool-text-factor:.9}
+body[data-app-text-size="1"]{--tool-text-factor:1.12}
+body[data-app-text-size="2"]{--tool-text-factor:1.24}
+body[data-app-text-size="3"]{--tool-text-factor:1.36}
+.toolPanel summary{font-size:calc(12px * var(--tool-text-factor))}
+.toolPanel .hint,.toolPanel .toggleRow small{font-size:calc(10px * var(--tool-text-factor))}
+.toolPanel .toggleRow strong,.toolPanel .viewLabel,.toolPanel>details>label:not(.toggleRow){font-size:calc(11px * var(--tool-text-factor))}

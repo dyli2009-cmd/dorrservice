@@ -1,4 +1,4 @@
-const VERSION='2.4.257';
+const VERSION='2.4.258';
 const CACHE='tillsyno-offline-'+VERSION;
 const BASE=new URL('./',self.location.href);
 const CORE=['./','index.html','style.css','home-bg-data.js','app.js','reports.js','v2.js','session-history.js','ui-text-scale.js','customer-preview-pager.js','customer-preview-pager.css','security-compact.css','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','security.html','security.css','security.js','legacy-door-import.js','all-in-one.html','all-in-one.css','all-in-one.js','project-workspace.html','project-workspace.css','project-workspace.js','project-flow.html','project-flow.css','project-flow.js','drawing-tools.html','drawing-tools.css','drawing-tools.js','drawing-annotations.js','drawing-transfer.js','drawing-door-symbols.js','licensed-entry-v6.html','licensed-door-v1.html','licensed-control-v1.html','licensed-project-v1.html','offline.js','offline-work.js','vendor/jspdf.umd.min.js','vendor/pdf-lib.min.js','vendor/pdf.min.js','vendor/pdf.worker.min.js'];

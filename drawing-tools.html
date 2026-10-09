@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ritningsverktyg · Dörrservice</title>
-<link rel="stylesheet" href="drawing-tools.css?v=2.4.257">
+<link rel="stylesheet" href="drawing-tools.css?v=2.4.258">
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
 </head>
@@ -13,8 +13,12 @@
 <header class="toolHeader">
  <a href="./" class="backBtn">‹ Hem</a>
  <div><strong>Ritningsverktyg</strong><small>Rensa · beskära · optimera</small></div>
- <span class="globalTextControls" role="group" aria-label="Textstorlek"><button type="button" data-app-text-smaller>A−</button><span data-app-text-level>100%</span><button type="button" data-app-text-larger>A+</button></span>
- <span class="version">v2.4.257</span>
+ <div class="headerActions">
+  <button id="openPdf" type="button">Öppna PDF</button>
+  <button id="toolsToggle" type="button" aria-controls="toolPanel" aria-expanded="false" disabled>Verktyg</button>
+  <button id="savePdf" class="primary" type="button" disabled>Spara PDF</button>
+ </div>
+ <span class="version">v2.4.258</span>
 </header>
 
 <main class="toolShell">
@@ -35,16 +39,30 @@
  </section>
 
  <section id="workspace" class="workspace" hidden>
-  <aside class="toolPanel">
-   <div class="panelSection">
-    <h2>Rensa ritningen</h2>
+  <aside id="toolPanel" class="toolPanel" aria-label="Ritningsverktyg" hidden>
+   <div class="toolPanelHead"><strong>Verktyg</strong><button id="closeTools" type="button" aria-label="Stäng verktyg">×</button></div>
+   <details class="panelSection" open>
+    <summary>Vy</summary>
+    <p class="viewLabel">Zooma ritningen</p>
+    <div class="previewZoomControls" role="group" aria-label="Zooma ritningen">
+     <button id="previewZoomOut" type="button" aria-label="Zooma ut">−</button>
+     <span id="previewZoomLevel" aria-live="polite">100%</span>
+     <button id="previewZoomIn" type="button" aria-label="Zooma in">+</button>
+     <button id="previewFit" type="button">Passa sidan</button>
+    </div>
+    <p class="viewLabel">Textstorlek</p>
+    <span class="globalTextControls" role="group" aria-label="Textstorlek"><button type="button" data-app-text-smaller>A−</button><span data-app-text-level>100%</span><button type="button" data-app-text-larger>A+</button></span>
+    <p class="hint">Zooma med mushjulet. Dra med musen för att flytta ritningen. Vid beskärning eller döljning: dra med mushjulet nedtryckt för att flytta vyn.</p>
+   </details>
+   <details class="panelSection">
+    <summary>Rensa ritningen</summary>
     <label class="toggleRow"><input id="removeText" type="checkbox"><span><strong>Ta bort text</strong><small>Tar bort synlig PDF-text, till exempel rumsnamn, mått och gamla texter.</small></span></label>
     <label class="toggleRow"><input id="removeAnnotations" type="checkbox" checked><span><strong>Ta bort markeringar & kommentarer</strong><small>PDF-kommentarer, annotations och gamla markeringar följer inte med.</small></span></label>
     <label class="toggleRow"><input id="removeColors" type="checkbox"><span><strong>Ta bort färgmarkeringar</strong><small>Tar bort färgade överstrykningar/markeringar och försöker behålla svart/grå ritningslinjer.</small></span></label>
     <button id="aggressiveClean" class="wideToolBtn" type="button">Rensa allt ovan</button>
-   </div>
-   <div class="panelSection">
-    <h2>Dölj eller beskär</h2>
+   </details>
+   <details class="panelSection">
+    <summary>Dölj eller beskär</summary>
     <button id="eraseMode" class="wideToolBtn" type="button" aria-pressed="false">Dölj område</button>
     <div class="rowBtns eraseActions">
      <button id="undoErase" type="button" disabled>Ångra</button>
@@ -53,9 +71,9 @@
     <button id="cropMode" class="wideToolBtn cropToolBtn" type="button" aria-pressed="false">Beskär sida</button>
     <button id="resetCrop" class="wideToolBtn" type="button" disabled>Återställ beskärning</button>
     <p class="hint">Dölj område täcker över sådant du inte vill se. Beskär sida gör själva PDF-sidan mindre och behåller bara området du markerar.</p>
-   </div>
-   <div class="panelSection">
-    <h2>Optimera</h2>
+   </details>
+   <details id="optimizeTools" class="panelSection">
+    <summary>Optimera PDF</summary>
     <label>Kvalitet
      <select id="quality">
       <option value="light">Mindre fil</option>
@@ -64,9 +82,10 @@
      </select>
     </label>
     <p id="qualityHint" class="hint">Balans passar normalt bäst för ritningar. Beräknad storlek visas nedan innan du sparar.</p>
-   </div>
-   <div class="panelSection">
-    <h2>Sidor</h2>
+    <button id="analyzeSize" class="wideToolBtn" type="button">Mät exakt</button>
+   </details>
+   <details class="panelSection">
+    <summary>Sidor</summary>
     <div class="rowBtns">
      <button id="removePage" type="button">Ta bort aktuell sida</button>
      <button id="undoPage" type="button" disabled>Ångra</button>
@@ -78,7 +97,7 @@
       <button id="removeSelectedPages" type="button" class="dangerBtn">Ta bort valda</button>
     </div>
     <div id="pageList" class="pageList"></div>
-   </div>
+   </details>
   </aside>
 
   <section class="previewPane">
@@ -86,18 +105,11 @@
     <button id="prevPage" aria-label="Föregående sida">‹</button>
     <strong id="pageInfo">Sida 1</strong>
     <button id="nextPage" aria-label="Nästa sida">›</button>
-    <div class="previewZoomControls" role="group" aria-label="Zooma ritningen">
-     <button id="previewZoomOut" type="button" aria-label="Zooma ut">−</button>
-     <span id="previewZoomLevel" aria-live="polite">100%</span>
-     <button id="previewZoomIn" type="button" aria-label="Zooma in">+</button>
-     <button id="previewFit" type="button">Passa sidan</button>
-    </div>
+    <button id="previewEditMode" type="button" hidden></button>
     <span id="pageState"></span>
    </div>
 
    <div id="previewWrap"><div id="previewSurface"><div id="canvasStage"><canvas id="previewCanvas"></canvas><div id="cropBox" hidden></div><div id="eraseBox" hidden></div></div></div></div>
-   <p class="previewNavigationHint">Zooma med mushjulet eller +/−. Dra med musen för att flytta ritningen. Vid beskärning eller döljning: dra med mushjulet nedtryckt för att flytta vyn.</p>
-   <p class="previewNote">Förhandsvisningen visar den rensade arbetskopian. Om något ligger kvar: använd “Radera område” och dra direkt över det. Kontrollera särskilt mått och rumsnamn innan du sparar.</p>
   </section>
  </section>
 
@@ -113,16 +125,11 @@
   <p id="sizeDetail">Välj kvalitet för en snabb uppskattning. Tryck “Mät exakt” för verklig filstorlek innan du sparar.</p>
  </section>
 
- <section id="outputActions" class="outputActions" hidden>
-  <button id="analyzeSize" type="button">Mät exakt</button>
-  <button id="savePdf" class="primary" type="button">Spara ny PDF</button>
- </section>
-
  <section id="resultCard" class="resultCard" hidden>
   <strong>Arbetskopia klar</strong>
   <span id="resultInfo"></span>
  </section>
 </main>
-<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.257"></script>
+<script src="ui-text-scale.js?v=2.4.163"></script><script src="drawing-tools.js?v=2.4.258"></script>
 </body>
 </html>
