@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.32** (mobil-/sparförbättringar, kräver manuell mobilkontroll). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.33**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.33** (mobilmenyn Verktyg, kompakt Analys, revisionsfält och textzoom; kräver manuell mobilkontroll). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.34**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.33
+
+iPhone/iPad: Verktyg-meny klipptes bort, Analys för lång och revisionsuppgifter överlappade. Fix och tester i [SMARTMATCH_TEST_V36_33.md](SMARTMATCH_TEST_V36_33.md). Behåll v36.32 för jämförelse.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.32
 
