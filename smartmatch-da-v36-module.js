@@ -188,7 +188,7 @@ window.SmartMatchDALink=(()=>{
  }
  function beginArrowAdjust(o){
   if(!o)return;
-  if(!o.linkedGsId){openDoor(o);ctx().setStatus('Koppla först rätt GS-position, sedan kan du justera pilen.');return}
+  if(!o.linkedGsId){openLink(o);ctx().setStatus('Koppla först rätt GS-position, sedan kan du justera pilen.');return}
   editingArrowId=o.id;stopMove();
   void ctx().locate(o).then(()=>ctx().redraw());
   ctx().setStatus('Justera pil: dra den blå runda punkten på ritningen till önskad kant på GS-stämpeln. Zooma gärna in för precision.');
@@ -262,10 +262,16 @@ window.SmartMatchDALink=(()=>{
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&editMarkerId)stopMove()});
  }
 
- function openDoor(o){
+ function openDoor(o,mode='choices'){
   if(!o)return;selectedId=o.id;
+  const linking=mode==='link';
+  const edit=$('pwDAGsEdit'),choices=$('pwDADoorChoices');
+  if(edit)edit.hidden=!linking;
+  if(choices)choices.hidden=linking;
   $('pwDADoorTitle').textContent=[o.objectNo,o.modelCode,o.serialNumber].filter(Boolean).join('-');
-  $('pwDADoorSub').textContent='Grundmärkning: '+family(o.sourceText||$('pwDADoorTitle').textContent)+' · löpnummer '+o.serialNumber;
+  $('pwDADoorSub').textContent=linking
+    ?'Koppla märkningen till rätt fysisk GS-position'
+    :'Välj vad du vill öppna för denna dörrautomatik';
   const select=$('pwDAGsSelect');select.replaceChildren();
   const blank=document.createElement('option');blank.value='';blank.textContent='Ingen koppling – välj GS-position';select.appendChild(blank);
   gsOnPage(o.page).forEach(g=>{
@@ -275,6 +281,7 @@ window.SmartMatchDALink=(()=>{
   select.value=o.linkedGsId||'';
   if(!$('pwDADoorDialog').open)$('pwDADoorDialog').showModal();
  }
+ function openLink(o){openDoor(o,'link')}
  function closeDoor(){if($('pwDADoorDialog').open)$('pwDADoorDialog').close()}
  function chooseOnDrawing(){
   const item=getSelected();if(!item)return;
@@ -431,5 +438,5 @@ window.SmartMatchDALink=(()=>{
   bindMoveGestures();
  }
  init(null);
- return {init,openDoor,drawArrows,onGSClick,beginMove,rename,remove,beginArrowAdjust,onProjectOpened(){stopMove();editingArrowId='';manualPending='';selectedId='';pendingGSItemId='';exampleFamily=''}};
+ return {init,openDoor,openLink,drawArrows,onGSClick,beginMove,rename,remove,beginArrowAdjust,onProjectOpened(){stopMove();editingArrowId='';manualPending='';selectedId='';pendingGSItemId='';exampleFamily=''}};
 })();

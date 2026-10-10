@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.12';
+const SMARTMATCH_RELEASE='36.13';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -3346,6 +3346,10 @@ function renderAutomationMarkers(){
 }
 let unlinkedFolderOpen=false; // Retained for older project/remove workflows.
 let drawingCardFilter='';
+let drawingCardOpen=true,automationGroupOpen=true;
+// Preserve the existing manual GS/card editor element and ALL its listeners
+// when reparenting it into Ritning & dörrkort across renderGroups() updates.
+const drawingManualEditor=document.getElementById('pwPositionEditor');
 let positionPopup=null,positionPopupAnchor=null;
 function closePositionPopup(){
  if(positionPopup){positionPopup.remove();positionPopup=null}
@@ -3394,20 +3398,34 @@ function renderGroups(){
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
  const missingCodes=Object.keys(smartDoorCardIndex).filter(code=>!ignoredCodes.has(code)&&!instances.some(o=>o.code===code));
- if(!codes.length&&!visibleAutomations.length&&!missingCodes.length){
-  const p=document.createElement('p');p.className='pwMuted';
-  p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';
-  el.groups.appendChild(p);return;
- }
  // One category for all GS / drawing positions and linked door-card matches.
  // This intentionally includes positions without a door card, so GS1 / GS2
  // remain discoverable while the operator fixes their links.
- if(codes.length||missingCodes.length){
-  const drawingWrap=document.createElement('section');drawingWrap.className='pwGroup pwDrawingCardGroup';
-  const header=document.createElement('div');header.className='pwGroupTitle';
+ {
+  const drawingWrap=document.createElement('details');drawingWrap.className='pwGroup pwDrawingCardGroup';
+  drawingWrap.open=drawingCardOpen;
+  drawingWrap.addEventListener('toggle',()=>{if(drawingWrap.isConnected)drawingCardOpen=drawingWrap.open});
+  const header=document.createElement('summary');header.className='pwGroupTitle';
   const heading=document.createElement('strong');heading.textContent='Ritning & dörrkort';
   const count=document.createElement('span');count.textContent=instances.filter(o=>!currentOnly||o.page===page).length+' positioner';
-  header.append(heading,count);drawingWrap.appendChild(header);
+  const toggle=document.createElement('small');toggle.className='pwGroupVisibility';toggle.textContent='Visa / dölj';
+  header.append(heading,count,toggle);drawingWrap.appendChild(header);
+  const manualAction=document.createElement('button');manualAction.type='button';
+  manualAction.className='pwDrawingManualAdd';manualAction.textContent='＋ Lägg till position / koppla dörrkort';
+  manualAction.title='Ange GS-kod, välj dörrkortssida och placera en position på ritningen';
+  manualAction.onclick=()=>{
+   if(!drawingManualEditor)return;
+   drawingWrap.open=true;drawingCardOpen=true;
+   drawingManualEditor.open=true;
+   pmHelp('Ange beteckning, t.ex. GS4. Koppla till rätt dörrkortssida med ”Koppla kort” och välj sedan ”Placera” för att peka ut positionen på ritningen.');
+   drawingManualEditor.scrollIntoView({behavior:'smooth',block:'nearest'});
+   const input=document.getElementById('pmCode');input?.focus({preventScroll:true});
+  };
+  drawingWrap.appendChild(manualAction);
+  if(drawingManualEditor){
+   drawingManualEditor.open=!!drawingManualEditor.open;
+   drawingWrap.appendChild(drawingManualEditor);
+  }
   const search=document.createElement('input');search.type='search';search.className='pwDrawingCodeSearch';
   search.placeholder='Sök GS1, GS2, GS3 eller dörrkod…';search.value=drawingCardFilter;
   search.setAttribute('aria-label','Sök position i ritning eller dörrkort');
@@ -3469,10 +3487,15 @@ function renderGroups(){
   list.appendChild(empty);drawingWrap.appendChild(list);el.groups.appendChild(drawingWrap);
   if(drawingCardFilter)search.oninput();
  }
- if(visibleAutomations.length){
-  const wrap=document.createElement('section');wrap.className='pwGroup pwAutomationGroup';
-  const title=document.createElement('div');title.className='pwGroupTitle';
-  title.innerHTML='<strong>DA · Egenkontroller</strong><span>'+visibleAutomations.length+' automatiker</span>';
+ {
+  const wrap=document.createElement('details');wrap.className='pwGroup pwAutomationGroup';
+  wrap.open=automationGroupOpen;
+  wrap.addEventListener('toggle',()=>{if(wrap.isConnected)automationGroupOpen=wrap.open});
+  const title=document.createElement('summary');title.className='pwGroupTitle';
+  const strong=document.createElement('strong');strong.textContent='DA · Egenkontroller';
+  const count=document.createElement('span');count.textContent=visibleAutomations.length+' automatiker';
+  const toggle=document.createElement('small');toggle.className='pwGroupVisibility';toggle.textContent='Visa / dölj';
+  title.append(strong,count,toggle);
   wrap.appendChild(title);
   const list=document.createElement('div');list.className='pwGroupItems';
   visibleAutomations.forEach(o=>{
@@ -3489,9 +3512,15 @@ function renderGroups(){
    ];
    if(o.linkedGsId)actions.push(['↗ Justera pil',()=>window.SmartMatchDALink?.beginArrowAdjust?.(o)]);
    actions.push(['× Ta bort',()=>window.SmartMatchDALink?.remove?.(o)]);
+   actions.splice(2,0,['⇄ Koppla / ändra GS',()=>window.SmartMatchDALink?.openLink?.(o)]);
    const more=positionMoreButton('dörrautomatik '+automationDisplayId(o),actions);
    line.append(b,more);list.appendChild(line);
   });
+  if(!visibleAutomations.length){
+   const empty=document.createElement('p');empty.className='pwMuted pwDAEmptyState';
+   empty.textContent='Inga egenkontroller hittade ännu. Använd Verktyg → Koppla dörrautomatik.';
+   list.appendChild(empty);
+  }
   wrap.appendChild(list);el.groups.appendChild(wrap);
  }
 }

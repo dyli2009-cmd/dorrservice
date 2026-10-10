@@ -171,3 +171,29 @@
 **Ingen ändring:** PDF-inläsning, SmartMatch GS-/dörrkortsskanning, dörrautomatikens märkningsanalys, projektets PDF-data, kundmall och iOS-produktionsappen. Versionsnumret visas som **TEST v36.12** i skärmen, sidtitel och samtliga cachenycklar.
 
 **Kontroller:** JS-syntax verifierad, popup öppnar/stänger med simulering, GS- och DA-trigger får samma utseendeklass, länkåtgärder kallas vid klick, samt unika HTML-ID och versionsnummer kontrolleras. Fullständigt visuellt test på användarens iPad/ritning återstår.
+
+## v36.13 – Fällbara arbetsområden, manuell GS/dörrkortskoppling och två dokumentval (2026-10-10)
+
+**Ritning & dörrkort**
+- Hela arbetsområdet är nu en egen `<details>`-kategori med rubriken **Ritning & dörrkort** och `Visa / dölj`. Användarens öppet/stängt-val behålls vid ändringar i checklistor och när kategorierna renderas om.
+- Den befintliga `pwPositionEditor`-kontrollen flyttas som **samma DOM-element** till kategorin, utan att skapa nya inputs eller dubblera eventhandlers. Den innehåller **Beteckning**, **Placera**, **Dörrkortssida**, **Koppla kort** och **Avbryt**.
+- Synlig knapp **＋ Lägg till position / koppla dörrkort** öppnar detta redigeringsfält inne i Ritning & dörrkort, med instruktion för GS-kod, dörrkortssida och manuell placering.
+- GS-listans sökning, individuella `⋯`-menyer, tidigare positioner och kopplingar kvarstår. Arbetsområdet finns även när ingen position ännu hittats, så tekniker kan placera och koppla manuellt från början.
+
+**DA · Egenkontroller**
+- Eget fällbart arbetsområde med `Visa / dölj`, självständigt från Ritning & dörrkort. Även en tom DA-kategori visas med instruktion för att starta märkninganalys.
+- **Vanligt tryck** på automatikens etikett/position visar endast två tydliga val:
+  1. **Checklista revision dörrautomatik**
+  2. **SLR – dokumentmapp**
+- GS-kopplingsfälten döljs i det vanliga dialogläget. Under `⋯` finns nu separat **Koppla / ändra GS** som öppnar samma dialog i kopplingsläge med GS-lista, `Spara GS-koppling` och `Peka ut GS på ritningen`.
+- `Flytta / storlek`, `Ändra`, `Justera pil` och `Ta bort` behålls i automatiska egenkontrollers `⋯`-meny.
+
+**Plan för automatisk matchning över ritning + dörrkort + kompletterande filer (ännu inte implementerad)**
+1. Skanna alla relevanta PDF-dokument och separera ritningssidor, dörrkort, listor och maskin-/objektdata; OCR endast för sidor utan läsbar text.
+2. Normalisera märknings-ID (bindestreck, mellanslag, radbrytningar), särskilj anläggning/objekt, maskintyp och unikt löpnummer. Registrera exakt PDF-sida + rektangel + källfil per träff.
+3. Hitta familjer genom samma prefix. Skapa en **egen unik automatikpost + checklista per fullständigt ID**, med gemensam dokumentstruktur men modellberoende rubriker och fält när det behövs.
+4. Koppla till GS-position på **samma ritningssida** utifrån säker textmatchning och placering. Föreslå närmsta GS när flera alternativ finns, men be teknikern bekräfta osäkra träffar. Arbeta med enskilda pilar som pekar mot ruttkant.
+5. Matcha dörrkort mellan filer via faktiskt objektnummer, tydliga referenser och maskintyp, inte bara närmaste objekt eller samma löpnummer. Varje träff måste loggas som `säker matchning`, `bekräfta` eller `saknas`.
+6. Bevara användarens manuella ändringar och godkända länkar när dokumenten skannas på nytt; duplicera inte kontroller. Visa en översiktsrapport `hittade / kopplade / osäkra` före en slutlig PDF-export.
+
+**Validering:** JavaScript-syntax i huvudskript och DA-modul, behållna HTML-ID och skanningsingångar, simulerad expand/collapse över omrendering, manuellt redigeringsfält med bibehållna event handlers och båda DA-dialoglägena. Fullt test på användarens egen ritning/iPad återstår.

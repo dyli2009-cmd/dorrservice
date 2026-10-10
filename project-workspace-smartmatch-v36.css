@@ -1204,3 +1204,44 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwDrawingCardGroup .pwDrawingCodeSearch{font-size:16px}
  .pwUnifiedActionPopup .pwUnifiedAction{min-height:39px;font-size:13px}
 }
+
+
+/* SmartMatch TEST v36.13 – two independent foldable categories and manual GS/card link. */
+.pwDrawingCardGroup,.pwAutomationGroup{position:relative}
+.pwDrawingCardGroup > .pwGroupTitle,
+.pwAutomationGroup > .pwGroupTitle{
+ cursor:pointer;list-style:none;min-height:38px;
+ gap:5px;align-items:center;justify-content:space-between
+}
+.pwDrawingCardGroup > .pwGroupTitle::-webkit-details-marker,
+.pwAutomationGroup > .pwGroupTitle::-webkit-details-marker{display:none}
+.pwDrawingCardGroup > .pwGroupTitle strong,
+.pwAutomationGroup > .pwGroupTitle strong{min-width:0;flex:1 1 auto;font-size:11px}
+.pwDrawingCardGroup > .pwGroupTitle strong::before,
+.pwAutomationGroup > .pwGroupTitle strong::before{content:'▸';display:inline-block;margin-right:5px;color:#2c7999}
+.pwDrawingCardGroup[open] > .pwGroupTitle strong::before,
+.pwAutomationGroup[open] > .pwGroupTitle strong::before{content:'▾'}
+.pwGroupVisibility{flex:0 0 auto;font-size:9px;font-weight:650;color:#527183;white-space:nowrap}
+.pwDrawingCardGroup .pwDrawingManualAdd{
+ box-sizing:border-box;display:block;width:calc(100% - 12px);margin:7px 6px 4px;
+ min-height:34px!important;padding:6px 7px!important;border:1px solid #83bed5!important;
+ border-radius:7px!important;background:#eaf6fb!important;color:#135b7b!important;
+ font-size:10px!important;font-weight:800!important;line-height:1.35;text-align:center
+}
+.pwDrawingCardGroup .pwPositionEditor{
+ margin:4px 6px 7px;border:1px solid #cbdde6;border-radius:7px;
+ overflow:hidden;background:#f7fbfd
+}
+.pwDrawingCardGroup .pwPositionEditor>summary{min-height:30px;box-sizing:border-box;padding:8px}
+.pwDrawingCardGroup .pwPositionEditor .pwPositionTools{padding:7px!important}
+.pwDrawingCardGroup .pwPositionEditor .pwPositionTools input{min-width:0}
+.pwDAGsEdit[hidden],.pwDADoorChoices[hidden]{display:none!important}
+.pwDADoorChoices:not([hidden]){display:grid;grid-template-columns:1fr;gap:10px;padding:6px 0}
+.pwDADoorChoices button{min-height:48px!important;font-size:12px!important;font-weight:800!important;line-height:1.35}
+.pwDAEmptyState{padding:8px 6px;font-size:11px;line-height:1.4}
+@media(max-width:620px){
+ .pwDrawingCardGroup > .pwGroupTitle strong,.pwAutomationGroup > .pwGroupTitle strong{font-size:10px}
+ .pwGroupVisibility{font-size:8px}
+ .pwDrawingCardGroup .pwDrawingManualAdd{font-size:10px!important;min-height:37px!important}
+ .pwDADoorChoices button{min-height:50px!important;font-size:13px!important}
+}
