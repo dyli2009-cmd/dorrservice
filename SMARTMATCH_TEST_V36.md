@@ -74,3 +74,13 @@
 - Versionsnumret höjs samtidigt i titel, skärmrubrik, CSS/JS-cache och intern releasekonstant: **TEST v36.6**.
 - Test genomfört med simulerade DOM-klick: knappen öppnar dialogen före och efter initiering; båda JS-filerna klarar syntaxkontroll. Verklig användar-PDF/iPhone/iPad återstår att verifiera.
 
+
+## v36.7 – GS-märkning bakom originalstämpel (2026-10-10)
+
+- **Position → Flytta / storlek** har korrigerats: den extra GS1-etiketten som v36.5 skapade ovanpå ritningens egen GS-text ritas inte längre.
+- De flyttade och manuella positionerna visas i stället som en **diskret, lätt transparent gul fyrkant/ram**, så att **PDF:ens ursprungliga färgade GS1-stämpel förblir läsbar**. Att "ligga bakom" den tryckta stämpeln åstadkoms visuellt genom transparent hitbox, inte genom att lägga klickytan under canvasen (då skulle den inte kunna tryckas).
+- Förhandsvisningen när användaren drar rutan är också textlös och gul.
+- Den underliggande GS-koden finns fortsatt i data, tillgänglighetsnamn, menytitel och positionens dörrkortslänk. Klickbarhet, val av GS-position och storlekssparning behålls.
+- Inga ändringar av GS-scannern, dörrkortsmatchningen, revisionsdata eller andra applikationsmoduler.
+- Synligt versionsnummer, CSS/JS-resurser och uppdateringslänk: **TEST v36.7**.
+- Statisk JavaScript- och HTML-kontroll genomförd. Praktiskt iPad-/kund-PDF-test återstår.

@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.6';
+const SMARTMATCH_RELEASE='36.7';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -1549,7 +1549,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.6: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.7: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1612,7 +1612,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.6: detect floor/area names from the title block,
+/* SmartMatch TEST v36.7: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1682,7 +1682,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.6: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.7: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1783,7 +1783,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.6: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.7: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -3266,15 +3266,9 @@ function renderMarkers(){
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+(protocolMap[o.code]?' · dörrkort sida '+protocolMap[o.code]:' · '+(labState(o.code)==='ambiguous'?'välj dörrkort':'ingen dörrkortsträff'))+' · '+o.progress+'%';
    if(o.scanSource==='doorcard-first-text')btn.title+=' · PDF-textträff, kontrollera placeringen';
    btn.setAttribute('aria-label',btn.title);
-   if(o.manual||positionEdits[o.id]){
-    btn.classList.add('pmSizedMarker');
-    const label=document.createElement('span');label.className='pmMarkerLabel';label.textContent=o.code;
-    // Make label text grow or shrink with the user-drawn marker rectangle.
-    const availableWidth=Math.max(10,r.width-9),availableHeight=Math.max(12,r.height-4);
-    const estimatedByWidth=availableWidth/Math.max(1,String(o.code||'').length*.64);
-    label.style.fontSize=Math.max(8,Math.min(40,availableHeight*.78,estimatedByWidth))+'px';
-    btn.appendChild(label);
-   }
+   // The GS label is already printed in the underlying PDF. Keep the
+   // interactive hit rectangle, but NEVER draw a second GS1 text over it.
+   if(o.manual||positionEdits[o.id])btn.classList.add('pmSizedMarker');
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode&&(protocolCandidates[o.code]||[]).length)toggleBulkInstance(o);else if(protocolMap[o.code])openProtocol(o);else openLabChoices(o)};
    el.markers.appendChild(btn);
@@ -4013,8 +4007,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.6: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.6: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.7: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.7: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Original GS scan remains first; the DA tool is user-triggered and never auto-analyzes.
@@ -4172,7 +4166,7 @@ function smartDAInitAfterScan(){
   });
   smartDAInitialized=true;
  }catch(err){
-  console.error('[SmartMatch TEST v36.6] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
+  console.error('[SmartMatch TEST v36.7] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
  }
 }
 // Connect all optional DA actions at app startup, not after PDF scanning.
@@ -4256,8 +4250,8 @@ function pmDragPreview(a,b,code){
  const left=Math.max(0,Math.min(a.x,b.x)),top=Math.max(0,Math.min(a.y,b.y));
  const width=Math.max(30,Math.abs(b.x-a.x)),height=Math.max(20,Math.abs(b.y-a.y));
  Object.assign(pmSizePreview.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px'});
- pmSizePreview.textContent=code;
- pmSizePreview.style.fontSize=Math.max(9,Math.min(40,(height-5)*.78,(width-10)/Math.max(1,code.length*.64)))+'px';
+ // Preview only a translucent frame around existing PDF text, with no copy.
+ pmSizePreview.textContent='';
 }
 function pmPlace(o){
  if(!pdf)return;
@@ -4268,7 +4262,7 @@ function pmPlace(o){
  pmRemoveSizePreview();
  placement={id:o?.id||null,code};
  el.stage.classList.add('pmPlacing');$('pmCancel').hidden=false;
- pmHelp('Tryck på rätt plats för att flytta '+code+' utan att krympa märkningen. Klicka och dra ut en ruta för att ändra bredd och höjd så att den passar ritningens text. Avbryt om du ångrar dig.');
+ pmHelp('Tryck för att flytta den gula ramen runt den befintliga '+code+'-stämpeln. Dra med fingret eller musen för att ändra storlek. Originaltexten i PDF:en ska synas utan dubbeltext.');
 }
 function pmCounts(){const counts={};instances.forEach(o=>{counts[o.code]=(counts[o.code]||0)+1});const n={};instances.forEach(o=>{o.position=n[o.code]=(n[o.code]||0)+1;o.totalOfCode=counts[o.code]})}
 async function pmCommit(startPoint,endPoint=null){
