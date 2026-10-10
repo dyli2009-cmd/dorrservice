@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.36** (visningskopia utan gamla eller nya PDF-exportstämplar; åtgärdar dubbla 100 % i arbetsritning, kräver riktig PDF-test). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.37**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.37** (horisontell PDF-stämpel 100% som kompenserar sidrotation rätt; kräver test med verklig ritning). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.38**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.37
+
+PDF-stämpeln syntes spegelvänd/upp och ned i en exporterad ritning ("%001"). Rotationskompensation rättad från minus- till plusvinkel och stämpelns gränsrektangel hanteras för 90/270°-sidor. Endast SmartMatch TEST: se [SMARTMATCH_TEST_V36_37.md](SMARTMATCH_TEST_V36_37.md). v36.36 behålls.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.36
 
