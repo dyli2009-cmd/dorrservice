@@ -2899,7 +2899,7 @@ function updateSelfcheckExportCount(){
  el.selfcheckExportCount.textContent=n+' valda';el.selfcheckExportCreate.disabled=n===0;
 }
 function openSelfcheckExport(){
- if(!pdf)return;closeSaveMenu();const filter=document.getElementById('pwProtocolStatusFilter');if(filter)filter.value='all';renderSelfcheckExportList();el.selfcheckExportDialog.showModal();
+ if(!pdf)return;closeSaveMenu();const filter=document.getElementById('pwProtocolStatusFilter');if(filter)filter.value='all';renderSelfcheckExportList();el.selfcheckExportDialog.showModal();window.SmartMatchProtocolSave?.onDialogOpened?.();
 }
 function closeSelfcheckExport(){if(el.selfcheckExportDialog.open)el.selfcheckExportDialog.close()}
 function safePdfName(value){return String(value||'dorrautomatik').replace(/[^a-zA-Z0-9åäöÅÄÖ_-]+/g,'-').replace(/^-+|-+$/g,'')||'dorrautomatik'}
