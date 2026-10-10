@@ -7,6 +7,12 @@
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
 
+## Ny återkoppling från användaren
+
+**Bekräftat av användaren efter senaste testet:** "Det har jag faktiskt testat ... den funkar nu" (2026-10-10). Den senaste rättningen för sparning/delning fungerar enligt test i användarens miljö; särskilt iPad/Dropbox-problemet var det senaste som diskuterades. **Behandla v36.31 som fungerande för det användaren nyss testat** och ändra inte detta utan att ett nytt fel påvisas. Exakt vilka separata återöppningstester med 17 automatiker, GS-pilar och checklistsvar som ingick framgår inte av återkopplingen och är därför ännu inte separat dokumenterat som verifierat.
+
+**Beslut om nästa steg:** Avsluta arbetsdagen. Nästa gång börjar vi med att gemensamt gå igenom vad som byggts och den sparade listan med idéer. Användaren bestämmer sedan vad som ska ändras eller läggas till. **Inga fler funktionsändringar begärdes.**
+
 ## 1. Beslutat – det vi INTE ska behöva diskutera om
 
 1. **Själva PDF-filen är projektets sanningskälla.** Alla projektändringar ska följa med när filen sparas, delas och öppnas igen i valfri webbläsare/enhet. Gammal lokal historik i Chrome/Safari får ALDRIG tyst skriva över PDF:ens tillstånd.
