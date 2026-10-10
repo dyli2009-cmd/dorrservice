@@ -84,3 +84,19 @@
 - Inga ändringar av GS-scannern, dörrkortsmatchningen, revisionsdata eller andra applikationsmoduler.
 - Synligt versionsnummer, CSS/JS-resurser och uppdateringslänk: **TEST v36.7**.
 - Statisk JavaScript- och HTML-kontroll genomförd. Praktiskt iPad-/kund-PDF-test återstår.
+
+## v36.8 – Koppla dörrautomatik känner igen öppnad PDF + familjeanalys (2026-10-10)
+
+**Fel:** "Verktyget öppnades, men ingen färdig ritning finns ännu" även när SmartMatch visar en PDF. Analysera och Placera manuellt saknade åtkomst till filen.
+
+**Åtgärder**
+- Huvudappen exponerar `window.SmartMatchAppBridge` direkt efter att variabler och datakällor deklarerats, **före själva PDF-inläsningen**. Bryggan ger uppdaterad PDF, aktuell sida, GS-positioner, markerade automatikobjekt och projektsparning. Den använder samma state som SmartMatch, inte ett separat kopierat PDF-objekt.
+- Dörrautomatikmodulen binder sina dialogknappar redan när modulen laddas. Varje handling hämtar bryggans senaste PDF, även om försenad `init()` misslyckas. En särskild fix gör att den valda märkningen också läses från bryggan och går att GS-koppla.
+- "Analysera märkningar" tolkar valfri siffergruppering med bindestreck enligt **märkningsfamiljen före sista strecket**, t.ex. `70154-78-24-10`, `70154-78-24-11`, `70154-78-24-12`. Identifierar **separata** fysisk märkningar, utan att hårdkoda en enda nummerkombination.
+- Positionslokalisering går igenom PDF.js textdelar även när en märkning sträcker sig över flera textitems eller ligger i en längre textrad. Genererar separata klickbara hitboxar i originalkoordinater, utan att skriva en dubblett över ritningens färgade tryckta text.
+- Verktyget visar en träfflista med sida, löpnummer och GS-status. "Visa" lokaliserar märkningen på ritningen; tryck på märkningen öppnar revisionschecklista/SLR.
+- Länkar tydliga närmaste GS-positioner automatiskt; vid osäker träff väljer teknikern GS i listan eller väljer **Peka ut GS på ritningen**, trycker på GS-positionen och godkänner en bekräftelsedialog. Efter godkänd koppling visas pil mellan märkning och GS; befintliga manuella kopplingar skrivs inte över.
+- Markeringarna har tunn transparent klickyta med liten blå markör. PDF-originaltexten blir synlig i bakgrunden.
+- Existerande GS-/dörrkortsskanning och grundflödet från v35 är oförändrade. Ingen analys sker förrän teknikern väljer Analysera.
+
+**Kontroll:** JS-parsning av huvud- och modulfilerna, kontroll av HTML-ID, tre märkningar i samma familj och dubbelanalys utan dubbletter, samt GS-val med bekräftelse, ändrad koppling och sparning testade med simulerat PDF/DOM. Verklig test på användarens iPhone/iPad och egen ritning återstår.

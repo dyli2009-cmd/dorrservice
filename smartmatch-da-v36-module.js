@@ -3,13 +3,15 @@
    The original GS/door-card scanner remains the source of truth for door positions. */
 window.SmartMatchDALink=(()=>{
  'use strict';
- let context=null,exampleFamily='',manualPending='',selectedId='',busy=false,controlsReady=false;
+ let context=null,exampleFamily='',manualPending='',selectedId='',busy=false,controlsReady=false,pendingGSItemId='';
+ const ctx=()=>window.SmartMatchAppBridge||context;
+ const loaded=()=>{try{return !!ctx()?.getPdf?.()}catch(err){console.warn('DA PDF readiness',err);return false}};
  const $=id=>document.getElementById(id);
  const normalize=s=>String(s||'').toUpperCase().replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-').replace(/\s+/g,'').trim();
  const family=s=>{const t=normalize(s),i=t.lastIndexOf('-');return i>0?t.slice(0,i):''};
  const valid=s=>/^\d+(?:-\d+){2,}$/.test(normalize(s));
- const getSelected=()=>context?.getItems().find(o=>o.id===selectedId)||null;
- const gsOnPage=p=>context.getPositions().filter(o=>o.page===p&&/^GS\d+/i.test(o.code||''));
+ const getSelected=()=>ctx()?.getItems()?.find(o=>o.id===selectedId)||null;
+ const gsOnPage=p=>ctx().getPositions().filter(o=>o.page===p&&/^GS\d+/i.test(o.code||''));
  const point=r=>[(r[0]+r[2])/2,(r[1]+r[3])/2];
  const status=s=>{$('pwDAFeedback').textContent=s};
  function nearestGS(page,rect){
@@ -28,76 +30,127 @@ window.SmartMatchDALink=(()=>{
   const dialog=$('pwDALinkDialog');
   if(!dialog){window.alert('Dörrautomatikverktyget saknas i denna programversion. Uppdatera sidan.');return}
   if(!dialog.open)dialog.showModal();
-  if(!context?.getPdf()){
-   status('Verktyget öppnades, men ingen färdig ritning finns ännu. Öppna först PDF och låt SmartMatch hitta GS-positionerna.');
+  if(!loaded()){
+   status('SmartMatch har inte läst in någon PDF ännu. Öppna en ritning, så kan du analysera den här.');
    return;
   }
-  status('Skriv en märkning som finns på ritningen. Analysera hittar samma grundnummer även om sista löpnumret ändras.');
+  status('Öppnad PDF är ansluten! Ange en märkning och tryck Analysera. Resultatet kan kopplas till GS med en pil.');
   $('pwDAExample')?.focus();
  }
  function closeTool(){if($('pwDALinkDialog').open)$('pwDALinkDialog').close()}
  function manual(){
-  if(!context?.getPdf()){status('Läs in ritningen och GS-positionerna innan du placerar automatiken.');return}
+  if(!loaded()){status('Ingen PDF är öppen. Öppna ritningen först.');return}
   const text=normalize($('pwDAExample').value);
   if(!valid(text)){status('Skriv en fullständig märkning, till exempel 70154-78-24-11.');return}
   exampleFamily=family(text);manualPending=text;closeTool();
-  context.setStatus('Tryck på märkningen på ritningen för att placera knappen '+text+'.');
+  ctx().setStatus('Tryck på märkningen på ritningen för att placera knappen '+text+'.');
  }
  async function placeManual(e){
-  if(!manualPending||!context?.getPdf()||!$('pwStage').contains(e.target)||e.target.closest?.('button'))return;
+  if(!manualPending||!ctx()?.getPdf()||!$('pwStage').contains(e.target)||e.target.closest?.('button'))return;
   if(e.pointerType==='mouse'&&e.button!==0)return;
   e.preventDefault();e.stopImmediatePropagation();
   const text=manualPending;manualPending='';
-  const page=context.getPage(),pg=await context.getPdf().getPage(page),vp=pg.getViewport({scale:context.getScale()});
+  const page=ctx().getPage(),pg=await ctx().getPdf().getPage(page),vp=pg.getViewport({scale:ctx().getScale()});
   const stage=$('pwStage').getBoundingClientRect(),xy=vp.convertToPdfPoint(e.clientX-stage.left,e.clientY-stage.top);
   const rect=[xy[0],xy[1],xy[0]+Math.max(70,Math.min(180,text.length*5)),xy[1]+16];
   const parts=text.split('-'),serialNumber=parts.pop(),modelCode=parts.pop(),objectNo=parts.join('-');
-  const model=context.getModels().find(x=>x[0]===modelCode)?.[1]||modelCode;
+  const model=ctx().getModels().find(x=>x[0]===modelCode)?.[1]||modelCode;
   const id='manual-da@'+page+':'+text+':'+Math.round(xy[0])+':'+Math.round(xy[1]);
-  const existing=context.getItems().find(o=>o.id===id);
+  const existing=ctx().getItems().find(o=>o.id===id);
   const item=existing||{id,page,rect,objectNo,modelCode,model,serialNumber,sourceText:text,
     sourceKind:'manual-da',linkedGsId:nearestGS(page,rect),slrDocuments:{},checks:{},notes:'',progress:0};
-  if(!existing)context.addItem(item);
+  if(!existing)ctx().addItem(item);
   openDoor(item);
+ }
+ // PDF.js splits characters and numbers into arbitrary text fragments.
+ // Locate the exact number on the row instead of requiring a whole text item
+ // to equal the searched number.
+ function locateRowMatches(row,page,fam){
+  const items=[...row.items].filter(v=>v.text).sort((a,b)=>a.x-b.x);
+  const spans=[],words=[];let combined='';
+  for(const it of items){
+   if(combined)combined+=' ';
+   const from=combined.length;combined+=it.text;
+   spans.push({from,to:combined.length,it});
+  }
+  const hits=[];const pattern=/\d{1,10}(?:\s*[-–—]\s*\d{1,10}){2,}/g;
+  for(const match of combined.matchAll(pattern)){
+   const name=normalize(match[0]);
+   if(family(name)!==fam)continue;
+   const start=match.index,end=start+match[0].length;
+   const parts=spans.filter(s=>s.to>start&&s.from<end);
+   if(!parts.length)continue;
+   const bounds=parts.map(s=>{
+    const length=Math.max(1,s.to-s.from),a=Math.max(0,start-s.from)/length,b=Math.min(length,end-s.from)/length;
+    return {left:s.it.x+s.it.w*a,right:s.it.x+s.it.w*b,
+      low:s.it.y-Math.max(1,s.it.h)*.35,high:s.it.y+Math.max(1,s.it.h)*.95};
+   });
+   const rect=[Math.min(...bounds.map(b=>b.left))-3,Math.min(...bounds.map(b=>b.low))-3,
+     Math.max(...bounds.map(b=>b.right))+3,Math.max(...bounds.map(b=>b.high))+3];
+   if(rect.every(Number.isFinite)&&rect[2]>rect[0]&&rect[3]>rect[1])hits.push({text:name,page,rect});
+  }
+  return hits;
+ }
+ function renderResults(items){
+  const box=$('pwDAResults');
+  if(!box)return;
+  box.replaceChildren();
+  const unique=[...new Map(items.map(o=>[o.id,o])).values()];
+  if(!unique.length)return;
+  const summary=document.createElement('strong');summary.textContent='Hittade märkningar ('+unique.length+')';
+  box.appendChild(summary);
+  unique.sort((a,b)=>a.page-b.page||a.sourceText.localeCompare(b.sourceText,'sv',{numeric:true}));
+  for(const o of unique){
+   const line=document.createElement('div');line.className='pwDAResult';
+   const button=document.createElement('button');button.type='button';button.className='pwDAResultOpen';
+   button.textContent=o.sourceText+' · sida '+o.page;
+   const caption=document.createElement('small');caption.textContent=o.linkedGsId?'GS föreslagen – granska':'Välj rätt GS-position';
+   const look=document.createElement('button');look.type='button';look.textContent='Visa';
+   look.onclick=()=>{closeTool();void ctx()?.locate?.(o)};
+   button.onclick=()=>{closeTool();openDoor(o)};
+   line.append(button,caption,look);box.appendChild(line);
+  }
  }
  async function analyze(){
   if(busy)return;
-  if(!context?.getPdf()){status('Öppna och skanna först en PDF-ritning, sedan kan du analysera märkningarna.');return}
+  if(!loaded()){status('Ingen PDF är inläst ännu. Öppna ritningen och försök igen.');return}
   const example=normalize($('pwDAExample').value);
-  if(!valid(example)){status('Ange hela märkningen med löpnummer, exempelvis 70154-78-24-11.');return}
+  if(!valid(example)){status('Skriv hela märkningen, exempelvis 70154-78-24-11.');return}
   exampleFamily=family(example);busy=true;$('pwDAAnalyze').disabled=true;
-  status('Analyserar märkningar i ritningens PDF-text…');
-  let found=0,created=0,needsReview=0;
+  status('Söker efter märkningar i samma familj: '+exampleFamily+'…');
+  let found=0,created=0,suggested=0,unlinked=0,results=[];
   try{
-   const pdf=context.getPdf(),upper=Math.min(pdf.numPages,context.getDrawingLimit());
+   const api=ctx(),pdf=api.getPdf(),upper=Math.min(pdf.numPages,api.getDrawingLimit());
+   const seen=new Set();
    for(let p=1;p<=upper;p++){
-    const data=await context.readPageText(p);
-    if(context.looksLikeProtocol(data.raw))continue;
-    for(const row of context.groupRows(data.items)){
-     const matches=row.text.match(/\d+(?:\s*[-–—]\s*\d+){2,}/g)||[];
-     for(const raw of matches){
-      const text=normalize(raw);
-      if(family(text)!==exampleFamily)continue;
-      const touched=context.itemsForText(row.items,raw),rect=touched.length?context.rectForItems(touched,3):null;
-      if(!rect)continue;
-      const key=p+':'+text+':'+Math.round(rect[0])+':'+Math.round(rect[1]);
-      let old=context.getItems().find(o=>o.id==='family-da@'+key);
-      if(!old)old=context.getItems().find(o=>o.page===p&&normalize(o.sourceText||o.objectNo+'-'+o.modelCode+'-'+o.serialNumber)===text&&Math.hypot(o.rect[0]-rect[0],o.rect[1]-rect[1])<20);
-      found++;
-      if(!old){
-       const parts=text.split('-'),serialNumber=parts.pop(),modelCode=parts.pop(),objectNo=parts.join('-');
-       const model=context.getModels().find(x=>x[0]===modelCode)?.[1]||modelCode;
-       old={id:'family-da@'+key,page:p,rect,objectNo,modelCode,model,serialNumber,
-        sourceText:text,sourceKind:'family-da',linkedGsId:nearestGS(p,rect),slrDocuments:{},checks:{},notes:'',progress:0};
-       context.addItem(old,false);created++;
+    const data=await api.readPageText(p);
+    if(api.looksLikeProtocol(data.raw))continue;
+    for(const row of api.groupRows(data.items)){
+     for(const {text,rect} of locateRowMatches(row,p,exampleFamily)){
+      const near=api.getItems().find(o=>o.page===p&&normalize(o.sourceText||[o.objectNo,o.modelCode,o.serialNumber].filter(Boolean).join('-'))===text&&Math.hypot(o.rect[0]-rect[0],o.rect[1]-rect[1])<15);
+      const id='family-da@'+p+':'+text+':'+Math.round(rect[0])+':'+Math.round(rect[1]);
+      if(seen.has(id))continue;
+      seen.add(id);found++;
+      let item=near||api.getItems().find(o=>o.id===id);
+      if(!item){
+       const pieces=text.split('-'),serialNumber=pieces.pop(),modelCode=pieces.pop(),objectNo=pieces.join('-');
+       const model=api.getModels().find(x=>x[0]===modelCode)?.[1]||modelCode;
+       item={id,page:p,rect,objectNo,modelCode,model,serialNumber,
+         sourceText:text,sourceKind:'family-da',linkedGsId:nearestGS(p,rect),
+         slrDocuments:{},checks:{},notes:'',progress:0};
+       api.addItem(item,false);created++;
+       if(item.linkedGsId)suggested++;
       }
-      if(!old.linkedGsId)needsReview++;
+      if(!item.linkedGsId)unlinked++;
+      results.push(item);
      }
     }
+    if(p%5===0)status('Analyserar ritningens PDF-text: '+p+' av '+upper+' sidor…');
    }
-   context.save();context.redraw();
-   status(found?'Hittade '+found+' märkningar i familjen '+exampleFamily+'. '+created+' nya knappar. '+needsReview+' behöver GS-koppling kontrollerad.':'Ingen märkning i samma familj hittades som läsbar PDF-text. Välj Placera manuellt, eller använd OCR senare.');
-  }catch(e){console.error(e);status('Kunde inte analysera: '+(e.message||e))}
+   api.save();api.redraw();renderResults(results);
+   status(found?'Hittade '+found+' märkningar av '+exampleFamily+'. '+created+' nya knappar. '+suggested+' tydliga GS-förslag med pil. '+unlinked+' behöver kopplas manuellt. Tryck på en träff för att granska eller välja GS.':
+    'Inga läsbara märkningar i denna familj. Prova Placera manuellt; om texten är en inskannad bild behövs OCR.');
+  }catch(err){console.error('[SmartMatch DA analyze]',err);status('Analysfel: '+(err.message||err))}
   finally{busy=false;$('pwDAAnalyze').disabled=false}
  }
  function openDoor(o){
@@ -111,13 +164,20 @@ window.SmartMatchDALink=(()=>{
    select.appendChild(option);
   });
   select.value=o.linkedGsId||'';
-  $('pwDADoorDialog').showModal();
+  if(!$('pwDADoorDialog').open)$('pwDADoorDialog').showModal();
  }
  function closeDoor(){if($('pwDADoorDialog').open)$('pwDADoorDialog').close()}
+ function chooseOnDrawing(){
+  const item=getSelected();if(!item)return;
+  if(!loaded()){ctx()?.setStatus?.('Ingen ritning är öppen.');return}
+  pendingGSItemId=item.id;closeDoor();
+  ctx().setStatus('Välj rätt GS-position på ritningen för '+(item.sourceText||item.id)+'. Bekräfta kopplingen när du tryckt på GS.');
+  void ctx()?.locate?.(item);
+ }
  function saveLink(){
   const o=getSelected();if(!o)return;
   o.linkedGsId=$('pwDAGsSelect').value||'';
-  context.save();closeDoor();context.redraw();
+  ctx().save();closeDoor();ctx().redraw();
  }
  function openSLR(o){
   $('pwSLRTitle').textContent='SLR · '+[o.objectNo,o.modelCode,o.serialNumber].join('-');
@@ -138,14 +198,14 @@ window.SmartMatchDALink=(()=>{
   const svg=$('pwDAArrows');if(!svg)return;
   svg.replaceChildren();svg.setAttribute('width',viewport.width);svg.setAttribute('height',viewport.height);
   svg.setAttribute('viewBox','0 0 '+viewport.width+' '+viewport.height);
-  if(renderPage!==context.getPage())return;
+  if(renderPage!==ctx().getPage())return;
   const ns='http://www.w3.org/2000/svg',defs=document.createElementNS(ns,'defs'),marker=document.createElementNS(ns,'marker');
   marker.id='pwDALinkArrowhead';[['markerWidth','8'],['markerHeight','8'],['refX','7'],['refY','3'],['orient','auto']].forEach(([k,v])=>marker.setAttribute(k,v));
   const tri=document.createElementNS(ns,'path');tri.setAttribute('d','M0 0 L7 3 L0 6 z');tri.setAttribute('fill','#116a97');
   marker.appendChild(tri);defs.appendChild(marker);svg.appendChild(defs);
   items.forEach(item=>{
-   const target=context.getPositions().find(g=>g.id===item.linkedGsId&&g.page===item.page);if(!target)return;
-   const a=context.viewportRect(viewport,item.rect),b=context.viewportRect(viewport,target.rect);
+   const target=ctx().getPositions().find(g=>g.id===item.linkedGsId&&g.page===item.page);if(!target)return;
+   const a=ctx().viewportRect(viewport,item.rect),b=ctx().viewportRect(viewport,target.rect);
    const arrow=document.createElementNS(ns,'path');
    arrow.setAttribute('d','M'+(a.left+a.width/2)+','+(a.top+a.height/2)+' L'+(b.left+b.width/2)+','+(b.top+b.height/2));
    arrow.setAttribute('stroke','#116a97');arrow.setAttribute('stroke-width','2');arrow.setAttribute('fill','none');
@@ -156,8 +216,24 @@ window.SmartMatchDALink=(()=>{
  // v36.5 dead-button issue when the scan never reached the late init call.
  const entry=$('pwDALinkTool');
  if(entry)entry.addEventListener('click',openTool);
+
+ function onGSClick(g){
+  if(!pendingGSItemId)return false;
+  const item=ctx()?.getItems().find(x=>x.id===pendingGSItemId);
+  pendingGSItemId='';
+  if(!item)return true;
+  if(g.page!==item.page){
+   ctx()?.setStatus('GS-positionen måste ligga på samma ritningssida som märkningen.');
+   return true;
+  }
+  if(!window.confirm('Koppla '+item.sourceText+' till '+g.code+' · position '+(g.position||'?')+'?'))return true;
+  item.linkedGsId=g.id;ctx().save();ctx().redraw();
+  ctx().setStatus(item.sourceText+' är nu kopplad till '+g.code+' position '+(g.position||'?')+'. Pilen visas på ritningen.');
+  return true;
+ }
+
  function init(c){
-  context=c;
+  if(c)context=c;
   if(controlsReady)return;
   controlsReady=true;
   $('pwDAAnalyze').onclick=()=>void analyze();
@@ -166,14 +242,16 @@ window.SmartMatchDALink=(()=>{
   $('pwDALinkClose').onclick=closeTool;
   $('pwDADoorClose').onclick=closeDoor;
   $('pwDASaveLink').onclick=saveLink;
-  $('pwDARevision').onclick=()=>{const o=getSelected();closeDoor();if(o)context.openRevision(o)};
+  $('pwDAChooseOnDrawing').onclick=chooseOnDrawing;
+  $('pwDARevision').onclick=()=>{const o=getSelected();closeDoor();if(o)ctx().openRevision(o)};
   $('pwDASLR').onclick=()=>{const o=getSelected();closeDoor();if(o)openSLR(o)};
   $('pwSLRClose').onclick=()=>{if($('pwSLRDialog').open)$('pwSLRDialog').close()};
-  $('pwDARevisionSave').onclick=()=>{context.save();context.closeRevision()};
-  $('pwDAExportRevision').onclick=()=>{const o=context.selectedRevision();if(o)context.exportRevision(o)};
+  $('pwDARevisionSave').onclick=()=>{ctx().save();ctx().closeRevision()};
+  $('pwDAExportRevision').onclick=()=>{const o=ctx().selectedRevision();if(o)ctx().exportRevision(o)};
   $('pwDALinkDialog').addEventListener('cancel',e=>{e.preventDefault();closeTool()});
   $('pwDADoorDialog').addEventListener('cancel',e=>{e.preventDefault();closeDoor()});
   $('pwStage').addEventListener('pointerdown',e=>{if(manualPending)void placeManual(e)},true);
  }
- return {init,openDoor,drawArrows,onProjectOpened(){manualPending='';selectedId='';exampleFamily=''}};
+ init(null);
+ return {init,openDoor,drawArrows,onGSClick,onProjectOpened(){manualPending='';selectedId='';pendingGSItemId='';exampleFamily=''}};
 })();

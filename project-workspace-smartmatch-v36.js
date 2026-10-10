@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.7';
+const SMARTMATCH_RELEASE='36.8';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -55,6 +55,28 @@ let drawingTool='',drawingToolGesture=null,drawingNotes=[],drawingViewport=null,
 let bulkSelectMode=false,bulkSelected=new Set(),bulkDrag=null;
 let stamps=[],projectStamps=[],instances=[],protocolMap={},pageTexts={},drawingPageLevels={},protocolDefs={},automationItems=[],selectedAutomationId='',projectMeta={},projectLogoData='',automationPreviewPdf=null,automationPreviewRenderTask=null;
 let selectedId=null,protocolScale=1,protocolRenderTask=null,protocolRenderVersion=0,protocolGesture=null,currentOnly=false,restoreView=null,editingItem=null,editingTimeTypeKey=null;
+
+/* v36.8: Live PDF/GS bridge is exposed before any asynchronous scan,
+   so Koppla dörrautomatik cannot lose its document when optional init fails. */
+window.SmartMatchAppBridge={
+ getPdf:()=>pdf,getPage:()=>page,getScale:()=>scale,getPositions:()=>instances,getItems:()=>automationItems,
+ getModels:()=>PROJECT_AUTOMATION_MODELS,getDrawingLimit:()=>scanPageLimit(),readPageText,
+ groupRows:groupTextRowsForAutomation,itemsForText:itemsForStructuredAutomationId,
+ rectForItems:rectForTextItems,viewportRect,looksLikeProtocol:looksLikeAutomationProtocolPage,
+ addItem:(o,render=true)=>{automationItems.push(o);if(render){save();renderAutomationMarkers();renderGroups()}},
+ save,redraw:()=>{renderAutomationMarkers();renderGroups()},setStatus,
+ openRevision:openAutomationProtocol,closeRevision:closeAutomationProtocol,
+ selectedRevision:()=>selectedAutomation(),
+ exportRevision:o=>{const document=createAutomationSelfcheckPdf(o);document.save(automationDisplayId(o).replace(/[^a-zA-Z0-9_-]/g,'_')+'-revision.pdf')},
+ locate:async o=>{
+  if(!pdf||!o)return;
+  if(page!==o.page){page=o.page;await renderDrawing()}
+  const p=await pdf.getPage(o.page),v=p.getViewport({scale}),r=viewportRect(v,o.rect);
+  el.viewer.scrollTo({left:Math.max(0,r.left+r.width/2-el.viewer.clientWidth/2),
+   top:Math.max(0,r.top+r.height/2-el.viewer.clientHeight/2),behavior:'smooth'});
+ }
+};
+
 
 const PROJECT_AUTOMATION_ENABLED=true;
 
@@ -1549,7 +1571,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.7: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.8: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1612,7 +1634,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.7: detect floor/area names from the title block,
+/* SmartMatch TEST v36.8: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1682,7 +1704,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.7: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.8: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1783,7 +1805,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.7: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.8: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -3270,7 +3292,7 @@ function renderMarkers(){
    // interactive hit rectangle, but NEVER draw a second GS1 text over it.
    if(o.manual||positionEdits[o.id])btn.classList.add('pmSizedMarker');
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
-   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode&&(protocolCandidates[o.code]||[]).length)toggleBulkInstance(o);else if(protocolMap[o.code])openProtocol(o);else openLabChoices(o)};
+   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(window.SmartMatchDALink?.onGSClick?.(o))return;if(bulkSelectMode&&(protocolCandidates[o.code]||[]).length)toggleBulkInstance(o);else if(protocolMap[o.code])openProtocol(o);else openLabChoices(o)};
    el.markers.appendChild(btn);
   });
   labDiagnosticOutline(vp);
@@ -3290,7 +3312,8 @@ function renderAutomationMarkers(){
    btn.title='Dörrautomatik · '+automationDisplayId(o)+' · '+(o.linkedGsId?'GS-kopplad':'GS-koppling saknas')+' · revision '+o.progress+'%';
    btn.setAttribute('aria-label',btn.title);
    btn.classList.add('pwDAHit');if(!o.linkedGsId)btn.classList.add('pwDAUnlinked');
-   const badge=document.createElement('span');badge.textContent=automationDisplayId(o);btn.appendChild(badge);
+   // Printed automation ID belongs to the original PDF.
+   // Draw only a clickable transparent hit area; don't duplicate its text.
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)(window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o))};
    el.automationMarkers.appendChild(btn);
   });
@@ -4007,8 +4030,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.7: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.7: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.8: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.8: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Original GS scan remains first; the DA tool is user-triggered and never auto-analyzes.
@@ -4153,20 +4176,10 @@ function smartDAInitAfterScan(){
   return;
  }
  try{
-  window.SmartMatchDALink.init({
-   getPdf:()=>pdf,getPage:()=>page,getScale:()=>scale,getPositions:()=>instances,getItems:()=>automationItems,
-   getModels:()=>PROJECT_AUTOMATION_MODELS,getDrawingLimit:()=>scanPageLimit(),readPageText,
-   groupRows:groupTextRowsForAutomation,itemsForText:itemsForStructuredAutomationId,
-   rectForItems:rectForTextItems,viewportRect,looksLikeProtocol:looksLikeAutomationProtocolPage,
-   addItem:(o,render=true)=>{automationItems.push(o);if(render){save();renderAutomationMarkers();renderGroups()}},
-   save,redraw:()=>{renderAutomationMarkers();renderGroups()},setStatus,
-   openRevision:openAutomationProtocol,closeRevision:closeAutomationProtocol,
-   selectedRevision:()=>selectedAutomation(),
-   exportRevision:o=>{const document=createAutomationSelfcheckPdf(o);document.save(automationDisplayId(o).replace(/[^a-zA-Z0-9_-]/g,'_')+'-revision.pdf')}
-  });
+  window.SmartMatchDALink.init(window.SmartMatchAppBridge);
   smartDAInitialized=true;
  }catch(err){
-  console.error('[SmartMatch TEST v36.7] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
+  console.error('[SmartMatch TEST v36.8] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
  }
 }
 // Connect all optional DA actions at app startup, not after PDF scanning.
