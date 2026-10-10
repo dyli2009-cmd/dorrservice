@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v36.46</title>
+<title>Projektflöde SmartMatch – TEST v36.47</title>
 
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
@@ -377,7 +377,7 @@
 }
 
 </style>
-<link rel="stylesheet" href="project-workspace-smartmatch-v36-46.css?v=36-46">
+<link rel="stylesheet" href="project-workspace-smartmatch-v36-47.css?v=36-47">
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -385,7 +385,7 @@
   <div class="pwTitle">
     <strong>SmartMatch</strong>
     <div class="pwReleaseLine" aria-label="Programversion och uppdatering">
-      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.46" title="Appversion som finns i denna sida">TEST v36.46</span>
+      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.47" title="Appversion som finns i denna sida">TEST v36.47</span>
       <button id="pwRefreshBuild" class="pwRefreshBuild" type="button" title="Hämta senaste SmartMatch-uppdateringen" aria-label="Uppdatera SmartMatch till senaste versionen">↻ Uppdatera</button>
     </div>
     <small class="smHeaderSubtitle" aria-hidden="true">Projektflöde</small>
@@ -769,9 +769,9 @@
     <div class="pwSelfcheckExportFooter">
       <span id="pwSelfcheckExportCount">0 valda</span>
       <div class="pwSelfcheckExportFooterButtons">
-        <button id="pwSelfcheckPreview" type="button">Förhandsgranska</button>
-        <button id="pwSelfcheckSaveLocal" type="button">Spara / dela</button>
-        <details class="smProtocolMore"><summary>Fler val</summary><button id="pwSelfcheckExportCreate" type="button">Skicka via mejl</button></details>
+        <button id="pwSelfcheckPreview" type="button" class="smSimpleLegacy" hidden aria-hidden="true" tabindex="-1">Förhandsgranska</button>
+        <button id="pwSelfcheckSaveLocal" type="button">Spara fil</button>
+        <button id="pwSelfcheckExportCreate" type="button">Skicka mejl</button>
       </div>
     </div>
   </div>
@@ -828,7 +828,7 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v36.46</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div><small>SMARTMATCH · TEST v36.47</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
   <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
  <div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
@@ -906,7 +906,7 @@
   <p id="pwFinishStatus" role="status" aria-live="polite" hidden></p>
   <div class="smFinishActions">
    <button id="pwFinishCancel" type="button">Fortsätt arbeta</button>
-   <button id="pwFinishExport" type="button">Spara projekt-PDF</button>
+   <button id="pwFinishExport" type="button">Spara PDF först</button>
    <button id="pwFinishConfirm" type="button" class="smFinishPrimary">✓ Spara lokalt och avsluta</button>
   </div>
  </div>
@@ -917,7 +917,7 @@
   <div><h2 id="smartExportTitle">Spara PDF</h2></div>
   <button id="smartExportClose" type="button" title="Stäng" aria-label="Stäng">×</button>
  </div>
- <div class="smSaveModes"><span class="smModeActive">Projekt-PDF</span><button id="smartExportProtocolsMode" type="button">Välj protokoll</button></div>
+ <div class="smSaveModes"><span class="smModeActive">Projekt-PDF</span><button id="smartExportProtocolsMode" type="button">Protokoll</button></div>
  <div class="smSaveSummary">
   <strong id="smartFileReviewName" class="smartFileReviewName">Projekt-PDF</strong>
   <div class="smartExportSizes"><div><small>Original</small><strong id="smartExportOriginalSize">– MB</strong></div>
@@ -926,22 +926,25 @@
  </div>
  <div id="smartFileReviewInfo" hidden></div>
  <div id="smartFileReviewSaving" hidden></div>
- <div class="smSaveActions">
-  <button id="smartExportBuild" type="button">Analysera PDF</button>
+ <div class="smSaveActions smSimpleSaveActions">
+  <button id="smartExportDownload" type="button" disabled>Spara fil</button>
+  <button id="smartExportShare" type="button" disabled>Skicka mejl</button>
+ </div>
+ <!-- The tested exporter and verification remain wired up but are no longer manual choices. -->
+ <div class="smSaveLegacy" hidden aria-hidden="true">
+  <button id="smartExportBuild" type="button">Förbered PDF</button>
   <button id="smartExportPreview" type="button" disabled>Förhandsgranska</button>
-  <button id="smartExportSaveMenuToggle" type="button" class="smartExportPrimary" disabled>Spara / dela ▾</button>
+  <button id="smartExportSaveMenuToggle" type="button" disabled>Fler val</button>
+  <div id="smartExportSaveChoices" class="smSaveChoices" hidden>
+   <button id="smartExportSaveAs" type="button" disabled>Spara som</button>
+   <button id="smartExportSaveObject" type="button" disabled>Spara i öppnad PDF</button>
+  </div>
  </div>
- <div id="smartExportSaveChoices" class="smSaveChoices" hidden>
-  <button id="smartExportDownload" type="button" disabled>Spara / dela på enheten</button>
-  <button id="smartExportSaveAs" type="button" disabled>Spara som…</button>
-  <button id="smartExportSaveObject" type="button" disabled>Spara i öppnad PDF</button>
-  <button id="smartExportShare" type="button" disabled>Skicka via mejl</button>
- </div>
- <p id="smartExportStatus" class="smartExportStatus" role="status" aria-live="polite">Analysera för att kontrollera PDF:en före sparning.</p>
- <p class="smSaveReminder">Autosparas på enheten medan du arbetar. Spara projekt-PDF för att dela arbetet.</p>
+ <p id="smartExportStatus" class="smartExportStatus" role="status" aria-live="polite">Förbereder PDF…</p>
+ <p class="smSaveReminder">Projektfilen innehåller ritning, märkningar och arbetsresultat. Välj sedan var den ska sparas.</p>
 </dialog>
 <script src="smartmatch-da-v36-46-module.js?v=36-46"></script>
-<script src="project-workspace-smartmatch-v36-46.js?v=36-46"></script>
+<script src="project-workspace-smartmatch-v36-47.js?v=36-47"></script>
 <script src="smartmatch-protocol-export-v36-46.js?v=36-46"></script>
 <script src="smartmatch-session-v36-46.js?v=36-46"></script>
 
