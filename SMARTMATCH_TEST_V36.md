@@ -38,3 +38,13 @@
 - Den vanliga filuppladdningen, dörrkortsskanningen, ID-positioneringen och PDF-projektlogiken behålls.
 - Ny JS-cacheversion `v=36-3` för att undvika äldre mobilcache.
 - Ingen förändring av PDF-projektstatus eller v35-snapshots. Kodens syntax kontrollerad; iPad-test med användarens PDF återstår.
+
+## Versionsnummer på skärmen – TEST v36.4 (2026-10-10)
+
+- Alltid synligt i SmartMatch-överdelen: **TEST v36.4** på dator, iPad och iPhone.
+- När huvudskriptet laddats och initierats färdigt visas **TEST v36.4 ✓**. Om ✓ saknas efter laddning har inte hela appskriptet slutförts.
+- Bredvid versionsnumret finns **↻ Uppdatera**. Den läser om appens startsida med ny URL-parameter för att undvika att samma HTML returneras från webbläsarens vanliga sidcache.
+- Om en PDF redan är öppen varnar uppdateringsknappen om att ritningen måste väljas på nytt. Användaren bör spara sina aktuella ändringar innan uppdatering.
+- Skript och CSS får versionsstämplade adressparametrar `v=36-4` och rubriken innehåller samma versionsnummer. Versionen identifierar den **faktiskt laddade appkoden**, inte den senaste commit som eventuellt finns på nätet.
+- Vid varje framtida ändring ska den synliga versionsbeteckningen, dokumentets titel, JS-releasekonstanten samt resursparametrarna höjas tillsammans, t.ex. `v36.5`, `v36.6` och därefter `v37.0` om en ny huvudversion skapas.
+- Behåller v36.3:s PDF-öppningskorrigering och sena initiering av dörrautomatikverktyget; tidigare v35-filer oförändrade.

@@ -1,5 +1,6 @@
 (() => {
 'use strict';
+const SMARTMATCH_RELEASE='36.4';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -1548,7 +1549,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.4: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1611,7 +1612,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36: detect floor/area names from the title block,
+/* SmartMatch TEST v36.4: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1681,7 +1682,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.4: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1782,7 +1783,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.4: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -4004,8 +4005,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.4: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.4: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Scanning and original GS positions are completely finished before optional DA tool starts.
@@ -4357,4 +4358,11 @@ for(const event of ['pointerup','pointercancel','touchend','touchcancel'])el.vie
 
 
 // Egna protokoll är borttaget. Ordinarie projektpositioner och kontrollprotokoll är kvar.
+// Render the actual JS release only after all app initialization handlers have attached.
+const buildLabel=document.getElementById('pwBuildVersion');
+if(buildLabel){
+ buildLabel.textContent='TEST v'+SMARTMATCH_RELEASE+' ✓';
+ buildLabel.title='SmartMatch TEST v'+SMARTMATCH_RELEASE+' är laddad i denna webbläsare';
+ buildLabel.dataset.loadedBuild=SMARTMATCH_RELEASE;
+}
 })();

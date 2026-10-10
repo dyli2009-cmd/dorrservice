@@ -962,3 +962,23 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
 .pwSLRSection.active{border-color:#1278a7;background:#e5f4fb}
 .pwAutomationHeadActions #pwDARevisionSave,.pwAutomationHeadActions #pwDAExportRevision{min-height:31px;padding:4px 8px;font-size:11px;white-space:nowrap}
 @media(max-width:540px){.pwSLRList{grid-template-columns:1fr}.pwDADoorChoices{grid-template-columns:1fr}.pwDAActions button{flex:1}}
+
+
+/* SmartMatch TEST v36.4 – release number is always visible on iPhone, iPad and desktop. */
+.pwHeader .pwReleaseLine{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;min-width:0;margin:3px 0 1px}
+.pwHeader .pwReleaseLine .pwTitleVersion{display:inline-flex;align-items:center;white-space:nowrap;margin:0;padding:2px 6px;
+ min-height:23px;background:#204b61;color:#f0fbff;border:1px solid #79a9be;border-radius:5px;font-size:11px;font-weight:800;letter-spacing:.12px}
+.pwHeader .pwRefreshBuild{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-height:24px!important;
+ height:24px!important;padding:2px 7px!important;border:1px solid #75a5b8!important;border-radius:6px!important;
+ color:#fff!important;background:transparent!important;font-size:10px!important;font-weight:700!important;line-height:1.1!important}
+.pwHeader .pwRefreshBuild:focus-visible{outline:2px solid #d0f3ff;outline-offset:2px}
+@media(max-width:620px){
+ .pwHeader .pwReleaseLine{justify-content:center;gap:5px}
+ .pwHeader .pwReleaseLine .pwTitleVersion{font-size:10px;min-height:22px;padding:2px 4px}
+ .pwHeader .pwRefreshBuild{min-height:22px!important;height:22px!important;padding:2px 5px!important;font-size:9px!important}
+}
+@media(max-width:360px){
+ .pwHeader .pwReleaseLine{gap:3px}
+ .pwHeader .pwReleaseLine .pwTitleVersion{font-size:9px;padding:2px 3px}
+ .pwHeader .pwRefreshBuild{font-size:9px!important;padding:1px 3px!important}
+}
