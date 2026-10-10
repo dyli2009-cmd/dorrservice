@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.5';
+const SMARTMATCH_RELEASE='36.6';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -1549,7 +1549,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.5: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.6: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1612,7 +1612,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.5: detect floor/area names from the title block,
+/* SmartMatch TEST v36.6: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1682,7 +1682,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.5: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.6: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1783,7 +1783,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.5: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.6: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -4013,11 +4013,11 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.5: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.5: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.6: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.6: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
- // Scanning and original GS positions are completely finished before optional DA tool starts.
+ // Original GS scan remains first; the DA tool is user-triggered and never auto-analyzes.
  smartDAInitAfterScan();
  document.getElementById('smartPdfInspect').disabled=false;
  requestAnimationFrame(fitDrawing);
@@ -4172,9 +4172,12 @@ function smartDAInitAfterScan(){
   });
   smartDAInitialized=true;
  }catch(err){
-  console.error('[SmartMatch TEST v36] Kunde inte initiera dörrautomatikverktyg, men PDF är inläst.',err);
+  console.error('[SmartMatch TEST v36.6] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
  }
 }
+// Connect all optional DA actions at app startup, not after PDF scanning.
+// The independent menu listener is already installed by the DA module.
+smartDAInitAfterScan();
 
 document.querySelector('.pwToolbar')?.addEventListener('scroll',positionToolMenu,{passive:true});
 window.addEventListener('resize',positionToolMenu);

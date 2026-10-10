@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v36.5</title>
+<title>Projektflöde SmartMatch – TEST v36.6</title>
 
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
@@ -377,7 +377,7 @@
 }
 
 </style>
-<link rel="stylesheet" href="project-workspace-smartmatch-v36.css?v=36-5">
+<link rel="stylesheet" href="project-workspace-smartmatch-v36.css?v=36-6">
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -385,7 +385,7 @@
   <div class="pwTitle">
     <strong>Projektflöde SmartMatch</strong>
     <div class="pwReleaseLine" aria-label="Programversion och uppdatering">
-      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.5" title="Appversion som finns i denna sida">TEST v36.5</span>
+      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.6" title="Appversion som finns i denna sida">TEST v36.6</span>
       <button id="pwRefreshBuild" class="pwRefreshBuild" type="button" title="Hämta senaste SmartMatch-uppdateringen" aria-label="Uppdatera SmartMatch till senaste versionen">↻ Uppdatera</button>
     </div>
     <small>Första ID-raden → ritning → dörrkort</small>
@@ -810,8 +810,8 @@
  </div>
  <p class="smartExportNote">Många mejltjänster har gränsen 25 MB, och mejlbilagor kan växa vid överföring. Sikta på ungefär 18 MB eller mindre. Om filen ändå är för stor kan du dela en molnlänk i stället.</p>
 </dialog>
-<script src="smartmatch-da-v36-module.js?v=36-5"></script>
-<script src="project-workspace-smartmatch-v36.js?v=36-5"></script>
+<script src="smartmatch-da-v36-module.js?v=36-6"></script>
+<script src="project-workspace-smartmatch-v36.js?v=36-6"></script>
 
 <script>
 /* The refresh control intentionally works even if the main application script has failed. */
@@ -819,7 +819,7 @@
  b.addEventListener('click',()=>{
   if(!document.body.classList.contains('pwStartMode')&&!window.confirm('Uppdatera SmartMatch? Den öppna ritningen behöver öppnas igen efter uppdateringen. Spara först som PDF om du vill behålla nya ändringar.'))return;
   const url=new URL(window.location.href);
-  url.searchParams.set('v','36.5');
+  url.searchParams.set('v','36.6');
   url.searchParams.set('refresh',String(Date.now()));
   window.location.assign(url.toString());
  });

@@ -3,7 +3,7 @@
    The original GS/door-card scanner remains the source of truth for door positions. */
 window.SmartMatchDALink=(()=>{
  'use strict';
- let context=null,exampleFamily='',manualPending='',selectedId='',busy=false;
+ let context=null,exampleFamily='',manualPending='',selectedId='',busy=false,controlsReady=false;
  const $=id=>document.getElementById(id);
  const normalize=s=>String(s||'').toUpperCase().replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-').replace(/\s+/g,'').trim();
  const family=s=>{const t=normalize(s),i=t.lastIndexOf('-');return i>0?t.slice(0,i):''};
@@ -20,12 +20,24 @@ window.SmartMatchDALink=(()=>{
   return a.d<200&&(!b||b.d>a.d*1.55)?a.g.id:'';
  }
  function openTool(){
-  if(!context?.getPdf()){context?.setStatus('Öppna en ritning först, sedan Verktyg → Koppla dörrautomatik.');return}
-  $('pwDALinkDialog').showModal();$('pwDAExample').focus();
+  // The entry point is wired as soon as this script loads, independently
+  // of the possibly long GS scanner and the app's remaining setup.
+  const menu=$('pwToolMenu'),menuBtn=$('pwToolMenuButton');
+  if(menu)menu.hidden=true;
+  if(menuBtn)menuBtn.setAttribute('aria-expanded','false');
+  const dialog=$('pwDALinkDialog');
+  if(!dialog){window.alert('Dörrautomatikverktyget saknas i denna programversion. Uppdatera sidan.');return}
+  if(!dialog.open)dialog.showModal();
+  if(!context?.getPdf()){
+   status('Verktyget öppnades, men ingen färdig ritning finns ännu. Öppna först PDF och låt SmartMatch hitta GS-positionerna.');
+   return;
+  }
   status('Skriv en märkning som finns på ritningen. Analysera hittar samma grundnummer även om sista löpnumret ändras.');
+  $('pwDAExample')?.focus();
  }
  function closeTool(){if($('pwDALinkDialog').open)$('pwDALinkDialog').close()}
  function manual(){
+  if(!context?.getPdf()){status('Läs in ritningen och GS-positionerna innan du placerar automatiken.');return}
   const text=normalize($('pwDAExample').value);
   if(!valid(text)){status('Skriv en fullständig märkning, till exempel 70154-78-24-11.');return}
   exampleFamily=family(text);manualPending=text;closeTool();
@@ -49,7 +61,8 @@ window.SmartMatchDALink=(()=>{
   openDoor(item);
  }
  async function analyze(){
-  if(busy||!context?.getPdf())return;
+  if(busy)return;
+  if(!context?.getPdf()){status('Öppna och skanna först en PDF-ritning, sedan kan du analysera märkningarna.');return}
   const example=normalize($('pwDAExample').value);
   if(!valid(example)){status('Ange hela märkningen med löpnummer, exempelvis 70154-78-24-11.');return}
   exampleFamily=family(example);busy=true;$('pwDAAnalyze').disabled=true;
@@ -139,9 +152,14 @@ window.SmartMatchDALink=(()=>{
    arrow.setAttribute('marker-end','url(#pwDALinkArrowhead)');svg.appendChild(arrow);
   });
  }
+ // Always wire the entry button during script evaluation. This fixes the
+ // v36.5 dead-button issue when the scan never reached the late init call.
+ const entry=$('pwDALinkTool');
+ if(entry)entry.addEventListener('click',openTool);
  function init(c){
   context=c;
-  $('pwDALinkTool').onclick=openTool;
+  if(controlsReady)return;
+  controlsReady=true;
   $('pwDAAnalyze').onclick=()=>void analyze();
   $('pwDAManual').onclick=manual;
   $('pwDAExample').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();void analyze()}});

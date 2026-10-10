@@ -1007,3 +1007,9 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  pointer-events:none;
 }
 #pwMarkers .pwStampHit.pmSizedMarker .pwProgressBadge{z-index:2}
+
+
+/* TEST v36.6: permit every tool, including Koppla dörrautomatik, to be tapped on a small iPhone. */
+.pwToolMenu{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#pwDALinkTool{background:#e9f4fa!important;border:1px solid #b4d9e8!important;border-radius:6px!important}
+#pwDALinkTool strong{color:#175d7c!important}

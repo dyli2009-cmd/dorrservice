@@ -58,3 +58,19 @@
 - Vid Flytta/Storlek på en position som tillhör en annan ritningssida växlar verktyget automatiskt till rätt sida.
 - Ingen ändring av SmartMatch GS-/dörrkortsskanning, kontrollstatus, projektschema eller huvudappen.
 - JS syntaxkontroll genomförd; verkligt test med användarens PDF och iPad återstår.
+
+## v36.6 – reparerad död knapp "Koppla dörrautomatik" (2026-10-10)
+
+**Rapporterat fel:** Efter att användaren öppnat en ritning hände inget vid tryck på Verktyg → Koppla dörrautomatik.
+
+**Orsak:** `SmartMatchDALink.init()` anropades först när all PDF-skanning, rendering, GS-rapporter och uppdateringar hade slutförts. Om något led fastnade, eller undantag uppstod, kopplades aldrig klickfunktionen till menyalternativet.
+
+**Korrigering:**
+- `smartmatch-da-v36-module.js` kopplar **klickhändelsen direkt vid modulens inläsning** (före SmartMatch huvudskript och före PDF-filens skanning).
+- Klick öppnar kopplingsdialogen även om SmartMatch ännu inte blivit färdig; då visar den ett tydligt meddelande.
+- Modulens övriga funktioner initieras vid programstart när dess beroenden finns, och idempotent även efter avslutad skanning.
+- Verktyg-menyn har nu rullning på små telefoner så att det går att nå alla alternativ.
+- Den befintliga GS-skanningen, dörrkortsläsningen och ritningspositionerna körs fortfarande i samma ordning. Ingen automatikanalys startar förrän teknikern trycker Analysera.
+- Versionsnumret höjs samtidigt i titel, skärmrubrik, CSS/JS-cache och intern releasekonstant: **TEST v36.6**.
+- Test genomfört med simulerade DOM-klick: knappen öppnar dialogen före och efter initiering; båda JS-filerna klarar syntaxkontroll. Verklig användar-PDF/iPhone/iPad återstår att verifiera.
+
