@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.43** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.44**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.45** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.46**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.45
+
+Verktyg → Koppla dörrautomatik förenklat till fältet **Märkning** och knappen **＋ Placera manuellt**. "Analysera märkningar", långa familjtexter och analysresultaten tas bort från gränssnittet; den separata objekt/GS-scannern lämnas orörd. Placering använder **drag-rektangeln** från den befintliga ändringsfunktionen, plusmarkör som följer pekaren och en liten avbrytsbar instruktion nere på skärmen. Vid kort tryck görs ingen gissad, förskjuten ruta. Vid drag/släpp sparas exakt rektangel i PDF-koordinater och därefter öppnas dörrens val. Den tidigare automatkopplingen till närmaste GS tas bort i detta manuella flöde, så användaren väljer rätt GS separat. PDF-exportfix från 36.44 (tomt statusindex när procentstämplar saknas) är bevarad. Se [SMARTMATCH_TEST_V36_45.md](SMARTMATCH_TEST_V36_45.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.43
 
