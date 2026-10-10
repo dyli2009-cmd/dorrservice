@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.47** (kompakt Spara: Projekt-PDF/Protokoll, Spara fil/Skicka mejl, automatisk PDF-verifiering och förberedd iOS-delning). Nästa funktionsversion är **TEST v36.48**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.48** (originalprotokoll till vänster och avbockningsbara kontrollpunkter till höger på mobil, 50/50). Nästa funktionsversion är **TEST v36.49**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.48
+
+Mobilens projektprotokoll är nu delat **vänster 50 % originalprotokoll + höger 50 % kontrollpunkter** i samma vy; ingen växling mellan dem behövs. Varje panel rullas självständigt. Originalprotokollet kan zoomas/flyttas och passar initialt vänsterhalvans bredd. Kontrollpunkterna kan bockas av genom att trycka på hela textraden, med tydligare 22 px kryssruta. Ändra/Ta bort kvar på andra raden på smal telefon. Även iPad mellan 700–1100 px får jämn fördelning. Endast **SmartMatch TEST**: inga Kontrollflöde, ordinarie app, TestFlight eller PDF-exportändringar. Test på fysisk iPhone/iPad återstår. Dokumentation: [SMARTMATCH_TEST_V36_48.md](SMARTMATCH_TEST_V36_48.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.47
 
