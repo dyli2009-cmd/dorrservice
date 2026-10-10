@@ -1077,3 +1077,49 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
 .pwDAResult>small{grid-column:1;grid-row:2;color:#637b87;font-size:10px}
 .pwDAResult>button:last-child{grid-column:2;grid-row:1/3;min-height:32px;border:1px solid #a7cfdf;border-radius:6px;
  background:#eaf6fc;color:#145878;padding:5px 9px;font-weight:700;font-size:11px}
+
+
+/* SmartMatch TEST v36.10 – two-column revision form: installer left, customer right.
+   Shared project/door metadata is compact and stays above the checklist. */
+.pwRevisionData>.pwRevisionProjectBody{padding:11px;display:grid;gap:10px}
+.pwRevisionData .pwRevisionBasics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+ padding:10px;background:#edf5f8;border:1px solid #dae7ec;border-radius:9px}
+.pwRevisionData label{display:grid;gap:4px;min-width:0;font-size:10px;font-weight:800;color:#35586a}
+.pwRevisionData label input,
+.pwRevisionData label select{display:block;box-sizing:border-box;width:100%;min-width:0;min-height:36px;
+ border:1px solid #bfced7;border-radius:7px;background:white;color:#183c51;
+ font:500 12px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:7px 9px}
+.pwRevisionData label input[readonly]{background:#f3f8fb;border-color:#b6d7e5;color:#195f81;font-weight:800}
+.pwRevisionData .pwRevisionLocation{grid-column:span 2}
+.pwRevisionData .pwRevisionParties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start}
+.pwRevisionData .pwRevisionParty{min-width:0;display:grid;align-content:start;gap:8px;
+ border:1px solid #d6e2e8;border-radius:9px;background:#fff;padding:11px}
+.pwRevisionData .pwRevisionParty h3{margin:0 0 3px;padding:0 0 9px;border-bottom:1px solid #d5e1e7;
+ color:#1c4b61;font-size:13px;line-height:1.3;font-weight:850}
+.pwRevisionData .pwRevisionInstaller h3{border-bottom-color:#84b9d0}
+.pwRevisionData .pwRevisionCustomer h3{border-bottom-color:#c6a877}
+.pwRevisionData .pwRevisionPostal{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px}
+.pwRevisionData .pwProjectLogoField{grid-column:auto;padding:9px;margin-top:4px}
+.pwRevisionData .pwProjectLogoField>div:first-of-type{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pwRevisionData .pwRevisionSignature{margin-top:6px;padding-top:9px;border-top:1px dashed #d1dfe6}
+.pwRevisionData .pwRevisionAdvanced{border:1px solid #d9e5ea;border-radius:8px;background:#f9fbfc;overflow:hidden}
+.pwRevisionData .pwRevisionAdvanced>summary{cursor:pointer;list-style:none;padding:10px;
+ color:#4d6b7a;font-size:10px;font-weight:750}
+.pwRevisionData .pwRevisionAdvanced>summary::-webkit-details-marker{display:none}
+.pwRevisionData .pwRevisionAdvanced>summary:before{content:'▸ ';color:#327797}
+.pwRevisionData .pwRevisionAdvanced[open]>summary:before{content:'▾ '}
+.pwRevisionData .pwRevisionAdvancedGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 10px 10px}
+.pwRevisionData .pwRevisionLegacy[hidden]{display:none!important}
+@media(max-width:760px){
+ .pwRevisionData .pwRevisionBasics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pwRevisionData .pwRevisionAdvancedGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ .pwRevisionData>.pwRevisionProjectBody{padding:8px;gap:8px}
+ .pwRevisionData .pwRevisionParties{grid-template-columns:minmax(0,1fr)}
+ .pwRevisionData .pwRevisionBasics{gap:6px;padding:8px}
+ .pwRevisionData .pwRevisionParty{padding:9px}
+ .pwRevisionData label{font-size:9px}
+ .pwRevisionData label input,.pwRevisionData label select{font-size:16px;min-height:37px}
+ .pwRevisionData .pwRevisionAdvancedGrid{grid-template-columns:1fr}
+}

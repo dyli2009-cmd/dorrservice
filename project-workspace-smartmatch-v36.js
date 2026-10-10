@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.9';
+const SMARTMATCH_RELEASE='36.10';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -1571,7 +1571,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.9: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.10: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1634,7 +1634,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.9: detect floor/area names from the title block,
+/* SmartMatch TEST v36.10: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1704,7 +1704,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.9: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.10: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1805,7 +1805,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.9: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.10: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -2340,7 +2340,10 @@ function renderAutomationProtocol(o){
  syncAutomationModelFromCode(o);
  el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ')||'Dörrautomatik';
  el.automationModel.value=PROJECT_AUTOMATION_MODELS.some(([code])=>code===o.modelCode)?o.modelCode:'';
- el.automationSerial.value=o.serialNumber||'';el.automationId.value=o.objectNo||'';el.automationLocation.value=o.location||'';el.automationNotes.value=o.notes||'';
+ el.automationSerial.value=o.serialNumber||'';el.automationId.value=o.objectNo||'';
+ const fullId=document.getElementById('pwAutomationFullId');
+ if(fullId)fullId.value=automationDisplayId(o);
+ el.automationLocation.value=o.location||'';el.automationNotes.value=o.notes||'';
  o.progress=automationProgressOf(o);el.automationProgress.textContent=o.progress+'%';
  syncProjectMetaInputs();renderAutomationChecks(o);
 }
@@ -2385,13 +2388,18 @@ function createAutomationSelfcheckPdf(o,options={}){
  txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
  cell('Bokat datum:',meta.date,left,y,93);cell('Nästa provning:',meta.nextDate,left+93,y,93);y+=7;
  cell('ANLÄGGNING:',meta.projectName,left,y,93,7,true);cell('Anläggningsnr:',meta.facilityNo,left+93,y,93,7,true);y+=7;
- cell('SERVICEFÖRETAG:',meta.company,left,y,93,7,true);cell('BESTÄLLARE / KUND:',meta.customer,left+93,y,93,7,true);y+=7;
+ cell('UTFÖRANDE FÖRETAG:',meta.company,left,y,93,7,true);cell('KUND / BESTÄLLARE:',meta.customer,left+93,y,93,7,true);y+=7;
  cell('Kontaktperson på objektet:',meta.companyContact,left,y,93);cell('Kontaktperson:',meta.contact,left+93,y,93);y+=7;
  cell('Telefon:',meta.companyPhone,left,y,93);cell('Telefon:',meta.phone,left+93,y,93);y+=7;
  cell('Adress:',meta.companyAddress,left,y,93);cell('Adress:',meta.address,left+93,y,93);y+=7;
  cell('Postnummer / Postadress:',[meta.companyPostalCode,meta.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[meta.postalCode,meta.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
- cell('ID / märkning:',automationDisplayId(o),left,y,54,8,true);cell(options.equipmentLabel||'Typ av automatik:',o.model||o.modelCode,left+54,y,66,8,true);cell('AO nummer:',meta.order,left+120,y,66,8,true);y+=8;
- cell('Placering / Dörrlittra:',o.location,left,y,93,8);cell('Utförd av / tekniker:',meta.technician,left+93,y,93,8,true);y+=10;
+ // The model remains editable in the application's technical section, but
+ // is not a separate customer-protocol field. Door placement carries context.
+ cell('ID / märkning:',automationDisplayId(o),left,y,93,8,true);
+ cell('AO-nummer:',meta.order,left+93,y,93,8,true);y+=8;
+ const doorLocation=[o.location,o.model||o.modelCode].filter(Boolean).join(' · ');
+ cell('Placering / dörrlittra:',doorLocation,left,y,136,8);
+ cell('Signatur:',meta.signature,left+136,y,50,8,true,true);y+=10;
  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8);doc.setTextColor(35,35,35);const lines=t.split('\n'),hy=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,hy,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,hy,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  const notesReserve=30,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,entries.length)));
@@ -4030,8 +4038,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.9: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.9: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.10: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.10: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Original GS scan remains first; the DA tool is user-triggered and never auto-analyzes.
@@ -4137,7 +4145,7 @@ el.automationModel.onchange=()=>{
  save();renderAutomationProtocol(o);renderGroups();renderAutomationMarkers();
 };
 el.automationSerial.onchange=()=>{const o=selectedAutomation();if(!o)return;o.serialNumber=el.automationSerial.value.trim();save();renderAutomationProtocol(o);renderGroups();renderAutomationMarkers()};
-el.automationId.oninput=()=>{const o=selectedAutomation();if(!o)return;o.objectNo=el.automationId.value.trim();save();el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');renderGroups()};
+el.automationId.oninput=()=>{const o=selectedAutomation();if(!o)return;o.objectNo=el.automationId.value.trim();save();el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ');const fullId=document.getElementById('pwAutomationFullId');if(fullId)fullId.value=automationDisplayId(o);renderGroups()};
 el.automationLocation.oninput=()=>{const o=selectedAutomation();if(!o)return;o.location=el.automationLocation.value;save()};
 el.automationNotes.oninput=()=>{const o=selectedAutomation();if(!o)return;o.notes=el.automationNotes.value;save()};
 el.automationApproveAll.onclick=()=>{const o=selectedAutomation();if(!o)return;PROJECT_AUTOMATION_CHECKS.forEach(([id])=>o.checks[id]={...(o.checks[id]||{}),result:'ok',note:''});o.progress=100;save();renderAutomationProtocol(o);renderAutomationMarkers();renderGroups()};
@@ -4179,7 +4187,7 @@ function smartDAInitAfterScan(){
   window.SmartMatchDALink.init(window.SmartMatchAppBridge);
   smartDAInitialized=true;
  }catch(err){
-  console.error('[SmartMatch TEST v36.9] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
+  console.error('[SmartMatch TEST v36.10] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
  }
 }
 // Connect all optional DA actions at app startup, not after PDF scanning.

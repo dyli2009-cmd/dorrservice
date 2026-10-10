@@ -108,3 +108,24 @@
 **Korrigering:** Ändrat bryggans fält till `setStatus:setState`. Bibehåller nya familjeanalysen och manuella GS-kopplingen från v36.8 utan att röra scanner, filinläsning, positionsstatus eller PDF-sparlogik. Versionsnummer höjt till **TEST v36.9** med konsekvent cacheparametrar för HTML, JS och CSS.
 
 **Kontroller:** Koden parsar. Bryggans alla fristående funktionsreferenser har verifierats mot verkliga funktionsdeklarationer. Den ursprungliga filknappshanteraren och door-card-first-scannern finns kvar. Praktisk browser-/iPad-verifiering med användarens PDF återstår.
+
+## v36.10 – tydlig egenkontroll: projekt, utförande företag och kund (2026-10-10)
+
+**Mål:** Renare fältordning i `Checklista revision dörrautomatik`, utan att påverka checkpunkter, val av anmärkning, `Godkänn alla`, kundmall, logotyp eller sparade projektdata.
+
+### Formulär och gemensamma projektuppgifter
+- Gemensam projektdel överst med **Anläggning/objekt**, **Anläggningsnummer**, **Bokat datum**, **Nästa provning**, **AO-nummer**, **ID-märkning (automatisk, skrivskyddad)** och **Placering/dörrlittra**.
+- Därefter **två tydliga kolumner** på större skärmar: **Utförande företag till vänster**, **Kund/beställare till höger**.
+- Båda sidorna har relevant kontaktperson, telefonnummer, adress, postnummer och postadress. Företagets logotyp ligger i företagets kolumn och signaturen i kundkolumnens nedre högra del.
+- På mindre mobilskärmar visas kolumnerna ovanför/under varandra, med tydliga rubriker.
+- `Typ av automatik`, `Antal/löpnummer` och objekt-ID-del finns kvar i en nedfällbar **Tekniska ändringar** så att projekten fortfarande kan korrigeras. Tidigare avtalsnummer/teknikernamn behålls som dolda kompatibilitetsvärden i det sparade projektet, men skapar inte onödiga fält i denna checklista.
+- Formuläret använder samma gamla `projectMeta`-fält och lokala/PDF-inbäddade projektdata så att tidigare sparade projekt kan öppnas oförändrade.
+
+### Kund-PDF
+- **Utförande företag** skrivs till vänster, **Kund / beställare** till höger, direkt under datum/anläggning.
+- **ID-märkning** och **AO-nummer** får varsin bred kolumn.
+- **Placering/dörrlittra** har ett brett fält. Modellnamnet kan stå efter placeringen, men en separat "Typ av automatik"-ruta finns inte.
+- Separat **Utförd av / tekniker** tas bort från PDF-kundmallen. I stället finns **Signatur** längst till höger och den sedan tidigare befintliga **Signatur**-kolumnen till höger om kontrollpunkterna.
+- Kundmallens logotyp, kontrollresultat, anmärkningsval, sammanställning av anmärkningar och PDF-export är kvar.
+
+**Kontroll före publicering:** statisk JS-syntax, unika/behållna HTML-ID, existerande projekthändelser och PDF-rubrikernas layout. Verklig PDF-granskning på iPad måste göras med kundens PDF.

@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v36.9</title>
+<title>Projektflöde SmartMatch – TEST v36.10</title>
 
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
@@ -377,7 +377,7 @@
 }
 
 </style>
-<link rel="stylesheet" href="project-workspace-smartmatch-v36.css?v=36-9">
+<link rel="stylesheet" href="project-workspace-smartmatch-v36.css?v=36-10">
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -385,7 +385,7 @@
   <div class="pwTitle">
     <strong>Projektflöde SmartMatch</strong>
     <div class="pwReleaseLine" aria-label="Programversion och uppdatering">
-      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.9" title="Appversion som finns i denna sida">TEST v36.9</span>
+      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.10" title="Appversion som finns i denna sida">TEST v36.10</span>
       <button id="pwRefreshBuild" class="pwRefreshBuild" type="button" title="Hämta senaste SmartMatch-uppdateringen" aria-label="Uppdatera SmartMatch till senaste versionen">↻ Uppdatera</button>
     </div>
     <small>Första ID-raden → ritning → dörrkort</small>
@@ -612,47 +612,60 @@
     <div class="pwAutomationHeadActions"><button id="pwDARevisionSave" type="button">Spara</button><button id="pwAutomationPreview" type="button">Kundmall</button><button id="pwDAExportRevision" type="button">Spara PDF</button><button id="pwAutomationClose" type="button" aria-label="Stäng">×</button></div>
   </div>
   <div class="pwAutomationBody">
-    <details class="pwAutomationMeta" open>
-      <summary><span>Objektuppgifter</span><span>Visa / dölj</span></summary>
-      <div class="pwAutomationMetaGrid">
-        <label>Typ av automatik<select id="pwAutomationModel"><option value="">Välj modell…</option></select></label>
-        <label>Antal / löpnummer<input id="pwAutomationSerial" inputmode="numeric" placeholder="1"></label>
-        <label>ID / märkning<input id="pwAutomationId" placeholder="Objektnummer–typ–antal"></label>
-        <label>Placering / Dörrlittra<input id="pwAutomationLocation"></label>
-      </div>
-    </details>
-
-    <details class="pwAutomationProject" open>
-      <summary><span>Projektuppgifter · gemensamma för alla egenkontroller</span><span>Visa / dölj</span></summary>
-      <div class="pwAutomationProjectGrid">
-        <label>Projekt / objekt<input id="pwProjectName"></label>
-        <label>Objektnummer<input id="pwProjectFacility"></label>
-        <label>Ordernummer / AO<input id="pwProjectOrder"></label>
-        <label>Datum<input id="pwProjectDate" type="date"></label>
-        <label>Nästa provning<input id="pwProjectNextDate" type="date"></label>
-
-        <label>Beställare / kund<input id="pwProjectCustomer"></label>
-        <label>Avtalsnummer<input id="pwProjectAgreement"></label>
-        <label>Kontaktperson<input id="pwProjectContact"></label>
-        <label>Telefonnummer<input id="pwProjectPhone" type="tel"></label>
-        <label>Adress<input id="pwProjectAddress"></label>
-        <label>Postnummer<input id="pwProjectPostalCode"></label>
-        <label>Postadress<input id="pwProjectPostalCity"></label>
-
-        <label>Serviceföretag<input id="pwProjectCompany"></label>
-        <label>Kontaktman på objektet<input id="pwProjectCompanyContact"></label>
-        <label>Telefonnummer företag<input id="pwProjectCompanyPhone" type="tel"></label>
-        <label>Företagsadress<input id="pwProjectCompanyAddress"></label>
-        <label>Postnummer företag<input id="pwProjectCompanyPostalCode"></label>
-        <label>Postadress företag<input id="pwProjectCompanyPostalCity"></label>
-
-        <label>Utförd av / tekniker<input id="pwProjectTechnician"></label>
-        <label>Signatur<input id="pwProjectSignature" placeholder="Namn / initialer"></label>
-        <div class="pwProjectLogoField">
-          <span>Företagslogotyp</span>
-          <div><label class="pwLogoButton" for="pwProjectLogo">Välj logga</label><input id="pwProjectLogo" type="file" accept="image/*,.png,.jpg,.jpeg,.webp" hidden><button id="pwProjectLogoRemove" type="button">Ta bort</button></div>
-          <small id="pwProjectLogoStatus">Ingen logotyp vald.</small>
-          <div id="pwProjectLogoPreview"></div>
+    <details class="pwAutomationProject pwRevisionData" open>
+      <summary><span>Projekt och uppgifter · gemensamt för alla egenkontroller</span><span>Visa / dölj</span></summary>
+      <div class="pwRevisionProjectBody">
+        <div class="pwRevisionBasics" aria-label="Anläggning, datum och dörrmärkning">
+          <label>Anläggning / objekt<input id="pwProjectName" placeholder="T.ex. Snidaren"></label>
+          <label>Anläggningsnummer<input id="pwProjectFacility"></label>
+          <label>Bokat datum<input id="pwProjectDate" type="date"></label>
+          <label>Nästa provning<input id="pwProjectNextDate" type="date"></label>
+          <label>Ordernummer / AO<input id="pwProjectOrder"></label>
+          <label>ID-märkning · automatiskt<input id="pwAutomationFullId" readonly aria-readonly="true" placeholder="Hämtas från ritningen"></label>
+          <label class="pwRevisionLocation">Placering / dörrlittra<input id="pwAutomationLocation" placeholder="T.ex. dörr till garage"></label>
+        </div>
+        <div class="pwRevisionParties">
+          <section class="pwRevisionParty pwRevisionInstaller" aria-labelledby="pwRevisionInstallerTitle">
+            <h3 id="pwRevisionInstallerTitle">Utförande företag</h3>
+            <label>Serviceföretag<input id="pwProjectCompany" placeholder="Företaget som utför arbetet"></label>
+            <label>Kontaktperson på objektet<input id="pwProjectCompanyContact"></label>
+            <label>Telefonnummer<input id="pwProjectCompanyPhone" type="tel"></label>
+            <label>Adress<input id="pwProjectCompanyAddress"></label>
+            <div class="pwRevisionPostal">
+              <label>Postnummer<input id="pwProjectCompanyPostalCode"></label>
+              <label>Postadress<input id="pwProjectCompanyPostalCity"></label>
+            </div>
+            <div class="pwProjectLogoField">
+              <span>Företagslogotyp</span>
+              <div><label class="pwLogoButton" for="pwProjectLogo">Välj logga</label><input id="pwProjectLogo" type="file" accept="image/*,.png,.jpg,.jpeg,.webp" hidden><button id="pwProjectLogoRemove" type="button">Ta bort</button></div>
+              <small id="pwProjectLogoStatus">Ingen logotyp vald.</small>
+              <div id="pwProjectLogoPreview"></div>
+            </div>
+          </section>
+          <section class="pwRevisionParty pwRevisionCustomer" aria-labelledby="pwRevisionCustomerTitle">
+            <h3 id="pwRevisionCustomerTitle">Kund / beställare</h3>
+            <label>Beställare / kund<input id="pwProjectCustomer"></label>
+            <label>Kontaktperson<input id="pwProjectContact"></label>
+            <label>Telefonnummer<input id="pwProjectPhone" type="tel"></label>
+            <label>Adress<input id="pwProjectAddress"></label>
+            <div class="pwRevisionPostal">
+              <label>Postnummer<input id="pwProjectPostalCode"></label>
+              <label>Postadress<input id="pwProjectPostalCity"></label>
+            </div>
+            <label class="pwRevisionSignature">Signatur / initialer<input id="pwProjectSignature" placeholder="Används i signaturkolumnen"></label>
+          </section>
+        </div>
+        <details class="pwRevisionAdvanced">
+          <summary>Tekniska ändringar · visas inte som separata fält på kundprotokollet</summary>
+          <div class="pwRevisionAdvancedGrid">
+            <label>Modell / typ av automatik<select id="pwAutomationModel"><option value="">Välj modell…</option></select></label>
+            <label>Antal / löpnummer<input id="pwAutomationSerial" inputmode="numeric" placeholder="1"></label>
+            <label>Objektnummer · del av ID<input id="pwAutomationId" placeholder="Objektnummer"></label>
+          </div>
+        </details>
+        <div class="pwRevisionLegacy" hidden aria-hidden="true">
+          <input id="pwProjectAgreement" tabindex="-1" aria-label="Tidigare avtalsnummer">
+          <input id="pwProjectTechnician" tabindex="-1" aria-label="Tidigare teknikernamn">
         </div>
       </div>
     </details>
@@ -811,8 +824,8 @@
  </div>
  <p class="smartExportNote">Många mejltjänster har gränsen 25 MB, och mejlbilagor kan växa vid överföring. Sikta på ungefär 18 MB eller mindre. Om filen ändå är för stor kan du dela en molnlänk i stället.</p>
 </dialog>
-<script src="smartmatch-da-v36-module.js?v=36-9"></script>
-<script src="project-workspace-smartmatch-v36.js?v=36-9"></script>
+<script src="smartmatch-da-v36-module.js?v=36-10"></script>
+<script src="project-workspace-smartmatch-v36.js?v=36-10"></script>
 
 <script>
 /* The refresh control intentionally works even if the main application script has failed. */
@@ -820,7 +833,7 @@
  b.addEventListener('click',()=>{
   if(!document.body.classList.contains('pwStartMode')&&!window.confirm('Uppdatera SmartMatch? Den öppna ritningen behöver öppnas igen efter uppdateringen. Spara först som PDF om du vill behålla nya ändringar.'))return;
   const url=new URL(window.location.href);
-  url.searchParams.set('v','36.9');
+  url.searchParams.set('v','36.10');
   url.searchParams.set('refresh',String(Date.now()));
   window.location.assign(url.toString());
  });
