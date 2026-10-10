@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.4';
+const SMARTMATCH_RELEASE='36.5';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -1549,7 +1549,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.4: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.5: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1612,7 +1612,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.4: detect floor/area names from the title block,
+/* SmartMatch TEST v36.5: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1682,7 +1682,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.4: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.5: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1783,7 +1783,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.4: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.5: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -3266,7 +3266,15 @@ function renderMarkers(){
    btn.title=o.code+' · position '+o.position+' av '+o.totalOfCode+(protocolMap[o.code]?' · dörrkort sida '+protocolMap[o.code]:' · '+(labState(o.code)==='ambiguous'?'välj dörrkort':'ingen dörrkortsträff'))+' · '+o.progress+'%';
    if(o.scanSource==='doorcard-first-text')btn.title+=' · PDF-textträff, kontrollera placeringen';
    btn.setAttribute('aria-label',btn.title);
-   if(o.manual||positionEdits[o.id]){const label=document.createElement('span');label.className='pmMarkerLabel';label.textContent=o.code;btn.appendChild(label)}
+   if(o.manual||positionEdits[o.id]){
+    btn.classList.add('pmSizedMarker');
+    const label=document.createElement('span');label.className='pmMarkerLabel';label.textContent=o.code;
+    // Make label text grow or shrink with the user-drawn marker rectangle.
+    const availableWidth=Math.max(10,r.width-9),availableHeight=Math.max(12,r.height-4);
+    const estimatedByWidth=availableWidth/Math.max(1,String(o.code||'').length*.64);
+    label.style.fontSize=Math.max(8,Math.min(40,availableHeight*.78,estimatedByWidth))+'px';
+    btn.appendChild(label);
+   }
    if(o.progress>0){const badge=document.createElement('span');badge.className='pwProgressBadge';badge.textContent=o.progress+'%';btn.appendChild(badge)}
    btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(bulkSelectMode&&(protocolCandidates[o.code]||[]).length)toggleBulkInstance(o);else if(protocolMap[o.code])openProtocol(o);else openLabChoices(o)};
    el.markers.appendChild(btn);
@@ -3361,7 +3369,7 @@ function renderGroups(){
    const menuTitle=document.createElement('summary');menuTitle.textContent='⋯';menuTitle.title='Visa åtgärder för '+code+' position '+o.position;menuTitle.setAttribute('aria-label',menuTitle.title);
    menu.appendChild(menuTitle);
    const tools=document.createElement('div');tools.className='pmRow';
-   for(const [label,fn] of [['↔ Flytta',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['▣ Ändra dörrkort',()=>{pmSelect(o);openLabChoices(o)}],['× Ta bort',()=>pmRemove(o)]]){
+   for(const [label,fn] of [['↔ Flytta / storlek',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['▣ Ändra dörrkort',()=>{pmSelect(o);openLabChoices(o)}],['× Ta bort',()=>pmRemove(o)]]){
     const action=document.createElement('button');action.type='button';action.textContent=label;action.onclick=fn;tools.appendChild(action);
    }
    menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
@@ -4005,8 +4013,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.4: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.4: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.5: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.5: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Scanning and original GS positions are completely finished before optional DA tool starts.
@@ -4231,23 +4239,80 @@ function pmRefresh(){
  $('pmAdd').disabled=!pdf;$('pmLink').disabled=!pdf;
 }
 function pmSelect(o){$('pmCode').value=o.code;$('pmCard').value=protocolMap[o.code]||'';selectedId=o.id;pmHelp('Vald '+o.code+' · position på sida '+o.page+'. Koppling gäller alla positioner med denna beteckning.');renderMarkers()}
-function pmCancel(){placement=null;el.stage.classList.remove('pmPlacing');$('pmCancel').hidden=true}
+let pmSizePreview=null;
+function pmRemoveSizePreview(){if(pmSizePreview){pmSizePreview.remove();pmSizePreview=null}}
+function pmCancel(){
+ placement=null;pmPointer=null;pmRemoveSizePreview();
+ el.stage.classList.remove('pmPlacing');$('pmCancel').hidden=true;
+}
+function pmDragPreview(a,b,code){
+ if(!pmSizePreview){
+  pmSizePreview=document.createElement('div');pmSizePreview.className='pmDragPreview';
+  pmSizePreview.setAttribute('aria-hidden','true');el.stage.appendChild(pmSizePreview);
+ }
+ const left=Math.max(0,Math.min(a.x,b.x)),top=Math.max(0,Math.min(a.y,b.y));
+ const width=Math.max(30,Math.abs(b.x-a.x)),height=Math.max(20,Math.abs(b.y-a.y));
+ Object.assign(pmSizePreview.style,{left:left+'px',top:top+'px',width:width+'px',height:height+'px'});
+ pmSizePreview.textContent=code;
+ pmSizePreview.style.fontSize=Math.max(9,Math.min(40,(height-5)*.78,(width-10)/Math.max(1,code.length*.64)))+'px';
+}
 function pmPlace(o){
  if(!pdf)return;
  const code=o?.code||pmCode($('pmCode').value);
  if(!code){pmHelp('Ange en beteckning, till exempel GS1 eller 310A.');return}
- document.getElementById('pwPositionEditor').open=true;placement={id:o?.id||null,code};el.stage.classList.add('pmPlacing');$('pmCancel').hidden=false;
- pmHelp('Klicka eller tryck på rätt dörr på ritningen för '+code+'. Du kan byta sida före placeringen.');
+ if(o&&page!==o.page){page=o.page;void renderDrawing()}
+ document.getElementById('pwPositionEditor').open=true;
+ pmRemoveSizePreview();
+ placement={id:o?.id||null,code};
+ el.stage.classList.add('pmPlacing');$('pmCancel').hidden=false;
+ pmHelp('Tryck på rätt plats för att flytta '+code+' utan att krympa märkningen. Klicka och dra ut en ruta för att ändra bredd och höjd så att den passar ritningens text. Avbryt om du ångrar dig.');
 }
 function pmCounts(){const counts={};instances.forEach(o=>{counts[o.code]=(counts[o.code]||0)+1});const n={};instances.forEach(o=>{o.position=n[o.code]=(n[o.code]||0)+1;o.totalOfCode=counts[o.code]})}
-async function pmCommit(point){
+async function pmCommit(startPoint,endPoint=null){
  if(!placement||!drawingViewport)return;
- if(point.x<0||point.y<0||point.x>drawingViewport.width||point.y>drawingViewport.height)return;
- const [x,y]=drawingViewport.convertToPdfPoint(point.x,point.y),rect=[x-9,y-9,x+9,y+9],mode=placement;
- let o=instances.find(o=>o.id===mode.id);
- if(o){o.page=page;o.rect=rect;if(o.manual){Object.assign(manualPositions.find(p=>p.id===o.id),{page,rect})}else positionEdits[o.id]={...positionEdits[o.id],page,rect}}
- else{o={id:'manual:'+crypto.randomUUID(),manual:true,code:mode.code,page,rect,order:0,sourceKind:/^GS\d/.test(mode.code)?'gs':'project-code',checks:{},overrides:{},customItems:[],progress:0};manualPositions.push({...o});instances.push(o)}
- ignoredCodes.delete(mode.code);selectedId=o.id;pmCancel();pmCounts();await recalcAll();pmSelect(o);pmHelp(o.code+' sparad på sida '+page+(protocolMap[o.code]?' · kopplad till dörrkort sida '+protocolMap[o.code]:'. Välj dörrkortets sida för att koppla.'));
+ const vp=drawingViewport;
+ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+ const a={x:clamp(startPoint.x,0,vp.width),y:clamp(startPoint.y,0,vp.height)};
+ const b=endPoint?{x:clamp(endPoint.x,0,vp.width),y:clamp(endPoint.y,0,vp.height)}:null;
+ const old=instances.find(o=>o.id===placement.id);
+ let left,top,right,bottom;
+ const isDragged=b&&Math.hypot(a.x-b.x,a.y-b.y)>=12;
+ if(isDragged){
+  // Drag to draw an adjustable rectangle directly over the existing PDF text.
+  left=Math.min(a.x,b.x);top=Math.min(a.y,b.y);
+  right=Math.min(vp.width,left+Math.max(30,Math.abs(a.x-b.x)));
+  bottom=Math.min(vp.height,top+Math.max(20,Math.abs(a.y-b.y)));
+ }else{
+  // A simple tap moves the existing marker, preserving its size rather than
+  // destroying it with the former fixed 18 x 18 PDF-point rectangle.
+  const prev=old?viewportRect(vp,old.rect):null;
+  const labelWidth=String(placement.code||'').length*8+16;
+  const width=Math.min(vp.width,Math.max(34,labelWidth,prev?.width||0));
+  const height=Math.min(vp.height,Math.max(24,prev?.height||0));
+  left=clamp(a.x-width/2,0,Math.max(0,vp.width-width));
+  top=clamp(a.y-height/2,0,Math.max(0,vp.height-height));
+  right=left+width;bottom=top+height;
+ }
+ // PDF page origin is bottom-left: convert two opposite viewport corners and
+ // keep the resulting PDF rectangle canonical so zoom and PDF export agree.
+ const p1=vp.convertToPdfPoint(left,top),p2=vp.convertToPdfPoint(right,bottom);
+ const rect=[Math.min(p1[0],p2[0]),Math.min(p1[1],p2[1]),Math.max(p1[0],p2[0]),Math.max(p1[1],p2[1])];
+ const mode=placement;
+ let o=old;
+ if(o){
+  o.page=page;o.rect=rect;
+  if(o.manual){
+   const original=manualPositions.find(p=>p.id===o.id);
+   if(original){original.page=page;original.rect=[...rect]}
+  }else positionEdits[o.id]={...positionEdits[o.id],page,rect};
+ }else{
+  o={id:'manual:'+crypto.randomUUID(),manual:true,code:mode.code,page,rect,order:0,
+   sourceKind:/^GS\d/.test(mode.code)?'gs':'project-code',checks:{},overrides:{},customItems:[],progress:0};
+  manualPositions.push({...o});instances.push(o);
+ }
+ ignoredCodes.delete(mode.code);selectedId=o.id;pmCancel();pmCounts();
+ await recalcAll();pmSelect(o);
+ pmHelp(o.code+' sparad med '+(isDragged?'egen vald storlek':'bibehållen/anpassad storlek')+' på sida '+page+'. Storleken och placeringen sparas med projekt-PDF:en.');
 }
 async function pmRename(o){
  const value=window.prompt('Rätt beteckning för denna position:',o.code);if(value===null)return;
@@ -4299,16 +4364,32 @@ $('pmLink').onclick=async()=>{
  labManualLinks[code]=n;await buildProtocolMap();protocolDefs={};await recalcAll();pmHelp(code+' kopplad till sida '+n+'. Kontrollera dörrkortet innan du börjar bocka av.');
 };
 el.stage.addEventListener('pointerdown',e=>{
- if(!placement)return;e.stopImmediatePropagation();e.preventDefault();
- if(pmPointer){pmPointer=null;pmHelp('Placera med ett finger.');return}
- pmPointer={id:e.pointerId,x:e.clientX,y:e.clientY};el.stage.setPointerCapture(e.pointerId);
+ if(!placement)return;
+ e.stopImmediatePropagation();e.preventDefault();
+ if(e.pointerType==='mouse'&&e.button!==0)return;
+ if(pmPointer){pmPointer=null;pmRemoveSizePreview();pmHelp('Använd ett finger eller en muspekare.');return}
+ pmPointer={id:e.pointerId,x:e.clientX,y:e.clientY,point:stagePoint(e.clientX,e.clientY),code:placement.code};
+ try{el.stage.setPointerCapture(e.pointerId)}catch(_){}
 },true);
-el.stage.addEventListener('pointermove',e=>{if(placement){e.stopImmediatePropagation();e.preventDefault()}},true);
+el.stage.addEventListener('pointermove',e=>{
+ if(!placement)return;
+ e.stopImmediatePropagation();e.preventDefault();
+ if(!pmPointer||pmPointer.id!==e.pointerId)return;
+ const now=stagePoint(e.clientX,e.clientY);
+ if(Math.hypot(now.x-pmPointer.point.x,now.y-pmPointer.point.y)>6)pmDragPreview(pmPointer.point,now,pmPointer.code);
+},true);
 el.stage.addEventListener('pointerup',e=>{
- if(!placement)return;e.stopImmediatePropagation();e.preventDefault();const start=pmPointer;pmPointer=null;
- if(start?.id===e.pointerId&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<12){pmSuppressClickUntil=Date.now()+500;void pmCommit(stagePoint(e.clientX,e.clientY))}
+ if(!placement)return;
+ e.stopImmediatePropagation();e.preventDefault();
+ const start=pmPointer;pmPointer=null;pmRemoveSizePreview();
+ if(start?.id!==e.pointerId)return;
+ pmSuppressClickUntil=Date.now()+500;
+ const end=stagePoint(e.clientX,e.clientY);
+ // Both a click (move without shrinking) and drag (resize to fit PDF label)
+ // commit to the same saved rect, including when the user uses a touch screen.
+ void pmCommit(start.point,end);
 },true);
-el.stage.addEventListener('pointercancel',()=>{pmPointer=null},true);
+el.stage.addEventListener('pointercancel',()=>{pmPointer=null;pmRemoveSizePreview()},true);
 el.stage.addEventListener('click',e=>{if(placement||Date.now()<pmSuppressClickUntil){e.stopImmediatePropagation();e.preventDefault()}},true);
 for(const name of ['touchstart','touchmove','touchend','touchcancel'])el.stage.addEventListener(name,e=>{if(placement||Date.now()<pmSuppressClickUntil){e.stopImmediatePropagation();e.preventDefault()}},{capture:true,passive:false});
 pmRefresh();

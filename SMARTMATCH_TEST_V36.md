@@ -48,3 +48,13 @@
 - Skript och CSS får versionsstämplade adressparametrar `v=36-4` och rubriken innehåller samma versionsnummer. Versionen identifierar den **faktiskt laddade appkoden**, inte den senaste commit som eventuellt finns på nätet.
 - Vid varje framtida ändring ska den synliga versionsbeteckningen, dokumentets titel, JS-releasekonstanten samt resursparametrarna höjas tillsammans, t.ex. `v36.5`, `v36.6` och därefter `v37.0` om en ny huvudversion skapas.
 - Behåller v36.3:s PDF-öppningskorrigering och sena initiering av dörrautomatikverktyget; tidigare v35-filer oförändrade.
+
+## v36.5 – Flytta och ändra storlek på GS-/projektpositioner (2026-10-10)
+
+- **Position 1 → ⋯ → Flytta / storlek** kan nu användas för både exakt flytt och rektangelstorlek.
+- **Kort klick/tryck:** flyttar positionen men behåller föregående storlek; om markeringen var minimalt liten används en rimlig storlek som rymmer positionskoden.
+- **Klicka + dra med mus eller finger:** ritar själv en rektangel i samma storlek som märkningen på ritningen. En förhandsvisning syns under draget; efter släpp lagras exakt rektangel och plats i PDF-koordinater. Storleken består vid byte av ritningssida och zoom och ingår i projektsparningen.
+- Texten för flyttade och manuellt placerade märkningar skalar efter rutans dimensioner.
+- Vid Flytta/Storlek på en position som tillhör en annan ritningssida växlar verktyget automatiskt till rätt sida.
+- Ingen ändring av SmartMatch GS-/dörrkortsskanning, kontrollstatus, projektschema eller huvudappen.
+- JS syntaxkontroll genomförd; verkligt test med användarens PDF och iPad återstår.

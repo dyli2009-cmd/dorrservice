@@ -982,3 +982,28 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwHeader .pwReleaseLine .pwTitleVersion{font-size:9px;padding:2px 3px}
  .pwHeader .pwRefreshBuild{font-size:9px!important;padding:1px 3px!important}
 }
+
+
+/* SmartMatch TEST v36.5: move positions without shrinking and draw a resizable text marker. */
+.pwStage.pmPlacing{cursor:crosshair!important;touch-action:none}
+.pmDragPreview{
+ position:absolute;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;
+ border:2px dashed #147ca7;border-radius:4px;background:#d9f2ffbf;
+ color:#165b7a;font-weight:800;line-height:1;white-space:nowrap;overflow:hidden;
+ padding:1px 3px;box-shadow:0 0 0 1px #fff7 inset
+}
+#pwMarkers .pwStampHit.pmSizedMarker{
+ background:#e8f7ff96;border:2px solid #0879ab;
+ border-radius:4px;display:flex;align-items:center;justify-content:center;
+ overflow:visible;box-sizing:border-box;
+}
+#pwMarkers .pwStampHit.pmSizedMarker .pmMarkerLabel{
+ position:absolute;inset:0;bottom:auto;left:0;
+ width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+ background:transparent;border:none;box-shadow:none;
+ color:#135b7f;font-weight:800;line-height:1;
+ padding:1px 3px;white-space:nowrap;overflow:hidden;
+ text-overflow:clip;box-sizing:border-box;
+ pointer-events:none;
+}
+#pwMarkers .pwStampHit.pmSizedMarker .pwProgressBadge{z-index:2}
