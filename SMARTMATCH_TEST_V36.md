@@ -153,3 +153,21 @@
 - En GS-koppling behöver finnas innan pilen kan justeras. Både standardpil och manuellt justerad pil fortsätter att tillhöra rätt unika GS-position.
 
 **Säkerhet:** Huvudflödet för PDF-inläsning och GS-/dörrkortsskanning är oförändrat. De nya funktionerna lever i den isolerade SmartMatch-testversionen, inte i produktion eller iOS. Verkligt test med användarens ritning återstår.
+
+## v36.12 – lika trepunktsmenyer och Ritning & dörrkort (2026-10-10)
+
+**Enhetlig ⋯-meny i sidopanelen**
+- DA Egenkontroller och GS-/projektpositioner använder **exakt samma lilla 31×31-pixels ⋯-knapp**, på mobil, iPad och dator.
+- Båda öppnar **samma popup** med menyalternativ som tydligt går att trycka på. Popupen renderas i sidans översta lager, inte inuti en kortbehållare, så dess innehåll kapas inte av sidopanelens högra eller nedre kant.
+- DA-menyn visar Flytta / storlek, Ändra, Ta bort och – om DA-objektet har en GS-koppling – Justera pil. GS-menyn visar Flytta / storlek, Ändra, **Koppla dörrkort** och Ta bort. Därmed återställs den tidigare kopplingsfunktionen som efterfrågats för GS1 osv.
+- Menyn stängs när man väljer en åtgärd, trycker utanför, trycker Escape eller skrollar. Samma beteende för mus och finger.
+
+**Ritning & dörrkort som egen kategori**
+- Ny huvudrubrik **Ritning & dörrkort**, i samma visuella stil som **DA · Egenkontroller**.
+- Under rubriken finns ett filter/sökfält för GS1, GS2, GS3 eller valfri dörrkod. Matchande grupper visas direkt och öppnas när användaren söker.
+- Alla avlästa positioner visas i kategorin, även de som saknar säker dörrkortskoppling, så att man kan välja och koppla rätt dörrkort. Dörrkortsidentifierare som saknar placering visas även som separat åtgärd.
+- Den tidigare GS1/GS2/GS3-grupperingen, markeringslogiken, valda checkpunkter och revisionsstatus ligger kvar. Den nyare DA-kategorin förblir separat under ritningsgruppen.
+
+**Ingen ändring:** PDF-inläsning, SmartMatch GS-/dörrkortsskanning, dörrautomatikens märkningsanalys, projektets PDF-data, kundmall och iOS-produktionsappen. Versionsnumret visas som **TEST v36.12** i skärmen, sidtitel och samtliga cachenycklar.
+
+**Kontroller:** JS-syntax verifierad, popup öppnar/stänger med simulering, GS- och DA-trigger får samma utseendeklass, länkåtgärder kallas vid klick, samt unika HTML-ID och versionsnummer kontrolleras. Fullständigt visuellt test på användarens iPad/ritning återstår.

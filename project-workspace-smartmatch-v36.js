@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.11';
+const SMARTMATCH_RELEASE='36.12';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -3344,43 +3344,136 @@ function renderAutomationMarkers(){
   window.SmartMatchDALink?.drawArrows?.(vp,pageItems,renderPage);
  }).catch(console.error);
 }
-let unlinkedFolderOpen=false;
+let unlinkedFolderOpen=false; // Retained for older project/remove workflows.
+let drawingCardFilter='';
+let positionPopup=null,positionPopupAnchor=null;
+function closePositionPopup(){
+ if(positionPopup){positionPopup.remove();positionPopup=null}
+ if(positionPopupAnchor)positionPopupAnchor.setAttribute('aria-expanded','false');
+ positionPopupAnchor=null;
+}
+function positionMoreButton(name,actions){
+ const trigger=document.createElement('button');
+ trigger.type='button';trigger.className='pwUnifiedMore';
+ trigger.textContent='⋯';trigger.setAttribute('aria-label','Visa åtgärder för '+name);
+ trigger.title='Visa åtgärder för '+name;trigger.setAttribute('aria-haspopup','menu');trigger.setAttribute('aria-expanded','false');
+ trigger.onclick=e=>{
+  e.preventDefault();e.stopPropagation();
+  if(positionPopupAnchor===trigger){closePositionPopup();return}
+  closePositionPopup();positionPopupAnchor=trigger;
+  const popup=document.createElement('div');popup.className='pwUnifiedActionPopup';popup.setAttribute('role','menu');
+  popup.setAttribute('aria-label','Åtgärder för '+name);
+  for(const [label,fn] of actions){
+   const b=document.createElement('button');b.type='button';b.className='pwUnifiedAction';
+   b.setAttribute('role','menuitem');b.textContent=label;
+   b.onclick=event=>{event.preventDefault();event.stopPropagation();closePositionPopup();fn()};
+   popup.appendChild(b);
+  }
+  document.body.appendChild(popup);positionPopup=popup;trigger.setAttribute('aria-expanded','true');
+  const anchor=trigger.getBoundingClientRect(),rect=popup.getBoundingClientRect();
+  const viewW=window.visualViewport?.width||window.innerWidth,viewH=window.visualViewport?.height||window.innerHeight;
+  const left=Math.max(7,Math.min(viewW-rect.width-7,anchor.right-rect.width));
+  const top=anchor.bottom+rect.height+7<=viewH?anchor.bottom+3:Math.max(7,anchor.top-rect.height-3);
+  popup.style.left=left+'px';popup.style.top=top+'px';
+ };
+ return trigger;
+}
+document.addEventListener('click',e=>{if(positionPopup&&!positionPopup.contains(e.target)&&e.target!==positionPopupAnchor)closePositionPopup()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePositionPopup()});
+window.addEventListener('resize',closePositionPopup);
+window.addEventListener('scroll',closePositionPopup,{passive:true});
+el.side.addEventListener('scroll',closePositionPopup,{passive:true});
 function renderGroups(){
+ closePositionPopup();
  pmRefresh();
- // Behåll öppna grupper när procent/status uppdateras.
+ // Preserve the operator's expanded GS groups when refreshing checks or data.
  const expandedCodes=new Set([...el.groups.querySelectorAll('.pwGroupAccordion[open]')].map(n=>n.dataset.code));
- const oldFolder=el.groups.querySelector('.pwUnlinkedBundle');if(oldFolder)unlinkedFolderOpen=oldFolder.open;
  const groups={};
- matchedProjectInstances().filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
+ instances.filter(o=>!currentOnly||o.page===page).forEach(o=>(groups[o.code]??=[]).push(o));
  const visibleAutomations=PROJECT_AUTOMATION_ENABLED?automationItems.filter(o=>!currentOnly||o.page===page):[];
  el.groups.replaceChildren();
  const codes=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'sv',{numeric:true}));
- const unlinkedCodes=codes.filter(code=>!protocolMap[code]);
- const unlinkedPositions=unlinkedCodes.reduce((sum,code)=>sum+groups[code].length,0);
- let unlinkedWrap=null;
- if(unlinkedCodes.length){
-  unlinkedWrap=document.createElement('details');
-  unlinkedWrap.className='pwUnlinkedBundle';
-  unlinkedWrap.open=unlinkedFolderOpen;
-  const head=document.createElement('summary');head.className='pwUnlinkedHeading';
-  const strong=document.createElement('strong');strong.textContent='Saknar dörrkort';
-  const count=document.createElement('span');count.textContent=unlinkedPositions+' positioner · '+unlinkedCodes.length+' beteckningar';
-  head.append(strong,count);unlinkedWrap.appendChild(head);
-  const remove=document.createElement('button');remove.type='button';remove.className='pwUnlinkedDeleteAll';
-  remove.textContent='Ta bort alla';remove.title='Ta bort alla okopplade positioner i hela projektet';
-  remove.onclick=e=>{e.preventDefault();e.stopPropagation();void pmRemoveAllUnlinked()};
-  unlinkedWrap.appendChild(remove);
-  unlinkedWrap.addEventListener('toggle',()=>{if(unlinkedWrap.isConnected)unlinkedFolderOpen=unlinkedWrap.open});
-  const help=document.createElement('p');help.className='pwUnlinkedHint';
-  help.textContent='Alla positioner utan säker dörrkortskoppling samlas här. De finns kvar på ritningen och sparas tillsammans i projekt-PDF:en. Kopplade dörrar visas separat.';
-  unlinkedWrap.appendChild(help);
- }
  const missingCodes=Object.keys(smartDoorCardIndex).filter(code=>!ignoredCodes.has(code)&&!instances.some(o=>o.code===code));
- missingCodes.forEach(code=>{const section=document.createElement('section');section.className='pwGroup';const b=document.createElement('button');b.type='button';b.className='pwPosition';b.textContent=code+' · dörrkort finns, placering saknas';b.onclick=()=>{$('pmCode').value=code;$('pmCard').value=protocolMap[code]||'';pmPlace()};section.appendChild(b);el.groups.appendChild(section)});
- if(!codes.length&&!visibleAutomations.length&&!missingCodes.length){const p=document.createElement('p');p.className='pwMuted';p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';el.groups.appendChild(p);return}
+ if(!codes.length&&!visibleAutomations.length&&!missingCodes.length){
+  const p=document.createElement('p');p.className='pwMuted';
+  p.textContent=currentOnly?'Inga projektpositioner på den här sidan.':'Inga projektpositioner hittades.';
+  el.groups.appendChild(p);return;
+ }
+ // One category for all GS / drawing positions and linked door-card matches.
+ // This intentionally includes positions without a door card, so GS1 / GS2
+ // remain discoverable while the operator fixes their links.
+ if(codes.length||missingCodes.length){
+  const drawingWrap=document.createElement('section');drawingWrap.className='pwGroup pwDrawingCardGroup';
+  const header=document.createElement('div');header.className='pwGroupTitle';
+  const heading=document.createElement('strong');heading.textContent='Ritning & dörrkort';
+  const count=document.createElement('span');count.textContent=instances.filter(o=>!currentOnly||o.page===page).length+' positioner';
+  header.append(heading,count);drawingWrap.appendChild(header);
+  const search=document.createElement('input');search.type='search';search.className='pwDrawingCodeSearch';
+  search.placeholder='Sök GS1, GS2, GS3 eller dörrkod…';search.value=drawingCardFilter;
+  search.setAttribute('aria-label','Sök position i ritning eller dörrkort');
+  drawingWrap.appendChild(search);
+  const list=document.createElement('div');list.className='pwDrawingCodeList';
+  const searchable=[];
+  missingCodes.forEach(code=>{
+   const section=document.createElement('section');section.className='pwGroup pwMissingDrawingCard';
+   const b=document.createElement('button');b.type='button';b.className='pwPosition';
+   b.textContent=code+' · dörrkort finns, placering saknas';
+   b.onclick=()=>{$('pmCode').value=code;$('pmCard').value=protocolMap[code]||'';pmPlace()};
+   section.appendChild(b);list.appendChild(section);searchable.push({code,section});
+  });
+  codes.forEach(code=>{
+   const wrap=document.createElement('details');wrap.className='pwGroup pwGroupAccordion';
+   wrap.dataset.code=code;wrap.open=expandedCodes.has(code);
+   const title=document.createElement('summary');title.className='pwGroupTitle';
+   const strong=document.createElement('strong');strong.textContent=code;
+   const span=document.createElement('span');
+   span.textContent=groups[code].length+' positioner · '+(protocolMap[code]?'dörrkort ✓':labState(code)==='ambiguous'?'välj dörrkort':'saknar dörrkort');
+   title.append(strong,span);wrap.appendChild(title);
+   const removeAll=document.createElement('button');removeAll.type='button';
+   removeAll.className='pmDeleteGroup';removeAll.textContent='Ta bort alla';
+   removeAll.title='Ta bort alla positioner med beteckningen '+code;
+   removeAll.onclick=e=>{e.preventDefault();e.stopPropagation();void pmRemoveGroup(code)};
+   wrap.appendChild(removeAll);
+   const entries=document.createElement('div');entries.className='pwGroupItems';
+   groups[code].forEach(o=>{
+    const line=document.createElement('div');line.className='pwPositionLine';
+    const b=document.createElement('button');b.type='button';b.className='pwPosition';
+    const left=document.createElement('span'),s=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
+    s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;
+    small.textContent='Ritning sida '+o.page+(protocolMap[code]?' · dörrkort sida '+protocolMap[code]:' · '+(labState(code)==='ambiguous'?'flera möjliga dörrkort':'ingen säker koppling'));
+    pct.textContent=o.progress+'%';left.append(s,small);b.append(left,pct);
+    b.onclick=()=>{pmSelect(o);focusInstance(o)};
+    const more=positionMoreButton(code+' · position '+o.position,[
+     ['↔ Flytta / storlek',()=>pmPlace(o)],
+     ['✎ Ändra',()=>pmRename(o)],
+     ['▣ Koppla dörrkort',()=>{pmSelect(o);openLabChoices(o)}],
+     ['× Ta bort',()=>pmRemove(o)]
+    ]);
+    line.append(b,more);entries.appendChild(line);
+   });
+   wrap.appendChild(entries);list.appendChild(wrap);searchable.push({code,section:wrap});
+  });
+  search.oninput=()=>{
+   drawingCardFilter=search.value;
+   const q=drawingCardFilter.trim().toLocaleUpperCase('sv').replace(/\s+/g,'');
+   let shown=0;
+   searchable.forEach(({code,section})=>{
+    const match=!q||code.toLocaleUpperCase('sv').replace(/\s+/g,'').includes(q);
+    section.hidden=!match;
+    if(match){shown++;if(q&&section.tagName==='DETAILS')section.open=true}
+   });
+   empty.hidden=shown>0;
+  };
+  const empty=document.createElement('p');empty.className='pwMuted pwDrawingNoResults';
+  empty.textContent='Inga positioner matchar sökningen.';empty.hidden=true;
+  list.appendChild(empty);drawingWrap.appendChild(list);el.groups.appendChild(drawingWrap);
+  if(drawingCardFilter)search.oninput();
+ }
  if(visibleAutomations.length){
   const wrap=document.createElement('section');wrap.className='pwGroup pwAutomationGroup';
-  const title=document.createElement('div');title.className='pwGroupTitle';title.innerHTML='<strong>DA · Egenkontroller</strong><span>'+visibleAutomations.length+' automatiker</span>';wrap.appendChild(title);
+  const title=document.createElement('div');title.className='pwGroupTitle';
+  title.innerHTML='<strong>DA · Egenkontroller</strong><span>'+visibleAutomations.length+' automatiker</span>';
+  wrap.appendChild(title);
   const list=document.createElement('div');list.className='pwGroupItems';
   visibleAutomations.forEach(o=>{
    const line=document.createElement('div');line.className='pwPositionLine pwDAControlLine';
@@ -3388,61 +3481,21 @@ function renderGroups(){
    const left=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
    strong.textContent=automationDisplayId(o);
    small.textContent='Sida '+o.page+(o.model?' · '+o.model:' · typ ej avläst')+(o.linkedGsId?' · GS kopplad':' · välj GS');
-   pct.textContent=o.progress+'%';
-   left.append(strong,small);b.append(left,pct);
+   pct.textContent=o.progress+'%';left.append(strong,small);b.append(left,pct);
    b.onclick=()=>window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o);
-   const menu=document.createElement('details');menu.className='pwPositionMore pwDAMore';
-   const title=document.createElement('summary');title.textContent='⋯';title.title='Ändra dörrautomatik '+automationDisplayId(o);title.setAttribute('aria-label',title.title);
-   menu.appendChild(title);
-   const tools=document.createElement('div');tools.className='pmRow';
-   for(const [label,fn] of [
+   const actions=[
     ['↔ Flytta / storlek',()=>window.SmartMatchDALink?.beginMove?.(o)],
-    ['✎ Ändra',()=>window.SmartMatchDALink?.rename?.(o)],
-    ['↗ Justera pil',()=>window.SmartMatchDALink?.beginArrowAdjust?.(o)],
-    ['× Ta bort',()=>window.SmartMatchDALink?.remove?.(o)]
-   ]){
-    const button=document.createElement('button');button.type='button';button.textContent=label;
-    button.onclick=()=>{menu.open=false;fn()};tools.appendChild(button);
-   }
-   menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
+    ['✎ Ändra',()=>window.SmartMatchDALink?.rename?.(o)]
+   ];
+   if(o.linkedGsId)actions.push(['↗ Justera pil',()=>window.SmartMatchDALink?.beginArrowAdjust?.(o)]);
+   actions.push(['× Ta bort',()=>window.SmartMatchDALink?.remove?.(o)]);
+   const more=positionMoreButton('dörrautomatik '+automationDisplayId(o),actions);
+   line.append(b,more);list.appendChild(line);
   });
   wrap.appendChild(list);el.groups.appendChild(wrap);
  }
- codes.forEach(code=>{
-  const wrap=document.createElement('details');wrap.className='pwGroup pwGroupAccordion';wrap.dataset.code=code;wrap.open=expandedCodes.has(code);
-  const title=document.createElement('summary');title.className='pwGroupTitle';
-  const strong=document.createElement('strong');strong.textContent=code;
-  const span=document.createElement('span');span.textContent=groups[code].length+' positioner · '+(protocolMap[code]?'dörrkort ✓':labState(code)==='ambiguous'?'välj dörrkort':'saknar dörrkort');
-  title.append(strong,span);wrap.appendChild(title);
-  const removeAll=document.createElement('button');removeAll.type='button';removeAll.className='pmDeleteGroup';removeAll.textContent='Ta bort alla';removeAll.title='Ta bort alla positioner med beteckningen '+code;
-  removeAll.onclick=e=>{e.preventDefault();e.stopPropagation();void pmRemoveGroup(code)};wrap.appendChild(removeAll);
-  const list=document.createElement('div');list.className='pwGroupItems';
-  groups[code].forEach(o=>{
-   const line=document.createElement('div');line.className='pwPositionLine';
-   const b=document.createElement('button');b.type='button';b.className='pwPosition';
-   const left=document.createElement('span'),s=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
-   s.textContent=code+' · position '+o.position+' av '+o.totalOfCode;
-   small.textContent='Ritning sida '+o.page+(protocolMap[code]?' · dörrkort sida '+protocolMap[code]:' · '+(labState(code)==='ambiguous'?'flera möjliga dörrkort':'ingen säker koppling'));
-   pct.textContent=o.progress+'%';left.append(s,small);b.append(left,pct);b.onclick=()=>{pmSelect(o);focusInstance(o)};
-   const menu=document.createElement('details');menu.className='pwPositionMore';
-   const menuTitle=document.createElement('summary');menuTitle.textContent='⋯';menuTitle.title='Visa åtgärder för '+code+' position '+o.position;menuTitle.setAttribute('aria-label',menuTitle.title);
-   menu.appendChild(menuTitle);
-   const tools=document.createElement('div');tools.className='pmRow';
-   for(const [label,fn] of [['↔ Flytta / storlek',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['× Ta bort',()=>pmRemove(o)]]){
-    const action=document.createElement('button');action.type='button';action.textContent=label;action.onclick=fn;tools.appendChild(action);
-   }
-   menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
-  });
-  if(protocolMap[code]){wrap.appendChild(list);el.groups.appendChild(wrap)}
-  else{
-   const title=document.createElement('div');title.className='pwUnlinkedCode';
-   const label=document.createElement('strong');label.textContent=code;
-   const count=document.createElement('span');count.textContent=groups[code].length+' positioner';
-   title.append(label,count);unlinkedWrap.append(title,list);
-  }
- });
- if(unlinkedWrap)el.groups.appendChild(unlinkedWrap);
 }
+
 async function focusInstance(o){
  if(bulkSelectMode){toggleBulkInstance(o);return}
  if(page!==o.page){page=o.page;await renderDrawing()}
