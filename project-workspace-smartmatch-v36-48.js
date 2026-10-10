@@ -4308,7 +4308,7 @@ async function focusInstance(o){
 }
 function clampProtocolScale(value){
  // Narrow side-by-side phone layout needs a smaller fit scale than desktop.
- const minimum=window.matchMedia('(max-width:699px)').matches?.20:.4;
+ const minimum=window.matchMedia('(max-width:699px)').matches ? 0.20 : 0.4;
  return Math.max(minimum,Math.min(3,Number(value)||1));
 }
 function currentProtocolPage(){
