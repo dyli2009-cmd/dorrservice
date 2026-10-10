@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.42** (textverktyg utan webbläsarpopup, formatering direkt på ritningen: färg, storlek, fetstil, ram, bakgrund och pilfärg/-tjocklek). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.43**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.43** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.44**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.43
+
+Den inbyggda webbläsar-popupen `window.confirm` på **↻ Uppdatera** har ersatts av appens egen formgivna dialog med knapparna **Uppdatera och fortsätt**, **Spara PDF först**, **Avbryt · fortsätt arbeta**. Dialogen förklarar lokal arbetskopia kontra färdig PDF. När användaren godkänt omladdning tar v36.43 en aktuell projektsnapshot, inväntar IndexedDB-sparning och käll-PDF-cache och återställer projektet automatiskt *utan ytterligare webbläsarfråga* efter laddning. Vid sparfel stoppas uppdateringen och arbetet lämnas kvar. Se [SMARTMATCH_TEST_V36_43.md](SMARTMATCH_TEST_V36_43.md). Ordinarie app orörd.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.42
 
