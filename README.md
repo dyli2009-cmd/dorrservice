@@ -2,6 +2,10 @@
 
 > **Viktigt före ändringar:** Läs [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md). Där finns regler för modulgränser, versionshantering och hur Kontrollflöde/Projektflöde ska hållas separerade.
 
+## Fortsätt senaste SmartMatch-arbetet
+
+**Starta här:** [SMARTMATCH_FORTSATTNING_2026-10-10.md](SMARTMATCH_FORTSATTNING_2026-10-10.md) – uppdaterad överlämning med beslut om PDF som projektfil, senaste TEST-versionen, 17 dörrautomatiker, Dropbox-buggen, tester och förslag på nästa steg.
+
 ## SmartMatch – sparade planer
 
 - [SmartMatch TEST v36 – Koppla dörrautomatik direkt i ritningsvyn](SMARTMATCH_TEST_V36.md) – analysera efter att du öppnat PDF, eller koppla manuellt.

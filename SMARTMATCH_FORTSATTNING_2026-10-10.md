@@ -1,0 +1,70 @@
+# SMARTMATCH – FORTSÄTT HÄR NÄSTA GÅNG
+
+**Senast uppdaterad:** 2026-10-10  
+**Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
+**Repo:** `dyli2009-cmd/tillsyno`  
+**Senaste bekräftat publicerade:** **SmartMatch TEST v36.31**. Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.32**.  
+**Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
+**Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## 1. Beslutat – det vi INTE ska behöva diskutera om
+
+1. **Själva PDF-filen är projektets sanningskälla.** Alla projektändringar ska följa med när filen sparas, delas och öppnas igen i valfri webbläsare/enhet. Gammal lokal historik i Chrome/Safari får ALDRIG tyst skriva över PDF:ens tillstånd.
+2. **Dörrautomatiker ingår i projektet.** Objekt/ID, modell, serienummer, sida, PDF-koordinater, storlek/placering, manuella GS-kopplingar/pilar, revisionens checklistor, status, anmärkningar, signatur/övrigt som stöds, SLR-/dokumentstatus och projektuppgifter ska återställas.
+3. **Dörrkort/GS ska fortsätta fungera oförändrat** inklusive "första ID-raden på dörrkortet först" och exakt matchning mot ritning. Befintliga kontrollpunkter, arbetsresultat, markeringar, egna punkter, anteckningar och projektlogga ska bevaras.
+4. **Samma fil fungerar för flera tekniker, sekventiellt.** Tekniker A sparar PDF; tekniker B öppnar den, gör ändringar och sparar en *nyare filversion*; A öppnar denna uppdaterade fil och ser B:s status. Detta kräver att A faktiskt öppnar B:s exporterade fil – automatisk realtidssynk är **inte** byggd.
+5. **Sparningen måste kunna verifieras.** Innan export: kontrollera att skapad PDF verkligen innehåller förväntat antal automatiker, GS-kopplingar, checklistsvar, koordinater och full projektpayload. Visa tydlig avvikelse i stället för att påstå att allt är sparat.
+6. **Bevara samma ursprungliga PDF-filnamn som förvalt exportnamn**, men skriv inte över enda fungerande original under test. Dropbox/iPad ska helst ge **en enda .pdf**, ingen extra textfil för delningstitel/revisionsprotokoll.
+7. **Laddningsvy:** 0–100 % efter verkliga arbetssteg, korta varierade kollegaskämt ungefär var sjätte sekund, längre skämt när tung PDF står still länge och en försiktig ETA. Utseendet och skämtfunktionen ska inte påverka scanners.
+8. **Inga kundritningar, hemliga ID-listor, säkerhetskänsliga bilagor eller API-nycklar i offentliga GitHub-repot.**
+
+## 2. Senaste byggda TEST-versioner
+
+| Version | Faktisk ändring | Status |
+| --- | --- | --- |
+| v36.26 | Första laddningsprocenten och skämt under skanning | Byggd |
+| v36.27 | 30 roterande kollegaskämt | Byggd |
+| v36.28 | 60 korta + 24 längre, ca 6 sek, ungefärlig ETA | Byggd |
+| v36.29 | Återställde äldre DA-skanner från v36.23 och tog bort tidig rensning av automatiker vid PDF-läsning | Byggd; verklig DA-återläsning inte slutverifierad |
+| v36.30 | PDF blir auktoritativ, browser-local projektdata får inte överstyra; komplett metadata + läs-tillbaka-validering innan export | Byggd; **manuellt återöppningstest med riktig PDF återstår** |
+| **v36.31** | iPad/iOS-delning till Dropbox skickar enbart PDF-filer, utan `title`/`text` som kan bli extra textfil | **Publicerad; verifiera manuellt i Dropbox på iPad** |
+
+v36.31 publicerad via GitHub Pages. Läs även `SMARTMATCH_TEST_V36_30.md` och `SMARTMATCH_TEST_V36_31.md` före kodarbete. Produktionen och TestFlight har INTE publicerats som en del av detta.
+
+## 3. Konkreta problem och osäkerheter
+
+- **DA försvinner vid överföring mellan webbläsare/filer.** Tidigare kunde användaren se **17 automatiker i Chrome** men **0 i Safari**, och en lokalt sparad PDF gav 0 även vid nyöppning i Chrome. Mest sannolikt: 17 låg i Chromes gamla lokala projekthistorik eller exporterades inte med; det är ännu inte bevisat om aktuell v36.30/31 löser hela scenariot med *riktig PDF*. **Påstå inte att buggen är slutligt löst innan återöppningstest har passerat.**
+- **Migration från gammal lokal Chrome-status är kritisk:** v36.30/31 läser avsiktligt inte den gamla historiken. Om 17 enbart finns i en äldre webbläsares localStorage kan de gå förlorade vid övergång till den nya PDF-first-vyn. Behåll originalet och den fungerande Chrome-sessionen! Om 17 bara syns i äldre v36.29, öppna då den **sparade sessionen i v36.29**, exportera *en kopia* till PDF och verifiera att det står 17 i v36.30/31:s exportkontroll/återöppning. Om migration inte fungerar, implementera ett **separat och användarbekräftat "Importera äldre lokal projektstatus"**-flöde som aldrig automatiskt skriver över filen.
+- **Dropbox/iPad extra textfil:** v36.31 tog bort `title` och `text` från iOS-delning och skickar bara `files`; **inte manuellt bekräftat** att Dropbox nu enbart får PDF. Testa specifikt revisionsprotokoll → Spara lokalt → Dropbox, samt hel projekt-PDF → Spara lokalt → Dropbox.
+- **Projekt-PDF och enskild revisions-PDF är två olika exporter.** En egenkontrolls knapp heter numera **Klart**, som stänger redigeringen; för komplett projektinformation ska man välja **PDF → granska/verifiera → Spara lokalt/Spara som**. Utveckla gärna tydligare förklaring där för att undvika handhavandefel.
+- **Samtidiga ändringar är inte automatiskt sammanfogade.** PDF-first stödjer sekventiell överlämning, inte parallell säkrad synk. Cloud-integration, låsning och konfliktflöde är endast plan i `SMARTMATCH_SAMARBETE_OFFLINE_PLAN.md`.
+
+## 4. Starta nästa arbetspass – kort testchecklista
+
+1. Fråga först användaren om resultaten från iPad/Chrome/Safari och bekräfta **vilket filnamn och vilken exakt PDF-kopia** som öppnades. Be inte om känsliga ritningar i public GitHub.
+2. Kontrollera repo `main`, `DEVELOPMENT_RULES.md`, versionsmärkt TEST-HTML och GitHub Pages-deploy. Vid denna överlämning: v36.31, nästa v36.32.
+3. Använd en **kopia** av känd PDF med 17 automatiker. Öppna i Chrome, se 17 i DA-listan. Välj **PDF → granska**, kontrollera att "Verifierad projekt-PDF" visar 17 (inte 0), spara en ny PDF. Öppna exakt ny sparad fil i Chrome och Safari/iPad. Kontrollera 17 positioner, dörrkort, GS-pilar, revisionsstatus och anmärkningar.
+4. Öppna filen i en annan webbläsare med gammal lokal historik, testa att PDF-innehållet bestämmer. Låt kollega ändra en kontrollpunkt/placering och exportera reviderad PDF; öppna den på den första enheten.
+5. Testa iPad → Dropbox: spara enskilt revisionsprotokoll och hel projekt-PDF. Kontrollera att båda sparas som korrekt **.pdf** och **inte skapar separat .txt-fil**.
+6. Om verkligt återöppningstest misslyckas: undersök PDF metadata `TillsynoSmartMatchV36Data` och `TillsynoSmartMatchV30Data`, `makeProjectPayload`, `buildPortableProjectPdf`, `verifyPortableProjectPdf`, `readEmbeddedProjectState`, `buildInstances`, `automationItems` i versionsfilen. Skapa nästa version endast för verifierad orsak; lämna tidigare TEST-filer intakta.
+7. Vid framgång: notera verifierad version/resultat i detta dokument och bestäm därefter nästa utvecklingsuppgift med användaren.
+
+## 5. Prioriterade idéer för efter testet
+
+**P0 – Datatrygghet:** Säker import av äldre lokal Chrome-data när PDF saknar automatiska positioner (endast efter tydlig bekräftelse), varna om sparad PDF har 0 automatiker fast projektet innehåller 17, markera om ändringar finns som ännu inte exporterats. Visa tydlig status "Sparat i PDF" kontra "Osparat arbete", och enklare filverifiering.
+
+**P1 – PDF och återupptagning:** Snabbare öppning av färdiga PDF-projekt utan onödig full omskanning av redan sparade positioner; kontrollera att gamla koordinater fortfarande gäller; bättre hantering av stora PDF (30 MB+) och skarp zoom på iPad/iPhone, med stegvis skanning enbart där PDF:n verkligen ändrats.
+
+**P2 – Arbetsflöde för tekniker:** Smidig koppling "ritning ↔ dörrkort ↔ DA-revision/SLR" med en enkel knapp för manuell omkoppling när ritningen ändras; selektera många dörrar/egenkontroller och markera klara; tydlig projekt-/revisionshistorik (vem ändrade vad och när) och förhandsgranskning av vad kunden får.
+
+**P3 – Samarbete/säkerhet:** Designa delat projekt med offlinekö, projekt-/dörrversions-ID, individuell dörrlåsning online, ändringslogg, synkstatus och konfliktbeslut hos arbetsledare. Läs `SMARTMATCH_SAMARBETE_OFFLINE_PLAN.md`. **Inte implementerat, inget beslut om molnleverantör och inga externa kundfiler ska skickas utan uttryckligt godkännande.**
+
+## 6. Så ska nästa ChatGPT-pass starta
+
+Öppningsfras för fortsatt arbete:
+
+> Vi fortsätter SmartMatch från `SMARTMATCH_FORTSATTNING_2026-10-10.md` i GitHub-repot `dyli2009-cmd/tillsyno`. Kolla senaste versionen och noteringarna. Börja med 17-automatikers återöppningstest och Dropbox-textfilen innan nya funktioner byggs.
+
+**Versionsdisciplin:** Se alltid `DEVELOPMENT_RULES.md`. Ändra aldrig ordinarie TestFlight/Kontrollflöde utan nytt godkännande. Nästa TEST efter bekräftad v36.31 = v36.32. Behåll fasta `project-workspace-smartmatch-test.html` vid varje funktionspublicering.
+
+**Påminnelse:** Användaren har bett om en framtida påminnelse och idéer när arbetet återupptas; **ingen tid är angiven och ingen automation har skapats**. Fråga om önskat datum/klockslag för en verklig notifiering.
