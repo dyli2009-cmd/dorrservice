@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.40** (renare skanningsruta: inga ungefärliga sekunder eller förklaring under skämt, större skämttext). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.41**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.41** (revisionsvy med Klart/Kundmall, borttaget synligt Anläggning / objekt och enradsrubriker 1.5/1.12). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.42**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.41
+
+Revision dörrautomatik har nu bara synliga primära åtgärderna **Klart** och **Kundmall** (samt × för att stänga); separat Spara lokalt/Skicka mejl döljs också i kundmallens preview. **Klart** inväntar att lokalt utkast skrivs färdigt innan revisionen stängs, med felmeddelande om lagringen misslyckas; ingen PDF-filsparning sker automatiskt. Anläggning / objekt-fältet med placeholder Snidaren tas bort från formuläret utan att radera tidigare sparat projektnamn/PDF-metadata. Punkt 1.5 och 1.12 får kortare visningstexter på en rad, fullständiga texter bevaras i PDF-protokollet. Se [SMARTMATCH_TEST_V36_41.md](SMARTMATCH_TEST_V36_41.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.40
 
