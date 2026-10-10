@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste bekräftat publicerade:** **SmartMatch TEST v36.31**. Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.32**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.32** (mobil-/sparförbättringar, kräver manuell mobilkontroll). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.33**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.32
+
+Användaren godkände mobilkompakt huvudmeny, gemensam Spara-meny med projekt/protokoll, kort filstorleksanalys, protokollfilter och autosparat lokalt utkast. Implementationen dokumenteras i [SMARTMATCH_TEST_V36_32.md](SMARTMATCH_TEST_V36_32.md). Fortsätt med manuella test enligt detta dokument; v36.31 kvar som referens.
 
 ## Ny återkoppling från användaren
 
@@ -48,7 +52,7 @@ v36.31 publicerad via GitHub Pages. Läs även `SMARTMATCH_TEST_V36_30.md` och `
 ## 4. Starta nästa arbetspass – kort testchecklista
 
 1. Fråga först användaren om resultaten från iPad/Chrome/Safari och bekräfta **vilket filnamn och vilken exakt PDF-kopia** som öppnades. Be inte om känsliga ritningar i public GitHub.
-2. Kontrollera repo `main`, `DEVELOPMENT_RULES.md`, versionsmärkt TEST-HTML och GitHub Pages-deploy. Vid denna överlämning: v36.31, nästa v36.32.
+2. Kontrollera repo `main`, `DEVELOPMENT_RULES.md`, versionsmärkt TEST-HTML och GitHub Pages-deploy. Efter v36.32: nästa v36.33.
 3. Använd en **kopia** av känd PDF med 17 automatiker. Öppna i Chrome, se 17 i DA-listan. Välj **PDF → granska**, kontrollera att "Verifierad projekt-PDF" visar 17 (inte 0), spara en ny PDF. Öppna exakt ny sparad fil i Chrome och Safari/iPad. Kontrollera 17 positioner, dörrkort, GS-pilar, revisionsstatus och anmärkningar.
 4. Öppna filen i en annan webbläsare med gammal lokal historik, testa att PDF-innehållet bestämmer. Låt kollega ändra en kontrollpunkt/placering och exportera reviderad PDF; öppna den på den första enheten.
 5. Testa iPad → Dropbox: spara enskilt revisionsprotokoll och hel projekt-PDF. Kontrollera att båda sparas som korrekt **.pdf** och **inte skapar separat .txt-fil**.
