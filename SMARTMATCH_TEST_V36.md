@@ -30,3 +30,11 @@
 - Uppdaterade cacheversionsparametrar för JS till `36-2` så telefon/iPad laddar om korrigerad kod.
 - Ingen ändring i tidigare v35-snapshot. Ingen schemaändring eller rensning av sparade projekt.
 - Kontroll: JS-syntax och HTML-ID kontrollerade. Praktiskt test med användarens riktiga PDF på iPad återstår.
+
+## v36-3 – rättad PDF-skanning och initieringsordning (2026-10-10)
+- Rättat JavaScript-fel `Cannot access 'pmPointer' before initialization`: `pmPointer` initialiseras nu tidigt innan några PDF-filer kan analyseras.
+- Dörrautomatikmodulens `init` sker **efter** den vanliga SmartMatch-skanningen och rendering av GS-positioner, inte vid sidans uppstart.
+- Om dörrautomatikmodulen saknas eller får fel under initiering skrivs en varning, men det tidigare GS-/dörrkortflödet fortsätter.
+- Den vanliga filuppladdningen, dörrkortsskanningen, ID-positioneringen och PDF-projektlogiken behålls.
+- Ny JS-cacheversion `v=36-3` för att undvika äldre mobilcache.
+- Ingen förändring av PDF-projektstatus eller v35-snapshots. Kodens syntax kontrollerad; iPad-test med användarens PDF återstår.

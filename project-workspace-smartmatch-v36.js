@@ -1,6 +1,9 @@
 (() => {
 'use strict';
 let manualPositions=[],positionEdits={},placement=null;
+// Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
+let pmPointer=null,pmSuppressClickUntil=0;
+let smartDAInitialized=false;
 const LAB_PREFIX='tillsyno-smartmatch-v35:v1:';
 const labStorage={
  getItem:key=>localStorage.getItem(LAB_PREFIX+String(key)),
@@ -4005,6 +4008,8 @@ async function analyze(file){
  else setState('SmartMatch TEST v36: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
+ // Scanning and original GS positions are completely finished before optional DA tool starts.
+ smartDAInitAfterScan();
  document.getElementById('smartPdfInspect').disabled=false;
  requestAnimationFrame(fitDrawing);
  }finally{
@@ -4138,18 +4143,30 @@ el.selfcheckSelectDone.onclick=()=>{el.selfcheckExportList.querySelectorAll('inp
 el.selfcheckExportCreate.onclick=exportSelectedSelfchecks;
 
 el.toolMenuButton.onclick=toggleToolMenu;
-if(window.SmartMatchDALink?.init)window.SmartMatchDALink.init({
- getPdf:()=>pdf,getPage:()=>page,getScale:()=>scale,getPositions:()=>instances,getItems:()=>automationItems,
- getModels:()=>PROJECT_AUTOMATION_MODELS,getDrawingLimit:()=>scanPageLimit(),readPageText,
- groupRows:groupTextRowsForAutomation,itemsForText:itemsForStructuredAutomationId,
- rectForItems:rectForTextItems,viewportRect,looksLikeProtocol:looksLikeAutomationProtocolPage,
- addItem:(o,render=true)=>{automationItems.push(o);if(render){save();renderAutomationMarkers();renderGroups()}},
- save,redraw:()=>{renderAutomationMarkers();renderGroups()},setStatus,
- openRevision:openAutomationProtocol,closeRevision:closeAutomationProtocol,
- selectedRevision:()=>selectedAutomation(),
- exportRevision:o=>{const document=createAutomationSelfcheckPdf(o);document.save(automationDisplayId(o).replace(/[^a-zA-Z0-9_-]/g,'_')+'-revision.pdf')}
-});
-else console.error('[SmartMatch TEST v36] Dörrautomatikmodulen kunde inte laddas. PDF-inläsningen fortsätter.');
+function smartDAInitAfterScan(){
+ if(smartDAInitialized)return;
+ if(!window.SmartMatchDALink?.init){
+  console.warn('[SmartMatch TEST v36] Dörrautomatikmodul saknas. Vanlig SmartMatch-scanning påverkas inte.');
+  return;
+ }
+ try{
+  window.SmartMatchDALink.init({
+   getPdf:()=>pdf,getPage:()=>page,getScale:()=>scale,getPositions:()=>instances,getItems:()=>automationItems,
+   getModels:()=>PROJECT_AUTOMATION_MODELS,getDrawingLimit:()=>scanPageLimit(),readPageText,
+   groupRows:groupTextRowsForAutomation,itemsForText:itemsForStructuredAutomationId,
+   rectForItems:rectForTextItems,viewportRect,looksLikeProtocol:looksLikeAutomationProtocolPage,
+   addItem:(o,render=true)=>{automationItems.push(o);if(render){save();renderAutomationMarkers();renderGroups()}},
+   save,redraw:()=>{renderAutomationMarkers();renderGroups()},setStatus,
+   openRevision:openAutomationProtocol,closeRevision:closeAutomationProtocol,
+   selectedRevision:()=>selectedAutomation(),
+   exportRevision:o=>{const document=createAutomationSelfcheckPdf(o);document.save(automationDisplayId(o).replace(/[^a-zA-Z0-9_-]/g,'_')+'-revision.pdf')}
+  });
+  smartDAInitialized=true;
+ }catch(err){
+  console.error('[SmartMatch TEST v36] Kunde inte initiera dörrautomatikverktyg, men PDF är inläst.',err);
+ }
+}
+
 document.querySelector('.pwToolbar')?.addEventListener('scroll',positionToolMenu,{passive:true});
 window.addEventListener('resize',positionToolMenu);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el.toolMenu.hidden)closeToolMenu()});
@@ -4280,7 +4297,6 @@ $('pmLink').onclick=async()=>{
  if(!pdf||!code||!Number.isInteger(n)||n<1||n>pdf.numPages){pmHelp('Ange beteckning och en giltig dörrkortssida i PDF:en.');return}
  labManualLinks[code]=n;await buildProtocolMap();protocolDefs={};await recalcAll();pmHelp(code+' kopplad till sida '+n+'. Kontrollera dörrkortet innan du börjar bocka av.');
 };
-let pmPointer=null,pmSuppressClickUntil=0;
 el.stage.addEventListener('pointerdown',e=>{
  if(!placement)return;e.stopImmediatePropagation();e.preventDefault();
  if(pmPointer){pmPointer=null;pmHelp('Placera med ett finger.');return}
