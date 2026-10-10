@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.37** (horisontell PDF-stämpel 100% som kompenserar sidrotation rätt; kräver test med verklig ritning). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.38**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.38** (PDF-export: procenten placeras i samma synliga koordinater som GS och undviker krockar med grannpositioner, kräver riktig PDF-test). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.39**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.38
+
+PDF-status låg för långt från rätt GS-ritningsposition, särskilt på roterade ark. Exporten använder nu motsvarande PDF.js-displaykoordinater inklusive CropBox och /Rotate för att fästa procent inom ett fåtal punkter från exakt GS-rect. Markeringskrockar jämförs med övriga GS och redan placerade etiketter, väljer närmaste lediga sida, ledarlinje om längre än 6 pt. Se [SMARTMATCH_TEST_V36_38.md](SMARTMATCH_TEST_V36_38.md). v36.37 kvar.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.37
 
