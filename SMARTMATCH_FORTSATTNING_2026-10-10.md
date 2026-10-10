@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.48** (originalprotokoll till vänster och avbockningsbara kontrollpunkter till höger på mobil, 50/50). Nästa funktionsversion är **TEST v36.49**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.49** (delad mobilvy endast när ett matchat dörrkort öppnas, korrekt dold när dialogen stängs, mindre text och ikoner). Nästa funktionsversion är **TEST v36.50**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.49
+
+Föregående mobilprotokoll v36.48 kunde synas **hela tiden** eftersom `display:flex!important` gavs åt en stängd HTML-dialog. Det är rättat: `pwProtocol` döljs tvingande utan `[open]`. Den delade jämförelsen har nu en separat `pwCardCompareMode` som endast sätts av `openProtocol` när faktiskt dörrkort är kopplat till GS/positionen och tas bort vid stängning. Samtidigt har mobilens rubriker, zoomknappar, ikon-/textstorlek, kontroller och åtgärdsrader komprimerats. 22 px kryssrutor och hela klickbara punktrader kvar. Det är enbart **SmartMatch TEST**; ordinarie app, iOS och PDF-export oförändrade. Se [SMARTMATCH_TEST_V36_49.md](SMARTMATCH_TEST_V36_49.md). Fysisk iPhone/iPad-test återstår.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.48
 
