@@ -2021,24 +2021,24 @@ body.pwDAManualBody{overscroll-behavior:none}
   border-radius:0!important;
   overflow:hidden!important;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeHeader{
+ .pwProtocol.pwCardCompareMode .pwProtocolHeader{
   flex:0 0 auto;
   min-height:42px;
   padding:5px 6px;
   gap:4px!important;
   grid-template-columns:auto minmax(0,1fr) auto auto!important;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeHeader #pwBack{font-size:9px!important;min-height:31px;padding:4px 5px!important;white-space:nowrap}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeIdentity{min-width:0!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeIdentity>span,
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeIdentity>small{display:none!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeIdentity>strong{font-size:12px!important;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeProgress{min-width:35px}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeProgress>strong{font-size:11px!important;min-width:30px}
+ .pwProtocol.pwCardCompareMode .pwProtocolHeader #pwBack{font-size:9px!important;min-height:31px;padding:4px 5px!important;white-space:nowrap}
+ .pwProtocol.pwCardCompareMode .pwProtocolIdentity{min-width:0!important}
+ .pwProtocol.pwCardCompareMode .pwProtocolIdentity>span,
+ .pwProtocol.pwCardCompareMode .pwProtocolIdentity>small{display:none!important}
+ .pwProtocol.pwCardCompareMode .pwProtocolIdentity>strong{font-size:12px!important;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ .pwProtocol.pwCardCompareMode .pwProtocolProgress{min-width:35px}
+ .pwProtocol.pwCardCompareMode .pwProtocolProgress>strong{font-size:11px!important;min-width:30px}
  .pwProtocol.pwCardCompareMode #pwProtocolClose{min-width:31px;min-height:31px;padding:0 5px!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeBody,
- .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocol.pwCardCompareModeBody,
- .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocol.pwCardCompareModeBody{
+ .pwProtocol.pwCardCompareMode .pwProtocolBody,
+ .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocolBody,
+ .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocolBody{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
   grid-template-rows:minmax(0,1fr)!important;
@@ -2048,9 +2048,9 @@ body.pwDAManualBody{overscroll-behavior:none}
   min-height:0!important;
   overflow:hidden!important;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeOriginal,
- .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocol.pwCardCompareModeOriginal,
- .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocol.pwCardCompareModeOriginal{
+ .pwProtocol.pwCardCompareMode .pwProtocolOriginal,
+ .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocolOriginal,
+ .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocolOriginal{
   display:flex!important;
   flex-direction:column!important;
   width:auto!important;
@@ -2075,7 +2075,7 @@ body.pwDAManualBody{overscroll-behavior:none}
  .pwProtocol.pwCardCompareMode #pwProtocolShowCard,
  .pwProtocol.pwCardCompareMode #pwProtocolShowGS,
  .pwProtocol.pwCardCompareMode #pwProtocolBackToCard{display:none!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeTools{
+ .pwProtocol.pwCardCompareMode .pwProtocolTools{
   display:flex!important;
   flex-direction:column!important;
   align-items:stretch!important;
@@ -2084,9 +2084,9 @@ body.pwDAManualBody{overscroll-behavior:none}
   padding:5px 4px!important;
   flex:0 0 auto;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeToolTitle{display:block;min-width:0}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeTools strong{display:block;font-size:10px!important;line-height:1.25}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeZoomTools{
+ .pwProtocol.pwCardCompareMode .pwProtocolToolTitle{display:block;min-width:0}
+ .pwProtocol.pwCardCompareMode .pwProtocolTools strong{display:block;font-size:10px!important;line-height:1.25}
+ .pwProtocol.pwCardCompareMode .pwProtocolZoomTools{
   display:flex!important;
   justify-content:space-between!important;
   flex-wrap:nowrap!important;
@@ -2094,7 +2094,7 @@ body.pwDAManualBody{overscroll-behavior:none}
   gap:2px!important;
   width:100%;max-width:100%;overflow:hidden!important;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeZoomTools button{
+ .pwProtocol.pwCardCompareMode .pwProtocolZoomTools button{
   flex:0 0 auto;
   min-width:27px!important;min-height:34px!important;
   padding:3px 3px!important;
@@ -2103,7 +2103,7 @@ body.pwDAManualBody{overscroll-behavior:none}
  .pwProtocol.pwCardCompareMode #pwProtocolFit{min-width:41px!important;font-size:10px!important}
  .pwProtocol.pwCardCompareMode #pwProtocolMax{display:none!important}
  .pwProtocol.pwCardCompareMode #pwProtocolZoomInfo{flex:0 1 auto;min-width:23px!important;font-size:9px!important;text-align:center}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeCanvasWrap{
+ .pwProtocol.pwCardCompareMode .pwProtocolCanvasWrap{
   flex:1 1 auto;
   min-width:0!important;min-height:0!important;
   width:100%!important;
@@ -2175,25 +2175,24 @@ body.pwDAManualBody{overscroll-behavior:none}
   flex:1 1 auto;
  }
  .pwProtocol.pwCardCompareMode .pwChecklistHeading{font-size:9px!important;padding:5px!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeMissing{inset:4px!important;padding:5px}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeMissing strong{font-size:10px!important}
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeMissing p{font-size:9px!important}
+ .pwProtocol.pwCardCompareMode .pwProtocolMissing{inset:4px!important;padding:5px}
+ .pwProtocol.pwCardCompareMode .pwProtocolMissing strong{font-size:10px!important}
+ .pwProtocol.pwCardCompareMode .pwProtocolMissing p{font-size:9px!important}
 }
 @media(min-width:700px) and (max-width:1100px){
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeBody,
- .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocol.pwCardCompareModeBody,
- .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocol.pwCardCompareModeBody{
+ .pwProtocol.pwCardCompareMode .pwProtocolBody,
+ .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocolBody,
+ .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocolBody{
   grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
   grid-template-rows:minmax(0,1fr)!important;
  }
- .pwProtocol.pwCardCompareMode .pwProtocol.pwCardCompareModeOriginal,
- .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocol.pwCardCompareModeOriginal,
- .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocol.pwCardCompareModeOriginal{display:flex!important;min-width:0!important}
+ .pwProtocol.pwCardCompareMode .pwProtocolOriginal,
+ .pwProtocol.pwCardCompareMode.pwMobileCard .pwProtocolOriginal,
+ .pwProtocol.pwCardCompareMode.pwMobileChecks .pwProtocolOriginal{display:flex!important;min-width:0!important}
  .pwProtocol.pwCardCompareMode .pwChecklistPane,
  .pwProtocol.pwCardCompareMode.pwMobileCard .pwChecklistPane,
  .pwProtocol.pwCardCompareMode.pwMobileChecks .pwChecklistPane{display:block!important;min-width:0!important}
 }
-
 /* v36.49: a closed HTML <dialog> must NEVER be visible. Previous v36.48
    mobile display:flex!important bypassed the browser's closed-dialog style. */
 dialog#pwProtocol:not([open]){display:none!important}
