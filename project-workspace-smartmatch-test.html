@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Projektflöde SmartMatch – TEST v36.50</title>
+<title>Projektflöde SmartMatch – TEST v36.51</title>
 
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
@@ -377,7 +377,7 @@
 }
 
 </style>
-<link rel="stylesheet" href="project-workspace-smartmatch-v36-49.css?v=36-49">
+<link rel="stylesheet" href="project-workspace-smartmatch-v36-51.css?v=36-51">
 </head>
 <body class="pwStartMode">
 <header class="pwHeader">
@@ -385,7 +385,7 @@
   <div class="pwTitle">
     <strong>SmartMatch</strong>
     <div class="pwReleaseLine" aria-label="Programversion och uppdatering">
-      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.50" title="Appversion som finns i denna sida">TEST v36.50</span>
+      <span id="pwBuildVersion" class="pwTitleVersion" data-build="36.51" title="Appversion som finns i denna sida">TEST v36.51</span>
       <button id="pwRefreshBuild" class="pwRefreshBuild" type="button" title="Hämta senaste SmartMatch-uppdateringen" aria-label="Uppdatera SmartMatch till senaste versionen">↻ Uppdatera</button>
     </div>
     <small class="smHeaderSubtitle" aria-hidden="true">Projektflöde</small>
@@ -445,7 +445,7 @@
   <input id="smartCardsFile" type="file" accept="application/pdf,.pdf" multiple hidden>
 </div>
 <section class="pwProjectBar">
-  <button id="pwFinishProject" type="button" class="smFinishProject" title="Spara lokalt och avsluta aktuellt projekt" aria-haspopup="dialog">✓ Avsluta</button>
+  <button id="pwFinishProject" type="button" class="smFinishProject" title="Stäng ritningen och välj en ny PDF">Stäng ritning</button>
   <div class="pwFileInfo">
     <div class="pwFileHeadline"><strong id="pwFileName">Ingen projektfil</strong><span id="pwPlanTag" class="pwPlanTag" title="Läst från ritningens stämpel" aria-live="polite" hidden></span></div>
     <span id="pwDraftStatus" class="smDraftStatus" role="status" aria-live="polite" hidden></span>
@@ -828,7 +828,7 @@
 </dialog>
 <dialog id="labDiagnosticDialog" class="labDiagnosticDialog smartReportsDialog" aria-labelledby="labDiagnosticTitle">
  <div class="labDiagnosticHead">
-  <div><small>SMARTMATCH · TEST v36.50</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
+  <div><small>SMARTMATCH · TEST v36.51</small><h2 id="labDiagnosticTitle">Analys & rapporter</h2></div>
   <div class="smartReportHeadActions"><button id="smartReportFontMinus" type="button" aria-label="Minska textstorleken">A−</button><button id="smartReportFontPlus" type="button" aria-label="Öka textstorleken">A+</button><button id="labDiagnosticClose" type="button" aria-label="Stäng analysvyn">×</button></div>
  </div>
  <div id="smartPdfPageCounts" class="smartPdfPageCounts">Öppna en PDF för att se ritningar och dörrkort.</div>
@@ -896,18 +896,17 @@
 
 <dialog id="pwFinishDialog" class="smFinishDialog" aria-labelledby="pwFinishTitle">
  <div class="smFinishHead">
-  <div><span>PROJEKTVÄXLING</span><strong id="pwFinishTitle">Avsluta projekt</strong></div>
+  <div><strong id="pwFinishTitle">Säkerhetskopia misslyckades</strong></div>
   <button id="pwFinishDialogClose" type="button" aria-label="Fortsätt arbeta">×</button>
  </div>
  <div class="smFinishBody">
-  <strong id="pwFinishFileName">Aktuellt projekt</strong>
-  <p>Arbetet kan sparas lokalt på den här enheten. Sedan öppnas startsidan, där du kan välja en ny PDF eller fortsätta ett tidigare projekt.</p>
-  <p class="smFinishNote">Lokal sparning är inte samma sak som att spara en färdig PDF i Filer eller Dropbox. Vill du ha en PDF-kopia, välj <b>Spara projekt-PDF</b> först.</p>
+  <strong id="pwFinishFileName">Aktuell ritning</strong>
+  <p>Du kan spara PDF-filen först eller stänga ritningen ändå.</p>
   <p id="pwFinishStatus" role="status" aria-live="polite" hidden></p>
   <div class="smFinishActions">
-   <button id="pwFinishCancel" type="button">Fortsätt arbeta</button>
-   <button id="pwFinishExport" type="button">Spara PDF först</button>
-   <button id="pwFinishConfirm" type="button" class="smFinishPrimary">✓ Spara lokalt och avsluta</button>
+   <button id="pwFinishCancel" type="button">Fortsätt</button>
+   <button id="pwFinishExport" type="button">Spara PDF</button>
+   <button id="pwFinishConfirm" type="button" class="smFinishPrimary">Stäng ändå</button>
   </div>
  </div>
 </dialog>
@@ -944,7 +943,7 @@
  <p class="smSaveReminder">Projektfilen innehåller ritning, märkningar och arbetsresultat. Välj sedan var den ska sparas.</p>
 </dialog>
 <script src="smartmatch-da-v36-46-module.js?v=36-46"></script>
-<script src="project-workspace-smartmatch-v36-50.js?v=36-50"></script>
+<script src="project-workspace-smartmatch-v36-51.js?v=36-51"></script>
 <script src="smartmatch-protocol-export-v36-47.js?v=36-47"></script>
 <script src="smartmatch-session-v36-46.js?v=36-46"></script>
 
