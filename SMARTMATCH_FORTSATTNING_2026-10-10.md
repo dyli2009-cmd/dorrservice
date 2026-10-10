@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.50** (rättade tidsmallar, 179-utrymningsbehör utan påhittad tid, endast närvarande arbetsmoment i tidsöversikten, app-/projektinställningar). Nästa funktionsversion är **TEST v36.51**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.51** (kompaktare mobilikoner/text, ett tryck på Stäng ritning återgår till öppna-PDF-sidan, lokal säkerhetskopia i bakgrunden). Nästa funktionsversion är **TEST v36.52**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-11: SmartMatch TEST v36.51
+
+Telefonens synliga ikoner, rubriker, filrad, ritningsverktyg och nedersta sid-/zoomknappar är mindre för att frigöra ritningsyta. **✓ Avsluta** har bytts till **Stäng ritning**. Nu behövs normalt bara **ett tryck** för att tyst arkivera en lokal arbetskopia, stänga ritningen och återvända till **startsidan där man öppnar en ny PDF**. Ingen teknisk ”Avsluta projekt”-dialog vid lyckat förlopp. Vid misslyckad lokal arkivering stannar PDF öppen och en kort felruta erbjuder **Fortsätt, Spara PDF, Stäng ändå**. Efter lyckat avslut återställs projektväxlingsspärren innan listan med lokala projekt uppdateras. *Lokal arkivering är inte samma sak som att Filer/Dropbox-PDF uppdateras.* Se [SMARTMATCH_TEST_V36_51.md](SMARTMATCH_TEST_V36_51.md). Simulerade success-/feltester och statisk kodvalidering godkända; fysisk mobiltest återstår. Kontrollflöde, ordinarie app och iOS/TestFlight är orörda.
 
 ## Uppdatering 2026-10-11: SmartMatch TEST v36.50
 
