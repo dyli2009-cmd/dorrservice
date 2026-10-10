@@ -21,3 +21,12 @@
 - Samarbete tre tekniker/offlinesynkronisering är fortfarande endast planerat i `SMARTMATCH_SAMARBETE_OFFLINE_PLAN.md`.
 - Syntax och unika HTML-ID har kontrollerats. Riktig iPad/PDF-test och återimporttest återstår.
 - **Huvudappen Dörrservice, Kontrollflödet och TestFlight är inte ändrade.** v35-filerna är kvar oförändrade.
+
+## v36 korrigering – PDF-filväljaren öppnas igen (2026-10-10)
+
+- Felorsak hittad: `openProjectPdf()` hade ett enda `try/catch` för både `showOpenFilePicker()` och `analyze(file)`. Om PDF-analysen kastade ett fel behandlades det felaktigt som ett filväljarfel, och den vanliga filväljaren öppnades igen.
+- Korrigering: separera valet av fil från PDF-analysen. När en fil valts anropas inte någon ytterligare filväljare automatiskt. Vid fel visas faktiskt felmeddelande istället.
+- Robusthet: om den nya dörrautomatikmodulen misslyckats med att laddas ska grundläggande PDF-inläsning och GS-funktioner inte avbrytas på grund av ett direkt modulupprop.
+- Uppdaterade cacheversionsparametrar för JS till `36-2` så telefon/iPad laddar om korrigerad kod.
+- Ingen ändring i tidigare v35-snapshot. Ingen schemaändring eller rensning av sparade projekt.
+- Kontroll: JS-syntax och HTML-ID kontrollerade. Praktiskt test med användarens riktiga PDF på iPad återstår.

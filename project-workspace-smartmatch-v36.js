@@ -185,23 +185,35 @@ function desktopSavePickerAvailable(){
  return !isNativeIos()&&typeof window.showSaveFilePicker==='function';
 }
 const PDF_FILE_PICKER_TYPES=[{description:'PDF-filer',accept:{'application/pdf':['.pdf']}}];
+function reportProjectOpenError(err,name=''){
+ console.error('[SmartMatch TEST v36] PDF-inläsningen avbröts',name,err);
+ const detail=String(err?.message||err||'Okänt fel').slice(0,600);
+ setState('Kunde inte läsa ritningen'+(name?' '+name:'')+': '+detail);
+ // Make the actual error visible on iPhone/iPad too, rather than appearing
+ // to be a second request to pick the same file.
+ window.alert('SmartMatch kunde inte öppna ritningen.\n\n'+detail+'\n\nFilväljaren öppnas inte igen automatiskt.');
+}
 async function openProjectPdf(){
  if(!isNativeIos()){
   if(desktopOpenPickerAvailable()){
+   let file=null,handle=null,selectionSucceeded=false;
    setState('Öppnar filväljare…');
    try{
     const handles=await window.showOpenFilePicker({multiple:false,types:PDF_FILE_PICKER_TYPES});
-    const handle=handles?.[0];if(!handle){setState('Ingen fil vald.');return}
-    const file=await handle.getFile();
-    smartBaseDrawingFile=file;smartAdditionalCardsFile=null;
-    currentFileHandle=handle;
-    await analyze(file);
-    return;
+    handle=handles?.[0];if(!handle){setState('Ingen fil vald.');return}
+    selectionSucceeded=true;
+    file=await handle.getFile();
    }catch(err){
     if(err?.name==='AbortError'){setState('Ingen fil vald.');return}
-    console.error(err);
-    currentFileHandle=null;
-    setState('Datorns filväljare kunde inte användas. Öppnar vanlig filväljare…');
+    if(selectionSucceeded){reportProjectOpenError(err,handle?.name||'');return}
+    console.warn('[SmartMatch] Datorns filväljare kunde inte användas',err);
+    setState('Öppnar vanlig filväljare…');
+   }
+   if(file){
+    smartBaseDrawingFile=file;smartAdditionalCardsFile=null;
+    currentFileHandle=handle;
+    try{await analyze(file)}catch(err){reportProjectOpenError(err,file.name)}
+    return;
    }
   }
   currentFileHandle=null;
@@ -211,29 +223,28 @@ async function openProjectPdf(){
  }
  currentFileHandle=null;
  if(!nativeFilePickerAvailable()){
-  setState('Native filväljare saknas i den här appversionen. Öppnar vanlig filväljare…');
+  setState('Öppnar vanlig filväljare…');
   el.file.value='';
   el.file.click();
   return;
  }
  const picker=getNativeFilePicker();
  setState('Öppnar Filer…');
+ let file=null;
  try{
   const result=await picker.pickFiles({types:['application/pdf'],limit:1,readData:false});
   const picked=result?.files?.[0];
   if(!picked){setState('Ingen fil vald.');return}
   setState('PDF vald: '+(picked.name||'Projekt.pdf')+' · läser filen…');
   const blob=await blobFromPickedFile(picked);
-  const type=picked.mimeType||blob.type||'application/pdf';
-  const file=new File([blob],picked.name||'Projekt.pdf',{type,lastModified:picked.modifiedAt||Date.now()});
-  smartBaseDrawingFile=file;smartAdditionalCardsFile=null;
-  await analyze(file);
+  file=new File([blob],picked.name||'Projekt.pdf',{type:picked.mimeType||blob.type||'application/pdf',lastModified:picked.modifiedAt||Date.now()});
  }catch(err){
-  const message=String(err?.message||err||'');
-  if(/cancel|dismiss|avbr/i.test(message)){setState('Ingen fil vald.');return}
-  console.error(err);
-  setState('Kunde inte öppna PDF i iOS: '+message);
+  if(/cancel|dismiss|avbr/i.test(String(err?.message||''))){setState('Ingen fil vald.');return}
+  reportProjectOpenError(err);
+  return;
  }
+ smartBaseDrawingFile=file;smartAdditionalCardsFile=null;
+ try{await analyze(file)}catch(err){reportProjectOpenError(err,file.name)}
 }
 function hashBytes(arr){let h=2166136261;const step=Math.max(1,Math.floor(arr.length/50000));for(let i=0;i<arr.length;i+=step){h^=arr[i];h=Math.imul(h,16777619)}return (h>>>0).toString(36)}
 function storageKey(){return 'smartmatch-v35:'+(projectId||fileKey)}
@@ -3274,10 +3285,10 @@ function renderAutomationMarkers(){
    btn.setAttribute('aria-label',btn.title);
    btn.classList.add('pwDAHit');if(!o.linkedGsId)btn.classList.add('pwDAUnlinked');
    const badge=document.createElement('span');badge.textContent=automationDisplayId(o);btn.appendChild(badge);
-   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)window.SmartMatchDALink.openDoor(o)};
+   btn.onclick=e=>{e.preventDefault();e.stopPropagation();if(!bulkSelectMode)(window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o))};
    el.automationMarkers.appendChild(btn);
   });
-  window.SmartMatchDALink.drawArrows(vp,pageItems,renderPage);
+  window.SmartMatchDALink?.drawArrows?.(vp,pageItems,renderPage);
  }).catch(console.error);
 }
 let unlinkedFolderOpen=false;
@@ -3322,7 +3333,7 @@ function renderGroups(){
    const b=document.createElement('button');b.type='button';b.className='pwPosition pwAutomationPosition';
    const left=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
    strong.textContent=automationDisplayId(o);small.textContent='Sida '+o.page+(o.model?' · '+o.model:' · typ ej avläst');pct.textContent=o.progress+'%';
-   left.append(strong,small);b.append(left,pct);b.onclick=()=>window.SmartMatchDALink.openDoor(o);list.appendChild(b);
+   left.append(strong,small);b.append(left,pct);b.onclick=()=>window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o);list.appendChild(b);
   });
   wrap.appendChild(list);el.groups.appendChild(wrap);
  }
@@ -3985,7 +3996,7 @@ async function analyze(file){
  await buildProjectStampMap();
  // Dörrautomatikens märkningar analyseras först när användaren väljer verktyget.
  await recalcAll();
- window.SmartMatchDALink.onProjectOpened();
+ window.SmartMatchDALink?.onProjectOpened?.();
  const gsCodes=[...new Set(stamps.map(s=>s.code))],matchedGsCodes=gsCodes.filter(c=>protocolMap[c]).length,textGsCount=0;
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
@@ -4033,7 +4044,7 @@ document.getElementById('smartCardsFile').onchange=async e=>{
   e.target.value='';
  }catch(err){console.error(err);setState('Kunde inte kombinera PDF-filerna: '+(err?.message||err))}
 };
-el.file.onchange=e=>{const file=e.target.files?.[0];if(file){smartBaseDrawingFile=file;smartAdditionalCardsFile=null;smartImportedCardPages=new Set();currentFileHandle=null;analyze(file).catch(err=>{console.error(err);setState('Projektfilen kunde inte analyseras: '+(err?.message||err))})}};
+el.file.onchange=e=>{const file=e.target.files?.[0];if(!file)return;smartBaseDrawingFile=file;smartAdditionalCardsFile=null;smartImportedCardPages=new Set();currentFileHandle=null;el.file.value='';analyze(file).catch(err=>reportProjectOpenError(err,file.name))};
 el.openProjectEmpty.onclick=openProjectPdf;
 el.saveProject.onclick=toggleSaveMenu;
 el.savePortable.onclick=savePortableProject;
@@ -4127,7 +4138,7 @@ el.selfcheckSelectDone.onclick=()=>{el.selfcheckExportList.querySelectorAll('inp
 el.selfcheckExportCreate.onclick=exportSelectedSelfchecks;
 
 el.toolMenuButton.onclick=toggleToolMenu;
-window.SmartMatchDALink.init({
+if(window.SmartMatchDALink?.init)window.SmartMatchDALink.init({
  getPdf:()=>pdf,getPage:()=>page,getScale:()=>scale,getPositions:()=>instances,getItems:()=>automationItems,
  getModels:()=>PROJECT_AUTOMATION_MODELS,getDrawingLimit:()=>scanPageLimit(),readPageText,
  groupRows:groupTextRowsForAutomation,itemsForText:itemsForStructuredAutomationId,
@@ -4138,6 +4149,7 @@ window.SmartMatchDALink.init({
  selectedRevision:()=>selectedAutomation(),
  exportRevision:o=>{const document=createAutomationSelfcheckPdf(o);document.save(automationDisplayId(o).replace(/[^a-zA-Z0-9_-]/g,'_')+'-revision.pdf')}
 });
+else console.error('[SmartMatch TEST v36] Dörrautomatikmodulen kunde inte laddas. PDF-inläsningen fortsätter.');
 document.querySelector('.pwToolbar')?.addEventListener('scroll',positionToolMenu,{passive:true});
 window.addEventListener('resize',positionToolMenu);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!el.toolMenu.hidden)closeToolMenu()});
