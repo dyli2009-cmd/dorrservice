@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.35** (fasta liggande PDF-statusstämplar bredvid GS, dolda extra stämplar i arbetsritningen; kräver riktig PDF-test). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.36**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.36** (visningskopia utan gamla eller nya PDF-exportstämplar; åtgärdar dubbla 100 % i arbetsritning, kräver riktig PDF-test). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.37**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.36
+
+Användaren såg fortfarande dubbla 100 % på ritningen efter v36.35. Orsaken kan vara tidigare genererade SM35:progress-FreeText. Vid öppning saneras en visningskopia av PDF:en från gamla FreeText och nya genererade progress-strömmar, originalbytes för export bevaras. Se [SMARTMATCH_TEST_V36_36.md](SMARTMATCH_TEST_V36_36.md). Testa omgående med den PDF användaren observerade dubbleringen i.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.35
 
