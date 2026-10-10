@@ -100,3 +100,11 @@
 - Existerande GS-/dörrkortsskanning och grundflödet från v35 är oförändrade. Ingen analys sker förrän teknikern väljer Analysera.
 
 **Kontroll:** JS-parsning av huvud- och modulfilerna, kontroll av HTML-ID, tre märkningar i samma familj och dubbelanalys utan dubbletter, samt GS-val med bekräftelse, ändrad koppling och sparning testade med simulerat PDF/DOM. Verklig test på användarens iPhone/iPad och egen ritning återstår.
+
+## v36.9 – kritisk startkrasch: Öppna projekt-PDF fungerar inte (2026-10-10)
+
+**Orsak hittad:** I v36.8 lades `window.SmartMatchAppBridge` till. Där fanns fältet `setStatus` utan tilldelat värde, men huvudappen har bara den verkliga funktionen `setState`. Den fristående referensen gav `ReferenceError: setStatus is not defined` direkt när huvudskriptet kördes, innan `el.openProjectEmpty.onclick=openProjectPdf` nåddes. Därför var hela startsidan och PDF-knappen oklickbar.
+
+**Korrigering:** Ändrat bryggans fält till `setStatus:setState`. Bibehåller nya familjeanalysen och manuella GS-kopplingen från v36.8 utan att röra scanner, filinläsning, positionsstatus eller PDF-sparlogik. Versionsnummer höjt till **TEST v36.9** med konsekvent cacheparametrar för HTML, JS och CSS.
+
+**Kontroller:** Koden parsar. Bryggans alla fristående funktionsreferenser har verifierats mot verkliga funktionsdeklarationer. Den ursprungliga filknappshanteraren och door-card-first-scannern finns kvar. Praktisk browser-/iPad-verifiering med användarens PDF återstår.
