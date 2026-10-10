@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.45** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.46**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.46** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.47**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.46
+
+Manuell DA-placering på iPhone/iPad: Safari touchpan stoppas lokalt i aktivt läge, krysset placeras 58 px ovanför pekfingret vid touch. Efter drag/släpp kommer en förhandsruta med fyrhörns-handtag (44px hit-area), mittgrepp för flytt, finjusteringsknappar 2px vänster/upp/ned/höger och ± storlek, **Rita om**, **✓ Spara**, **Avbryt**. Inget skapas i projektet före bekräftelse; exakt finjusterad rektangel konverteras då till PDF-koordinater. Datorn använder också valfri finjustering före sparning. Återaktivera vanlig touchscroll efter avslut. Se [SMARTMATCH_TEST_V36_46.md](SMARTMATCH_TEST_V36_46.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.45
 
