@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.49** (delad mobilvy endast när ett matchat dörrkort öppnas, korrekt dold när dialogen stängs, mindre text och ikoner). Nästa funktionsversion är **TEST v36.50**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.50** (rättade tidsmallar, 179-utrymningsbehör utan påhittad tid, endast närvarande arbetsmoment i tidsöversikten, app-/projektinställningar). Nästa funktionsversion är **TEST v36.51**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-11: SmartMatch TEST v36.50
+
+Beslutade montagetider: magnet 30 min, armbågskontakt 30 min, dörrautomatik 8 timmar, dörrstängare 30 min, låshus 20 min, trycke 10 min, slutbleck 10 min, cylinder 20 min och WC-behör 10 min. Ny standardkategori 179 utrymningsbehör hittas i relevanta kontrollpunkter men får **ingen uppskattad tid** förrän den anges. Tidsöversikten visar nu bara **förekommande kategorier** i projektets identifierade kontrollpunkter. Egna per-punktstider har företräde; ändrade standardtider lagras för nästa nytt projekt på samma enhet, och projektets tidsinställning följer med när projekt-PDF sparas. Befintliga PDF-filer med avsiktligt sparade tidinställningar prioriterar dessa. Kort dokumentation och syntetiska testresultat i [SMARTMATCH_TEST_V36_50.md](SMARTMATCH_TEST_V36_50.md). Fysisk iPhone/iPad-test återstår. Ordinarie app/Kontrollflöde/TestFlight är orörda.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.49
 
