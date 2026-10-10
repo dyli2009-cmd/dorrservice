@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.52** (fix för att öppna PDF B efter Stäng ritning – manuell editor inklusive pmCancel bevaras vid arbetsytans återställning). Nästa funktionsversion är **TEST v36.53**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.53** (Radera ett lokalt projekt eller Radera alla på startsidan; lokalt projektutkast rensas också; Dropbox-filer berörs inte). Nästa funktionsversion är **TEST v36.54**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-11: SmartMatch TEST v36.53
+
+På startsidan finns nu **Radera** per lokalt sparat projekt och **Radera alla** för hela lokala projekthistoriken. Säkerhetsfråga innan radering; tar bara bort SmartMatchs lokala arkiv och tillhörande utkast i IndexedDB, aldrig PDF-filen i Filer/Dropbox. Efter radering uppdateras listan direkt. Vanliga **Stäng ritning** fortsätter att lagra en lokal säkerhetskopia automatiskt. Detta gör det möjligt att testa vad som verkligen finns i en sparad **Projekt-PDF** separat från telefonens minne. Ny `smartmatch-session-v36-53.js` används enbart i TEST. **Dropbox är inte realtidssamredigering av en PDF**: två användare som sparar samma fil kan skriva över varandras ändringar; versionskontroll/konflikthantering behövs för säkert gemensamt arbete. [SMARTMATCH_TEST_V36_53.md](SMARTMATCH_TEST_V36_53.md) beskriver tre rekommenderade tester och simulerade IndexedDB-kontroller. Fysisk Safari/Dropbox-test återstår. Ordinarie app och TestFlight orörda.
 
 ## Uppdatering 2026-10-11: SmartMatch TEST v36.52
 
