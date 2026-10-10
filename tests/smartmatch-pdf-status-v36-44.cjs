@@ -7,7 +7,7 @@ const start=source.indexOf('function smartRemoveOldProgressStreams(');
 const end=source.indexOf('\nfunction smartProgressLayer(',start);
 assert.ok(start!==-1&&end>start,'status cleanup function found');
 const text=source.slice(start,end);
-class PDFArray{constructor(items){this.items=items}asArray(){return this.items}size(){return this.items.length}}
+class PDFArray{constructor(items){this.items=items}asArray(){return this.items}size(){return this.items.length}get(index){return this.items[index]}}
 const PDFName={of:label=>label};
 const cleanup=new Function('PDFLib',text+';return smartRemoveOldProgressStreams;')({PDFName,PDFArray});
 const ctx={obj:values=>Array.isArray(values)?new PDFArray(values):values,lookup:x=>x};
