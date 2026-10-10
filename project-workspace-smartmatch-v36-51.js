@@ -5062,6 +5062,9 @@ async function smartGoHomeAfterClose({withoutArchive=false}={}){
   }catch(err){console.warn('[SmartMatch] Session could not be cleared',err)}
  }
  smartResetWorkspace();
+ // Home renders its recent-file list only after the previous project has gone
+ // and the switch guard is released.
+ smartProjectSwitchBusy=false;
  await smartShowRecentProjects();
 }
 async function smartFinishCurrentProject(){
