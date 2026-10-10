@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.41** (revisionsvy med Klart/Kundmall, borttaget synligt Anläggning / objekt och enradsrubriker 1.5/1.12). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.42**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.42** (textverktyg utan webbläsarpopup, formatering direkt på ritningen: färg, storlek, fetstil, ram, bakgrund och pilfärg/-tjocklek). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.43**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.42
+
+Text, Text + pil och Pil fick en direktredigerare för ritningen utan `window.prompt`. Efter placering eller tryck på en befintlig text/linje öppnas en kompakt på-ritningen-panel med text, färger, storlek, fetstil, ramens form/färg, bakgrundsfärg och pilens tjocklek. Ändringar förhandsvisas löpande och sparas via befintlig projektstate och undo/redo. Låt rensning/byte av verktyg avbryta osparat utkast. Pilspetsen följer vald färg. Webb/iPad/iPhone behöver praktiskt klick/drag- och tangentbordstest, och verklig PDF-export bör kontrolleras separat: v36.42 fokuserar arbetsvyns markeringar och projektmetadata. Se [SMARTMATCH_TEST_V36_42.md](SMARTMATCH_TEST_V36_42.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.41
 
