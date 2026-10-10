@@ -3990,6 +3990,11 @@ async function renderTimeReport(){
  el.timeUnknown.textContent=String(report.unknown);
  el.timeSummaryText.textContent=report.itemCount+' arbetsmoment · '+report.doneItemCount+' klara · '+Math.max(0,report.itemCount-report.doneItemCount)+' kvar · '+report.categoryCount+' aktiva tidstyper';
  el.timeRows.replaceChildren();
+ if(!report.rows.length){
+  const p=document.createElement('p');p.className='pwMuted';
+  p.textContent='Inga identifierade arbetsmoment med tidsmall i projektet ännu. Koppla dörrkort eller lägg till en egen kontrollpunkt.';
+  el.timeRows.appendChild(p);return;
+ }
  report.rows.forEach(r=>{
   const row=document.createElement('div');row.className='pwTimeRow'+(r.disabled?' disabled':'');
   const name=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');
