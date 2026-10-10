@@ -48,11 +48,11 @@ När Projektflöde diskuteras ska fokus ligga på Projektflöde och inga ändrin
 
 SmartMatch TEST är en fristående experimentversion och ska inte förväxlas med Tillsynos globala appversionsnummer.
 
-- Varje **ny ändringsomgång** i SmartMatch TEST får **nästa heltal**: v15 → v16 → v17 → v18.
-- Skapa nya `project-workspace-smartmatch-vNN.html`, `.js` och `.css` för den nya versionen. Behåll föregående version oförändrad som jämförelse/återgång.
+- SmartMatch TEST kan ha en underrevision inom samma huvudversion när användaren vill det, t.ex. v36.13 → v36.14 → v36.15. Höj bara till nästa heltal efter ett uttryckligt beslut. Använd bindestreck i filnamn för underrevisioner, t.ex. `project-workspace-smartmatch-v36-14.js`.
+- Skapa nya versionsmärkta HTML-, JS- och CSS-filer för varje ny testversion (t.ex. `project-workspace-smartmatch-v36-14.html`, `.js`, `.css`). Behåll föregående version oförändrad som jämförelse/återgång.
 - Uppdatera konsekvent sidrubrik, versionsmärkning, resursreferenser, logg- och nedladdningsnamn. Använd en separat lokal lagringsnyckel för varje testversion.
 - Läs gärna tidigare testversioners inbäddade projekt-PDF-data så att tidigare arbete går att ta med till den nya versionen. Skriv däremot nytt projektformat under den nya versionen.
-- Nuvarande senast skapade testversion: **TEST v37**. Nästa ändringsomgång blir **TEST v38**.
+- Nuvarande aktiva testversion: **TEST v36.14**. Nästa underrevision blir **TEST v36.15**.
 - **En enda fast adress för SmartMatch TEST:** `project-workspace-smartmatch-test.html` på GitHub Pages. Denna fil är alltid en full kopia av senaste `project-workspace-smartmatch-vNN.html` och länkar till samma versionsmärkta JS/CSS (ingen vidarebefordran, inget iframe).
 - **Varje gång en ny TEST vNN görs måste samma commit också uppdatera `project-workspace-smartmatch-test.html`**, så användaren alltid kan använda samma bokmärke/hemskärmsikon. Öppna den fasta adressen först för att verifiera rätt testnummer.
 - TEST-versionen betyder **inte** att Tillsyno-appen eller TestFlight har uppdaterats. Publicering dit kontrolleras separat.
