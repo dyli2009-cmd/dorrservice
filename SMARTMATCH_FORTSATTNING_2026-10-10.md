@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.51** (kompaktare mobilikoner/text, ett tryck på Stäng ritning återgår till öppna-PDF-sidan, lokal säkerhetskopia i bakgrunden). Nästa funktionsversion är **TEST v36.52**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.52** (fix för att öppna PDF B efter Stäng ritning – manuell editor inklusive pmCancel bevaras vid arbetsytans återställning). Nästa funktionsversion är **TEST v36.53**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-11: SmartMatch TEST v36.52
+
+**Akut iPhone-fel efter Stäng ritning:** Försök att öppna PDF B gav `null is not an object (evaluating "$('pmCancel').hidden=true")`. Rotorsaken: `renderGroups()` flyttar `#pwPositionEditor` in i `#pwGroups`; `smartResetWorkspace()` rensade sedan `#pwGroups` och tog därmed av misstag bort `pmCancel` och hela redigeraren ur DOM. Fix: flytta tillbaka exakt samma editor-nod till `#pwSide` **innan** rensning, stäng/redigera tillfälliga fält, skydda `pmCancel()` med DOM-null-kontroll. Testat DOM-reset **två gånger i följd** med alla sju knappar/fält bevarade. [SMARTMATCH_TEST_V36_52.md](SMARTMATCH_TEST_V36_52.md). Den fasta TEST-länken uppdaterad, tidigare v36.51 kvar, ordinarie app och iOS/TestFlight orörda. Verklig iPhone-test återstår.
 
 ## Uppdatering 2026-10-11: SmartMatch TEST v36.51
 
