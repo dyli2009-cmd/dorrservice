@@ -5001,10 +5001,10 @@ async function smartDeleteRecentProjects(hash=null,name=''){
  smartRecentDeleteBusy=true;controls.forEach(button=>button.disabled=true);
  if(status)status.textContent='Raderar lokal historik…';
  try{
-  const remove=isAll?window.SmartMatchSession?.deleteAllProjects
-   :()=>window.SmartMatchSession?.deleteProject?.(hash);
+  const session=window.SmartMatchSession;
+  const remove=isAll?session?.deleteAllProjects:session?.deleteProject;
   if(typeof remove!=='function')throw new Error('Raderingsfunktionen saknas. Uppdatera TEST-sidan.');
-  const result=await remove();
+  const result=isAll?await remove.call(session):await remove.call(session,hash);
   smartRecentDeleteBusy=false;
   await smartShowRecentProjects();
   if(status)status.textContent=isAll
