@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.46** (uppdateringsdialog med tre val och automatiskt återställda lokala ändringar efter godkänd uppdatering). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.47**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.47** (kompakt Spara: Projekt-PDF/Protokoll, Spara fil/Skicka mejl, automatisk PDF-verifiering och förberedd iOS-delning). Nästa funktionsversion är **TEST v36.48**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.47
+
+Sparningen är nu förenklad för iPhone, iPad och dator. **Spara** öppnar en kompakt ruta med **Projekt-PDF** eller **Protokoll** och bara åtgärderna **Spara fil** och **Skicka mejl**. Manuel analys/optimering och extra sparval är borttagna från den synliga vyn. Projekt-PDF förbereds och verifieras automatiskt när dialogen öppnas; protokollbilagan förbereds när urvalet visas eller ändras så att iOS kan dela PDF direkt från användarens klick. Tidigare projektdata-/statuskontroll och lokala säkerhetsutkast finns kvar. Webbens fasta TEST-sida pekar på v36.47, **inte** ordinarie TestFlight. **Observera:** praktisk iPhone/iPad/Dropbox/Mail-test och 17-automatikers återöppningstest återstår. Läs [SMARTMATCH_TEST_V36_47.md](SMARTMATCH_TEST_V36_47.md).
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.46
 
