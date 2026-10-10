@@ -59,15 +59,15 @@ dialog::backdrop{background:#061922a7}.dialogHead{padding:14px;background:#173d5
 const $=id=>document.getElementById(id), jsPdf=window.pdfjsLib;
 if(!jsPdf){$('message').textContent='PDF-biblioteket kunde inte laddas.';return}
 jsPdf.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
-let pdf=null,fileLabel='',fileSize=0,currentPage=1,scale=1,candidates=[],gsPositions=[],links={},currentFamily='',renderSeq=0,pendingManual=false,selected=null,allPages=new Map();
+let pdf=null,fileLabel='',fileSize=0,currentPage=1,scale=1,candidates=[],gsPositions=[],links={},currentFamily='',renderSeq=0,pendingManual=false,selected=null,allPages=new Map(),manualCandidates=[];
 const regNumber=/(?:\d{1,9}\s*-\s*){2,}\d{1,9}/g;
 const regGS=/\bGS\s*[- ]?\s*\d{1,4}\b/gi;
 const normalize=v=>String(v||'').toUpperCase().replace(/\s*-\s*/g,'-').replace(/\s+/g,'').trim();
 function familyOf(code){const x=normalize(code),i=x.lastIndexOf('-');return i>0?x.slice(0,i):''}
 function serialOf(code){const x=normalize(code);return x.slice(x.lastIndexOf('-')+1)}
 function persistKey(){return 'smartmatch-da-link-ste1:'+fileLabel+':'+fileSize}
-function persist(){if(!pdf)return;try{localStorage.setItem(persistKey(),JSON.stringify({family:currentFamily,links}))}catch(e){$('message').textContent='Kunde inte spara lokalt: '+e.message}}
-function restore(){try{const x=JSON.parse(localStorage.getItem(persistKey())||'{}');links=x.links||{};currentFamily=x.family||'';if(currentFamily)$('example').value=currentFamily+'-1'}catch(e){links={}}}
+function persist(){if(!pdf)return;try{localStorage.setItem(persistKey(),JSON.stringify({family:currentFamily,links,manualCandidates:candidates.filter(x=>x.id.startsWith('manual:'))}))}catch(e){$('message').textContent='Kunde inte spara lokalt: '+e.message}}
+function restore(){try{const x=JSON.parse(localStorage.getItem(persistKey())||'{}');links=x.links||{};manualCandidates=Array.isArray(x.manualCandidates)?x.manualCandidates:[];currentFamily=x.family||'';if(currentFamily)$('example').value=currentFamily+'-1'}catch(e){links={}}}
 function setMessage(txt){$('message').textContent=txt}
 function textBoxes(content){
  const items=(content.items||[]).filter(it=>it.str&&it.str.trim()).map(it=>({str:it.str,x:it.transform[4],y:it.transform[5],w:Math.max(it.width||4,4),h:Math.max(it.height||9,7)}));
@@ -186,7 +186,7 @@ $('file').onchange=async e=>{
   const bytes=new Uint8Array(await f.arrayBuffer());
   pdf=await jsPdf.getDocument({data:bytes}).promise;restore();$('pages').replaceChildren();
   for(let n=1;n<=pdf.numPages;n++){const o=document.createElement('option');o.value=n;o.textContent='Sida '+n;$('pages').appendChild(o)}
-  await indexAll();enableControls();showFamily();render();
+  await indexAll();candidates.push(...manualCandidates.filter(x=>Number(x.page)>=1&&Number(x.page)<=pdf.numPages));enableControls();showFamily();render();
   setMessage('Hittade '+candidates.length+' möjliga automatikmärkningar och '+gsPositions.length+' GS-positioner. Ange ett exempel och tryck Analysera.');
  }catch(err){console.error(err);setMessage('PDF kunde inte analyseras: '+err.message)}
 };
