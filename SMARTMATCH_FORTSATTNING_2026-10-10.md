@@ -3,9 +3,13 @@
 **Senast uppdaterad:** 2026-10-10  
 **Status:** Avstämning och överlämning; **ingen ny funktionskod** i denna commit.  
 **Repo:** `dyli2009-cmd/tillsyno`  
-**Senaste TEST-kodversion:** **SmartMatch TEST v36.34** (zoompunkt, färre Safari-omrenderingar, ikonmeny och kompakt Tid; kräver mobilkontroll). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.35**.  
+**Senaste TEST-kodversion:** **SmartMatch TEST v36.35** (fasta liggande PDF-statusstämplar bredvid GS, dolda extra stämplar i arbetsritningen; kräver riktig PDF-test). Nästa funktionsversion enligt DEVELOPMENT_RULES.md är **TEST v36.36**.  
 **Fast TEST-adress:** https://dyli2009-cmd.github.io/tillsyno/project-workspace-smartmatch-test.html  
 **Viktigt:** Detta är bara Projektflöde/SmartMatch TEST; INGA ändringar i Kontrollflöde, ordinarie Dörrservice eller iOS/TestFlight utan uttryckligt nytt beslut.
+
+## Uppdatering 2026-10-10: SmartMatch TEST v36.35
+
+Extra 100 %-text i arbetsvyn kontra lagrad PDF: flyttad från redigerbara PDF FreeText-annoteringar till horisontellt PDF-sidinnehåll nära GS. PDF-lager synligt i läsare men döljs i SmartMatch-arbetsvyn. Versionssäkra innehållsströmmar byts ut vid omexport; tidigare SM35-annoteringar städas av befintlig kod. Dokumentation: [SMARTMATCH_TEST_V36_35.md](SMARTMATCH_TEST_V36_35.md). Första exporten av äldre PDF kan visa äldre FreeText tills den nya filen öppnats. Viktigt att testa export i Filer/Acrobat och rundresa.
 
 ## Uppdatering 2026-10-10: SmartMatch TEST v36.34
 
