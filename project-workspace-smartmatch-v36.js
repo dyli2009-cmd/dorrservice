@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const SMARTMATCH_RELEASE='36.10';
+const SMARTMATCH_RELEASE='36.11';
 let manualPositions=[],positionEdits={},placement=null;
 // Initialize placement pointer eagerly: PDF loading must never encounter a TDZ after another initialization failure.
 let pmPointer=null,pmSuppressClickUntil=0;
@@ -278,10 +278,21 @@ function stateTime(s){const t=Date.parse(String(s?.updatedAt||''));return Number
 function localProjectDate(){const d=new Date(),local=new Date(d.getTime()-d.getTimezoneOffset()*60000);return local.toISOString().slice(0,10)}
 function defaultProjectMeta(){return {projectName:'',facilityNo:'',order:'',date:localProjectDate(),nextDate:'',customer:'',agreement:'',contact:'',phone:'',address:'',postalCode:'',postalCity:'',company:'',companyContact:'',companyPhone:'',companyAddress:'',companyPostalCode:'',companyPostalCity:'',technician:'',signature:''}}
 function normalizeProjectMeta(value){return {...defaultProjectMeta(),...(value&&typeof value==='object'?value:{})}}
+// A full ID includes its model and serial at the end. Strip those two
+// components rather than guessing a fixed character length. Never overwrite
+// a facility number entered by the technician.
+function inferredAutomationFacility(o){
+ const obj=String(o?.objectNo||'').trim().replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-');
+ if(obj&&/^[A-Za-z0-9ÅÄÖåäö]+(?:-[A-Za-z0-9ÅÄÖåäö]+)*$/.test(obj))return obj;
+ const id=String(o?.sourceText||'').trim().replace(/[–—]/g,'-').replace(/\s*-\s*/g,'-');
+ const parts=id.split('-').filter(Boolean);
+ return parts.length>=3?parts.slice(0,-2).join('-'):'';
+}
+
 
 function makeProjectPayload(){
  const payload={manualPositions:manualPositions.map(o=>({...o,rect:[...o.rect]})),positionEdits:JSON.parse(JSON.stringify(positionEdits)),ignoredCodes:[...ignoredCodes],labManualLinks:{...labManualLinks},schema:5,projectId:projectId||('pf-'+fileKey),updatedAt:new Date().toISOString(),sourceName:currentFileName,drawingNotes:drawingNotes.map(n=>({...n})),projectMeta:normalizeProjectMeta(projectMeta),projectLogoData:projectLogoData||'',ocrConfirmed:smartConfirmedOcr.map(o=>({page:o.page,code:o.code,rect:[...o.rect],confidence:o.confidence||0})),automationItems:automationItems.map(o=>({
-  id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',sourceKind:o.sourceKind||'',linkedGsId:o.linkedGsId||'',slrDocuments:o.slrDocuments||{},checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
+  id:o.id,page:o.page,rect:Array.isArray(o.rect)?[...o.rect]:o.rect,objectNo:o.objectNo||'',modelCode:o.modelCode||'',model:o.model||'',serialNumber:o.serialNumber||'',location:o.location||'',sourceText:o.sourceText||'',sourceKind:o.sourceKind||'',linkedGsId:o.linkedGsId||'',arrowTip:o.arrowTip||null,slrDocuments:o.slrDocuments||{},checks:o.checks||{},notes:o.notes||'',progress:Number(o.progress||0)
  })),instances:{}};
  instances.forEach(o=>payload.instances[o.id]={
   checks:o.checks||{},rowStages:o.rowStages||{},progress:o.progress||0,overrides:o.overrides||{},customItems:o.customItems||[]
@@ -1571,7 +1582,7 @@ function smartFindCardFirstTextPositions(existing=[]){
    if(smartDoorCardPages.has(p))continue;
    const candidateText=await readPageText(p);
    if(!scanPageHasRelevantText(candidateText,p))continue;
-   setState('SmartMatch TEST v36.10: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
+   setState('SmartMatch TEST v36.11: söker dörrkortens ID på ritning sida '+p+' av '+pdf.numPages+'…');
    const text=await readPageText(p),rows=groupTextRowsForAutomation(text.items);
    const matches=[];
    for(const [rowNo,row] of rows.entries()){
@@ -1634,7 +1645,7 @@ function smartFindCardFirstTextPositions(existing=[]){
  })();
 }
 
-/* SmartMatch TEST v36.10: detect floor/area names from the title block,
+/* SmartMatch TEST v36.11: detect floor/area names from the title block,
    normally in the LOWER-RIGHT of each drawing. Text is extracted from the
    original PDF at 100% scale; zoom never affects the floor label. */
 function smartTitleFromDrawingRow(value){
@@ -1704,7 +1715,7 @@ async function smartIndexDoorCardsFirst(){
  smartDoorCardIndex={};smartDoorCardPages=new Set();smartDoorCardFirstRows={};
  const uncertain=[];
  for(let p=1;p<=scanPageLimit();p++){
-  setState('SmartMatch TEST v36.10: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
+  setState('SmartMatch TEST v36.11: läser dörrkortens översta ID-rad '+p+' av '+pdf.numPages+'…');
   const pg=await pdf.getPage(p),text=await readPageText(p);
   const level=smartFindDrawingFloorLabel(text,pg.getViewport({scale:1}));
   if(level)drawingPageLevels[p]=level;
@@ -1805,7 +1816,7 @@ async function extractLabMarkedPositions(){
  // Different annotation objects remain DIFFERENT positions even when they
  // share a code or overlap. Only duplicate alternative scanner results are removed.
  const result=candidates.slice();
- setState('SmartMatch TEST v36.10: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
+ setState('SmartMatch TEST v36.11: '+annotationCodes+' riktiga PDF-markeringar hittade; söker kompletterande färgmarkeringar…');
  const graphic=await extractLabGraphicPositions(result);
  console.info('[SmartMatch TEST v36 - annotations]',{readableAnnotations:annotationCodes,nonIdMarks,totalMarkerCodes:candidates.length,extraGraphicMarkers:graphic.length});
  // Bare dimensions found near colored areas are not door positions.
@@ -2337,6 +2348,10 @@ function renderAutomationChecks(o){
 }
 function renderAutomationProtocol(o){
  if(!o)return;
+ const inferredNo=inferredAutomationFacility(o);
+ if(!String(projectMeta.facilityNo||'').trim()&&inferredNo){
+  projectMeta.facilityNo=inferredNo;save();
+ }
  syncAutomationModelFromCode(o);
  el.automationIdentity.textContent=[automationDisplayId(o),o.model].filter(Boolean).join(' · ')||'Dörrautomatik';
  el.automationModel.value=PROJECT_AUTOMATION_MODELS.some(([code])=>code===o.modelCode)?o.modelCode:'';
@@ -2385,7 +2400,7 @@ function createAutomationSelfcheckPdf(o,options={}){
  doc.setDrawColor(55,55,55);doc.setLineWidth(.22);doc.rect(left,8,width,18);addLogo(left,8,58,18);doc.line(left+58,8,left+58,26);
  txt(options.title?'EGENKONTROLL':'Dokumentnr: 2519-1',left+61,12.4,7.8,true,[25,25,25]);
  txt(heading.toLocaleUpperCase('sv').slice(0,65),left+58+(width-58)/2,18.7,options.title?Math.min(11.9,Math.max(7.1,115/Math.max(1,heading.length))):11.9,true,[25,25,25],{align:'center'});
- txt('PROJEKT',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
+ txt('SERVICE',left+1.5,36.7,11.4,true,[25,25,25]);let y=40;
  cell('Bokat datum:',meta.date,left,y,93);cell('Nästa provning:',meta.nextDate,left+93,y,93);y+=7;
  cell('ANLÄGGNING:',meta.projectName,left,y,93,7,true);cell('Anläggningsnr:',meta.facilityNo,left+93,y,93,7,true);y+=7;
  cell('UTFÖRANDE FÖRETAG:',meta.company,left,y,93,7,true);cell('KUND / BESTÄLLARE:',meta.customer,left+93,y,93,7,true);y+=7;
@@ -2395,11 +2410,12 @@ function createAutomationSelfcheckPdf(o,options={}){
  cell('Postnummer / Postadress:',[meta.companyPostalCode,meta.companyPostalCity].filter(Boolean).join(' '),left,y,93);cell('Postnummer / Postadress:',[meta.postalCode,meta.postalCity].filter(Boolean).join(' '),left+93,y,93);y+=7;
  // The model remains editable in the application's technical section, but
  // is not a separate customer-protocol field. Door placement carries context.
- cell('ID / märkning:',automationDisplayId(o),left,y,93,8,true);
- cell('AO-nummer:',meta.order,left+93,y,93,8,true);y+=8;
- const doorLocation=[o.location,o.model||o.modelCode].filter(Boolean).join(' · ');
- cell('Placering / dörrlittra:',doorLocation,left,y,136,8);
- cell('Signatur:',meta.signature,left+136,y,50,8,true,true);y+=10;
+ // Identification, placement and order reference belong on the same line.
+ // Location is technician-entered text only: do not append model, codes or
+ // other inferred values to "Dörr till garaget".
+ cell('ID / märkning:',automationDisplayId(o),left,y,66,8,true);
+ cell('Placering / dörrlittra:',o.location||'',left+66,y,70,8);
+ cell('AO-nummer:',meta.order,left+136,y,50,8,true);y+=10;
  const ws=[9,101,14,21,25,16],titles=['Nr','Benämning / kontrollpunkt','Ingår ej','Klart utan\nanmärkning','Klart med\nanmärkning','Signatur'];let x=left;
  titles.forEach((t,i)=>{doc.setFillColor(...(i===1?[226,226,226]:[238,238,238]));doc.setDrawColor(120,120,120);doc.rect(x,y,ws[i],10,'FD');doc.setFont('helvetica','bold');doc.setFontSize(i>1?6.8:8);doc.setTextColor(35,35,35);const lines=t.split('\n'),hy=lines.length===1?y+6.2:y+4.15;if(i===1)doc.text(lines,x+2,hy,{lineHeightFactor:1});else doc.text(lines,x+ws[i]/2,hy,{align:'center',lineHeightFactor:1});x+=ws[i]});y+=10;
  const notesReserve=30,rowH=Math.max(6.15,Math.min(7.8,(270-y-notesReserve)/Math.max(1,entries.length)));
@@ -2566,7 +2582,7 @@ function buildInstances(){
  drawingNotes=Array.isArray(saved.drawingNotes)?saved.drawingNotes.filter(n=>n&&Number.isFinite(Number(n.page))):[];
  labManualLinks=saved.labManualLinks&&typeof saved.labManualLinks==='object'?{...saved.labManualLinks}:{};
  projectMeta=normalizeProjectMeta(saved.projectMeta);projectLogoData=String(saved.projectLogoData||'');
- automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,linkedGsId:o.linkedGsId||'',slrDocuments:o.slrDocuments||{},checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
+ automationItems=Array.isArray(saved.automationItems)?saved.automationItems.map(o=>({...o,linkedGsId:o.linkedGsId||'',arrowTip:o.arrowTip||null,slrDocuments:o.slrDocuments||{},checks:o.checks&&typeof o.checks==='object'?o.checks:{},progress:Number(o.progress||0)})):[];
  stamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  projectStamps.sort((a,b)=>a.page-b.page||b.rect[1]-a.rect[1]||a.rect[0]-b.rect[0]);
  let baseGsIndex=0,baseProjectIndex=0;
@@ -3367,10 +3383,28 @@ function renderGroups(){
   const title=document.createElement('div');title.className='pwGroupTitle';title.innerHTML='<strong>DA · Egenkontroller</strong><span>'+visibleAutomations.length+' automatiker</span>';wrap.appendChild(title);
   const list=document.createElement('div');list.className='pwGroupItems';
   visibleAutomations.forEach(o=>{
+   const line=document.createElement('div');line.className='pwPositionLine pwDAControlLine';
    const b=document.createElement('button');b.type='button';b.className='pwPosition pwAutomationPosition';
    const left=document.createElement('span'),strong=document.createElement('strong'),small=document.createElement('small'),pct=document.createElement('b');
-   strong.textContent=automationDisplayId(o);small.textContent='Sida '+o.page+(o.model?' · '+o.model:' · typ ej avläst');pct.textContent=o.progress+'%';
-   left.append(strong,small);b.append(left,pct);b.onclick=()=>window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o);list.appendChild(b);
+   strong.textContent=automationDisplayId(o);
+   small.textContent='Sida '+o.page+(o.model?' · '+o.model:' · typ ej avläst')+(o.linkedGsId?' · GS kopplad':' · välj GS');
+   pct.textContent=o.progress+'%';
+   left.append(strong,small);b.append(left,pct);
+   b.onclick=()=>window.SmartMatchDALink?.openDoor?window.SmartMatchDALink.openDoor(o):openAutomationProtocol(o);
+   const menu=document.createElement('details');menu.className='pwPositionMore pwDAMore';
+   const title=document.createElement('summary');title.textContent='⋯';title.title='Ändra dörrautomatik '+automationDisplayId(o);title.setAttribute('aria-label',title.title);
+   menu.appendChild(title);
+   const tools=document.createElement('div');tools.className='pmRow';
+   for(const [label,fn] of [
+    ['↔ Flytta / storlek',()=>window.SmartMatchDALink?.beginMove?.(o)],
+    ['✎ Ändra',()=>window.SmartMatchDALink?.rename?.(o)],
+    ['↗ Justera pil',()=>window.SmartMatchDALink?.beginArrowAdjust?.(o)],
+    ['× Ta bort',()=>window.SmartMatchDALink?.remove?.(o)]
+   ]){
+    const button=document.createElement('button');button.type='button';button.textContent=label;
+    button.onclick=()=>{menu.open=false;fn()};tools.appendChild(button);
+   }
+   menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
   });
   wrap.appendChild(list);el.groups.appendChild(wrap);
  }
@@ -3394,7 +3428,7 @@ function renderGroups(){
    const menuTitle=document.createElement('summary');menuTitle.textContent='⋯';menuTitle.title='Visa åtgärder för '+code+' position '+o.position;menuTitle.setAttribute('aria-label',menuTitle.title);
    menu.appendChild(menuTitle);
    const tools=document.createElement('div');tools.className='pmRow';
-   for(const [label,fn] of [['↔ Flytta / storlek',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['▣ Ändra dörrkort',()=>{pmSelect(o);openLabChoices(o)}],['× Ta bort',()=>pmRemove(o)]]){
+   for(const [label,fn] of [['↔ Flytta / storlek',()=>pmPlace(o)],['✎ Ändra',()=>pmRename(o)],['× Ta bort',()=>pmRemove(o)]]){
     const action=document.createElement('button');action.type='button';action.textContent=label;action.onclick=fn;tools.appendChild(action);
    }
    menu.appendChild(tools);line.append(b,menu);list.appendChild(line);
@@ -4038,8 +4072,8 @@ async function analyze(file){
  const freeCodes=[...new Set(projectStamps.map(s=>s.code))],matchedFreeCodes=freeCodes.filter(c=>protocolMap[c]).length,matchedPositions=instances.filter(o=>!!protocolMap[o.code]).length;
  const restored=restoredCount?' · sparad arbetsstatus inläst':'';
  if(!matchedProjectInstances().length)
-  setState('SmartMatch TEST v36.10: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
- else setState('SmartMatch TEST v36.10: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
+  setState('SmartMatch TEST v36.11: inga kopplade positioner hittades. Använd Placera / koppla för att komplettera.');
+ else setState('SmartMatch TEST v36.11: '+matchedProjectInstances().length+' positioner med dörrkort hittades'+restored+'.');
  console.info('[SmartMatch TEST v36]',{seconds:Math.round((performance.now()-scanStart)/100)/10,cards:scanCardCodes.size,linked:matchedProjectInstances().length,irrelevantPages:[...scanPageEligibility.values()].filter(v=>!v).length});
  await renderDrawing();renderGroups();updateStats();smartRenderGSReport();smartRenderScanAudit();smartRenderFirstCardReport();
  // Original GS scan remains first; the DA tool is user-triggered and never auto-analyzes.
@@ -4187,7 +4221,7 @@ function smartDAInitAfterScan(){
   window.SmartMatchDALink.init(window.SmartMatchAppBridge);
   smartDAInitialized=true;
  }catch(err){
-  console.error('[SmartMatch TEST v36.10] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
+  console.error('[SmartMatch TEST v36.11] Dörrautomatikverktygets bakgrundsfunktion kunde inte startas. GS-skanningen förblir separat.',err);
  }
 }
 // Connect all optional DA actions at app startup, not after PDF scanning.

@@ -3,7 +3,7 @@
    The original GS/door-card scanner remains the source of truth for door positions. */
 window.SmartMatchDALink=(()=>{
  'use strict';
- let context=null,exampleFamily='',manualPending='',selectedId='',busy=false,controlsReady=false,pendingGSItemId='';
+ let context=null,exampleFamily='',manualPending='',selectedId='',busy=false,controlsReady=false,pendingGSItemId='',editMarkerId='',editingArrowId='',moveGesture=null,movePreview=null;
  const ctx=()=>window.SmartMatchAppBridge||context;
  const loaded=()=>{try{return !!ctx()?.getPdf?.()}catch(err){console.warn('DA PDF readiness',err);return false}};
  const $=id=>document.getElementById(id);
@@ -153,6 +153,115 @@ window.SmartMatchDALink=(()=>{
   }catch(err){console.error('[SmartMatch DA analyze]',err);status('Analysfel: '+(err.message||err))}
   finally{busy=false;$('pwDAAnalyze').disabled=false}
  }
+
+ // Automations get the same transparent rectangle style for every family
+ // member, but retain their own independent PDF coordinates and GS link.
+ function selectedItem(id){return ctx()?.getItems?.().find(o=>o.id===id)||null}
+ function markerLabel(o){return o?.sourceText||[o?.objectNo,o?.modelCode,o?.serialNumber].filter(Boolean).join('-')}
+ function hideMovePreview(){if(movePreview){movePreview.remove();movePreview=null}}
+ function stopMove(){editMarkerId='';moveGesture=null;hideMovePreview();$('pwStage').classList.remove('pwDAMoving')}
+ async function beginMove(o){
+  if(!loaded()||!o)return;
+  editMarkerId=o.id;editingArrowId='';
+  await ctx().locate(o);
+  $('pwStage').classList.add('pwDAMoving');
+  ctx().setStatus('Flytta / storlek: tryck för att flytta '+markerLabel(o)+', eller dra ut en rektangel kring märkningen. Samma storlek används för märkningar i samma familj.');
+ }
+ function rename(o){
+  if(!o)return;
+  const raw=window.prompt('Ändra märkning för denna automatik:',markerLabel(o));
+  if(raw===null)return;
+  const name=normalize(raw);
+  if(!valid(name)){window.alert('Skriv ett fullständigt objektnummer, till exempel 70154-78-24-11.');return}
+  const parts=name.split('-'),serialNumber=parts.pop(),modelCode=parts.pop(),objectNo=parts.join('-');
+  o.objectNo=objectNo;o.modelCode=modelCode;o.serialNumber=serialNumber;o.sourceText=name;
+  o.model=ctx().getModels().find(x=>x[0]===modelCode)?.[1]||o.model||modelCode;
+  ctx().save();ctx().redraw();ctx().setStatus('Märkningen ändrad till '+name+' för denna egenkontroll.');
+ }
+ function remove(o){
+  if(!o||!window.confirm('Ta bort egenkontrollen '+markerLabel(o)+' och dess GS-koppling?'))return;
+  const items=ctx().getItems(),idx=items.findIndex(x=>x.id===o.id);
+  if(idx>=0)items.splice(idx,1);
+  if(editMarkerId===o.id)stopMove();
+  if(editingArrowId===o.id)editingArrowId='';
+  ctx().save();ctx().redraw();ctx().setStatus('Egenkontrollen är borttagen från projektet.');
+ }
+ function beginArrowAdjust(o){
+  if(!o)return;
+  if(!o.linkedGsId){openDoor(o);ctx().setStatus('Koppla först rätt GS-position, sedan kan du justera pilen.');return}
+  editingArrowId=o.id;stopMove();
+  void ctx().locate(o).then(()=>ctx().redraw());
+  ctx().setStatus('Justera pil: dra den blå runda punkten på ritningen till önskad kant på GS-stämpeln. Zooma gärna in för precision.');
+ }
+ function previewForMove(start,end){
+  if(!movePreview){movePreview=document.createElement('div');movePreview.className='pmDragPreview';movePreview.setAttribute('aria-hidden','true');$('pwStage').appendChild(movePreview)}
+  const left=Math.min(start.x,end.x),top=Math.min(start.y,end.y);
+  Object.assign(movePreview.style,{left:left+'px',top:top+'px',
+    width:Math.max(20,Math.abs(end.x-start.x))+'px',
+    height:Math.max(18,Math.abs(end.y-start.y))+'px'});
+  movePreview.textContent='';
+ }
+ function stageXY(e){const r=$('pwStage').getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}}
+ async function commitMove(start,end,dragged){
+  const item=selectedItem(editMarkerId);if(!item||!loaded())return;
+  try{
+   const pg=await ctx().getPdf().getPage(ctx().getPage()),vp=pg.getViewport({scale:ctx().getScale()});
+   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),old=ctx().viewportRect(vp,item.rect);
+   let x,y,w,h;
+   if(dragged){
+    x=clamp(Math.min(start.x,end.x),0,vp.width);y=clamp(Math.min(start.y,end.y),0,vp.height);
+    w=Math.min(Math.max(28,Math.abs(end.x-start.x)),vp.width-x);
+    h=Math.min(Math.max(20,Math.abs(end.y-start.y)),vp.height-y);
+   }else{
+    w=Math.max(42,old.width);h=Math.max(23,old.height);
+    x=clamp(end.x-w/2,0,vp.width-w);y=clamp(end.y-h/2,0,vp.height-h);
+   }
+   const corner=vp.convertToPdfPoint(x,y),other=vp.convertToPdfPoint(x+w,y+h);
+   const next=[Math.min(corner[0],other[0]),Math.min(corner[1],other[1]),Math.max(corner[0],other[0]),Math.max(corner[1],other[1])];
+   const prior=item.rect;
+   item.rect=next;item.page=ctx().getPage();
+   if(dragged){
+    // Reuse the exact chosen rectangle size for other already-detected
+    // members of this family, centered on their own original coordinates.
+    // Their locations are never copied from this door.
+    const dw=next[2]-next[0],dh=next[3]-next[1];
+    for(const peer of ctx().getItems()){
+     if(peer.id===item.id||family(markerLabel(peer))!==family(markerLabel(item)))continue;
+     const [cx,cy]=point(peer.rect);
+     peer.rect=[cx-dw/2,cy-dh/2,cx+dw/2,cy+dh/2];
+    }
+   }
+   ctx().save();ctx().redraw();
+   ctx().setStatus('Position och storlek sparad för '+markerLabel(item)+'. '+(dragged?'Samma markeringsstorlek används för övriga märkningar i familjen.':'Placeringen ändrades utan att rutan krympte.'));
+  }catch(err){console.error(err);ctx().setStatus('Kunde inte ändra storleken: '+(err.message||err))}
+  finally{stopMove()}
+ }
+ function bindMoveGestures(){
+  const stage=$('pwStage');
+  stage.addEventListener('pointerdown',e=>{
+   if(!editMarkerId)return;
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   e.preventDefault();e.stopImmediatePropagation();
+   moveGesture={id:e.pointerId,start:stageXY(e)};
+   try{stage.setPointerCapture(e.pointerId)}catch(_){}
+  },true);
+  stage.addEventListener('pointermove',e=>{
+   if(!moveGesture||e.pointerId!==moveGesture.id)return;
+   e.preventDefault();e.stopImmediatePropagation();
+   const pt=stageXY(e);
+   if(Math.hypot(pt.x-moveGesture.start.x,pt.y-moveGesture.start.y)>6)previewForMove(moveGesture.start,pt);
+  },true);
+  stage.addEventListener('pointerup',e=>{
+   if(!moveGesture||e.pointerId!==moveGesture.id)return;
+   e.preventDefault();e.stopImmediatePropagation();
+   const start=moveGesture.start,end=stageXY(e);
+   moveGesture=null;hideMovePreview();
+   void commitMove(start,end,Math.hypot(end.x-start.x,end.y-start.y)>=12);
+  },true);
+  stage.addEventListener('pointercancel',()=>{if(editMarkerId)stopMove()},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&editMarkerId)stopMove()});
+ }
+
  function openDoor(o){
   if(!o)return;selectedId=o.id;
   $('pwDADoorTitle').textContent=[o.objectNo,o.modelCode,o.serialNumber].filter(Boolean).join('-');
@@ -196,21 +305,89 @@ window.SmartMatchDALink=(()=>{
  }
  function drawArrows(viewport,items,renderPage){
   const svg=$('pwDAArrows');if(!svg)return;
+  svg.classList.toggle('pwDAArrowEdit',!!editingArrowId);
   svg.replaceChildren();svg.setAttribute('width',viewport.width);svg.setAttribute('height',viewport.height);
   svg.setAttribute('viewBox','0 0 '+viewport.width+' '+viewport.height);
   if(renderPage!==ctx().getPage())return;
-  const ns='http://www.w3.org/2000/svg',defs=document.createElementNS(ns,'defs'),marker=document.createElementNS(ns,'marker');
-  marker.id='pwDALinkArrowhead';[['markerWidth','8'],['markerHeight','8'],['refX','7'],['refY','3'],['orient','auto']].forEach(([k,v])=>marker.setAttribute(k,v));
-  const tri=document.createElementNS(ns,'path');tri.setAttribute('d','M0 0 L7 3 L0 6 z');tri.setAttribute('fill','#116a97');
+  const ns='http://www.w3.org/2000/svg',make=(tag)=>document.createElementNS(ns,tag);
+  const defs=make('defs'),marker=make('marker');
+  marker.id='pwDALinkArrowhead';
+  [['markerWidth','7'],['markerHeight','7'],['refX','6'],['refY','3'],['orient','auto']].forEach(([k,v])=>marker.setAttribute(k,v));
+  const tri=make('path');tri.setAttribute('d','M0 0 L6 3 L0 6 Z');tri.setAttribute('fill','#176f9b');
   marker.appendChild(tri);defs.appendChild(marker);svg.appendChild(defs);
-  items.forEach(item=>{
-   const target=ctx().getPositions().find(g=>g.id===item.linkedGsId&&g.page===item.page);if(!target)return;
-   const a=ctx().viewportRect(viewport,item.rect),b=ctx().viewportRect(viewport,target.rect);
-   const arrow=document.createElementNS(ns,'path');
-   arrow.setAttribute('d','M'+(a.left+a.width/2)+','+(a.top+a.height/2)+' L'+(b.left+b.width/2)+','+(b.top+b.height/2));
-   arrow.setAttribute('stroke','#116a97');arrow.setAttribute('stroke-width','2');arrow.setAttribute('fill','none');
-   arrow.setAttribute('marker-end','url(#pwDALinkArrowhead)');svg.appendChild(arrow);
-  });
+  const middle=r=>({x:r.left+r.width/2,y:r.top+r.height/2});
+  function edge(r,toward){
+   const center=middle(r),dx=toward.x-center.x,dy=toward.y-center.y;
+   const halfW=Math.max(1,r.width/2),halfH=Math.max(1,r.height/2);
+   const ratio=Math.min(dx?halfW/Math.abs(dx):Infinity,dy?halfH/Math.abs(dy):Infinity);
+   return {x:center.x+dx*ratio,y:center.y+dy*ratio};
+  }
+  function tipFromRect(rect,from,stored){
+   if(!stored||!Number.isFinite(stored.u)||!Number.isFinite(stored.v))return edge(rect,from);
+   const u=Math.max(0,Math.min(1,stored.u)),v=Math.max(0,Math.min(1,stored.v));
+   return {x:rect.left+rect.width*u,y:rect.top+rect.height*v};
+  }
+  function snapTip(rect,x,y){
+   let u=Math.max(0,Math.min(1,(x-rect.left)/Math.max(1,rect.width)));
+   let v=Math.max(0,Math.min(1,(y-rect.top)/Math.max(1,rect.height)));
+   const nearest=Math.min(u,1-u,v,1-v);
+   if(nearest===u)u=0;else if(nearest===1-u)u=1;else if(nearest===v)v=0;else v=1;
+   return {u,v};
+  }
+  for(const item of items){
+   const gs=ctx().getPositions().find(g=>g.id===item.linkedGsId&&g.page===item.page);
+   if(!gs)continue;
+   const a=ctx().viewportRect(viewport,item.rect),b=ctx().viewportRect(viewport,gs.rect);
+   let tip=tipFromRect(b,middle(a),item.arrowTip),start=edge(a,tip);
+   const line=make('path');
+   const setLine=()=>{
+    start=edge(a,tip);
+    line.setAttribute('d','M'+start.x+','+start.y+' L'+tip.x+','+tip.y);
+   };
+   setLine();
+   line.setAttribute('stroke','#176f9b');line.setAttribute('stroke-width','1.7');
+   line.setAttribute('fill','none');line.setAttribute('marker-end','url(#pwDALinkArrowhead)');
+   line.setAttribute('stroke-linecap','round');
+   svg.appendChild(line);
+   if(item.id!==editingArrowId)continue;
+   // The only visible edit affordance is at the arrow tip. It can be
+   // repositioned on touch screens without covering the GS text.
+   const handle=make('circle');
+   handle.setAttribute('cx',tip.x);handle.setAttribute('cy',tip.y);
+   handle.setAttribute('r','9');handle.setAttribute('fill','#fff7d8');
+   handle.setAttribute('stroke','#176f9b');handle.setAttribute('stroke-width','2');
+   handle.setAttribute('class','pwDAArrowHandle');
+   handle.setAttribute('aria-label','Dra pilspets på kanten av '+gs.code);
+   handle.style.pointerEvents='auto';handle.style.touchAction='none';
+   const locatePointer=e=>{
+    const bounds=svg.getBoundingClientRect();
+    return {x:(e.clientX-bounds.left)*viewport.width/Math.max(1,bounds.width),
+      y:(e.clientY-bounds.top)*viewport.height/Math.max(1,bounds.height)};
+   };
+   let dragging=false;
+   handle.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    e.preventDefault();e.stopPropagation();dragging=true;
+    try{handle.setPointerCapture(e.pointerId)}catch(_){}
+   });
+   handle.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    e.preventDefault();e.stopPropagation();
+    const p=locatePointer(e),uv=snapTip(b,p.x,p.y);
+    tip=tipFromRect(b,middle(a),uv);setLine();
+    handle.setAttribute('cx',tip.x);handle.setAttribute('cy',tip.y);
+   });
+   handle.addEventListener('pointerup',e=>{
+    if(!dragging)return;dragging=false;
+    e.preventDefault();e.stopPropagation();
+    const p=locatePointer(e),uv=snapTip(b,p.x,p.y);
+    item.arrowTip=uv;editingArrowId='';
+    ctx().save();ctx().redraw();
+    ctx().setStatus('Pilens spets sparad på kanten av '+gs.code+'. Du kan justera igen via ⋯.');
+   });
+   handle.addEventListener('pointercancel',()=>{dragging=false;editingArrowId='';ctx().redraw()});
+   svg.appendChild(handle);
+  }
  }
  // Always wire the entry button during script evaluation. This fixes the
  // v36.5 dead-button issue when the scan never reached the late init call.
@@ -251,7 +428,8 @@ window.SmartMatchDALink=(()=>{
   $('pwDALinkDialog').addEventListener('cancel',e=>{e.preventDefault();closeTool()});
   $('pwDADoorDialog').addEventListener('cancel',e=>{e.preventDefault();closeDoor()});
   $('pwStage').addEventListener('pointerdown',e=>{if(manualPending)void placeManual(e)},true);
+  bindMoveGestures();
  }
  init(null);
- return {init,openDoor,drawArrows,onGSClick,onProjectOpened(){manualPending='';selectedId='';pendingGSItemId='';exampleFamily=''}};
+ return {init,openDoor,drawArrows,onGSClick,beginMove,rename,remove,beginArrowAdjust,onProjectOpened(){stopMove();editingArrowId='';manualPending='';selectedId='';pendingGSItemId='';exampleFamily=''}};
 })();

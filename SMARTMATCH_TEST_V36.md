@@ -129,3 +129,27 @@
 - Kundmallens logotyp, kontrollresultat, anmärkningsval, sammanställning av anmärkningar och PDF-export är kvar.
 
 **Kontroll före publicering:** statisk JS-syntax, unika/behållna HTML-ID, existerande projekthändelser och PDF-rubrikernas layout. Verklig PDF-granskning på iPad måste göras med kundens PDF.
+
+## v36.11 – SERVICE och positioner med ⋯-meny (2026-10-10)
+
+**Kundmall**
+- Rubriken i revisions-PDF är nu **SERVICE** i stället för PROJEKT.
+- Extra signaturruta i övre informationsdelen tas bort. Enbart den befintliga signaturkolumnen längst till höger på varje kontrollrad används.
+- Fältordningen är **ID-märkning | Placering / dörrlittra | AO-nummer** på samma rad.
+- Placering i kundmallen visar endast teknikerangiven placering (ex. `Dörr till garaget`), inte modell, ID eller annat som systemet har härlett.
+- När en egenkontroll öppnas med tomt anläggningsnummer fyller systemet i läsbar anläggningsdel från automatik-ID (objektnummer exklusive modell/löpnummer): `70154-78-24-11` -> `70154-78`, `2001-54-28` -> `2001`. Manuellt angivet nummer skrivs aldrig över.
+- Ordinarie projektnamn, datum, AO och placering matas fortsatt in manuellt. Projektsparning, företagslogga, anmärkningsknappar, godkänn alla och revisions-PDF är oförändrade i övrigt.
+
+**Positionsverktygen**
+- **GS-/projektpositioner:** menyn `⋯` behåller `Flytta / storlek`, `Ändra`, `Ta bort`. Alternativet `Ändra dörrkort` tas bort från just denna meny (annan dörrkortsfunktion finns kvar separat).
+- **DA / Egenkontroller:** varje position får en `⋯`-meny med `Flytta / storlek`, `Ändra`, `Justera pil` och `Ta bort`.
+- När en DA-märkning justeras kan man trycka för att flytta eller dra ut rektangeln. Rektangelstorleken används som gemensam visuell mall för andra redan hittade automatiker i **samma märkningsfamilj**; varje märkning förblir centrerad på sin egen plats och behåller sitt eget unika ID, sin checklista och GS-koppling.
+- Klickytor är genomskinliga och döljer inte originaltexten i PDF-filen.
+
+**Pilar**
+- Automatisk pil börjar vid automatiksymbolens kant och slutar vid närmaste kant på GS-rutan, så texten som står i mitten inte täcks.
+- Alternativet `Justera pil` visar ett runt blått draghandtag på pilspetsen. Dra med mus/finger mot lämplig kant på GS-stämpeln. Pilspetsen snäpper till kanten och sparas som normaliserad koordinat `arrowTip` per automatik.
+- `arrowTip` sparas i projektstatus/PDF-data och laddas tillbaka; zoom eller byte av ritningssida påverkar inte relativa pilspetsens position.
+- En GS-koppling behöver finnas innan pilen kan justeras. Både standardpil och manuellt justerad pil fortsätter att tillhöra rätt unika GS-position.
+
+**Säkerhet:** Huvudflödet för PDF-inläsning och GS-/dörrkortsskanning är oförändrat. De nya funktionerna lever i den isolerade SmartMatch-testversionen, inte i produktion eller iOS. Verkligt test med användarens ritning återstår.

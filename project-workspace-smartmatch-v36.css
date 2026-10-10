@@ -1123,3 +1123,30 @@ button,.pwOpen{font:inherit;border:1px solid var(--line);background:#fff;color:#
  .pwRevisionData label input,.pwRevisionData label select{font-size:16px;min-height:37px}
  .pwRevisionData .pwRevisionAdvancedGrid{grid-template-columns:1fr}
 }
+
+
+/* SmartMatch TEST v36.11: compact automation actions and editable arrow tip. */
+.pwDAControlLine{position:relative;display:flex;align-items:stretch;gap:4px;width:100%;min-width:0}
+.pwDAControlLine>.pwAutomationPosition{min-width:0;flex:1 1 auto;text-align:left}
+.pwDAControlLine>.pwDAMore{flex:0 0 auto;align-self:stretch;position:relative}
+.pwDAControlLine>.pwDAMore>summary{display:grid;place-items:center;min-width:36px;min-height:38px;
+ background:#edf4f8;border:1px solid #c8dae3;border-radius:7px;cursor:pointer;
+ color:#1f546e;font-size:20px;line-height:1;list-style:none}
+.pwDAControlLine>.pwDAMore>summary::-webkit-details-marker{display:none}
+.pwDAControlLine>.pwDAMore[open]>summary{background:#dfeef5}
+.pwDAControlLine>.pwDAMore>.pmRow{position:absolute;right:0;top:100%;z-index:125;
+ display:grid;grid-template-columns:1fr;gap:3px;width:min(230px,74vw);
+ padding:5px;background:#fff;border:1px solid #cedfe8;border-radius:8px;
+ box-shadow:0 8px 25px rgba(0,0,0,.22)}
+.pwDAControlLine>.pwDAMore>.pmRow button{min-height:38px!important;width:100%;text-align:left;
+ font-size:12px!important;padding:8px 10px}
+.pwStage.pwDAMoving{cursor:crosshair!important;touch-action:none!important}
+.pwStage.pwDAMoving #pwMarkers,.pwStage.pwDAMoving #pwAutomationMarkers{pointer-events:none!important}
+.pwStage.pwDAMoving #pwMarkers button,.pwStage.pwDAMoving #pwAutomationMarkers button{pointer-events:none!important}
+.pwDAArrows.pwDAArrowEdit{z-index:35!important;pointer-events:none}
+.pwDAArrows .pwDAArrowHandle{pointer-events:all!important;cursor:grab;touch-action:none}
+.pwDAArrows .pwDAArrowHandle:active{cursor:grabbing}
+@media(max-width:560px){
+ .pwDAControlLine>.pwDAMore>summary{min-width:40px;min-height:40px}
+ .pwDAControlLine>.pwDAMore>.pmRow{min-width:190px}
+}
